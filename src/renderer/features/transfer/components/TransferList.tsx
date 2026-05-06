@@ -1,0 +1,107 @@
+import type React from 'react'
+import { ArrowUpDown } from 'lucide-react'
+import { useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TransferTask } from '@shared/types/transfer.js'
+import { FILE_TYPE } from '@shared/constants/index.js'
+import { TRANSFER_CONFIG } from '@shared/constants/transfer.js'
+import { useTransferActions } from '../hooks/use-transfer-actions.js'
+import { useTransferSort } from '../hooks/use-transfer-sort.js'
+import { TransferActionBar } from './TransferActionBar.js'
+import { TransferTaskItem } from './TransferTaskItem.js'
+import { VirtualRows } from './VirtualRows.js'
+
+// Main row: h-10 (40px) + border-b (1px) = 41px
+const FILE_ROW_HEIGHT = 41
+// Path rows: pt-0.5 (2px) + 2 lines (13px font, ~20px line-height + py-0.5*2 = ~24px each) + pb-2 (8px) + border-b (1px) = 59px
+const PATH_ROWS_HEIGHT = 59
+const FOLDER_HEADER_HEIGHT = 41
+// Sub-operation row: h-8 (32px)
+const FOLDER_OP_ROW_HEIGHT = 32
+// Folder sub-ops container border-b (1px)
+const FOLDER_OPS_BORDER = 1
+
+export function taskRowHeight(task: TransferTask | undefined): number {
+  if (task?.itemType !== FILE_TYPE.DIRECTORY) return FILE_ROW_HEIGHT + PATH_ROWS_HEIGHT
+  return (
+    FOLDER_HEADER_HEIGHT +
+    PATH_ROWS_HEIGHT +
+    TRANSFER_CONFIG.MAX_INLINE_OPERATIONS * FOLDER_OP_ROW_HEIGHT +
+    FOLDER_OPS_BORDER
+  )
+}
+
+interface TransferListProps {
+  tasks: TransferTask[]
+  onCancelAll: () => void
+}
+
+export const TransferList = ({ tasks, onCancelAll }: TransferListProps) => {
+  const { t } = useTranslation()
+  const { sortBy, sortOrder, setSort, sortedTasks } = useTransferSort(tasks)
+  const { retryTask, cancelTask } = useTransferActions()
+
+  const handleRetry = useCallback(
+    (taskId: string) => {
+      void retryTask(taskId)
+    },
+    [retryTask],
+  )
+
+  const handleCancel = useCallback(
+    (taskId: string) => {
+      void cancelTask(taskId)
+    },
+    [cancelTask],
+  )
+
+  const renderItem = useCallback(
+    (task: TransferTask, _index: number, style: React.CSSProperties) => (
+      <TransferTaskItem
+        key={task.id}
+        task={task}
+        onRetry={handleRetry}
+        onCancel={handleCancel}
+        onRemove={handleCancel}
+        style={style}
+      />
+    ),
+    [handleCancel, handleRetry],
+  )
+
+  const estimateSize = useCallback(
+    (index: number) => taskRowHeight(sortedTasks[index]),
+    [sortedTasks],
+  )
+
+  return (
+    <div className="flex-1 flex flex-col min-w-0">
+      <TransferActionBar
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={setSort}
+        onCancelAll={onCancelAll}
+      />
+
+      <div className="flex-1 min-h-0">
+        {sortedTasks.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center gap-3">
+            <div
+              className={`
+                w-16 h-16 rounded-xl
+                bg-hover border border-border flex items-center justify-center
+              `}
+            >
+              <ArrowUpDown className="w-7 h-7 stroke-text-muted stroke-[1.5]" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-medium text-text mb-1">{t(($) => $.transfer.empty)}</p>
+            </div>
+          </div>
+        ) : (
+          <VirtualRows items={sortedTasks} estimateSize={estimateSize} renderRow={renderItem} />
+        )}
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,35 @@
+import { ChevronLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { ROOT_PATH } from '@shared/constants/index.js'
+
+interface ParentDirectoryButtonProps {
+  currentPath: string
+  onNavigate: () => void
+}
+
+export const ParentDirectoryButton = ({ currentPath, onNavigate }: ParentDirectoryButtonProps) => {
+  const { t } = useTranslation()
+
+  if (currentPath === ROOT_PATH) {
+    return null
+  }
+
+  return (
+    <div className="flex items-center justify-center py-2.5 border-t border-border">
+      <button
+        onClick={onNavigate}
+        className={`
+          px-3.5 py-1.5 rounded bg-transparent border border-border
+          cursor-pointer text-xs text-text flex items-center gap-1.5
+          hover:bg-hover transition-colors
+          focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
+        `}
+      >
+        <ChevronLeft className="w-3.5 h-3.5 stroke-current stroke-2" />
+        {t(($) => $.fileExplorerList.parentDirectory)}
+      </button>
+    </div>
+  )
+}
+
+export default ParentDirectoryButton

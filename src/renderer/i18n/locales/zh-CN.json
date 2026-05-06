@@ -1,0 +1,319 @@
+{
+  "translation": {
+    "activityBar": {
+      "connections": "连接",
+      "transfers": "传输"
+    },
+    "app": {
+      "name": "Rivet",
+      "subtitle": "SFTP / WebDAV 文件浏览器"
+    },
+    "common": {
+      "action": {
+        "cancel": "取消",
+        "close": "关闭",
+        "confirm": "确认",
+        "create": "创建",
+        "delete": "删除",
+        "refresh": "刷新"
+      },
+      "close": "关闭",
+      "selectPlaceholder": "请选择...",
+      "sort": {
+        "asc": "升序",
+        "desc": "降序"
+      }
+    },
+    "confirmationDialog": {
+      "confirmDeleteMessage": "确定要删除此项吗？",
+      "confirmDeleteMultipleMessage": "确定要删除 {{count}} 个项目吗？",
+      "confirmDeleteMultipleTitle": "删除项目",
+      "confirmDeleteTitle": "删除项目",
+      "deleteConnectionMessage": "确定要删除此连接吗？",
+      "deleteConnectionTitle": "删除连接"
+    },
+    "conflict": {
+      "applyToAll": "应用到全部",
+      "cannotOverwrite": "无法覆盖（目标为目录）",
+      "globalAction": "统一策略",
+      "keepBoth": "保留两者",
+      "overwrite": "覆盖",
+      "skip": "跳过",
+      "source": "源文件",
+      "target": "目标位置",
+      "title": "文件冲突"
+    },
+    "connection": {
+      "connect": "连接",
+      "connections": "连接列表",
+      "disconnect": "断开连接",
+      "edit": "编辑",
+      "moreActions": "更多操作",
+      "newConnection": "新建连接",
+      "newConnectionHint": "创建您的第一个连接",
+      "noConnections": "暂无连接"
+    },
+    "connectionDialog": {
+      "agentPath": "SSH agent 路径",
+      "agentPathPlaceholder": "留空使用默认 agent",
+      "askPasswordOnConnect": "每次连接需要密码",
+      "authAgent": "SSH agent",
+      "authKind": "认证方式",
+      "authPassword": "密码",
+      "authPrivateKey": "私钥",
+      "basePath": "基础路径",
+      "basePathPlaceholder": "/dav/files",
+      "browse": "浏览",
+      "certWarningMessage": "您正在连接到一个证书无效的服务器。请自行承担风险继续。",
+      "certWarningTitle": "证书警告",
+      "connectFailed": "连接失败",
+      "connecting": "连接中...",
+      "continue": "继续",
+      "editTitle": "编辑连接",
+      "fillRequired": "请填写所有必填字段",
+      "host": "主机",
+      "hostPlaceholder": "192.168.1.100",
+      "invalidPort": "无效端口号",
+      "name": "名称",
+      "namePlaceholder": "输入连接名称",
+      "passphrase": "私钥口令",
+      "passphrasePlaceholder": "输入私钥口令（可留空）",
+      "password": "密码",
+      "passwordPlaceholder": "输入密码",
+      "passwordRequired": "请输入密码",
+      "port": "端口",
+      "privateKeyPath": "私钥文件",
+      "privateKeyPathPlaceholder": "选择或输入私钥路径",
+      "privateKeyRequired": "请选择私钥文件",
+      "protocol": "协议",
+      "protocolSftp": "SFTP",
+      "protocolWebdav": "WebDAV",
+      "rejectUnauthorized": "拒绝未授权证书",
+      "save": "保存",
+      "saveSecret": "保存密码",
+      "scheme": "协议类型",
+      "schemeHttp": "HTTP",
+      "schemeHttps": "HTTPS",
+      "secretSavedPlaceholder": "已保存，留空保持不变",
+      "subtitle": "创建新连接",
+      "username": "用户名",
+      "usernamePlaceholder": "输入用户名"
+    },
+    "error": {
+      "noOperationPending": "没有待处理的操作",
+      "unknown": "未知错误",
+      "unknownName": "未知",
+      "unknownProtocol": "未知协议"
+    },
+    "errors": {
+      "AGENT_NO_IDENTITY": "SSH agent 中没有可用身份",
+      "AGENT_NOT_AVAILABLE": "SSH agent 不可用",
+      "ALREADY_EXISTS": "目标已存在",
+      "AUTH_ERROR": "认证失败",
+      "CONFIG_ERROR": "配置读写失败",
+      "CONN_FAILED": "连接失败",
+      "CONN_NOT_FOUND": "连接不存在",
+      "COPY_ERROR": "复制失败",
+      "DECRYPT_FORMAT_ERROR": "秘密格式不受支持，请重新输入",
+      "DECRYPT_UNAVAILABLE": "系统密钥链不可用",
+      "DECRYPTION_ERROR": "秘密解密失败",
+      "DELETE_ERROR": "删除失败",
+      "DOWNLOAD_ERROR": "下载失败",
+      "HOST_KEY_ERROR": "主机密钥校验失败",
+      "HOST_KEY_MISMATCH": "主机密钥已变化，连接被阻断",
+      "HOST_KEY_UNKNOWN": "未知主机密钥，请确认后才可连接",
+      "INVALID_CONFIG": "配置无效",
+      "INVALID_STATE": "当前状态不允许此操作",
+      "KEY_FILE_UNREADABLE": "无法读取私钥文件",
+      "KEY_PARSE_FAILED": "无法解析私钥",
+      "LIST_FAILED": "列出目录失败",
+      "LIST_TIMEOUT": "列出目录超时",
+      "MKDIR_ERROR": "新建文件夹失败",
+      "MOVE_ERROR": "移动失败",
+      "NOT_FOUND": "目标不存在",
+      "NOT_SUPPORTED": "当前服务器不支持此操作",
+      "PASSPHRASE_REQUIRED": "需要私钥口令",
+      "PATH_ERROR": "路径处理失败",
+      "PATH_TRAVERSAL": "路径越界",
+      "PERMISSION_DENIED": "没有权限",
+      "RENAME_ERROR": "重命名失败",
+      "REQUEST_ABORTED": "请求已取消",
+      "REQUEST_TIMEOUT": "请求超时",
+      "SELF_CONTAINED": "不能操作自身或其子目录",
+      "UNKNOWN": "操作失败",
+      "UPLOAD_ERROR": "上传失败"
+    },
+    "file": {
+      "action": {
+        "copy": "复制",
+        "download": "下载",
+        "move": "移动",
+        "newFolder": "新建文件夹",
+        "properties": "属性",
+        "rename": "重命名",
+        "upload": "上传",
+        "uploadFiles": "上传文件...",
+        "uploadFolder": "上传文件夹..."
+      },
+      "dropToUpload": "拖放以上传"
+    },
+    "fileExplorerList": {
+      "dateModified": "修改日期",
+      "disconnected": "已断开连接",
+      "empty": "空目录",
+      "error": "加载失败",
+      "loading": "加载中...",
+      "name": "名称",
+      "owner": "所有者",
+      "parentDirectory": "上级目录",
+      "permissions": "权限",
+      "reconnectHint": "点击重新连接",
+      "retry": "重试",
+      "size": "大小",
+      "truncated": "目录条目超过 20000，仅显示前 20000 项",
+      "viewGrid": "宫格视图",
+      "viewList": "列表视图"
+    },
+    "folderProperties": {
+      "calculate": "计算",
+      "calculating": "计算中...",
+      "cancelCalculation": "取消",
+      "cancelled": "计算已取消",
+      "completed": "计算完成",
+      "errorCount": "失败目录: {{count}}",
+      "failed": "计算失败",
+      "fileCount": "文件数",
+      "folderCount": "文件夹数",
+      "modifyTime": "修改时间",
+      "owner": "所有者",
+      "permissions": "权限",
+      "recalculate": "重新计算",
+      "scanning": "正在扫描: {{path}}",
+      "size": "大小"
+    },
+    "hostKey": {
+      "algorithm": "密钥算法",
+      "fingerprint": "主机密钥指纹",
+      "host": "主机",
+      "mismatchTitle": "主机密钥不匹配",
+      "mismatchWarning": "主机密钥指纹已更改。这可能表示存在中间人攻击。请在继续前与服务器管理员核实。",
+      "previousFingerprint": "先前指纹",
+      "trustAndConnect": "信任并连接",
+      "trustNew": "信任新密钥",
+      "unknownTitle": "验证主机密钥",
+      "unknownWarning": "您正在首次连接到此服务器。请验证下方的主机密钥指纹是否与服务器管理员提供的一致。"
+    },
+    "language": {
+      "chinese": "中文",
+      "english": "English",
+      "enShort": "EN",
+      "zhShort": "中文"
+    },
+    "mainLayout": {
+      "darkMode": "深色模式",
+      "lightMode": "浅色模式",
+      "system": "系统"
+    },
+    "passwordInput": {
+      "hidePassword": "隐藏密码",
+      "showPassword": "显示密码"
+    },
+    "sortButton": {
+      "sortConnections": "排序连接"
+    },
+    "targetFolderDialog": {
+      "title": "选择目标文件夹"
+    },
+    "textInputDialog": {
+      "folderNamePlaceholder": "文件夹名称",
+      "newFolderPlaceholder": "输入文件夹名称",
+      "newNamePlaceholder": "新名称"
+    },
+    "titleBar": {
+      "close": "关闭",
+      "dragToMove": "拖拽移动窗口",
+      "maximize": "最大化",
+      "minimize": "最小化",
+      "restore": "还原"
+    },
+    "toast": {
+      "cannotCopyToSelf": "无法将文件夹复制到自身或其子文件夹中",
+      "cannotMoveToSelf": "无法将文件夹移动到自身或其子文件夹中",
+      "connectionFailed": "{{protocol}} 连接 \"{{name}}\" 失败",
+      "connectionLost": "{{protocol}} 连接 \"{{name}}\" 已断开",
+      "connectionSuccess": "{{protocol}} 连接 \"{{name}}\" 成功",
+      "copyFailed": "复制失败",
+      "copySuccess": "复制成功",
+      "createFolderFailed": "创建文件夹失败",
+      "createFolderSuccess": "文件夹创建成功",
+      "deleteConnectionSuccess": "连接已删除",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "删除成功",
+      "disconnectFailed": "断开 {{protocol}} 连接 \"{{name}}\" 失败",
+      "disconnectSuccess": "已断开 {{protocol}} 连接 \"{{name}}\"",
+      "downloadDuplicates": "{{count}} 个文件已存在于下载队列",
+      "downloadFailed": "下载失败",
+      "moveFailed": "移动失败",
+      "moveSuccess": "移动成功",
+      "refreshFailed": "刷新失败",
+      "renameFailed": "重命名失败",
+      "renameSuccess": "重命名成功",
+      "uploadDuplicates": "{{count}} 个文件已存在于上传队列",
+      "uploadFailed": "上传失败"
+    },
+    "transfer": {
+      "action": {
+        "cancel": "取消",
+        "cancelAll": "全部取消",
+        "remove": "移除",
+        "retry": "重试",
+        "sort": "排序",
+        "viewErrorDetails": "查看错误详情"
+      },
+      "concurrency": {
+        "download": "下载并发",
+        "upload": "上传并发"
+      },
+      "confirmClose": {
+        "message": "仍有传输任务在进行。关闭窗口会取消这些任务。",
+        "title": "关闭窗口？"
+      },
+      "confirmDisconnect": {
+        "message": "有正在进行的上传任务。是否取消上传并断开连接？",
+        "title": "上传任务进行中"
+      },
+      "confirmQuit": {
+        "message": "有正在进行的上传任务。是否取消上传并退出？",
+        "title": "上传任务进行中"
+      },
+      "download": "下载",
+      "empty": "暂无传输任务",
+      "errorDetail": {
+        "copied": "已复制",
+        "copy": "复制",
+        "title": "错误详情"
+      },
+      "folderStats": {
+        "fileCount": "{{completed}}/{{total}} 文件"
+      },
+      "path": {
+        "destination": "目标",
+        "source": "源"
+      },
+      "runningCount": "{{count}} 个任务进行中",
+      "sort": {
+        "name": "名称",
+        "size": "大小",
+        "status": "状态",
+        "time": "时间"
+      },
+      "status": {
+        "failed": "失败",
+        "failedCount": "{{count}} 失败",
+        "running": "传输中",
+        "waiting": "等待中"
+      },
+      "upload": "上传"
+    }
+  }
+}

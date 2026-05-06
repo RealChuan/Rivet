@@ -1,0 +1,167 @@
+import type React from 'react'
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import type { ConnectionConfig, Session } from '@shared/types/index.js'
+import { ConnectionList } from './ConnectionList.js'
+
+vi.mock('../../file-explorer/hooks/use-directory-list.js', () => ({
+  useDirectoryLoading: () => false,
+}))
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string | ((ns: unknown) => unknown)) => {
+      if (typeof key === 'function') {
+        const path: string[] = []
+        const proxy = new Proxy(
+          {},
+          {
+            get(_target, prop) {
+              if (typeof prop === 'string') path.push(prop)
+              return proxy
+            },
+          },
+        )
+        key(proxy)
+        return path.join('.')
+      }
+      return key
+    },
+    i18n: { language: 'en-US' },
+  }),
+  initReactI18next: vi.fn(),
+}))
+
+vi.mock('@dnd-kit/core', () => ({
+  DndContext: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DragOverlay: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  closestCenter: vi.fn(),
+  KeyboardSensor: vi.fn(),
+  PointerSensor: vi.fn(),
+  useSensor: vi.fn(() => ({})),
+  useSensors: vi.fn(() => []),
+  useDndContext: () => ({ active: null }),
+}))
+
+vi.mock('@dnd-kit/sortable', () => ({
+  SortableContext: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  verticalListSortingStrategy: {},
+  sortableKeyboardCoordinates: vi.fn(),
+  useSortable: () => ({
+    attributes: {},
+    listeners: {},
+    setNodeRef: vi.fn(),
+    transform: null,
+    transition: '',
+    isDragging: false,
+  }),
+}))
+
+const mockConnection1: ConnectionConfig = {
+  id: 'conn-1',
+  name: 'Server 1',
+  protocol: 'sftp',
+  host: 'server1.com',
+  port: 22,
+  username: 'user1',
+}
+
+const mockConnection2: ConnectionConfig = {
+  id: 'conn-2',
+  name: 'Server 2',
+  protocol: 'webdav',
+  host: 'server2.com',
+  port: 443,
+  username: 'user2',
+}
+
+const defaultProps = {
+  connections: [] as ConnectionConfig[],
+  activeSessionId: undefined as string | undefined,
+  sortOrder: 'none' as const,
+  onSortClick: vi.fn(),
+  onReorderConnections: vi.fn(),
+  onSelectSession: vi.fn(),
+  onDisconnect: vi.fn(),
+  onReconnect: vi.fn(),
+  onEdit: vi.fn(),
+  onDelete: vi.fn(),
+  getSessionByConnectionId: vi.fn(() => undefined),
+}
+
+describe('ConnectionList', () => {
+  it('should show empty state when no connections', () => {
+    render(<ConnectionList {...defaultProps} connections={[]} />)
+    expect(screen.getByText('connection.noConnections')).not.toBeNull()
+    expect(screen.getByText('connection.newConnectionHint')).not.toBeNull()
+  })
+
+  it('should render connection list with connections', () => {
+    render(<ConnectionList {...defaultProps} connections={[mockConnection1, mockConnection2]} />)
+    expect(screen.getByText('Server 1')).not.toBeNull()
+    expect(screen.getByText('Server 2')).not.toBeNull()
+  })
+
+  it('should render connections header', () => {
+    render(<ConnectionList {...defaultProps} connections={[mockConnection1]} />)
+    expect(screen.getByText('connection.connections')).not.toBeNull()
+  })
+
+  it('should render sort button', () => {
+    render(<ConnectionList {...defaultProps} connections={[mockConnection1]} />)
+    const buttons = screen.getAllByRole('button')
+    expect(buttons.length).toBeGreaterThan(0)
+  })
+
+  it('should show host for each connection', () => {
+    render(<ConnectionList {...defaultProps} connections={[mockConnection1]} />)
+    expect(screen.getByText('server1.com')).not.toBeNull()
+  })
+
+  it('should call getSessionByConnectionId for each connection', () => {
+    const getSessionByConnectionId = vi.fn(() => undefined)
+    render(
+      <ConnectionList
+        {...defaultProps}
+        connections={[mockConnection1, mockConnection2]}
+        getSessionByConnectionId={getSessionByConnectionId}
+      />,
+    )
+    expect(getSessionByConnectionId).toHaveBeenCalledWith('conn-1')
+    expect(getSessionByConnectionId).toHaveBeenCalledWith('conn-2')
+  })
+
+  it('should highlight active session', () => {
+    const mockSession: Session = {
+      sessionId: 'sess-1',
+      connectionId: 'conn-1',
+      currentPath: '/home',
+      isConnected: true,
+      isOperating: false,
+    }
+    render(
+      <ConnectionList
+        {...defaultProps}
+        connections={[mockConnection1]}
+        activeSessionId="sess-1"
+        getSessionByConnectionId={() => mockSession}
+      />,
+    )
+    const nameElement = screen.getByText('Server 1')
+    const parent = nameElement.closest('div')
+    if (!parent) throw new Error('Parent not found')
+    expect(parent.className).toContain('text-accent')
+  })
+
+  it('should not cause infinite re-renders with dnd-kit sortable context', () => {
+    // Verifies that rendering a SortableContext with a connections array
+    // does not trigger infinite re-renders. If the connections prop or
+    // internal selectors returned unstable references, React would throw
+    // "Maximum update depth exceeded".
+    const { container } = render(
+      <ConnectionList {...defaultProps} connections={[mockConnection1, mockConnection2]} />,
+    )
+    expect(container.textContent).toContain('Server 1')
+    expect(container.textContent).toContain('Server 2')
+  })
+})

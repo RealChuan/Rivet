@@ -1,0 +1,364 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ========== 主题令牌 ========== */
+@theme {
+  /* 颜色 */
+  --color-bg: rgba(255, 255, 255, 0.6);
+  --color-border: #e5e5e5;
+  --color-text: #171717;
+  --color-text-muted: #737373;
+  --color-hover: rgba(0, 0, 0, 0.04);
+  --color-selected: rgba(59, 130, 246, 0.12);
+  --color-focus-ring: rgba(59, 130, 246, 0.4);
+  --color-ring: rgba(59, 130, 246, 0.25);
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-light: rgba(37, 99, 235, 0.08);
+  --color-danger: #ef4444;
+  --color-danger-light: rgba(239, 68, 68, 0.08);
+  --color-success-light: rgba(34, 197, 94, 0.08);
+  --color-warning: #facc15;
+  --color-disabled: #9ca3af;
+  --color-status-connected: #22c55e;
+  --color-status-disconnected: #b45309;
+  --color-protocol-webdav: #8b5cf6;
+  --color-protocol-webdav-light: rgba(139, 92, 246, 0.08);
+  --color-input-border: #d4d4d4;
+  --color-input-border-hover: #a3a3a3;
+  --color-input-hover-bg: rgba(0, 0, 0, 0.02);
+  --color-warning-light: rgba(234, 179, 8, 0.08);
+  --color-toast-success: rgba(34, 197, 94, 0.95);
+  --color-toast-error: rgba(239, 68, 68, 0.95);
+  --color-toast-info: rgba(37, 99, 235, 0.95);
+  --color-toast-warning: rgba(234, 179, 8, 0.95);
+  --color-glass-bg: rgba(255, 255, 255, 0.85);
+  --color-glass-border: rgba(0, 0, 0, 0.06);
+  --color-subtle-hover: rgba(0, 0, 0, 0.02);
+  --color-danger-subtle: rgba(239, 68, 68, 0.04);
+  --color-bg-secondary: #f5f5f5;
+  --color-overlay: rgba(0, 0, 0, 0.3);
+  --color-danger-border: rgba(239, 68, 68, 0.3);
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  --shadow-dialog:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 10px 30px -5px rgba(0, 0, 0, 0.12);
+  --shadow-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
+
+  /* 字号 */
+  --font-size-2xs: 11px;
+  --font-size-sm: 13px;
+
+  /* 字体 */
+  --font-sans: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono Variable', 'SF Mono', 'Fira Code', monospace;
+
+  /* 动画（kebab-case 为标准） */
+  --animate-fade-in: fade-in 0.15s ease-out;
+  --animate-slide-in-right: slide-in-right 0.2s ease-out;
+  --animate-dialog-in: dialog-in 0.2s ease-out;
+  --animate-dialog-out: dialog-out 0.15s ease-in;
+  --animate-toast-in: toast-in 0.15s ease-out;
+  --animate-toast-out: toast-out 0.1s ease-in;
+  --animate-menu-in: menu-in 0.12s ease-out;
+  --animate-skeleton-shimmer: skeleton-shimmer 1.5s ease-in-out infinite;
+  --animate-status-pulse: status-pulse 2s ease-in-out infinite;
+  --animate-progress-indeterminate: loading-bar 1.5s ease-in-out infinite;
+  --animate-progress-shimmer: progress-shimmer 2s ease-in-out infinite;
+}
+
+/* ========== Dark 模式覆盖 ========== */
+.dark {
+  --color-bg: rgba(30, 30, 30, 0.6);
+  --color-border: #2e2e2e;
+  --color-text: #e5e5e5;
+  --color-text-muted: #a3a3a3;
+  --color-hover: rgba(255, 255, 255, 0.08);
+  --color-selected: rgba(96, 165, 250, 0.15);
+  --color-focus-ring: rgba(96, 165, 250, 0.35);
+  --color-ring: rgba(96, 165, 250, 0.2);
+  --color-accent: #4d94f5;
+  --color-accent-hover: #6aabf7;
+  --color-accent-light: rgba(96, 165, 250, 0.1);
+  --color-danger: #f87171;
+  --color-danger-light: rgba(248, 113, 113, 0.1);
+  --color-success-light: rgba(74, 222, 128, 0.1);
+  --color-warning: #facc15;
+  --color-disabled: #6b7280;
+  --color-status-connected: #4ade80;
+  --color-status-disconnected: #fbbf24;
+  --color-protocol-webdav: #a78bfa;
+  --color-protocol-webdav-light: rgba(167, 139, 250, 0.1);
+  --color-input-border: #3c3c3c;
+  --color-input-border-hover: #4a4a4a;
+  --color-input-hover-bg: rgba(255, 255, 255, 0.03);
+  --color-warning-light: rgba(250, 204, 21, 0.1);
+  --color-toast-success: rgba(74, 222, 128, 0.9);
+  --color-toast-error: rgba(248, 113, 113, 0.9);
+  --color-toast-info: rgba(96, 165, 250, 0.9);
+  --color-toast-warning: rgba(250, 204, 21, 0.9);
+  --color-glass-bg: rgba(37, 37, 38, 0.9);
+  --color-glass-border: rgba(255, 255, 255, 0.1);
+  --color-subtle-hover: rgba(255, 255, 255, 0.06);
+  --color-danger-subtle: rgba(248, 113, 113, 0.06);
+  --color-bg-secondary: #262626;
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-danger-border: rgba(248, 113, 113, 0.25);
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.15);
+  --shadow-dialog:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 10px 30px -5px rgba(0, 0, 0, 0.5);
+  --shadow-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* ========== 不支持毛玻璃平台的降级 ========== */
+.no-glass {
+  --color-bg: #ffffff;
+}
+.no-glass.dark {
+  --color-bg: #1e1e1e;
+}
+
+/* ========== Base 层 ========== */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full w-full overflow-hidden;
+  }
+
+  body {
+    @apply bg-bg text-text font-sans antialiased;
+    font-size: 13px;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+  }
+
+  /* 覆盖 Radix Select 默认隐藏滚动条的行为 */
+  [data-radix-select-viewport] {
+    scrollbar-width: thin !important;
+    -ms-overflow-style: auto !important;
+  }
+  [data-radix-select-viewport]::-webkit-scrollbar {
+    display: block !important;
+  }
+
+  /* 滚动条 */
+  ::-webkit-scrollbar {
+    @apply size-1.5;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-text-muted/30;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-muted/50;
+  }
+
+  ::-webkit-scrollbar-corner {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-inner-spin-button,
+  ::-webkit-outer-spin-button {
+    @apply h-4.5 opacity-60;
+    color: var(--color-text-muted);
+  }
+
+  ::-webkit-inner-spin-button:hover,
+  ::-webkit-outer-spin-button:hover {
+    @apply opacity-100;
+    color: var(--color-text);
+  }
+
+  /* 表单元素 */
+  input,
+  select,
+  textarea,
+  button {
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+
+  button:focus-visible {
+    outline: 2px solid var(--color-focus-ring);
+    outline-offset: 2px;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    @apply outline-none;
+    box-shadow: 0 0 0 2px var(--color-ring);
+    border-color: var(--color-accent);
+  }
+}
+
+/* ========== Keyframes ========== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dialog-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes loading-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes progress-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ========== Electron 无边框窗口拖拽工具类 ========== */
+@layer utilities {
+  /**
+   * 使元素成为窗口拖拽区域
+   * 应用此类的元素可拖动整个窗口位置
+   */
+  .draggable {
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  /**
+   * 在拖拽区域内排除特定元素
+   * 应用此类的元素可正常接收鼠标事件（点击、hover）
+   */
+  .no-drag {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+
+  /**
+   * 标题栏文字防选中
+   */
+  .titlebar-text {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}

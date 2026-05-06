@@ -1,0 +1,35 @@
+/**
+ * 超时时间常量定义（毫秒）
+ */
+export const TIMEOUTS = {
+  /** 应用退出前的强制超时时间（10秒） */
+  FORCE_EXIT: 10000,
+  /** 心跳检测间隔（30秒） */
+  HEARTBEAT_INTERVAL: 30000,
+  /** 连接 Ping 超时时间（5秒） */
+  PING: 5000,
+  /** 断开连接超时时间（5秒） */
+  DISCONNECT: 5000,
+  /** SFTP 连接就绪超时时间（20秒） */
+  SFTP_READY: 20000,
+  /** 错误 Toast 显示时长（6秒） */
+  TOAST_ERROR_DURATION: 6000,
+  /** 默认 Toast 显示时长（3秒） */
+  TOAST_DEFAULT_DURATION: 3000,
+
+  /** 文件操作超时时间 */
+  /** 列出目录内容超时时间（60秒） */
+  LIST: 60000,
+  /** 创建目录超时时间（60秒） */
+  MKDIR: 60000,
+  /** 重命名文件超时时间（60秒） */
+  RENAME: 60000,
+  /** 删除文件/目录超时时间（300秒，大目录递归删除需要较长时间） */
+  DELETE: 300000,
+  /** 协议连接超时时间（30秒） */
+  CONNECT: 30000,
+  /** 配置自动保存间隔 (ms) */
+  AUTO_SAVE_INTERVAL: 300000,
+  /** 传输进度批量刷新间隔 (ms) */
+  PROGRESS_FLUSH_MS: 250,
+} as const

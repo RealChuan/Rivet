@@ -1,0 +1,146 @@
+import { act, renderHook } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FileInfo } from '@shared/types/index.js'
+import { useFileRenaming } from './use-file-renaming.js'
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string | ((ns: unknown) => unknown)) => {
+      if (typeof key === 'function') {
+        const path: string[] = []
+        const proxy = new Proxy(
+          {},
+          {
+            get(_target, prop) {
+              if (typeof prop === 'string') path.push(prop)
+              return proxy
+            },
+          },
+        )
+        key(proxy)
+        return path.join('.')
+      }
+      return key
+    },
+  }),
+}))
+
+const mockInvalidateSession = vi.fn().mockResolvedValue(undefined)
+const mockSetOperating = vi.fn()
+const mockAddToast = vi.fn()
+
+vi.mock('./use-directory-invalidation.js', () => ({
+  useDirectoryInvalidation: () => ({
+    invalidateSession: mockInvalidateSession,
+    invalidatePath: vi.fn(),
+  }),
+}))
+
+vi.mock('../../session/stores/session.js', () => ({
+  useSessionStore: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({
+      setOperating: mockSetOperating,
+      sessions: [],
+    }),
+}))
+
+vi.mock('../../../stores/index.js', () => ({
+  useUiStore: (selector: (state: Record<string, unknown>) => unknown) =>
+    selector({ addToast: mockAddToast }),
+}))
+
+const mockRename = vi.fn()
+
+const mockFile: FileInfo = {
+  name: 'old-name.txt',
+  type: 'file',
+  size: 100,
+  modifyTime: 1000,
+  absolutePath: '/home/old-name.txt',
+}
+
+describe('useFileRenaming', () => {
+  beforeEach(() => {
+    vi.stubGlobal('window', {
+      electronAPI: {
+        protocol: { rename: mockRename },
+      },
+    })
+    mockRename.mockReset()
+    mockInvalidateSession.mockReset().mockResolvedValue(undefined)
+    mockAddToast.mockReset()
+  })
+
+  it('should call rename with sessionId, file, and newName', async () => {
+    mockRename.mockResolvedValue({
+      requestId: '1',
+      success: true,
+      value: undefined,
+      error: undefined,
+    })
+
+    const { result } = renderHook(() => useFileRenaming('session-1'))
+    await act(async () => {
+      await result.current.handleRename(mockFile, 'new-name.txt')
+    })
+
+    expect(mockRename).toHaveBeenCalledWith('session-1', mockFile, 'new-name.txt')
+  })
+
+  it('should show success toast and refresh directory on success', async () => {
+    mockRename.mockResolvedValue({
+      requestId: '1',
+      success: true,
+      value: undefined,
+      error: undefined,
+    })
+
+    const { result } = renderHook(() => useFileRenaming('session-1'))
+    await act(async () => {
+      await result.current.handleRename(mockFile, 'new-name.txt')
+    })
+
+    expect(mockAddToast).toHaveBeenCalledWith({ type: 'success', message: 'toast.renameSuccess' })
+    expect(mockInvalidateSession).toHaveBeenCalledWith('session-1')
+  })
+
+  it('should show error toast and not refresh on failure', async () => {
+    const errorObj = { code: 'ENOENT', message: 'No such file' }
+    mockRename.mockResolvedValue({
+      requestId: '1',
+      success: false,
+      value: undefined,
+      error: errorObj,
+    })
+
+    const { result } = renderHook(() => useFileRenaming('session-1'))
+    await act(async () => {
+      await result.current.handleRename(mockFile, 'new-name.txt')
+    })
+
+    expect(mockAddToast).toHaveBeenCalledWith({
+      type: 'error',
+      message: 'toast.renameFailed: errors.UNKNOWN',
+    })
+    expect(mockInvalidateSession).not.toHaveBeenCalled()
+  })
+
+  it('should show Unknown error when formatErrorMessage returns empty', async () => {
+    mockRename.mockResolvedValue({
+      requestId: '1',
+      success: false,
+      value: undefined,
+      error: '',
+    })
+
+    const { result } = renderHook(() => useFileRenaming('session-1'))
+    await act(async () => {
+      await result.current.handleRename(mockFile, 'new-name.txt')
+    })
+
+    expect(mockAddToast).toHaveBeenCalledWith({
+      type: 'error',
+      message: 'toast.renameFailed: errors.UNKNOWN',
+    })
+  })
+})

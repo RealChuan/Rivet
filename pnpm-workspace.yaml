@@ -1,0 +1,21 @@
+nodeLinker: hoisted
+
+# 允许 exotic 子依赖（解决 @electron/node-gyp 问题）
+blockExoticSubdeps: false
+
+# 依赖覆盖
+overrides:
+  eslint-plugin-react-compiler>zod: '^3.24.4'
+  ssh2>cpu-features: 'npm:empty-npm-package@1.0.0'
+
+allowBuilds:
+  '@swc/core': true
+  fs-xattr: true
+  macos-alias: true
+  ssh2: true
+
+minimumReleaseAgeExclude:
+  - '@tanstack/react-virtual@3.14.24'
+  - '@tanstack/virtual-core@3.19.9'
+  - lucide-react@1.64.0
+  - react-resizable-panels@4.15.2

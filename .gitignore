@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# pnpm
+.pnpm-store/
+
+# Build outputs
+.vite/
+dist/
+release/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript incremental
+*.tsbuildinfo
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Misc
+# Generated .d.ts files (keep source .d.ts files like vite-env.d.ts)
+node_modules/**/*.d.ts
+
+# Agent scratch workspace
+.superpowers/
+
+# Tool caches
+.eslintcache
