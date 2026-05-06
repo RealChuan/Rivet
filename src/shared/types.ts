@@ -13,6 +13,8 @@ export interface FileInfo {
   type: 'file' | 'directory'
   size: number
   modifyTime: number
+  permissions?: string
+  owner?: string
 }
 
 export interface TransferTask {

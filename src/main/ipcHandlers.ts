@@ -72,6 +72,10 @@ export function setupIpcHandlers(): void {
 
         activeConnections.set(credentialId, { sessionId, protocol: config.protocol })
 
+        // 保存连接到 store
+        const { saveConnection } = await import('./store')
+        saveConnection(connectionConfig)
+
         logger.info(`Connection established: ${connectionConfig.name} (${credentialId})`)
         return credentialId
       } catch (error) {

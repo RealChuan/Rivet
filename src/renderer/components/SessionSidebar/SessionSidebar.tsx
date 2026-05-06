@@ -8,10 +8,20 @@ import { ConnectionConfig } from '@shared/types'
 
 export const SessionSidebar: React.FC = () => {
   const { t } = useTranslation()
-  const { sessions, activeSessionId, setActiveSession, addSession, removeSession } =
-    useSessionStore()
+  const {
+    sessions,
+    activeSessionId,
+    setActiveSession,
+    addSession,
+    updateSession,
+    removeSession,
+    deleteSession,
+    reconnectSession,
+  } = useSessionStore()
   const { sidebarWidth, addToast } = useUiStore()
   const [connectionDialogOpen, setConnectionDialogOpen] = React.useState(false)
+  const [reconnectConfig, setReconnectConfig] = React.useState<(typeof sessions)[0] | null>(null)
+  const [editConfig, setEditConfig] = React.useState<(typeof sessions)[0] | null>(null)
 
   const handleNewConnection = () => {
     setConnectionDialogOpen(true)
@@ -23,8 +33,13 @@ export const SessionSidebar: React.FC = () => {
     privateKey?: string
   ) => {
     try {
-      await addSession(config, password, privateKey)
-      addToast({ type: 'success', message: t('toast.connectionSuccess') })
+      if (editConfig) {
+        await updateSession(editConfig.id, config, password, privateKey)
+        addToast({ type: 'success', message: t('toast.connectionSuccess') })
+      } else {
+        await addSession(config, password, privateKey)
+        addToast({ type: 'success', message: t('toast.connectionSuccess') })
+      }
     } catch (error) {
       addToast({
         type: 'error',
@@ -44,6 +59,53 @@ export const SessionSidebar: React.FC = () => {
         message: `Disconnect failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       })
     }
+  }
+
+  const handleDelete = async (sessionId: string) => {
+    try {
+      await deleteSession(sessionId)
+      addToast({ type: 'info', message: t('toast.deleteConnectionSuccess') })
+    } catch (error) {
+      addToast({
+        type: 'error',
+        message: `Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      })
+    }
+  }
+
+  const handleReconnect = async (session: (typeof sessions)[0]) => {
+    if (session.password || session.privateKey) {
+      try {
+        await reconnectSession(session)
+        addToast({ type: 'success', message: t('toast.connectionSuccess') })
+        return
+      } catch {}
+    }
+    setReconnectConfig(session)
+    setConnectionDialogOpen(true)
+  }
+
+  const handleReconnectSubmit = async (
+    config: Omit<ConnectionConfig, 'id' | 'credentialId'>,
+    password?: string,
+    privateKey?: string
+  ) => {
+    if (!reconnectConfig) return
+    try {
+      await reconnectSession(reconnectConfig, password, privateKey)
+      addToast({ type: 'success', message: t('toast.connectionSuccess') })
+    } catch (error) {
+      addToast({
+        type: 'error',
+        message: `${t('toast.connectionFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      })
+      throw error
+    }
+  }
+
+  const handleEdit = (session: (typeof sessions)[0]) => {
+    setEditConfig(session)
+    setConnectionDialogOpen(true)
   }
 
   return (
@@ -179,6 +241,9 @@ export const SessionSidebar: React.FC = () => {
                 isActive={session.id === activeSessionId}
                 onSelect={() => setActiveSession(session.id)}
                 onDisconnect={() => handleDisconnect(session.id)}
+                onReconnect={() => handleReconnect(session)}
+                onEdit={() => handleEdit(session)}
+                onDelete={() => handleDelete(session.id)}
               />
             ))}
           </div>
@@ -187,8 +252,17 @@ export const SessionSidebar: React.FC = () => {
 
       <ConnectionDialog
         open={connectionDialogOpen}
-        onClose={() => setConnectionDialogOpen(false)}
-        onSave={handleSaveConnection}
+        onClose={() => {
+          setConnectionDialogOpen(false)
+          setReconnectConfig(null)
+          setEditConfig(null)
+        }}
+        onSave={reconnectConfig ? handleReconnectSubmit : handleSaveConnection}
+        editConfig={editConfig?.config || reconnectConfig?.config}
+        reconnectMode={!!reconnectConfig}
+        savedPassword={editConfig?.password || reconnectConfig?.password}
+        savedPrivateKey={editConfig?.privateKey || reconnectConfig?.privateKey}
+        authMethod={editConfig?.authMethod || reconnectConfig?.authMethod}
       />
     </div>
   )

@@ -1,118 +1,99 @@
 {
-  "app": {
-    "name": "Rivet",
-    "description": "SFTP/WebDAV 文件浏览器"
-  },
-  "sidebar": {
-    "newConnection": "新建连接",
-    "connections": "连接列表",
-    "noConnections": "暂无连接",
-    "newConnectionHint": "点击上方按钮创建新连接",
-    "disconnect": "断开连接",
-    "reconnect": "重新连接"
-  },
-  "connection": {
-    "title": "连接设置",
-    "editTitle": "编辑连接",
-    "subtitle": "配置 SFTP 或 WebDAV 连接",
-    "name": "连接名称",
-    "namePlaceholder": "输入连接名称",
-    "protocol": "协议",
-    "host": "主机",
-    "hostPlaceholder": "输入主机地址",
-    "port": "端口",
-    "username": "用户名",
-    "usernamePlaceholder": "输入用户名",
-    "password": "密码",
-    "passwordPlaceholder": "输入密码",
-    "privateKey": "私钥",
-    "privateKeyPlaceholder": "输入私钥内容",
-    "authMethod": "认证方式",
-    "authPassword": "密码",
-    "authPrivateKey": "私钥",
-    "save": "保存",
-    "cancel": "取消",
-    "connecting": "连接中...",
-    "test": "测试连接",
-    "testSuccess": "连接成功",
-    "testFailed": "连接失败"
-  },
-  "fileList": {
-    "name": "名称",
-    "size": "大小",
-    "dateModified": "修改日期",
-    "modified": "修改时间",
-    "empty": "文件夹为空",
-    "loading": "加载中...",
-    "error": "加载失败",
-    "retry": "重试",
-    "parentDirectory": "上级目录"
-  },
-  "toolbar": {
-    "refresh": "刷新",
-    "newFolder": "新建文件夹",
-    "upload": "上传文件",
-    "download": "下载",
-    "delete": "删除",
-    "rename": "重命名",
-    "queue": "传输队列"
-  },
-  "queue": {
-    "title": "传输队列",
-    "empty": "暂无传输任务",
-    "upload": "上传",
-    "download": "下载",
-    "pending": "等待中",
-    "active": "传输中",
-    "completed": "已完成",
-    "failed": "失败",
-    "cancel": "取消",
-    "retry": "重试",
-    "clear": "清除已完成"
-  },
-  "dialog": {
-    "confirm": "确认",
-    "cancel": "取消",
-    "ok": "确定",
-    "delete": {
-      "title": "确认删除",
-      "message": "确定要删除 \"{{name}}\" 吗？此操作无法撤销。"
+  "translation": {
+    "connection": {
+      "authMethod": "认证方式",
+      "cancel": "取消",
+      "connecting": "连接中...",
+      "editTitle": "编辑连接",
+      "fillRequired": "请填写必填字段",
+      "host": "主机",
+      "invalidPort": "无效端口号",
+      "name": "名称",
+      "namePlaceholder": "输入连接名称",
+      "password": "密码",
+      "passwordPlaceholder": "输入密码",
+      "port": "端口",
+      "privateKey": "私钥",
+      "privateKeyPlaceholder": "输入私钥路径",
+      "protocol": "协议",
+      "save": "保存",
+      "subtitle": "管理您的连接",
+      "title": "新建连接",
+      "username": "用户名",
+      "usernamePlaceholder": "输入用户名"
     },
-    "newFolder": {
-      "title": "新建文件夹",
-      "placeholder": "输入文件夹名称"
+    "dialog": {
+      "cancel": "取消",
+      "confirm": "确认",
+      "delete": {
+        "message": "确定要删除此项目吗？",
+        "title": "确认删除"
+      },
+      "newFolder": {
+        "placeholder": "输入文件夹名称",
+        "title": "新建文件夹"
+      },
+      "ok": "确定",
+      "rename": {
+        "placeholder": "输入新名称",
+        "title": "重命名"
+      }
     },
-    "rename": {
-      "title": "重命名",
-      "placeholder": "输入新名称"
+    "fileList": {
+      "dateModified": "修改日期",
+      "disconnected": "已断开连接",
+      "empty": "空目录",
+      "loading": "加载中...",
+      "name": "名称",
+      "newFolder": "新建文件夹",
+      "newFolderName": "新文件夹名称",
+      "owner": "所有者",
+      "parentDirectory": "上级目录",
+      "permissions": "权限",
+      "reconnectHint": "点击重新连接",
+      "retry": "重试",
+      "size": "大小"
+    },
+    "queue": {
+      "active": "进行中",
+      "cancel": "取消",
+      "clear": "清空",
+      "completed": "已完成",
+      "download": "下载",
+      "failed": "失败",
+      "pending": "等待中",
+      "retry": "重试",
+      "upload": "上传"
+    },
+    "sidebar": {
+      "connections": "连接",
+      "delete": "删除",
+      "disconnect": "断开连接",
+      "edit": "编辑",
+      "newConnection": "新建连接",
+      "newConnectionHint": "创建您的第一个连接",
+      "noConnections": "暂无连接",
+      "reconnect": "重新连接"
+    },
+    "toast": {
+      "connectionFailed": "连接失败",
+      "connectionSuccess": "连接成功",
+      "createFolderFailed": "创建文件夹失败",
+      "createFolderSuccess": "文件夹创建成功",
+      "deleteConnectionSuccess": "连接已删除",
+      "deleteFailed": "删除失败",
+      "deleteSuccess": "删除成功",
+      "disconnectSuccess": "已断开连接",
+      "downloadFailed": "下载失败",
+      "renameFailed": "重命名失败",
+      "renameSuccess": "重命名成功"
+    },
+    "toolbar": {
+      "delete": "删除",
+      "newFolder": "新建文件夹",
+      "refresh": "刷新",
+      "rename": "重命名",
+      "upload": "上传"
     }
-  },
-  "theme": {
-    "light": "浅色",
-    "dark": "深色",
-    "system": "跟随系统"
-  },
-  "settings": {
-    "language": "语言",
-    "theme": "主题"
-  },
-  "toast": {
-    "connectionSuccess": "连接成功",
-    "connectionFailed": "连接失败",
-    "disconnectSuccess": "已断开连接",
-    "uploadSuccess": "上传成功",
-    "uploadFailed": "上传失败",
-    "downloadSuccess": "下载成功",
-    "downloadFailed": "下载失败",
-    "deleteSuccess": "删除成功",
-    "deleteFailed": "删除失败",
-    "createFolderSuccess": "文件夹创建成功",
-    "createFolderFailed": "文件夹创建失败",
-    "renameSuccess": "重命名成功",
-    "renameFailed": "重命名失败"
-  },
-  "shortcuts": {
-    "refresh": "F5 刷新",
-    "delete": "Delete 删除"
   }
 }

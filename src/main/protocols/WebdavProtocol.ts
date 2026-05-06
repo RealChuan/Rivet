@@ -227,7 +227,14 @@ export class WebdavProtocol {
     }
 
     try {
-      await handle.client.deleteFile(path)
+      const stat = await handle.client.stat(path)
+
+      if (stat.type === 'directory') {
+        await handle.client.deleteDirectory(path, { recursive: true })
+      } else {
+        await handle.client.deleteFile(path)
+      }
+
       logger.info(`WebDAV delete: ${path}`)
     } catch (error) {
       logger.error(`WebDAV delete failed: ${path} - ${error}`)

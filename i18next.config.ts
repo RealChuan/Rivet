@@ -1,0 +1,18 @@
+import { defineConfig } from 'i18next-cli'
+
+export default defineConfig({
+  locales: ['zh-CN', 'en-US'],
+  extract: {
+    input: ['src/renderer/**/*.{ts,tsx}', '!src/renderer/i18n/locales/**'],
+    output: 'src/renderer/i18n/locales/{{lng}}.json',
+    namespaceAsJSON: false,
+    keySeparator: '.',
+    nsSeparator: ':',
+    func: {
+      list: ['t'],
+    },
+    trans: {
+      component: 'Trans',
+    },
+  },
+})

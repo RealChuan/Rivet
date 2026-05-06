@@ -5,6 +5,7 @@ import { FileArea } from './components/FileArea/FileArea'
 import { QueueDrawer } from './components/QueueDrawer/QueueDrawer'
 import { Toast } from './components/Toast'
 import { useUiStore } from './stores/uiStore'
+import { useQueueStore } from './stores/queueStore'
 import { useSessionStore } from './stores/sessionStore'
 import { useTheme } from './hooks/useTheme'
 import { useI18n } from './hooks/useI18n'
@@ -18,9 +19,11 @@ const App: React.FC = () => {
     queueDrawerWidth,
     setSidebarWidth,
     setQueueDrawerWidth,
+    setQueueDrawerOpen,
     initialize,
     initialized,
   } = useUiStore()
+  const { tasks } = useQueueStore()
   const { refreshCurrentDirectory, activeSessionId } = useSessionStore()
   const { theme, cycleTheme } = useTheme()
   const { language, changeLanguage } = useI18n()
@@ -230,7 +233,7 @@ const App: React.FC = () => {
         />
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div
           style={{
             display: 'flex',
@@ -240,6 +243,7 @@ const App: React.FC = () => {
             padding: '8px 16px',
             borderBottom: '1px solid var(--border)',
             backgroundColor: 'var(--bg)',
+            flexShrink: 0,
           }}
         >
           <button
@@ -277,6 +281,63 @@ const App: React.FC = () => {
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <ThemeIcon />
+          </button>
+
+          <button
+            onClick={() => setQueueDrawerOpen(!queueDrawerOpen)}
+            style={{
+              padding: '6px',
+              borderRadius: '4px',
+              color: queueDrawerOpen ? 'var(--accent)' : 'var(--text)',
+              backgroundColor: queueDrawerOpen ? 'var(--hover)' : 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
+            onMouseLeave={e =>
+              (e.currentTarget.style.backgroundColor = queueDrawerOpen
+                ? 'var(--hover)'
+                : 'transparent')
+            }
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" />
+              <line x1="3" y1="12" x2="3.01" y2="12" />
+              <line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
+            {tasks.length > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  fontSize: '9px',
+                  fontWeight: 'bold',
+                  color: 'white',
+                  backgroundColor: '#f14c4c',
+                  borderRadius: '10px',
+                  padding: '1px 4px',
+                  minWidth: '14px',
+                  textAlign: 'center',
+                }}
+              >
+                {tasks.length}
+              </span>
+            )}
           </button>
         </div>
 

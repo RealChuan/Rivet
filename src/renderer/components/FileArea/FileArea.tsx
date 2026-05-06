@@ -10,7 +10,7 @@ export const FileArea: React.FC = () => {
   const { sessions, activeSessionId } = useSessionStore()
   const activeSession = sessions.find(s => s.id === activeSessionId)
 
-  if (!activeSession) {
+  if (!activeSession || !activeSession.isConnected) {
     return (
       <div
         style={{
@@ -48,10 +48,10 @@ export const FileArea: React.FC = () => {
           <h3
             style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: '6px' }}
           >
-            {t('sidebar.noConnections')}
+            {activeSession ? t('fileList.disconnected') : t('sidebar.noConnections')}
           </h3>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            {t('sidebar.newConnectionHint')}
+            {activeSession ? t('fileList.reconnectHint') : t('sidebar.newConnectionHint')}
           </p>
         </div>
       </div>
@@ -76,13 +76,29 @@ export const FileArea: React.FC = () => {
           padding: '10px 16px',
           borderBottom: '1px solid var(--border)',
           backgroundColor: 'var(--bg)',
+          flexShrink: 0,
         }}
       >
         <Breadcrumb path={activeSession.currentPath} sessionId={activeSession.id} />
         <Toolbar sessionId={activeSession.id} />
       </div>
-      <div style={{ flex: 1, overflow: 'hidden' }}>
-        <FileList sessionId={activeSession.id} currentPath={activeSession.currentPath} />
+      <div
+        style={{
+          flex: 1,
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          backgroundColor: 'var(--bg)',
+        }}
+      >
+        <div
+          style={{
+            minWidth: '100%',
+            overflowY: 'auto',
+            height: '100%',
+          }}
+        >
+          <FileList sessionId={activeSession.id} currentPath={activeSession.currentPath} />
+        </div>
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueueStore } from '../../stores/queueStore'
+import { useSessionStore } from '../../stores/sessionStore'
 import { TransferTask } from '@shared/types'
 
 interface TaskItemProps {
@@ -10,6 +11,10 @@ interface TaskItemProps {
 export const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
   const { t } = useTranslation()
   const { cancelTask, retryTask, removeTask } = useQueueStore()
+  const { sessions } = useSessionStore()
+
+  const session = sessions.find(s => s.id === task.sessionId)
+  const sessionName = session?.config.name || session?.config.host || task.sessionId
 
   const getFileName = (path: string): string => {
     return path.split(/[/\\]/).pop() || path
@@ -126,6 +131,19 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
             title={task.type === 'upload' ? task.localPath : task.remotePath}
           >
             {getFileName(task.type === 'upload' ? task.localPath : task.remotePath)}
+          </div>
+          <div
+            style={{
+              fontSize: '10px',
+              color: 'var(--text-muted)',
+              marginTop: '2px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+            title={`${session?.config.protocol?.toUpperCase()}://${session?.config.host}:${session?.config.port}`}
+          >
+            {session?.config.protocol?.toUpperCase()} {sessionName}
           </div>
           {task.status === 'active' && (
             <div style={{ marginTop: '8px' }}>

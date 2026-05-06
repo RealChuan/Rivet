@@ -6,6 +6,8 @@ interface FileInfo {
   type: 'file' | 'directory'
   size: number
   modifyTime: number
+  permissions?: string
+  owner?: string
 }
 
 interface SessionHandle {
@@ -70,12 +72,45 @@ export class SftpProtocol {
 
     try {
       const list = await handle.client.list(remotePath)
-      return list.map((item: any) => ({
-        name: item.name,
-        type: item.type === 'd' ? 'directory' : 'file',
-        size: item.size || 0,
-        modifyTime: item.modifyTime ? new Date(item.modifyTime).getTime() : 0,
-      }))
+      // 确保返回完全纯净、可序列化的对象
+      return list.map((item: any) => {
+        // 调试：输出原始数据
+        logger.debug(`Processing file: ${item.name}`)
+        logger.debug(`rights: ${JSON.stringify(item.rights)}`)
+        logger.debug(`longname: ${item.longname}`)
+
+        // 从 rights 对象构建权限字符串 (如 rwxr-xr-x)
+        const rights = item.rights || {}
+        // 确保每个部分都是 3 个字符，不足的用 '-' 补齐
+        const padPermission = (perm: string | undefined) => {
+          if (!perm) return '---'
+          const p = perm.padEnd(3, '-')
+          return p.substring(0, 3)
+        }
+        const permissions = `${padPermission(rights.user)}${padPermission(rights.group)}${padPermission(rights.other)}`
+        logger.debug(`Final permissions: ${permissions}`)
+
+        // 从 longname 中提取所有者用户名
+        let owner: string | undefined
+        if (item.longname) {
+          const parts = item.longname.split(/\s+/)
+          logger.debug(`longname parts: ${JSON.stringify(parts)}`)
+          if (parts.length >= 4) {
+            owner = parts[2]
+          }
+        }
+        logger.debug(`Final owner: ${owner}`)
+
+        const safeFileInfo: FileInfo = {
+          name: String(item.name || ''),
+          type: item.type === 'd' ? 'directory' : 'file',
+          size: Number(item.size || 0),
+          modifyTime: item.modifyTime ? new Date(item.modifyTime).getTime() : 0,
+          permissions: permissions !== '-----------' ? permissions : undefined,
+          owner,
+        }
+        return safeFileInfo
+      })
     } catch (error) {
       logger.error(`SFTP list failed: ${remotePath} - ${error}`)
       throw error
@@ -218,12 +253,40 @@ export class SftpProtocol {
     }
 
     try {
-      await handle.client.delete(path)
+      try {
+        await handle.client.delete(path)
+      } catch (deleteError: any) {
+        if (deleteError.code === 4) {
+          await this.deleteDirectoryRecursive(handle.client, path)
+        } else {
+          throw deleteError
+        }
+      }
+
       logger.info(`SFTP delete: ${path}`)
     } catch (error) {
       logger.error(`SFTP delete failed: ${path} - ${error}`)
       throw error
     }
+  }
+
+  private async deleteDirectoryRecursive(client: any, dirPath: string): Promise<void> {
+    const list = await client.list(dirPath)
+
+    for (const item of list) {
+      const itemPath = `${dirPath}/${item.name}`
+      const stats = await client.stat(itemPath)
+
+      const isDirectory = stats.type === 'd' || stats.isDirectory?.() === true
+
+      if (isDirectory) {
+        await this.deleteDirectoryRecursive(client, itemPath)
+      } else {
+        await client.delete(itemPath)
+      }
+    }
+
+    await client.rmdir(dirPath)
   }
 
   private async getLocalFileSize(localPath: string): Promise<number> {

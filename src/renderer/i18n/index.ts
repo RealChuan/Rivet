@@ -4,8 +4,8 @@ import zhCN from './locales/zh-CN.json'
 import enUS from './locales/en-US.json'
 
 const resources = {
-  'zh-CN': { translation: zhCN },
-  'en-US': { translation: enUS },
+  'zh-CN': zhCN,
+  'en-US': enUS,
 }
 
 i18n.use(initReactI18next).init({

@@ -14,6 +14,10 @@ interface ConnectionDialogProps {
     privateKey?: string
   ) => Promise<void>
   editConfig?: ConnectionConfig
+  reconnectMode?: boolean
+  savedPassword?: string
+  savedPrivateKey?: string
+  authMethod?: 'password' | 'privateKey'
 }
 
 export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
@@ -21,6 +25,10 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   onClose,
   onSave,
   editConfig,
+  reconnectMode = false,
+  savedPassword = '',
+  savedPrivateKey = '',
+  authMethod: initialAuthMethod,
 }) => {
   const { t } = useTranslation()
   const [name, setName] = useState(editConfig?.name || '')
@@ -28,9 +36,11 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   const [host, setHost] = useState(editConfig?.host || '')
   const [port, setPort] = useState(editConfig?.port?.toString() || '22')
   const [username, setUsername] = useState(editConfig?.username || '')
-  const [password, setPassword] = useState('')
-  const [authMethod, setAuthMethod] = useState<'password' | 'privateKey'>('password')
-  const [privateKey, setPrivateKey] = useState('')
+  const [password, setPassword] = useState(savedPassword)
+  const [authMethod, setAuthMethod] = useState<'password' | 'privateKey'>(
+    initialAuthMethod || 'password'
+  )
+  const [privateKey, setPrivateKey] = useState(savedPrivateKey)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -58,7 +68,6 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           host: host.trim(),
           port: portNum,
           username: username.trim(),
-          credentialId: '',
         },
         authMethod === 'password' ? password : undefined,
         authMethod === 'privateKey' ? privateKey : undefined
@@ -84,30 +93,52 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             width: '36px',
             height: '36px',
             borderRadius: '8px',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            backgroundColor: reconnectMode ? 'rgba(78, 201, 176, 0.1)' : 'rgba(59, 130, 246, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth="2"
-          >
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
+          {reconnectMode ? (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#4ec9b0"
+              strokeWidth="2"
+            >
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 00-3-3.87" />
+              <path d="M16 3.13a4 4 0 010 7.75" />
+            </svg>
+          ) : (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth="2"
+            >
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+          )}
         </div>
         <div>
           <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
-            {editConfig ? t('connection.editTitle') : t('connection.title')}
+            {reconnectMode
+              ? t('sidebar.reconnect')
+              : editConfig
+                ? t('connection.editTitle')
+                : t('connection.title')}
           </h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t('connection.subtitle')}</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+            {reconnectMode ? host : t('connection.subtitle')}
+          </p>
         </div>
       </div>
 
@@ -413,7 +444,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
                 <span>{t('connection.connecting')}</span>
               </>
             ) : (
-              <>{t('connection.save')}</>
+              <>{reconnectMode ? t('sidebar.reconnect') : t('connection.save')}</>
             )}
           </button>
         </div>

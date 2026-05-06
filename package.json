@@ -15,7 +15,8 @@
     "package": "npm run build && electron-builder --win --x64",
     "lint": "eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,html}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,html}\"",
+    "extract:i18n": "npx i18next-cli extract"
   },
   "dependencies": {
     "electron-log": "^5.4.3",
@@ -49,6 +50,8 @@
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "i18next-cli": "^1.56.9",
+    "i18next-scanner": "^4.6.0",
     "postcss": "^8.5.14",
     "prettier": "^3.8.3",
     "tailwindcss": "^4.2.4",
