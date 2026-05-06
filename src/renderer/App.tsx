@@ -36,10 +36,22 @@ const App: React.FC = () => {
     const initApp = async () => {
       try {
         const savedSettings = (await window.electronAPI.storeGet('ui_settings')) as any
+
+        const getSystemLanguage = (): 'zh-CN' | 'en-US' => {
+          const systemLang = navigator.language || navigator.userLanguage
+          if (systemLang.startsWith('zh')) {
+            return 'zh-CN'
+          }
+          return 'en-US'
+        }
+
         if (savedSettings) {
           initialize(savedSettings)
           if (savedSettings.language) {
             i18n.changeLanguage(savedSettings.language)
+          } else {
+            const systemLanguage = getSystemLanguage()
+            i18n.changeLanguage(systemLanguage)
           }
           if (savedSettings.theme) {
             const resolvedTheme =
@@ -51,15 +63,21 @@ const App: React.FC = () => {
             document.documentElement.dataset.theme = resolvedTheme
           }
         } else {
-          initialize({})
+          const systemLanguage = getSystemLanguage()
+          initialize({ language: systemLanguage })
+          i18n.changeLanguage(systemLanguage)
         }
       } catch (error) {
-        initialize({})
+        const systemLanguage = (navigator.language || navigator.userLanguage).startsWith('zh')
+          ? 'zh-CN'
+          : 'en-US'
+        initialize({ language: systemLanguage })
+        i18n.changeLanguage(systemLanguage)
       }
     }
 
     initApp()
-  }, [initialize, i18n])
+  }, [initialize])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

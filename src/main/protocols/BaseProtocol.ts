@@ -12,6 +12,7 @@ export interface FileProtocol {
     username: string
     password?: string
     privateKey?: string
+    basePath?: string
   }): Promise<string>
   disconnect(sessionId: string): Promise<void>
   list(sessionId: string, path: string): Promise<FileInfo[]>

@@ -17,6 +17,7 @@ interface ConnectionConfig {
   port: number
   username: string
   credentialId: string
+  basePath?: string
 }
 
 interface StoreSchema {

@@ -13,6 +13,7 @@ interface ConnectionConfig {
   port: number
   username: string
   credentialId: string
+  basePath?: string
 }
 
 interface ProgressEvent {
@@ -24,7 +25,10 @@ interface ProgressEvent {
 }
 
 const SERVICE_NAME = 'RivetCredentials'
-const activeConnections: Map<string, { sessionId: string; protocol: 'sftp' | 'webdav' }> = new Map()
+const activeConnections: Map<
+  string,
+  { sessionId: string; protocol: 'sftp' | 'webdav'; basePath?: string }
+> = new Map()
 const transferControllers: Map<string, AbortController> = new Map()
 
 function getMainWindow(): BrowserWindow | null {
@@ -58,6 +62,7 @@ export function setupIpcHandlers(): void {
           username: config.username,
           password: config.password,
           privateKey: config.privateKey,
+          basePath: config.basePath,
         })
 
         const connectionConfig: ConnectionConfig = {
@@ -68,9 +73,14 @@ export function setupIpcHandlers(): void {
           port: config.port,
           username: config.username,
           credentialId,
+          basePath: config.basePath,
         }
 
-        activeConnections.set(credentialId, { sessionId, protocol: config.protocol })
+        activeConnections.set(credentialId, {
+          sessionId,
+          protocol: config.protocol,
+          basePath: config.basePath,
+        })
 
         // 保存连接到 store
         const { saveConnection } = await import('./store')

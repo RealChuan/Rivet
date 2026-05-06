@@ -57,6 +57,20 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
     }
   }
 
+  const isDark = document.documentElement.dataset.theme === 'dark'
+
+  const handleMouseEnter = (e: MouseEvent) => {
+    const target = e.currentTarget as HTMLElement
+    target.style.borderColor = 'var(--text-muted)'
+    target.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
+  }
+
+  const handleMouseLeave = (e: MouseEvent) => {
+    const target = e.currentTarget as HTMLElement
+    target.style.borderColor = 'var(--border)'
+    target.style.background = 'var(--bg)'
+  }
+
   return (
     <div
       ref={containerRef}
@@ -85,12 +99,8 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
           position: 'relative',
           margin: 0,
         }}
-        onMouseEnter={e => {
-          ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--text-muted)'
-        }}
-        onMouseLeave={e => {
-          ;(e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'
-        }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <span
           style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -122,14 +132,14 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
           ref={listRef}
           style={{
             position: 'absolute',
-            top: 'calc(100% + 1px)',
+            top: 'calc(100% + 2px)',
             left: 0,
             right: 0,
             padding: '4px 0',
             background: 'var(--bg)',
             border: '1px solid var(--border)',
             borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
             listStyle: 'none',
             zIndex: 100,
             maxHeight: '200px',
@@ -145,13 +155,19 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
                 setIsOpen(false)
               }}
               onMouseEnter={() => setHighlightedIndex(index)}
+              onMouseLeave={() => setHighlightedIndex(-1)}
               style={{
                 padding: '8px 12px',
                 cursor: 'pointer',
-                backgroundColor: highlightedIndex === index ? 'var(--hover)' : 'transparent',
+                backgroundColor:
+                  highlightedIndex === index
+                    ? isDark
+                      ? 'rgba(255, 255, 255, 0.1)'
+                      : 'rgba(0, 0, 0, 0.08)'
+                    : 'transparent',
                 color: option.value === value ? 'var(--accent)' : 'var(--text)',
                 fontWeight: option.value === value ? 500 : 400,
-                transition: 'background-color 0.1s',
+                transition: 'background-color 0.1s, color 0.1s',
               }}
             >
               {option.label}

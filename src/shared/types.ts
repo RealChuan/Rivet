@@ -6,6 +6,7 @@ export interface ConnectionConfig {
   port: number
   username: string
   credentialId: string
+  basePath?: string
 }
 
 export interface FileInfo {

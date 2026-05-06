@@ -41,6 +41,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
     initialAuthMethod || 'password'
   )
   const [privateKey, setPrivateKey] = useState(savedPrivateKey)
+  const [basePath, setBasePath] = useState(editConfig?.basePath || '')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -68,6 +69,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           host: host.trim(),
           port: portNum,
           username: username.trim(),
+          basePath: protocol === 'webdav' ? basePath.trim() : undefined,
         },
         authMethod === 'password' ? password : undefined,
         authMethod === 'privateKey' ? privateKey : undefined
@@ -83,6 +85,9 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   const handleProtocolChange = (value: string) => {
     setProtocol(value as 'sftp' | 'webdav')
     setPort(value === 'webdav' ? '443' : '22')
+    if (value === 'webdav') {
+      setAuthMethod('password')
+    }
   }
 
   return (
@@ -233,6 +238,29 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           </div>
         </div>
 
+        {protocol === 'webdav' && (
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: 500,
+                color: 'var(--text)',
+                marginBottom: '6px',
+              }}
+            >
+              {t('connection.basePath')}
+            </label>
+            <input
+              type="text"
+              value={basePath}
+              onChange={e => setBasePath(e.target.value)}
+              placeholder="/dav/files"
+              className="glass-input"
+            />
+          </div>
+        )}
+
         <div>
           <label
             style={{
@@ -254,59 +282,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           />
         </div>
 
-        <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: '12px',
-              fontWeight: 500,
-              color: 'var(--text)',
-              marginBottom: '6px',
-            }}
-          >
-            {t('connection.authMethod')}
-          </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => setAuthMethod('password')}
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                borderRadius: '6px',
-                border: `1px solid ${authMethod === 'password' ? 'var(--accent)' : 'var(--border)'}`,
-                backgroundColor:
-                  authMethod === 'password' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                color: authMethod === 'password' ? 'var(--accent)' : 'var(--text)',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              {t('connection.password')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setAuthMethod('privateKey')}
-              style={{
-                flex: 1,
-                padding: '8px 12px',
-                borderRadius: '6px',
-                border: `1px solid ${authMethod === 'privateKey' ? 'var(--accent)' : 'var(--border)'}`,
-                backgroundColor:
-                  authMethod === 'privateKey' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                color: authMethod === 'privateKey' ? 'var(--accent)' : 'var(--text)',
-                fontSize: '13px',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              {t('connection.privateKey')}
-            </button>
-          </div>
-        </div>
-
-        {authMethod === 'password' ? (
+        {protocol === 'sftp' && (
           <div>
             <label
               style={{
@@ -317,16 +293,76 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
                 marginBottom: '6px',
               }}
             >
-              {t('connection.password')}
+              {t('connection.authMethod')}
             </label>
-            <PasswordInput
-              value={password}
-              onChange={setPassword}
-              placeholder={t('connection.passwordPlaceholder')}
-              className="glass-input"
-            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setAuthMethod('password')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: `1px solid ${authMethod === 'password' ? 'var(--accent)' : '#c0c0c0'}`,
+                  backgroundColor:
+                    authMethod === 'password' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                  color: authMethod === 'password' ? 'var(--accent)' : 'var(--text)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s, background-color 0.15s',
+                }}
+                onMouseEnter={e => {
+                  if (authMethod !== 'password') {
+                    ;(e.currentTarget as HTMLElement).style.borderColor = '#a0a0a0'
+                    ;(e.currentTarget as HTMLElement).style.background = 'rgba(0, 0, 0, 0.03)'
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (authMethod !== 'password') {
+                    ;(e.currentTarget as HTMLElement).style.borderColor = '#c0c0c0'
+                    ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+                  }
+                }}
+              >
+                {t('connection.password')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMethod('privateKey')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: `1px solid ${authMethod === 'privateKey' ? 'var(--accent)' : '#c0c0c0'}`,
+                  backgroundColor:
+                    authMethod === 'privateKey' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                  color: authMethod === 'privateKey' ? 'var(--accent)' : 'var(--text)',
+                  fontSize: '13px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'border-color 0.15s, background-color 0.15s',
+                }}
+                onMouseEnter={e => {
+                  if (authMethod !== 'privateKey') {
+                    ;(e.currentTarget as HTMLElement).style.borderColor = '#a0a0a0'
+                    ;(e.currentTarget as HTMLElement).style.background = 'rgba(0, 0, 0, 0.03)'
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (authMethod !== 'privateKey') {
+                    ;(e.currentTarget as HTMLElement).style.borderColor = '#c0c0c0'
+                    ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+                  }
+                }}
+              >
+                {t('connection.privateKey')}
+              </button>
+            </div>
           </div>
-        ) : (
+        )}
+
+        {protocol === 'sftp' && authMethod === 'privateKey' ? (
           <div>
             <label
               style={{
@@ -346,6 +382,26 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
               className="glass-input"
               rows={4}
               style={{ resize: 'vertical', width: '100%' }}
+            />
+          </div>
+        ) : (
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '12px',
+                fontWeight: 500,
+                color: 'var(--text)',
+                marginBottom: '6px',
+              }}
+            >
+              {t('connection.password')}
+            </label>
+            <PasswordInput
+              value={password}
+              onChange={setPassword}
+              placeholder={t('connection.passwordPlaceholder')}
+              className="glass-input"
             />
           </div>
         )}

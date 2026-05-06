@@ -2,6 +2,7 @@
   "translation": {
     "connection": {
       "authMethod": "Authentication Method",
+      "basePath": "Access Path",
       "cancel": "Cancel",
       "connecting": "Connecting...",
       "editTitle": "Edit Connection",

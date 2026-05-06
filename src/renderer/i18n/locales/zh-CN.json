@@ -2,6 +2,7 @@
   "translation": {
     "connection": {
       "authMethod": "认证方式",
+      "basePath": "访问路径",
       "cancel": "取消",
       "connecting": "连接中...",
       "editTitle": "编辑连接",
