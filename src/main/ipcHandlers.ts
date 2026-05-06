@@ -1,0 +1,309 @@
+import { ipcMain, BrowserWindow } from 'electron'
+import keytar from 'keytar'
+import { v4 as uuidv4 } from 'uuid'
+import { app } from 'electron'
+import { ProtocolFactory } from './protocols/ProtocolFactory'
+import logger from './logger'
+
+interface ConnectionConfig {
+  id: string
+  name: string
+  protocol: 'sftp' | 'webdav'
+  host: string
+  port: number
+  username: string
+  credentialId: string
+}
+
+interface ProgressEvent {
+  transferId: string
+  sessionId: string
+  operation: 'upload' | 'download'
+  path: string
+  percent: number
+}
+
+const SERVICE_NAME = 'RivetCredentials'
+const activeConnections: Map<string, { sessionId: string; protocol: 'sftp' | 'webdav' }> = new Map()
+const transferControllers: Map<string, AbortController> = new Map()
+
+function getMainWindow(): BrowserWindow | null {
+  const windows = BrowserWindow.getAllWindows()
+  return windows.length > 0 ? windows[0] : null
+}
+
+export function setupIpcHandlers(): void {
+  ipcMain.handle(
+    'connect',
+    async (
+      _,
+      config: Omit<ConnectionConfig, 'id' | 'credentialId'> & {
+        password?: string
+        privateKey?: string
+      }
+    ) => {
+      try {
+        const credentialId = uuidv4()
+
+        if (config.password) {
+          await keytar.setPassword(SERVICE_NAME, `connection_${credentialId}`, config.password)
+        } else if (config.privateKey) {
+          await keytar.setPassword(SERVICE_NAME, `connection_${credentialId}`, config.privateKey)
+        }
+
+        const protocolImpl = ProtocolFactory.getProtocol(config.protocol)
+        const sessionId = await protocolImpl.connect({
+          host: config.host,
+          port: config.port,
+          username: config.username,
+          password: config.password,
+          privateKey: config.privateKey,
+        })
+
+        const connectionConfig: ConnectionConfig = {
+          id: credentialId,
+          name: config.name || `${config.protocol}://${config.host}`,
+          protocol: config.protocol,
+          host: config.host,
+          port: config.port,
+          username: config.username,
+          credentialId,
+        }
+
+        activeConnections.set(credentialId, { sessionId, protocol: config.protocol })
+
+        logger.info(`Connection established: ${connectionConfig.name} (${credentialId})`)
+        return credentialId
+      } catch (error) {
+        logger.error(`Connection failed: ${error}`)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.handle('disconnect', async (_, sessionId: string) => {
+    try {
+      const handle = activeConnections.get(sessionId)
+      if (handle) {
+        const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
+        await protocolImpl.disconnect(handle.sessionId)
+        activeConnections.delete(sessionId)
+        logger.info(`Disconnected: ${sessionId}`)
+      }
+    } catch (error) {
+      logger.error(`Disconnect failed: ${error}`)
+      throw error
+    }
+  })
+
+  ipcMain.handle('listDirectory', async (_, sessionId: string, remotePath: string) => {
+    try {
+      const handle = activeConnections.get(sessionId)
+      if (!handle) {
+        throw new Error(`Connection not found: ${sessionId}`)
+      }
+      const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
+      return await protocolImpl.list(handle.sessionId, remotePath)
+    } catch (error) {
+      logger.error(`List directory failed: ${remotePath} - ${error}`)
+      throw error
+    }
+  })
+
+  ipcMain.handle('createDirectory', async (_, sessionId: string, remotePath: string) => {
+    try {
+      const handle = activeConnections.get(sessionId)
+      if (!handle) {
+        throw new Error(`Connection not found: ${sessionId}`)
+      }
+      const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
+      await protocolImpl.mkdir(handle.sessionId, remotePath)
+    } catch (error) {
+      logger.error(`Create directory failed: ${remotePath} - ${error}`)
+      throw error
+    }
+  })
+
+  ipcMain.handle('rename', async (_, sessionId: string, oldPath: string, newPath: string) => {
+    try {
+      const handle = activeConnections.get(sessionId)
+      if (!handle) {
+        throw new Error(`Connection not found: ${sessionId}`)
+      }
+      const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
+      await protocolImpl.rename(handle.sessionId, oldPath, newPath)
+    } catch (error) {
+      logger.error(`Rename failed: ${oldPath} -> ${newPath} - ${error}`)
+      throw error
+    }
+  })
+
+  ipcMain.handle('delete', async (_, sessionId: string, remotePath: string) => {
+    try {
+      const handle = activeConnections.get(sessionId)
+      if (!handle) {
+        throw new Error(`Connection not found: ${sessionId}`)
+      }
+      const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
+      await protocolImpl.delete(handle.sessionId, remotePath)
+    } catch (error) {
+      logger.error(`Delete failed: ${remotePath} - ${error}`)
+      throw error
+    }
+  })
+
+  ipcMain.handle(
+    'uploadFile',
+    async (_, sessionId: string, localPath: string, remotePath: string) => {
+      const transferId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const abortController = new AbortController()
+      transferControllers.set(transferId, abortController)
+
+      try {
+        const handle = activeConnections.get(sessionId)
+        if (!handle) {
+          throw new Error(`Connection not found: ${sessionId}`)
+        }
+
+        const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
+        await protocolImpl.uploadFile(
+          handle.sessionId,
+          localPath,
+          remotePath,
+          (percent: number) => {
+            const mainWindow = getMainWindow()
+            if (mainWindow) {
+              mainWindow.webContents.send('transfer-progress', {
+                transferId,
+                sessionId,
+                operation: 'upload',
+                path: remotePath,
+                percent,
+              } as ProgressEvent)
+            }
+          },
+          abortController.signal
+        )
+
+        transferControllers.delete(transferId)
+        return { transferId, success: true }
+      } catch (error) {
+        transferControllers.delete(transferId)
+        logger.error(`Upload failed: ${localPath} -> ${remotePath} - ${error}`)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'downloadFile',
+    async (_, sessionId: string, remotePath: string, localPath: string) => {
+      const transferId = `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const abortController = new AbortController()
+      transferControllers.set(transferId, abortController)
+
+      try {
+        const handle = activeConnections.get(sessionId)
+        if (!handle) {
+          throw new Error(`Connection not found: ${sessionId}`)
+        }
+
+        const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
+        await protocolImpl.downloadFile(
+          handle.sessionId,
+          remotePath,
+          localPath,
+          (percent: number) => {
+            const mainWindow = getMainWindow()
+            if (mainWindow) {
+              mainWindow.webContents.send('transfer-progress', {
+                transferId,
+                sessionId,
+                operation: 'download',
+                path: remotePath,
+                percent,
+              } as ProgressEvent)
+            }
+          },
+          abortController.signal
+        )
+
+        transferControllers.delete(transferId)
+        return { transferId, success: true }
+      } catch (error) {
+        transferControllers.delete(transferId)
+        logger.error(`Download failed: ${remotePath} -> ${localPath} - ${error}`)
+        throw error
+      }
+    }
+  )
+
+  ipcMain.handle('cancelTransfer', async (_, transferId: string) => {
+    const controller = transferControllers.get(transferId)
+    if (controller) {
+      controller.abort()
+      transferControllers.delete(transferId)
+      logger.info(`Transfer cancelled: ${transferId}`)
+    }
+  })
+
+  ipcMain.handle('store-get', async (_, key: string) => {
+    const { store } = await import('./store')
+    return (store as any)[key]
+  })
+
+  ipcMain.handle('store-set', async (_, key: string, value: unknown) => {
+    const { store } = await import('./store')
+    ;(store as any)[key] = value
+  })
+
+  ipcMain.handle('store-delete', async (_, key: string) => {
+    const { store } = await import('./store')
+    delete (store as any)[key]
+  })
+
+  ipcMain.handle('get-saved-connections', async () => {
+    const { getSavedConnections } = await import('./store')
+    return getSavedConnections()
+  })
+
+  ipcMain.handle('delete-connection', async (_, id: string) => {
+    const { deleteConnection } = await import('./store')
+    deleteConnection(id)
+    await keytar.deletePassword(SERVICE_NAME, `connection_${id}`)
+  })
+
+  ipcMain.handle('get-credential', async (_, credentialId: string) => {
+    return await keytar.getPassword(SERVICE_NAME, `connection_${credentialId}`)
+  })
+
+  ipcMain.handle('get-temp-dir', async () => {
+    return app.getPath('temp')
+  })
+
+  ipcMain.handle('get-download-dir', async () => {
+    return app.getPath('downloads')
+  })
+
+  ipcMain.handle('show-save-dialog', async (_, options: any) => {
+    const { dialog } = await import('electron')
+    const mainWindow = getMainWindow()
+    if (mainWindow) {
+      return await dialog.showSaveDialog(mainWindow, options)
+    }
+    return null
+  })
+
+  ipcMain.handle('show-open-dialog', async (_, options: any) => {
+    const { dialog } = await import('electron')
+    const mainWindow = getMainWindow()
+    if (mainWindow) {
+      return await dialog.showOpenDialog(mainWindow, options)
+    }
+    return null
+  })
+
+  logger.info('IPC handlers registered')
+}
+
+export { activeConnections, transferControllers }

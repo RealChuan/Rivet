@@ -1,0 +1,118 @@
+{
+  "app": {
+    "name": "Rivet",
+    "description": "SFTP/WebDAV File Browser"
+  },
+  "sidebar": {
+    "newConnection": "New Connection",
+    "connections": "Connections",
+    "noConnections": "No connections",
+    "newConnectionHint": "Click the button above to create a new connection",
+    "disconnect": "Disconnect",
+    "reconnect": "Reconnect"
+  },
+  "connection": {
+    "title": "Connection Settings",
+    "editTitle": "Edit Connection",
+    "subtitle": "Configure SFTP or WebDAV connection",
+    "name": "Connection Name",
+    "namePlaceholder": "Enter connection name",
+    "protocol": "Protocol",
+    "host": "Host",
+    "hostPlaceholder": "Enter host address",
+    "port": "Port",
+    "username": "Username",
+    "usernamePlaceholder": "Enter username",
+    "password": "Password",
+    "passwordPlaceholder": "Enter password",
+    "privateKey": "Private Key",
+    "privateKeyPlaceholder": "Enter private key content",
+    "authMethod": "Authentication",
+    "authPassword": "Password",
+    "authPrivateKey": "Private Key",
+    "save": "Save",
+    "cancel": "Cancel",
+    "connecting": "Connecting...",
+    "test": "Test Connection",
+    "testSuccess": "Connection successful",
+    "testFailed": "Connection failed"
+  },
+  "fileList": {
+    "name": "Name",
+    "size": "Size",
+    "dateModified": "Date Modified",
+    "modified": "Modified",
+    "empty": "Folder is empty",
+    "loading": "Loading...",
+    "error": "Failed to load",
+    "retry": "Retry",
+    "parentDirectory": "Parent Directory"
+  },
+  "toolbar": {
+    "refresh": "Refresh",
+    "newFolder": "New Folder",
+    "upload": "Upload",
+    "download": "Download",
+    "delete": "Delete",
+    "rename": "Rename",
+    "queue": "Transfer Queue"
+  },
+  "queue": {
+    "title": "Transfer Queue",
+    "empty": "No transfer tasks",
+    "upload": "Upload",
+    "download": "Download",
+    "pending": "Pending",
+    "active": "Transferring",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "clear": "Clear Completed"
+  },
+  "dialog": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "delete": {
+      "title": "Confirm Delete",
+      "message": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone."
+    },
+    "newFolder": {
+      "title": "New Folder",
+      "placeholder": "Enter folder name"
+    },
+    "rename": {
+      "title": "Rename",
+      "placeholder": "Enter new name"
+    }
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "settings": {
+    "language": "Language",
+    "theme": "Theme"
+  },
+  "toast": {
+    "connectionSuccess": "Connection successful",
+    "connectionFailed": "Connection failed",
+    "disconnectSuccess": "Disconnected",
+    "uploadSuccess": "Upload successful",
+    "uploadFailed": "Upload failed",
+    "downloadSuccess": "Download successful",
+    "downloadFailed": "Download failed",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Delete failed",
+    "createFolderSuccess": "Folder created",
+    "createFolderFailed": "Failed to create folder",
+    "renameSuccess": "Renamed successfully",
+    "renameFailed": "Rename failed"
+  },
+  "shortcuts": {
+    "refresh": "F5 Refresh",
+    "delete": "Delete Delete"
+  }
+}
