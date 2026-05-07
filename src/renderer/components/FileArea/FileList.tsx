@@ -1,15 +1,18 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '../../stores/sessionStore'
-import { useUiStore } from '../../stores/uiStore'
-import { useTransferQueue } from '../../hooks/useTransferQueue'
 import { FileInfo } from '@shared/types'
 import ConfirmDialog from '../dialogs/ConfirmDialog'
 import InputDialog from '../dialogs/InputDialog'
+import TargetFolderDialog from '../dialogs/TargetFolderDialog'
+import ConflictDialog from '../dialogs/ConflictDialog'
 import FileListHeader from './FileListHeader'
 import FileItem from './FileItem'
 import FileContextMenu from './FileContextMenu'
 import { FileListLoading, FileListError, FileListEmpty } from './FileListStates'
+import VirtualList from '../VirtualList'
+import { useFileOperations } from '../../hooks/useFileOperations'
+import { formatFileSize, formatDate, getParentPath } from '../../utils/utils'
 
 interface FileListProps {
   sessionId: string
@@ -19,15 +22,14 @@ interface FileListProps {
 export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) => {
   const { t } = useTranslation()
   const { sessions, updateCurrentPath, refreshCurrentDirectory } = useSessionStore()
-  const { addToast } = useUiStore()
-  const { download } = useTransferQueue()
   const session = sessions.find(s => s.id === sessionId)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
-  const [fileToDelete, setFileToDelete] = useState<FileInfo | null>(null)
+  const [fileToDelete, setFileToDelete] = useState<FileInfo[] | null>(null)
+  const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
   const [hoveredFile, setHoveredFile] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<'name' | 'permissions' | 'owner' | 'size' | 'modifyTime'>(
     'name'
@@ -51,6 +53,29 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     files: FileInfo[]
     isEmptyArea: boolean
   } | null>(null)
+
+  const [isDragging, setIsDragging] = useState(false)
+  const [hasStartedDrag, setHasStartedDrag] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const [dragEnd, setDragEnd] = useState({ x: 0, y: 0 })
+  const [pendingSelection, setPendingSelection] = useState<Set<string>>(new Set())
+
+  const {
+    handleDelete,
+    handleRename,
+    handleCreateFolder,
+    handleCopy,
+    handleMove,
+    handleSelectTargetFolder,
+    handleConflictResolution,
+    targetFolderDialogOpen,
+    conflictDialogOpen,
+    conflicts,
+    pendingOperation,
+    pendingFiles,
+    pendingTargetDir,
+    setTargetFolderDialogOpen,
+  } = useFileOperations(sessionId)
 
   const handleNavigate = useCallback(
     async (path: string) => {
@@ -91,58 +116,29 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     }
   }, [resizingColumn, handleMouseMove, handleMouseUp])
 
-  const handleFileClick = useCallback(
-    (file: FileInfo, e: React.MouseEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        setSelectedFiles(prev => {
-          const exists = prev.find(f => f.name === file.name)
-          if (exists) {
-            return prev.filter(f => f.name !== file.name)
-          }
-          return [...prev, file]
-        })
-      } else if (e.shiftKey && selectedFiles.length > 0) {
-        const files = safeGetFiles()
-        const currentIndex = files.findIndex(f => f.name === file.name)
-        const lastSelectedIndex = files.findIndex(
-          f => f.name === selectedFiles[selectedFiles.length - 1].name
-        )
-        const start = Math.min(currentIndex, lastSelectedIndex)
-        const end = Math.max(currentIndex, lastSelectedIndex)
-        const range = files.slice(start, end + 1)
-        setSelectedFiles(range)
-      } else {
-        setSelectedFiles([file])
-      }
-      setSelectedFile(file)
-    },
-    [selectedFiles]
-  )
-
   const handleDoubleClick = useCallback(
     (file: FileInfo) => {
       if (file.type === 'directory') {
-        const newPath = currentPath === '/' ? `/${file.name}` : `${currentPath}/${file.name}`
-        handleNavigate(newPath)
+        handleNavigate(file.absolutePath)
       }
     },
-    [currentPath, handleNavigate]
+    [handleNavigate]
   )
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent, file?: FileInfo) => {
       e.preventDefault()
+
       if (file) {
         const isSelected = selectedFiles.some(f => f.name === file.name)
         if (!isSelected) {
           setSelectedFiles([file])
           setSelectedFile(file)
         }
-        const files = isSelected ? selectedFiles : [file]
         setContextMenu({
           x: e.clientX,
           y: e.clientY,
-          files,
+          files: isSelected ? selectedFiles : [file],
           isEmptyArea: false,
         })
       } else {
@@ -170,95 +166,25 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
 
   const handleParentDirectory = useCallback(() => {
     if (currentPath === '/') return
-    const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/'
-    handleNavigate(parentPath)
+    handleNavigate(getParentPath(currentPath))
   }, [currentPath, handleNavigate])
 
-  const handleDelete = async () => {
-    if (!fileToDelete) return
-    try {
-      await window.electronAPI.delete(sessionId, `${currentPath}/${fileToDelete.name}`)
-      addToast({ type: 'success', message: t('toast.deleteSuccess') })
-      await refreshCurrentDirectory(sessionId)
-    } catch (error) {
-      addToast({
-        type: 'error',
-        message: `${t('toast.deleteFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      })
-    }
-    setFileToDelete(null)
-  }
-
-  const handleRename = async (newName: string) => {
-    if (!selectedFile) return
-    const oldPath = `${currentPath}/${selectedFile.name}`
-    const newPath = `${currentPath}/${newName}`
-    try {
-      await window.electronAPI.rename(sessionId, oldPath, newPath)
-      addToast({ type: 'success', message: t('toast.renameSuccess') })
-      await refreshCurrentDirectory(sessionId)
-    } catch (error) {
-      addToast({
-        type: 'error',
-        message: `${t('toast.renameFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      })
-    }
-    setSelectedFile(null)
-  }
-
-  const handleCreateFolder = async () => {
-    const defaultName = t('fileList.newFolderName') || 'New Folder'
-    let folderName = defaultName
-    let counter = 1
-
-    const files = safeGetFiles()
-    while (files.some(f => f.name === folderName)) {
-      folderName = `${defaultName} ${counter}`
-      counter++
-    }
-
-    const newPath = `${currentPath}/${folderName}`
-    try {
-      await window.electronAPI.mkdir(sessionId, newPath)
-      addToast({ type: 'success', message: t('toast.createFolderSuccess') })
-      await refreshCurrentDirectory(sessionId)
-    } catch (error) {
-      addToast({
-        type: 'error',
-        message: `${t('toast.createFolderFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      })
-    }
-  }
-
-  const handleDownload = async () => {
-    if (!selectedFile || selectedFile.type === 'directory') return
-    try {
-      const result = await window.electronAPI.showSaveDialog({
-        defaultPath: selectedFile.name,
-      })
-      if (result && !result.canceled && result.filePath) {
-        await download(`${currentPath}/${selectedFile.name}`, result.filePath)
+  const handleRenameWrapper = useCallback(
+    async (newName: string) => {
+      if (selectedFile) {
+        await handleRename(selectedFile, newName)
+        setSelectedFile(null)
       }
-    } catch (error) {
-      addToast({
-        type: 'error',
-        message: `${t('toast.downloadFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      })
-    }
-  }
+    },
+    [selectedFile, handleRename]
+  )
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '-'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-  }
-
-  const formatDate = (timestamp: number): string => {
-    if (!timestamp) return '-'
-    return new Date(timestamp).toLocaleDateString()
-  }
+  const handleCreateFolderWrapper = useCallback(
+    async (folderName: string) => {
+      await handleCreateFolder(currentPath, folderName)
+    },
+    [currentPath, handleCreateFolder]
+  )
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -272,6 +198,76 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
 
     return () => resizeObserver.disconnect()
   }, [])
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return
+    if ((e.target as HTMLElement).closest('button')) return
+
+    const rect = containerRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+
+    setIsDragging(true)
+    setHasStartedDrag(false)
+    setDragStart({ x, y })
+    setDragEnd({ x, y })
+    setPendingSelection(new Set())
+  }, [])
+
+  const handleDragMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging || !containerRef.current) return
+
+      const rect = containerRef.current.getBoundingClientRect()
+      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
+      const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height))
+
+      setDragEnd({ x, y })
+
+      const startX = Math.min(dragStart.x, x)
+      const startY = Math.min(dragStart.y, y)
+      const endX = Math.max(dragStart.x, x)
+      const endY = Math.max(dragStart.y, y)
+
+      const minDragDistance = 5
+      const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2))
+
+      if (distance < minDragDistance) {
+        return
+      }
+
+      if (!hasStartedDrag) {
+        setHasStartedDrag(true)
+        setSelectedFiles([])
+        setSelectedFile(null)
+      }
+
+      const fileElements = containerRef.current.querySelectorAll('[data-file-item]')
+      const newPendingSelection = new Set<string>()
+
+      fileElements.forEach(el => {
+        const fileRect = el.getBoundingClientRect()
+        const containerRect = containerRef.current!.getBoundingClientRect()
+
+        const fileLeft = fileRect.left - containerRect.left
+        const fileTop = fileRect.top - containerRect.top
+        const fileRight = fileLeft + fileRect.width
+        const fileBottom = fileTop + fileRect.height
+
+        if (fileRight > startX && fileLeft < endX && fileBottom > startY && fileTop < endY) {
+          const fileName = el.getAttribute('data-file-item')
+          if (fileName) {
+            newPendingSelection.add(fileName)
+          }
+        }
+      })
+
+      setPendingSelection(newPendingSelection)
+    },
+    [isDragging, dragStart, hasStartedDrag]
+  )
 
   if (!session) return null
 
@@ -317,6 +313,80 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     })
   }, [files, sortBy, sortOrder])
 
+  const handleFileClick = useCallback(
+    (file: FileInfo, e: React.MouseEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        setSelectedFiles(prev => {
+          const exists = prev.find(f => f.name === file.name)
+          if (exists) {
+            return prev.filter(f => f.name !== file.name)
+          }
+          return [...prev, file]
+        })
+      } else if (e.shiftKey && selectedFiles.length > 0) {
+        const currentIndex = sortedFiles.findIndex(f => f.name === file.name)
+        const lastSelectedIndex = sortedFiles.findIndex(
+          f => f.name === selectedFiles[selectedFiles.length - 1].name
+        )
+        const start = Math.min(currentIndex, lastSelectedIndex)
+        const end = Math.max(currentIndex, lastSelectedIndex)
+        const range = sortedFiles.slice(start, end + 1)
+        setSelectedFiles(range)
+      } else {
+        setSelectedFiles([file])
+      }
+      setSelectedFile(file)
+      setPendingSelection(new Set())
+    },
+    [selectedFiles, sortedFiles]
+  )
+
+  const handleDragEnd = useCallback(() => {
+    if (!isDragging) return
+
+    if (!hasStartedDrag) {
+      setIsDragging(false)
+      return
+    }
+
+    const startX = Math.min(dragStart.x, dragEnd.x)
+    const startY = Math.min(dragStart.y, dragEnd.y)
+    const endX = Math.max(dragStart.x, dragEnd.x)
+    const endY = Math.max(dragStart.y, dragEnd.y)
+
+    const selectedInBox: FileInfo[] = []
+    const fileElements = containerRef.current?.querySelectorAll('[data-file-item]')
+
+    fileElements?.forEach(el => {
+      const fileRect = el.getBoundingClientRect()
+      const containerRect = containerRef.current!.getBoundingClientRect()
+
+      const fileLeft = fileRect.left - containerRect.left
+      const fileTop = fileRect.top - containerRect.top
+      const fileRight = fileLeft + fileRect.width
+      const fileBottom = fileTop + fileRect.height
+
+      if (fileRight > startX && fileLeft < endX && fileBottom > startY && fileTop < endY) {
+        const fileName = el.getAttribute('data-file-item')
+        if (fileName) {
+          const file = sortedFiles.find(f => f.name === fileName)
+          if (file) {
+            selectedInBox.push(file)
+          }
+        }
+      }
+    })
+
+    setSelectedFiles(selectedInBox)
+    if (selectedInBox.length > 0) {
+      setSelectedFile(selectedInBox[selectedInBox.length - 1])
+    }
+
+    setIsDragging(false)
+    setHasStartedDrag(false)
+    setPendingSelection(new Set())
+  }, [isDragging, hasStartedDrag, dragStart, dragEnd, sortedFiles])
+
   const handleSort = (column: 'name' | 'permissions' | 'owner' | 'size' | 'modifyTime') => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
@@ -331,6 +401,17 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     setResizeStartX(x)
     setResizeStartWidth(width)
   }
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleDragMove)
+      document.addEventListener('mouseup', handleDragEnd)
+      return () => {
+        document.removeEventListener('mousemove', handleDragMove)
+        document.removeEventListener('mouseup', handleDragEnd)
+      }
+    }
+  }, [isDragging, handleDragMove, handleDragEnd])
 
   if (session.isLoading) {
     return <FileListLoading />
@@ -356,6 +437,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         minWidth: totalWidth,
         display: 'flex',
         flexDirection: 'column',
+        height: '100%',
       }}
     >
       <FileListHeader
@@ -370,8 +452,9 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         ref={containerRef}
         style={{
           flex: 1,
+          minHeight: '40px',
+          position: 'relative',
           overflowY: 'auto',
-          minHeight: '200px',
         }}
         onContextMenu={e => {
           const target = e.target as HTMLElement
@@ -379,28 +462,52 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
             handleContextMenu(e)
           }
         }}
+        onMouseDown={handleMouseDown}
       >
+        {isDragging && hasStartedDrag && (
+          <div
+            style={{
+              position: 'absolute',
+              left: Math.min(dragStart.x, dragEnd.x),
+              top: Math.min(dragStart.y, dragEnd.y),
+              width: Math.abs(dragEnd.x - dragStart.x),
+              height: Math.abs(dragEnd.y - dragStart.y),
+              border: '1.5px solid var(--accent)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              pointerEvents: 'none',
+              zIndex: 100,
+              borderRadius: '2px',
+            }}
+          />
+        )}
         {sortedFiles.length === 0 ? (
           <FileListEmpty />
         ) : (
-          sortedFiles.map(file => (
-            <FileItem
-              key={file.name}
-              file={file}
-              columnWidths={columnWidths}
-              isSelected={selectedFiles.some(f => f.name === file.name)}
-              isHovered={hoveredFile === file.name}
-              onHover={setHoveredFile}
-              onClick={e => handleFileClick(file, e)}
-              onDoubleClick={() => handleDoubleClick(file)}
-              onContextMenu={e => {
-                e.stopPropagation()
-                handleContextMenu(e, file)
-              }}
-              formatFileSize={formatFileSize}
-              formatDate={formatDate}
-            />
-          ))
+          <VirtualList
+            items={sortedFiles}
+            itemHeight={40}
+            width="100%"
+            renderItem={(file, index, style) => (
+              <FileItem
+                key={file.name}
+                file={file}
+                columnWidths={columnWidths}
+                isSelected={selectedFiles.some(f => f.name === file.name)}
+                isPending={pendingSelection.has(file.name)}
+                isHovered={hoveredFile === file.name}
+                onHover={setHoveredFile}
+                onClick={e => handleFileClick(file, e)}
+                onDoubleClick={() => handleDoubleClick(file)}
+                onContextMenu={e => {
+                  e.stopPropagation()
+                  handleContextMenu(e, file)
+                }}
+                formatFileSize={formatFileSize}
+                formatDate={formatDate}
+                style={style}
+              />
+            )}
+          />
         )}
       </div>
 
@@ -452,9 +559,18 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
           setDeleteDialogOpen(false)
           setFileToDelete(null)
         }}
-        onConfirm={handleDelete}
+        onConfirm={() => {
+          if (fileToDelete) {
+            handleDelete(fileToDelete)
+            setFileToDelete(null)
+          }
+        }}
         title={t('dialog.delete.title')}
-        message={t('dialog.delete.message', { name: fileToDelete?.name })}
+        message={
+          fileToDelete && fileToDelete.length > 1
+            ? t('dialog.delete.messageMultiple', { count: fileToDelete.length })
+            : t('dialog.delete.message', { name: fileToDelete?.[0]?.name })
+        }
         type="danger"
       />
 
@@ -464,7 +580,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
           setRenameDialogOpen(false)
           setSelectedFile(null)
         }}
-        onSubmit={handleRename}
+        onSubmit={handleRenameWrapper}
         title={t('dialog.rename.title')}
         placeholder={t('dialog.rename.placeholder')}
         defaultValue={selectedFile?.name || ''}
@@ -477,17 +593,49 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
           files={contextMenu.files}
           isEmptyArea={contextMenu.isEmptyArea}
           onClose={handleCloseContextMenu}
-          onCreateFolder={handleCreateFolder}
+          onCreateFolder={() => setNewFolderDialogOpen(true)}
           onRename={file => {
             setSelectedFile(file)
             setRenameDialogOpen(true)
           }}
-          onDelete={file => {
-            setFileToDelete(file)
+          onDelete={files => {
+            setFileToDelete(files)
             setDeleteDialogOpen(true)
           }}
+          onCopy={handleCopy}
+          onMove={handleMove}
         />
       )}
+
+      <InputDialog
+        open={newFolderDialogOpen}
+        onClose={() => setNewFolderDialogOpen(false)}
+        onSubmit={handleCreateFolderWrapper}
+        title={t('dialog.newFolder.title')}
+        placeholder={t('dialog.newFolder.placeholder')}
+        defaultValue=""
+      />
+
+      <TargetFolderDialog
+        open={targetFolderDialogOpen}
+        onClose={() => {
+          setTargetFolderDialogOpen(false)
+        }}
+        onConfirm={handleSelectTargetFolder}
+        sessionId={sessionId}
+      />
+
+      <ConflictDialog
+        open={conflictDialogOpen}
+        onClose={() => {
+          setTargetFolderDialogOpen(false)
+        }}
+        onConfirm={handleConflictResolution}
+        conflicts={conflicts}
+        operation={pendingOperation}
+        files={pendingFiles}
+        targetDir={pendingTargetDir}
+      />
     </div>
   )
 }

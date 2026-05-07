@@ -26,8 +26,21 @@
     "dialog": {
       "cancel": "Cancel",
       "confirm": "Confirm",
+      "conflict": {
+        "applyToAll": "Apply to all",
+        "cannotOverwrite": "Cannot overwrite file with folder or vice versa",
+        "globalAction": "Global action",
+        "keepBoth": "Keep Both",
+        "overwrite": "Overwrite",
+        "skip": "Skip",
+        "source": "Source",
+        "target": "Target",
+        "title": "File Conflict"
+      },
       "delete": {
         "message": "Are you sure you want to delete this?",
+        "messageMultiple_one": "Are you sure you want to delete these {{count}} items?",
+        "messageMultiple_other": "Are you sure you want to delete these {{count}} items?",
         "title": "Confirm Delete"
       },
       "newFolder": {
@@ -38,6 +51,9 @@
       "rename": {
         "placeholder": "Enter new name",
         "title": "Rename"
+      },
+      "selectTargetFolder": {
+        "title": "Select Target Folder"
       }
     },
     "fileList": {
@@ -47,7 +63,6 @@
       "loading": "Loading...",
       "name": "Name",
       "newFolder": "New Folder",
-      "newFolderName": "New Folder Name",
       "owner": "Owner",
       "parentDirectory": "Parent Directory",
       "permissions": "Permissions",
@@ -77,8 +92,11 @@
       "reconnect": "Reconnect"
     },
     "toast": {
+      "cannotMoveToSelf": "Cannot move folder to itself or its subfolder",
       "connectionFailed": "Connection failed",
       "connectionSuccess": "Connected successfully",
+      "copyFailed": "Copy failed",
+      "copySuccess": "Copied successfully",
       "createFolderFailed": "Failed to create folder",
       "createFolderSuccess": "Folder created successfully",
       "deleteConnectionSuccess": "Connection deleted",
@@ -86,11 +104,15 @@
       "deleteSuccess": "Deleted successfully",
       "disconnectSuccess": "Disconnected",
       "downloadFailed": "Download failed",
+      "moveFailed": "Move failed",
+      "moveSuccess": "Moved successfully",
       "renameFailed": "Rename failed",
       "renameSuccess": "Renamed successfully"
     },
     "toolbar": {
+      "copy": "Copy",
       "delete": "Delete",
+      "move": "Move",
       "newFolder": "New Folder",
       "refresh": "Refresh",
       "rename": "Rename",

@@ -4,9 +4,17 @@ interface GlassDialogProps {
   open: boolean
   onClose: () => void
   children: React.ReactNode
+  width?: number
+  height?: number
 }
 
-export const GlassDialog: React.FC<GlassDialogProps> = ({ open, onClose, children }) => {
+export const GlassDialog: React.FC<GlassDialogProps> = ({
+  open,
+  onClose,
+  children,
+  width = 420,
+  height = 400,
+}) => {
   const dialogRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [startPos, setStartPos] = useState({ mouseX: 0, mouseY: 0, dialogX: 0, dialogY: 0 })
@@ -45,8 +53,8 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({ open, onClose, childre
         currentDialogX = rect.left
         currentDialogY = rect.top
       } else {
-        currentDialogX = (window.innerWidth - 420) / 2
-        currentDialogY = (window.innerHeight - 400) / 2
+        currentDialogX = (window.innerWidth - width) / 2
+        currentDialogY = (window.innerHeight - height) / 2
       }
 
       setStartPos({
@@ -66,8 +74,8 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({ open, onClose, childre
       const deltaX = e.clientX - startPos.mouseX
       const deltaY = e.clientY - startPos.mouseY
       setCustomPosition({
-        x: Math.max(0, Math.min(window.innerWidth - 360, startPos.dialogX + deltaX)),
-        y: Math.max(0, Math.min(window.innerHeight - 200, startPos.dialogY + deltaY)),
+        x: Math.max(0, Math.min(window.innerWidth - width, startPos.dialogX + deltaX)),
+        y: Math.max(0, Math.min(window.innerHeight - height, startPos.dialogY + deltaY)),
       })
     }
 
@@ -99,6 +107,7 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({ open, onClose, childre
           left: customPosition?.x,
           top: customPosition?.y,
           cursor: isDragging ? 'move' : 'default',
+          width: `${width}px`,
         }}
       >
         {children}

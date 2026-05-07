@@ -6,7 +6,9 @@ interface ElectronAPI {
   listDirectory: (sessionId: string, path: string) => Promise<any[]>
   createDirectory: (sessionId: string, path: string) => Promise<void>
   rename: (sessionId: string, oldPath: string, newPath: string) => Promise<void>
+  move: (sessionId: string, sourcePath: string, targetPath: string) => Promise<void>
   delete: (sessionId: string, path: string) => Promise<void>
+  copy: (sessionId: string, sourcePath: string, targetPath: string) => Promise<void>
   uploadFile: (
     sessionId: string,
     localPath: string,
@@ -34,7 +36,11 @@ const electronAPI: ElectronAPI = {
   createDirectory: (sessionId, path) => ipcRenderer.invoke('createDirectory', sessionId, path),
   rename: (sessionId, oldPath, newPath) =>
     ipcRenderer.invoke('rename', sessionId, oldPath, newPath),
+  move: (sessionId, sourcePath, targetPath) =>
+    ipcRenderer.invoke('move', sessionId, sourcePath, targetPath),
   delete: (sessionId, path) => ipcRenderer.invoke('delete', sessionId, path),
+  copy: (sessionId, sourcePath, targetPath) =>
+    ipcRenderer.invoke('copy', sessionId, sourcePath, targetPath),
   uploadFile: (sessionId, localPath, remotePath) =>
     ipcRenderer.invoke('uploadFile', sessionId, localPath, remotePath),
   downloadFile: (sessionId, remotePath, localPath) =>

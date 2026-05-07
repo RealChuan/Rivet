@@ -1,29 +1,9 @@
 import Client from 'ssh2-sftp-client'
 import logger from '../logger'
+import { FileInfo, BaseProtocolImpl, SessionHandle } from './BaseProtocol'
+import { generateSessionId } from '../utils'
 
-interface FileInfo {
-  name: string
-  type: 'file' | 'directory'
-  size: number
-  modifyTime: number
-  permissions?: string
-  owner?: string
-}
-
-interface SessionHandle {
-  client: any
-  config: {
-    host: string
-    port: number
-    username: string
-    password?: string
-    privateKey?: string
-  }
-}
-
-export class SftpProtocol {
-  private sessions: Map<string, SessionHandle> = new Map()
-
+export class SftpProtocol extends BaseProtocolImpl<Client> {
   async connect(config: {
     host: string
     port: number
@@ -32,7 +12,7 @@ export class SftpProtocol {
     privateKey?: string
   }): Promise<string> {
     const client = new Client()
-    const sessionId = `sftp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const sessionId = generateSessionId('sftp')
 
     try {
       await client.connect({
@@ -59,48 +39,34 @@ export class SftpProtocol {
     const handle = this.sessions.get(sessionId)
     if (handle) {
       await handle.client.end()
-      this.sessions.delete(sessionId)
-      logger.info(`SFTP disconnected: ${sessionId}`)
     }
+    super.disconnect(sessionId)
+    logger.info(`SFTP disconnected: ${sessionId}`)
   }
 
   async list(sessionId: string, remotePath: string): Promise<FileInfo[]> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+    const handle = this.getSessionHandle(sessionId)
 
     try {
       const list = await handle.client.list(remotePath)
-      // 确保返回完全纯净、可序列化的对象
       return list.map((item: any) => {
-        // 调试：输出原始数据
-        logger.debug(`Processing file: ${item.name}`)
-        logger.debug(`rights: ${JSON.stringify(item.rights)}`)
-        logger.debug(`longname: ${item.longname}`)
-
-        // 从 rights 对象构建权限字符串 (如 rwxr-xr-x)
         const rights = item.rights || {}
-        // 确保每个部分都是 3 个字符，不足的用 '-' 补齐
         const padPermission = (perm: string | undefined) => {
           if (!perm) return '---'
           const p = perm.padEnd(3, '-')
           return p.substring(0, 3)
         }
         const permissions = `${padPermission(rights.user)}${padPermission(rights.group)}${padPermission(rights.other)}`
-        logger.debug(`Final permissions: ${permissions}`)
 
-        // 从 longname 中提取所有者用户名
         let owner: string | undefined
         if (item.longname) {
           const parts = item.longname.split(/\s+/)
-          logger.debug(`longname parts: ${JSON.stringify(parts)}`)
           if (parts.length >= 4) {
             owner = parts[2]
           }
         }
-        logger.debug(`Final owner: ${owner}`)
 
+        const absolutePath = this.joinPaths(remotePath, item.name)
         const safeFileInfo: FileInfo = {
           name: String(item.name || ''),
           type: item.type === 'd' ? 'directory' : 'file',
@@ -108,6 +74,7 @@ export class SftpProtocol {
           modifyTime: item.modifyTime ? new Date(item.modifyTime).getTime() : 0,
           permissions: permissions !== '-----------' ? permissions : undefined,
           owner,
+          absolutePath,
         }
         return safeFileInfo
       })
@@ -124,10 +91,7 @@ export class SftpProtocol {
     onProgress: (percent: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+    const handle = this.getSessionHandle(sessionId)
 
     let aborted = false
     if (signal) {
@@ -137,17 +101,15 @@ export class SftpProtocol {
     }
 
     try {
-      const totalSize = await this.getLocalFileSize(localPath)
-      let transferred = 0
+      const fs = await import('fs')
+      const totalSize = (await fs.promises.stat(localPath)).size
 
-      await handle.client.put(localPath, remotePath, {
-        step: (uploaded: number) => {
+      await handle.client.fastPut(localPath, remotePath, {
+        step: (totalTransferred: number, _chunk: number, _total: number) => {
           if (aborted) {
             throw new Error('Upload cancelled')
           }
-          transferred += uploaded
-          const percent = totalSize > 0 ? Math.round((transferred / totalSize) * 100) : 100
-          onProgress(Math.min(percent, 100))
+          onProgress(this.calculateProgress(totalTransferred, totalSize))
         },
       })
 
@@ -168,15 +130,12 @@ export class SftpProtocol {
 
   async downloadFile(
     sessionId: string,
-    remotePath: string,
+    file: FileInfo,
     localPath: string,
     onProgress: (percent: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+    const handle = this.getSessionHandle(sessionId)
 
     let aborted = false
     if (signal) {
@@ -186,18 +145,15 @@ export class SftpProtocol {
     }
 
     try {
-      const stats = await handle.client.stat(remotePath)
+      const stats = await handle.client.stat(file.absolutePath)
       const totalSize = stats.size || 0
-      let transferred = 0
 
-      await handle.client.get(remotePath, localPath, {
-        step: (uploaded: number) => {
+      await handle.client.fastGet(file.absolutePath, localPath, {
+        step: (totalTransferred: number, _chunk: number, _total: number) => {
           if (aborted) {
             throw new Error('Download cancelled')
           }
-          transferred += uploaded
-          const percent = totalSize > 0 ? Math.round((transferred / totalSize) * 100) : 100
-          onProgress(Math.min(percent, 100))
+          onProgress(this.calculateProgress(totalTransferred, totalSize))
         },
       })
 
@@ -205,22 +161,19 @@ export class SftpProtocol {
         throw new Error('Download cancelled')
       }
 
-      logger.info(`SFTP downloaded: ${remotePath} -> ${localPath}`)
+      logger.info(`SFTP downloaded: ${file.absolutePath} -> ${localPath}`)
     } catch (error) {
       if (aborted) {
-        logger.info(`SFTP download cancelled: ${remotePath}`)
+        logger.info(`SFTP download cancelled: ${file.absolutePath}`)
       } else {
-        logger.error(`SFTP download failed: ${remotePath} -> ${localPath} - ${error}`)
+        logger.error(`SFTP download failed: ${file.absolutePath} -> ${localPath} - ${error}`)
       }
       throw error
     }
   }
 
   async mkdir(sessionId: string, path: string): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+    const handle = this.getSessionHandle(sessionId)
 
     try {
       await handle.client.mkdir(path, true)
@@ -231,55 +184,49 @@ export class SftpProtocol {
     }
   }
 
-  async rename(sessionId: string, oldPath: string, newPath: string): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+  async rename(sessionId: string, file: FileInfo, newName: string): Promise<void> {
+    const handle = this.getSessionHandle(sessionId)
 
     try {
-      await handle.client.rename(oldPath, newPath)
-      logger.info(`SFTP rename: ${oldPath} -> ${newPath}`)
+      const newPath = file.absolutePath.replace(/\/[^/]+$/, `/${newName}`)
+      await handle.client.rename(file.absolutePath, newPath)
+      logger.info(`SFTP rename: ${file.name} -> ${newName}`)
     } catch (error) {
-      logger.error(`SFTP rename failed: ${oldPath} -> ${newPath} - ${error}`)
+      logger.error(`SFTP rename failed: ${file.name} -> ${newName} - ${error}`)
       throw error
     }
   }
 
-  async delete(sessionId: string, path: string): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+  async delete(sessionId: string, files: FileInfo[]): Promise<void> {
+    const handle = this.getSessionHandle(sessionId)
 
     try {
-      try {
-        await handle.client.delete(path)
-      } catch (deleteError: any) {
-        if (deleteError.code === 4) {
-          await this.deleteDirectoryRecursive(handle.client, path)
-        } else {
-          throw deleteError
+      for (const file of files) {
+        try {
+          await handle.client.delete(file.absolutePath)
+        } catch (deleteError: any) {
+          if (deleteError.code === 4) {
+            await this.deleteDirectoryRecursive(handle.client, file.absolutePath)
+          } else {
+            throw deleteError
+          }
         }
-      }
 
-      logger.info(`SFTP delete: ${path}`)
+        logger.info(`SFTP delete: ${file.absolutePath}`)
+      }
     } catch (error) {
-      logger.error(`SFTP delete failed: ${path} - ${error}`)
+      logger.error(`SFTP delete failed - ${error}`)
       throw error
     }
   }
 
-  private async deleteDirectoryRecursive(client: any, dirPath: string): Promise<void> {
+  private async deleteDirectoryRecursive(client: Client, dirPath: string): Promise<void> {
     const list = await client.list(dirPath)
 
     for (const item of list) {
-      const itemPath = `${dirPath}/${item.name}`
-      const stats = await client.stat(itemPath)
+      const itemPath = this.joinPaths(dirPath, item.name)
 
-      const isDirectory = stats.type === 'd' || stats.isDirectory?.() === true
-
-      if (isDirectory) {
+      if (item.type === 'd') {
         await this.deleteDirectoryRecursive(client, itemPath)
       } else {
         await client.delete(itemPath)
@@ -289,10 +236,76 @@ export class SftpProtocol {
     await client.rmdir(dirPath)
   }
 
-  private async getLocalFileSize(localPath: string): Promise<number> {
-    const fs = await import('fs')
-    const stats = await fs.promises.stat(localPath)
-    return stats.size
+  private isDir(stats: any): boolean {
+    if (stats.type === 'd') return true
+    if (typeof stats.isDirectory === 'function') return stats.isDirectory()
+    if (typeof stats.isDirectory === 'boolean') return stats.isDirectory
+    if (stats.mode && stats.mode & 0o40000) return true
+    return false
+  }
+
+  async copy(sessionId: string, sourcePath: string, targetPath: string): Promise<void> {
+    const handle = this.getSessionHandle(sessionId)
+
+    try {
+      const stats = await handle.client.stat(sourcePath)
+      if (this.isDir(stats)) {
+        await this.copyDirectory(handle.client, sourcePath, targetPath)
+      } else {
+        await this.copyFile(handle.client, sourcePath, targetPath)
+      }
+      logger.info(`SFTP copy completed: ${sourcePath} -> ${targetPath}`)
+    } catch (error) {
+      logger.error(`SFTP copy failed: ${sourcePath} -> ${targetPath} - ${error}`)
+      throw error
+    }
+  }
+
+  async move(sessionId: string, sourcePath: string, targetPath: string): Promise<void> {
+    const handle = this.getSessionHandle(sessionId)
+
+    try {
+      try {
+        await handle.client.stat(targetPath)
+        await handle.client.delete(targetPath)
+      } catch {}
+      await handle.client.rename(sourcePath, targetPath)
+      logger.info(`SFTP move completed: ${sourcePath} -> ${targetPath}`)
+    } catch (error) {
+      logger.error(`SFTP move failed: ${sourcePath} -> ${targetPath} - ${error}`)
+      throw error
+    }
+  }
+
+  private async copyFile(client: Client, sourcePath: string, targetPath: string): Promise<void> {
+    await client.rcopy(sourcePath, targetPath)
+  }
+
+  private async copyDirectory(
+    client: Client,
+    sourcePath: string,
+    targetPath: string
+  ): Promise<void> {
+    await client.mkdir(targetPath, true)
+
+    const queue: Array<{ src: string; dest: string }> = [{ src: sourcePath, dest: targetPath }]
+
+    while (queue.length > 0) {
+      const { src, dest } = queue.shift()!
+      const list = await client.list(src)
+
+      for (const item of list) {
+        const sourceItemPath = this.joinPaths(src, item.name)
+        const targetItemPath = this.joinPaths(dest, item.name)
+
+        if (item.type === 'd') {
+          await client.mkdir(targetItemPath, true)
+          queue.push({ src: sourceItemPath, dest: targetItemPath })
+        } else {
+          await this.copyFile(client, sourceItemPath, targetItemPath)
+        }
+      }
+    }
   }
 }
 

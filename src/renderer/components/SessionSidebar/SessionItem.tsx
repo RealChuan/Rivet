@@ -22,6 +22,7 @@ interface SessionItemProps {
   onReconnect: () => void
   onDelete: () => void
   onEdit: () => void
+  style?: React.CSSProperties
 }
 
 export const SessionItem: React.FC<SessionItemProps> = ({
@@ -32,6 +33,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
   onReconnect,
   onDelete,
   onEdit,
+  style,
 }) => {
   const { t } = useTranslation()
   const [showMenu, setShowMenu] = React.useState(false)
@@ -64,7 +66,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
     )
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', ...style }}>
       <div
         onClick={onSelect}
         style={{
@@ -75,7 +77,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          backgroundColor: isActive ? 'var(--hover)' : 'transparent',
+          backgroundColor: isActive ? 'var(--selected)' : 'transparent',
           border: '1px solid var(--border)',
           transition: 'all 0.15s',
         }}

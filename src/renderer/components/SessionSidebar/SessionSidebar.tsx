@@ -5,6 +5,7 @@ import { useUiStore } from '../../stores/uiStore'
 import SessionItem from './SessionItem'
 import ConnectionDialog from '../dialogs/ConnectionDialog'
 import { ConnectionConfig } from '@shared/types'
+import VirtualList from '../VirtualList'
 
 export const SessionSidebar: React.FC = () => {
   const { t } = useTranslation()
@@ -186,14 +187,24 @@ export const SessionSidebar: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'hidden' }}>
         {sessions.length === 0 ? (
-          <div style={{ padding: '24px 16px', textAlign: 'center' }}>
+          <div
+            style={{
+              padding: '24px 16px',
+              textAlign: 'center',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
             <div
               style={{
                 width: '48px',
                 height: '48px',
-                margin: '0 auto 12px',
+                marginBottom: '12px',
                 borderRadius: '50%',
                 backgroundColor: 'var(--hover)',
                 display: 'flex',
@@ -220,7 +231,7 @@ export const SessionSidebar: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div style={{ padding: '8px 0' }}>
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '8px 16px 4px' }}>
               <span
                 style={{
@@ -234,18 +245,26 @@ export const SessionSidebar: React.FC = () => {
                 {t('sidebar.connections')}
               </span>
             </div>
-            {sessions.map(session => (
-              <SessionItem
-                key={session.id}
-                session={session}
-                isActive={session.id === activeSessionId}
-                onSelect={() => setActiveSession(session.id)}
-                onDisconnect={() => handleDisconnect(session.id)}
-                onReconnect={() => handleReconnect(session)}
-                onEdit={() => handleEdit(session)}
-                onDelete={() => handleDelete(session.id)}
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: '200px' }}>
+              <VirtualList
+                items={sessions}
+                itemHeight={48}
+                width="100%"
+                renderItem={(session, index, style) => (
+                  <SessionItem
+                    key={session.id}
+                    session={session}
+                    isActive={session.id === activeSessionId}
+                    onSelect={() => setActiveSession(session.id)}
+                    onDisconnect={() => handleDisconnect(session.id)}
+                    onReconnect={() => handleReconnect(session)}
+                    onEdit={() => handleEdit(session)}
+                    onDelete={() => handleDelete(session.id)}
+                    style={style}
+                  />
+                )}
               />
-            ))}
+            </div>
           </div>
         )}
       </div>

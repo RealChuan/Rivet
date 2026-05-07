@@ -16,6 +16,16 @@ interface ConnectionConfig {
   basePath?: string
 }
 
+interface FileInfo {
+  name: string
+  type: 'file' | 'directory'
+  size: number
+  modifyTime: number
+  permissions?: string
+  owner?: string
+  absolutePath: string
+}
+
 interface ProgressEvent {
   transferId: string
   sessionId: string
@@ -138,30 +148,58 @@ export function setupIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('rename', async (_, sessionId: string, oldPath: string, newPath: string) => {
+  ipcMain.handle('rename', async (_, sessionId: string, file: FileInfo, newName: string) => {
     try {
       const handle = activeConnections.get(sessionId)
       if (!handle) {
         throw new Error(`Connection not found: ${sessionId}`)
       }
       const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
-      await protocolImpl.rename(handle.sessionId, oldPath, newPath)
+      await protocolImpl.rename(handle.sessionId, file, newName)
     } catch (error) {
-      logger.error(`Rename failed: ${oldPath} -> ${newPath} - ${error}`)
+      logger.error(`Rename failed: ${file.name} -> ${newName} - ${error}`)
       throw error
     }
   })
 
-  ipcMain.handle('delete', async (_, sessionId: string, remotePath: string) => {
+  ipcMain.handle('delete', async (_, sessionId: string, files: FileInfo[]) => {
     try {
       const handle = activeConnections.get(sessionId)
       if (!handle) {
         throw new Error(`Connection not found: ${sessionId}`)
       }
       const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
-      await protocolImpl.delete(handle.sessionId, remotePath)
+      await protocolImpl.delete(handle.sessionId, files)
     } catch (error) {
-      logger.error(`Delete failed: ${remotePath} - ${error}`)
+      logger.error(`Delete failed - ${error}`)
+      throw error
+    }
+  })
+
+  ipcMain.handle('copy', async (_, sessionId: string, sourcePath: string, targetPath: string) => {
+    try {
+      const handle = activeConnections.get(sessionId)
+      if (!handle) {
+        throw new Error(`Connection not found: ${sessionId}`)
+      }
+      const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
+      await protocolImpl.copy(handle.sessionId, sourcePath, targetPath)
+    } catch (error) {
+      logger.error(`Copy failed: ${sourcePath} -> ${targetPath} - ${error}`)
+      throw error
+    }
+  })
+
+  ipcMain.handle('move', async (_, sessionId: string, sourcePath: string, targetPath: string) => {
+    try {
+      const handle = activeConnections.get(sessionId)
+      if (!handle) {
+        throw new Error(`Connection not found: ${sessionId}`)
+      }
+      const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
+      await protocolImpl.move(handle.sessionId, sourcePath, targetPath)
+    } catch (error) {
+      logger.error(`Move failed: ${sourcePath} -> ${targetPath} - ${error}`)
       throw error
     }
   })
@@ -211,7 +249,7 @@ export function setupIpcHandlers(): void {
 
   ipcMain.handle(
     'downloadFile',
-    async (_, sessionId: string, remotePath: string, localPath: string) => {
+    async (_, sessionId: string, file: FileInfo, localPath: string) => {
       const transferId = `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       const abortController = new AbortController()
       transferControllers.set(transferId, abortController)
@@ -225,7 +263,7 @@ export function setupIpcHandlers(): void {
         const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
         await protocolImpl.downloadFile(
           handle.sessionId,
-          remotePath,
+          file,
           localPath,
           (percent: number) => {
             const mainWindow = getMainWindow()
@@ -234,7 +272,7 @@ export function setupIpcHandlers(): void {
                 transferId,
                 sessionId,
                 operation: 'download',
-                path: remotePath,
+                path: file.absolutePath,
                 percent,
               } as ProgressEvent)
             }
@@ -246,7 +284,7 @@ export function setupIpcHandlers(): void {
         return { transferId, success: true }
       } catch (error) {
         transferControllers.delete(transferId)
-        logger.error(`Download failed: ${remotePath} -> ${localPath} - ${error}`)
+        logger.error(`Download failed: ${file.absolutePath} -> ${localPath} - ${error}`)
         throw error
       }
     }

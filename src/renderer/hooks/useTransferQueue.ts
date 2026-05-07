@@ -2,7 +2,7 @@ import { useEffect, useCallback, useRef } from 'react'
 import { useQueueStore } from '../stores/queueStore'
 import { useSessionStore } from '../stores/sessionStore'
 import { useUiStore } from '../stores/uiStore'
-import { TransferTask } from '@shared/types'
+import { TransferTask, FileInfo } from '@shared/types'
 
 const MAX_CONCURRENT_TRANSFERS = 3
 
@@ -66,13 +66,16 @@ export function useTransferQueue() {
 
           const result = await window.electronAPI.downloadFile(
             task.sessionId,
-            task.remotePath,
+            task.file!,
             task.localPath
           )
 
           if (result.success) {
             completeTask(task.id)
-            addToast({ type: 'success', message: `Downloaded: ${task.remotePath}` })
+            addToast({
+              type: 'success',
+              message: `Downloaded: ${task.file?.name || task.remotePath}`,
+            })
           }
         } else {
           const result = await window.electronAPI.uploadFile(
@@ -116,13 +119,13 @@ export function useTransferQueue() {
   )
 
   const download = useCallback(
-    async (remotePath: string, localPath: string) => {
+    async (file: FileInfo, localPath: string) => {
       if (!activeSessionId) {
         addToast({ type: 'error', message: 'No active session' })
         return
       }
 
-      const task = addTask(activeSessionId, 'download', localPath, remotePath)
+      const task = addTask(activeSessionId, 'download', localPath, file.absolutePath, file)
       processQueue()
       return task
     },

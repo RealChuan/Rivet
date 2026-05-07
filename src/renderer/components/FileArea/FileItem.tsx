@@ -13,6 +13,7 @@ interface FileItemProps {
   file: FileInfo
   columnWidths: ColumnWidths
   isSelected: boolean
+  isPending: boolean
   isHovered: boolean
   onHover: (name: string | null) => void
   onClick: (e: React.MouseEvent) => void
@@ -20,12 +21,14 @@ interface FileItemProps {
   onContextMenu: (e: React.MouseEvent) => void
   formatFileSize: (bytes: number) => string
   formatDate: (timestamp: number) => string
+  style?: React.CSSProperties
 }
 
 export const FileItem: React.FC<FileItemProps> = ({
   file,
   columnWidths,
   isSelected,
+  isPending,
   isHovered,
   onHover,
   onClick,
@@ -33,6 +36,7 @@ export const FileItem: React.FC<FileItemProps> = ({
   onContextMenu,
   formatFileSize,
   formatDate,
+  style,
 }) => {
   const totalWidth =
     columnWidths.name +
@@ -45,14 +49,27 @@ export const FileItem: React.FC<FileItemProps> = ({
   return (
     <div
       key={file.name}
+      data-file-item={file.name}
       style={{
+        ...style,
         display: 'flex',
         alignItems: 'center',
         height: '40px',
         cursor: 'pointer',
-        backgroundColor: isSelected ? 'var(--hover)' : 'transparent',
+        backgroundColor: isSelected
+          ? 'var(--selected)'
+          : isPending
+            ? 'var(--selected)'
+            : isHovered
+              ? 'var(--hover)'
+              : 'transparent',
         borderBottom: '1px solid var(--border)',
         minWidth: totalWidth,
+        boxSizing: 'border-box',
+        position: 'relative',
+        transition: 'background-color 0.10s ease',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
       }}
       onMouseEnter={() => onHover(file.name)}
       onMouseLeave={() => onHover(null)}

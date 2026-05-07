@@ -81,6 +81,8 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
         borderBottom: '1px solid var(--border)',
         backgroundColor: 'var(--hover)',
         flexShrink: 0,
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
       }}
     >
       <div style={{ width: columnWidths.name, display: 'flex', alignItems: 'center' }}>

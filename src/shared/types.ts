@@ -16,6 +16,7 @@ export interface FileInfo {
   modifyTime: number
   permissions?: string
   owner?: string
+  absolutePath: string
 }
 
 export interface TransferTask {
@@ -24,6 +25,7 @@ export interface TransferTask {
   type: 'upload' | 'download'
   localPath: string
   remotePath: string
+  file?: FileInfo
   status: 'pending' | 'active' | 'completed' | 'failed'
   progress: number
   error?: string
@@ -47,8 +49,10 @@ export interface ElectronAPI {
   disconnect(sessionId: string): Promise<void>
   listDirectory(sessionId: string, path: string): Promise<FileInfo[]>
   createDirectory(sessionId: string, path: string): Promise<void>
-  rename(sessionId: string, oldPath: string, newPath: string): Promise<void>
-  delete(sessionId: string, path: string): Promise<void>
+  rename(sessionId: string, file: FileInfo, newName: string): Promise<void>
+  delete(sessionId: string, files: FileInfo[]): Promise<void>
+  move(sessionId: string, files: FileInfo[], targetDir: FileInfo): Promise<void>
+  copy(sessionId: string, files: FileInfo[], targetDir: FileInfo): Promise<void>
   uploadFile(
     sessionId: string,
     localPath: string,
@@ -57,7 +61,7 @@ export interface ElectronAPI {
   ): Promise<void>
   downloadFile(
     sessionId: string,
-    remotePath: string,
+    file: FileInfo,
     localPath: string,
     signal?: AbortSignal
   ): Promise<void>

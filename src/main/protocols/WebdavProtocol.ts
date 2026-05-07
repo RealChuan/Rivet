@@ -1,27 +1,10 @@
 import { createClient } from 'webdav'
 import logger from '../logger'
 import path from 'path'
+import { FileInfo, BaseProtocolImpl } from './BaseProtocol'
+import { generateSessionId } from '../utils'
 
-interface FileInfo {
-  name: string
-  type: 'file' | 'directory'
-  size: number
-  modifyTime: number
-}
-
-interface SessionHandle {
-  client: any
-  config: {
-    host: string
-    username: string
-    password?: string
-    basePath?: string
-  }
-}
-
-export class WebdavProtocol {
-  private sessions: Map<string, SessionHandle> = new Map()
-
+export class WebdavProtocol extends BaseProtocolImpl<any> {
   async connect(config: {
     host: string
     port: number
@@ -29,7 +12,7 @@ export class WebdavProtocol {
     password?: string
     basePath?: string
   }): Promise<string> {
-    const sessionId = `webdav_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const sessionId = generateSessionId('webdav')
 
     const url =
       config.port === 443 || config.host.startsWith('https://')
@@ -57,7 +40,10 @@ export class WebdavProtocol {
     return sessionId
   }
 
-  private getFullPath(handle: SessionHandle, remotePath: string): string {
+  private getFullPath(remotePath: string): string {
+    const handle = this.sessions.values().next().value
+    if (!handle) return remotePath
+
     const basePath = handle.config.basePath || '/'
     const normalizedBase = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath
     const normalizedRemote = remotePath.startsWith('/') ? remotePath : `/${remotePath}`
@@ -67,29 +53,23 @@ export class WebdavProtocol {
     return `${normalizedBase}${normalizedRemote}`
   }
 
-  async disconnect(sessionId: string): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (handle) {
-      this.sessions.delete(sessionId)
-      logger.info(`WebDAV disconnected: ${sessionId}`)
-    }
-  }
-
   async list(sessionId: string, remotePath: string): Promise<FileInfo[]> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+    const handle = this.getSessionHandle(sessionId)
+    const fullPath = this.getFullPath(remotePath)
 
-    const fullPath = this.getFullPath(handle, remotePath)
     try {
       const response = await handle.client.getDirectoryContents(fullPath)
-      return response.map((item: any) => ({
-        name: path.basename(item.filename),
-        type: item.type === 'directory' ? 'directory' : 'file',
-        size: item.size || 0,
-        modifyTime: item.lastModified ? new Date(item.lastModified).getTime() : 0,
-      }))
+      return response.map((item: any) => {
+        const itemName = path.basename(item.filename)
+        const absolutePath = this.joinPaths(remotePath, itemName)
+        return {
+          name: itemName,
+          type: item.type === 'directory' ? 'directory' : 'file',
+          size: item.size || 0,
+          modifyTime: item.lastModified ? new Date(item.lastModified).getTime() : 0,
+          absolutePath,
+        }
+      })
     } catch (error) {
       logger.error(`WebDAV list failed: ${fullPath} - ${error}`)
       throw error
@@ -103,10 +83,8 @@ export class WebdavProtocol {
     onProgress: (percent: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+    const handle = this.getSessionHandle(sessionId)
+    const fullPath = this.getFullPath(remotePath)
 
     let aborted = false
     if (signal) {
@@ -115,7 +93,6 @@ export class WebdavProtocol {
       })
     }
 
-    const fullPath = this.getFullPath(handle, remotePath)
     try {
       const fs = await import('fs')
       const totalSize = (await fs.promises.stat(localPath)).size
@@ -130,8 +107,7 @@ export class WebdavProtocol {
             throw new Error('Upload cancelled')
           }
           transferred = progress.transferred || 0
-          const percent = totalSize > 0 ? Math.round((transferred / totalSize) * 100) : 100
-          onProgress(Math.min(percent, 100))
+          onProgress(this.calculateProgress(transferred, totalSize))
         },
       })
 
@@ -152,15 +128,13 @@ export class WebdavProtocol {
 
   async downloadFile(
     sessionId: string,
-    remotePath: string,
+    file: FileInfo,
     localPath: string,
     onProgress: (percent: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+    const handle = this.getSessionHandle(sessionId)
+    const fullPath = this.getFullPath(file.absolutePath)
 
     let aborted = false
     if (signal) {
@@ -169,7 +143,6 @@ export class WebdavProtocol {
       })
     }
 
-    const fullPath = this.getFullPath(handle, remotePath)
     try {
       const fs = await import('fs')
 
@@ -189,8 +162,7 @@ export class WebdavProtocol {
               return
             }
             transferred += chunk.length
-            const percent = totalSize > 0 ? Math.round((transferred / totalSize) * 100) : 100
-            onProgress(Math.min(percent, 100))
+            onProgress(this.calculateProgress(transferred, totalSize))
           })
           .pipe(writeStream)
           .on('finish', resolve)
@@ -204,7 +176,7 @@ export class WebdavProtocol {
       logger.info(`WebDAV downloaded: ${fullPath} -> ${localPath}`)
     } catch (error) {
       if (aborted) {
-        logger.info(`WebDAV download cancelled: ${remotePath}`)
+        logger.info(`WebDAV download cancelled: ${file.absolutePath}`)
       } else {
         logger.error(`WebDAV download failed: ${fullPath} -> ${localPath} - ${error}`)
       }
@@ -213,12 +185,9 @@ export class WebdavProtocol {
   }
 
   async mkdir(sessionId: string, path: string): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+    const handle = this.getSessionHandle(sessionId)
+    const fullPath = this.getFullPath(path)
 
-    const fullPath = this.getFullPath(handle, path)
     try {
       await handle.client.createDirectory(fullPath)
       logger.info(`WebDAV mkdir: ${fullPath}`)
@@ -228,43 +197,137 @@ export class WebdavProtocol {
     }
   }
 
-  async rename(sessionId: string, oldPath: string, newPath: string): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+  async rename(sessionId: string, file: FileInfo, newName: string): Promise<void> {
+    const handle = this.getSessionHandle(sessionId)
 
-    const fullOldPath = this.getFullPath(handle, oldPath)
-    const fullNewPath = this.getFullPath(handle, newPath)
+    const fullOldPath = this.getFullPath(file.absolutePath)
+    const newPath = file.absolutePath.replace(/\/[^/]+$/, `/${newName}`)
+    const fullNewPath = this.getFullPath(newPath)
+
     try {
       await handle.client.move(fullOldPath, fullNewPath)
-      logger.info(`WebDAV rename: ${fullOldPath} -> ${fullNewPath}`)
+      logger.info(`WebDAV rename: ${file.name} -> ${newName}`)
     } catch (error) {
-      logger.error(`WebDAV rename failed: ${fullOldPath} -> ${fullNewPath} - ${error}`)
+      logger.error(`WebDAV rename failed: ${file.name} -> ${newName} - ${error}`)
       throw error
     }
   }
 
-  async delete(sessionId: string, path: string): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
-    }
+  async delete(sessionId: string, files: FileInfo[]): Promise<void> {
+    const handle = this.getSessionHandle(sessionId)
 
-    const fullPath = this.getFullPath(handle, path)
     try {
-      const stat = await handle.client.stat(fullPath)
+      for (const file of files) {
+        const fullPath = this.getFullPath(file.absolutePath)
+        if (file.type === 'directory') {
+          await handle.client.deleteDirectory(fullPath, { recursive: true })
+        } else {
+          await handle.client.deleteFile(fullPath)
+        }
+
+        logger.info(`WebDAV delete: ${fullPath}`)
+      }
+    } catch (error) {
+      logger.error(`WebDAV delete failed - ${error}`)
+      throw error
+    }
+  }
+
+  async copy(sessionId: string, sourcePath: string, targetPath: string): Promise<void> {
+    const handle = this.getSessionHandle(sessionId)
+
+    try {
+      const fullSourcePath = this.getFullPath(sourcePath)
+      const fullTargetPath = this.getFullPath(targetPath)
+
+      const stat = await handle.client.stat(fullSourcePath)
 
       if (stat.type === 'directory') {
-        await handle.client.deleteDirectory(fullPath, { recursive: true })
+        await this.copyDirectory(sessionId, handle.client, sourcePath, targetPath)
       } else {
-        await handle.client.deleteFile(fullPath)
+        await handle.client.copyFile(fullSourcePath, fullTargetPath, { overwrite: true })
       }
-
-      logger.info(`WebDAV delete: ${fullPath}`)
+      logger.info(`WebDAV copy completed: ${sourcePath} -> ${targetPath}`)
     } catch (error) {
-      logger.error(`WebDAV delete failed: ${fullPath} - ${error}`)
+      logger.error(`WebDAV copy failed: ${sourcePath} -> ${targetPath} - ${error}`)
       throw error
+    }
+  }
+
+  async move(sessionId: string, sourcePath: string, targetPath: string): Promise<void> {
+    const handle = this.getSessionHandle(sessionId)
+
+    try {
+      const fullSourcePath = this.getFullPath(sourcePath)
+      const fullTargetPath = this.getFullPath(targetPath)
+
+      const stat = await handle.client.stat(fullSourcePath)
+
+      if (stat.type === 'directory') {
+        await this.moveDirectory(sessionId, handle.client, sourcePath, targetPath)
+      } else {
+        await handle.client.move(fullSourcePath, fullTargetPath, { overwrite: true })
+      }
+      logger.info(`WebDAV move completed: ${sourcePath} -> ${targetPath}`)
+    } catch (error) {
+      logger.error(`WebDAV move failed: ${sourcePath} -> ${targetPath} - ${error}`)
+      throw error
+    }
+  }
+
+  private async moveDirectory(
+    sessionId: string,
+    client: any,
+    sourcePath: string,
+    targetPath: string
+  ): Promise<void> {
+    const fullSourcePath = this.getFullPath(sourcePath)
+    const fullTargetPath = this.getFullPath(targetPath)
+
+    await client.createDirectory(fullTargetPath, { recursive: true })
+    const list = await client.getDirectoryContents(fullSourcePath)
+
+    for (const item of list) {
+      const itemName = path.basename(item.filename)
+      const childSourcePath = this.joinPaths(sourcePath, itemName)
+      const childTargetPath = this.joinPaths(targetPath, itemName)
+
+      if (item.type === 'directory') {
+        await this.moveDirectory(sessionId, client, childSourcePath, childTargetPath)
+      } else {
+        const fullChildSourcePath = this.getFullPath(childSourcePath)
+        const fullChildTargetPath = this.getFullPath(childTargetPath)
+        await client.move(fullChildSourcePath, fullChildTargetPath, { overwrite: true })
+      }
+    }
+
+    await client.deleteDirectory(fullSourcePath)
+  }
+
+  private async copyDirectory(
+    sessionId: string,
+    client: any,
+    sourcePath: string,
+    targetPath: string
+  ): Promise<void> {
+    const fullSourcePath = this.getFullPath(sourcePath)
+    const fullTargetPath = this.getFullPath(targetPath)
+
+    await client.createDirectory(fullTargetPath, { recursive: true })
+    const list = await client.getDirectoryContents(fullSourcePath)
+
+    for (const item of list) {
+      const itemName = path.basename(item.filename)
+      const childSourcePath = this.joinPaths(sourcePath, itemName)
+      const childTargetPath = this.joinPaths(targetPath, itemName)
+
+      if (item.type === 'directory') {
+        await this.copyDirectory(sessionId, client, childSourcePath, childTargetPath)
+      } else {
+        const fullChildSourcePath = this.getFullPath(childSourcePath)
+        const fullChildTargetPath = this.getFullPath(childTargetPath)
+        await client.copyFile(fullChildSourcePath, fullChildTargetPath, { overwrite: true })
+      }
     }
   }
 }

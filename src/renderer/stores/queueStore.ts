@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { TransferTask } from '@shared/types'
+import { TransferTask, FileInfo } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 
 interface QueueStore {
@@ -8,7 +8,8 @@ interface QueueStore {
     sessionId: string,
     type: 'upload' | 'download',
     localPath: string,
-    remotePath: string
+    remotePath: string,
+    file?: FileInfo
   ) => TransferTask
   removeTask: (taskId: string) => void
   updateTaskProgress: (taskId: string, progress: number) => void
@@ -23,13 +24,14 @@ interface QueueStore {
 export const useQueueStore = create<QueueStore>((set, get) => ({
   tasks: [],
 
-  addTask: (sessionId, type, localPath, remotePath) => {
+  addTask: (sessionId, type, localPath, remotePath, file?) => {
     const task: TransferTask = {
       id: uuidv4(),
       sessionId,
       type,
       localPath,
       remotePath,
+      file,
       status: 'pending',
       progress: 0,
     }

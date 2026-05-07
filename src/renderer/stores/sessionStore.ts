@@ -51,7 +51,8 @@ const sanitizeFiles = (files: any): FileInfo[] => {
         typeof file.name === 'string' &&
         (file.type === 'file' || file.type === 'directory') &&
         typeof file.size === 'number' &&
-        typeof file.modifyTime === 'number'
+        typeof file.modifyTime === 'number' &&
+        typeof file.absolutePath === 'string'
       )
     })
     .map(file => ({
@@ -61,6 +62,7 @@ const sanitizeFiles = (files: any): FileInfo[] => {
       modifyTime: Number(file.modifyTime || 0),
       permissions: typeof file.permissions === 'string' ? file.permissions : undefined,
       owner: typeof file.owner === 'string' ? file.owner : undefined,
+      absolutePath: String(file.absolutePath),
     }))
 }
 
