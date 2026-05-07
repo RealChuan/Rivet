@@ -15,7 +15,10 @@
     "noFallthroughCasesInSwitch": true,
     "outDir": "dist/main",
     "rootDir": "src",
-    "baseUrl": "src",
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/shared/*"]
+    },
     "ignoreDeprecations": "6.0"
   },
   "include": ["src/main/**/*", "src/shared/**/*"],

@@ -10,6 +10,9 @@ export default defineConfig({
   build: {
     outDir: '../../dist/renderer',
     emptyOutDir: true,
+    rollupOptions: {
+      external: ['keytar', 'electron', 'electron-store', 'electron-log'],
+    },
   },
   resolve: {
     alias: {

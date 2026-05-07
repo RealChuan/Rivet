@@ -16,13 +16,15 @@
     "package:win": "npm run build && electron-builder --win",
     "package:linux": "npm run build && electron-builder --linux",
     "package:mac": "npm run build && electron-builder --mac",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "cross-env NODE_ENV=development eslint src --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,html}\"",
-    "extract:i18n": "npx i18next-cli extract"
+    "extract:i18n": "npx i18next-cli extract",
+    "postinstall": "electron-rebuild --parallel --types dev,optional",
+    "rebuild": "electron-rebuild --parallel --types dev,optional",
+    "lint:fix": "cross-env NODE_ENV=development eslint src --ext .ts,.tsx --fix"
   },
   "dependencies": {
-    "@radix-ui/react-context-menu": "^2.2.16",
     "electron-log": "^5.4.3",
     "electron-store": "^11.0.2",
     "i18next": "^26.0.10",
@@ -37,6 +39,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.2.4",
     "@types/node": "^25.6.0",
@@ -50,13 +53,12 @@
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
     "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
     "electron": "^42.0.0",
     "electron-builder": "^26.8.1",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
     "i18next-cli": "^1.56.11",
-    "i18next-scanner": "^4.6.0",
     "postcss": "^8.5.14",
     "prettier": "^3.8.3",
     "tailwindcss": "^4.2.4",
@@ -67,8 +69,11 @@
   "build": {
     "appId": "com.rivet.app",
     "productName": "Rivet",
+    "asar": true,
+    "asarUnpack": "**/*.{node,dll}",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "assets"
     },
     "files": [
       "dist/**/*",

@@ -22,7 +22,8 @@
     "paths": {
       "@/*": ["src/renderer/*"],
       "@shared/*": ["src/shared/*"]
-    }
+    },
+    "ignoreDeprecations": "6.0"
   },
   "include": ["src/renderer/**/*", "src/shared/**/*"],
   "exclude": ["node_modules", "dist"]
