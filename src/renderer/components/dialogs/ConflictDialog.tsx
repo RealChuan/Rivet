@@ -21,11 +21,16 @@ export interface ConflictResolution {
 interface ConflictDialogProps {
   open: boolean
   onClose: () => void
-  onConfirm: (resolutions: ConflictResolution[]) => void
+  onConfirm: (
+    resolutions: ConflictResolution[],
+    operation?: 'copy' | 'move',
+    files?: FileInfo[],
+    targetDir?: FileInfo | null
+  ) => void | Promise<void>
   conflicts: ConflictItem[]
   operation?: 'copy' | 'move'
   files?: FileInfo[]
-  targetDir?: FileInfo
+  targetDir?: FileInfo | null
 }
 
 export const ConflictDialog: React.FC<ConflictDialogProps> = ({

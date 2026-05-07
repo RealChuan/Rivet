@@ -239,7 +239,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       session = get().sessions.find(s => s.id === sessionId)
       if (!session) return
 
-      const result = await window.electronAPI.listDirectory(sessionId, session.currentPath)
+      const result = await window.electronAPI.list(sessionId, session.currentPath)
       const safeFiles = sanitizeFiles(result)
       set(state => ({
         sessions: state.sessions.map(s =>

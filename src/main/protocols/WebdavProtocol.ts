@@ -233,16 +233,15 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
     }
   }
 
-  async copy(sessionId: string, sourcePath: string, targetPath: string): Promise<void> {
+  async copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
     const handle = this.getSessionHandle(sessionId)
+    const sourcePath = file.absolutePath
 
     try {
       const fullSourcePath = this.getFullPath(sourcePath)
       const fullTargetPath = this.getFullPath(targetPath)
 
-      const stat = await handle.client.stat(fullSourcePath)
-
-      if (stat.type === 'directory') {
+      if (file.type === 'directory') {
         await this.copyDirectory(sessionId, handle.client, sourcePath, targetPath)
       } else {
         await handle.client.copyFile(fullSourcePath, fullTargetPath, { overwrite: true })
@@ -254,16 +253,15 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
     }
   }
 
-  async move(sessionId: string, sourcePath: string, targetPath: string): Promise<void> {
+  async move(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
     const handle = this.getSessionHandle(sessionId)
+    const sourcePath = file.absolutePath
 
     try {
       const fullSourcePath = this.getFullPath(sourcePath)
       const fullTargetPath = this.getFullPath(targetPath)
 
-      const stat = await handle.client.stat(fullSourcePath)
-
-      if (stat.type === 'directory') {
+      if (file.type === 'directory') {
         await this.moveDirectory(sessionId, handle.client, sourcePath, targetPath)
       } else {
         await handle.client.move(fullSourcePath, fullTargetPath, { overwrite: true })

@@ -16,7 +16,6 @@ const App: React.FC = () => {
   const {
     queueDrawerOpen,
     sidebarWidth,
-    queueDrawerWidth,
     setSidebarWidth,
     setQueueDrawerWidth,
     setQueueDrawerOpen,
@@ -38,7 +37,7 @@ const App: React.FC = () => {
         const savedSettings = (await window.electronAPI.storeGet('ui_settings')) as any
 
         const getSystemLanguage = (): 'zh-CN' | 'en-US' => {
-          const systemLang = navigator.language || navigator.userLanguage
+          const systemLang = navigator.language
           if (systemLang.startsWith('zh')) {
             return 'zh-CN'
           }
@@ -68,9 +67,7 @@ const App: React.FC = () => {
           i18n.changeLanguage(systemLanguage)
         }
       } catch (error) {
-        const systemLanguage = (navigator.language || navigator.userLanguage).startsWith('zh')
-          ? 'zh-CN'
-          : 'en-US'
+        const systemLanguage = navigator.language.startsWith('zh') ? 'zh-CN' : 'en-US'
         initialize({ language: systemLanguage })
         i18n.changeLanguage(systemLanguage)
       }

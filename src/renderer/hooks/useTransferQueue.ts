@@ -64,30 +64,32 @@ export function useTransferQueue() {
             return
           }
 
-          const result = await window.electronAPI.downloadFile(
+          await window.electronAPI.downloadFile(
             task.sessionId,
             task.file!,
-            task.localPath
+            task.localPath,
+            (percent: number) => {
+              updateTaskProgress(task.id, percent)
+            }
           )
 
-          if (result.success) {
-            completeTask(task.id)
-            addToast({
-              type: 'success',
-              message: `Downloaded: ${task.file?.name || task.remotePath}`,
-            })
-          }
+          completeTask(task.id)
+          addToast({
+            type: 'success',
+            message: `Downloaded: ${task.file?.name || task.remotePath}`,
+          })
         } else {
-          const result = await window.electronAPI.uploadFile(
+          await window.electronAPI.uploadFile(
             task.sessionId,
             task.localPath,
-            task.remotePath
+            task.remotePath,
+            (percent: number) => {
+              updateTaskProgress(task.id, percent)
+            }
           )
 
-          if (result.success) {
-            completeTask(task.id)
-            addToast({ type: 'success', message: `Uploaded: ${task.localPath}` })
-          }
+          completeTask(task.id)
+          addToast({ type: 'success', message: `Uploaded: ${task.localPath}` })
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Transfer failed'

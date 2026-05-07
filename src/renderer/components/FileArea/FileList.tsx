@@ -190,7 +190,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     if (!containerRef.current) return
 
     const resizeObserver = new ResizeObserver(entries => {
-      for (let entry of entries) {
+      for (const _entry of entries) {
       }
     })
 
@@ -487,7 +487,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
             items={sortedFiles}
             itemHeight={40}
             width="100%"
-            renderItem={(file, index, style) => (
+            renderItem={(file, _index, style) => (
               <FileItem
                 key={file.name}
                 file={file}
@@ -632,7 +632,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         }}
         onConfirm={handleConflictResolution}
         conflicts={conflicts}
-        operation={pendingOperation}
+        operation={pendingOperation ?? undefined}
         files={pendingFiles}
         targetDir={pendingTargetDir}
       />

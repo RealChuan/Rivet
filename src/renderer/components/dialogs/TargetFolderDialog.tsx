@@ -31,7 +31,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     if (!open) return
     setIsLoading(true)
     try {
-      const result = await window.electronAPI.listDirectory(sessionId, currentPath)
+      const result = await window.electronAPI.list(sessionId, currentPath)
       const dirs = result
         .filter((f: FileInfo) => f.type === 'directory')
         .map(f => ({ ...f })) as FolderItem[]
@@ -90,6 +90,9 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     name: '..',
     type: 'directory',
     isParent: true,
+    size: 0,
+    modifyTime: 0,
+    absolutePath: currentPath.split('/').slice(0, -1).join('/') || '/',
   }
 
   const allItems: FolderItem[] = currentPath !== '/' ? [parentItem, ...folders] : folders
@@ -249,7 +252,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
               items={allItems}
               itemHeight={36}
               width="100%"
-              renderItem={(item, index, style) => {
+              renderItem={(item, _index, style) => {
                 if (item.isParent || item.name === '..') {
                   return (
                     <button

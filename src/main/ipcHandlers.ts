@@ -4,35 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { app } from 'electron'
 import { ProtocolFactory } from './protocols/ProtocolFactory'
 import logger from './logger'
-
-interface ConnectionConfig {
-  id: string
-  name: string
-  protocol: 'sftp' | 'webdav'
-  host: string
-  port: number
-  username: string
-  credentialId: string
-  basePath?: string
-}
-
-interface FileInfo {
-  name: string
-  type: 'file' | 'directory'
-  size: number
-  modifyTime: number
-  permissions?: string
-  owner?: string
-  absolutePath: string
-}
-
-interface ProgressEvent {
-  transferId: string
-  sessionId: string
-  operation: 'upload' | 'download'
-  path: string
-  percent: number
-}
+import { ConnectionConfig, FileInfo, ProgressEvent } from '../shared/types'
 
 const SERVICE_NAME = 'RivetCredentials'
 const activeConnections: Map<
@@ -120,7 +92,7 @@ export function setupIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('listDirectory', async (_, sessionId: string, remotePath: string) => {
+  ipcMain.handle('list', async (_, sessionId: string, remotePath: string) => {
     try {
       const handle = activeConnections.get(sessionId)
       if (!handle) {
@@ -134,7 +106,7 @@ export function setupIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('createDirectory', async (_, sessionId: string, remotePath: string) => {
+  ipcMain.handle('mkdir', async (_, sessionId: string, remotePath: string) => {
     try {
       const handle = activeConnections.get(sessionId)
       if (!handle) {
@@ -176,30 +148,30 @@ export function setupIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle('copy', async (_, sessionId: string, sourcePath: string, targetPath: string) => {
+  ipcMain.handle('copy', async (_, sessionId: string, file: FileInfo, targetPath: string) => {
     try {
       const handle = activeConnections.get(sessionId)
       if (!handle) {
         throw new Error(`Connection not found: ${sessionId}`)
       }
       const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
-      await protocolImpl.copy(handle.sessionId, sourcePath, targetPath)
+      await protocolImpl.copy(handle.sessionId, file, targetPath)
     } catch (error) {
-      logger.error(`Copy failed: ${sourcePath} -> ${targetPath} - ${error}`)
+      logger.error(`Copy failed: ${file.absolutePath} -> ${targetPath} - ${error}`)
       throw error
     }
   })
 
-  ipcMain.handle('move', async (_, sessionId: string, sourcePath: string, targetPath: string) => {
+  ipcMain.handle('move', async (_, sessionId: string, file: FileInfo, targetPath: string) => {
     try {
       const handle = activeConnections.get(sessionId)
       if (!handle) {
         throw new Error(`Connection not found: ${sessionId}`)
       }
       const protocolImpl = ProtocolFactory.getProtocol(handle.protocol)
-      await protocolImpl.move(handle.sessionId, sourcePath, targetPath)
+      await protocolImpl.move(handle.sessionId, file, targetPath)
     } catch (error) {
-      logger.error(`Move failed: ${sourcePath} -> ${targetPath} - ${error}`)
+      logger.error(`Move failed: ${file.absolutePath} -> ${targetPath} - ${error}`)
       throw error
     }
   })

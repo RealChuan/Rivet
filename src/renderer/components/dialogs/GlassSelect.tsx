@@ -59,13 +59,13 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
 
   const isDark = document.documentElement.dataset.theme === 'dark'
 
-  const handleMouseEnter = (e: MouseEvent) => {
+  const handleMouseEnter = (e: React.MouseEvent) => {
     const target = e.currentTarget as HTMLElement
     target.style.borderColor = 'var(--text-muted)'
     target.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
   }
 
-  const handleMouseLeave = (e: MouseEvent) => {
+  const handleMouseLeave = (e: React.MouseEvent) => {
     const target = e.currentTarget as HTMLElement
     target.style.borderColor = 'var(--border)'
     target.style.background = 'var(--bg)'

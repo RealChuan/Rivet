@@ -87,7 +87,7 @@ export const SessionSidebar: React.FC = () => {
   }
 
   const handleReconnectSubmit = async (
-    config: Omit<ConnectionConfig, 'id' | 'credentialId'>,
+    _config: Omit<ConnectionConfig, 'id' | 'credentialId'>,
     password?: string,
     privateKey?: string
   ) => {
@@ -250,7 +250,7 @@ export const SessionSidebar: React.FC = () => {
                 items={sessions}
                 itemHeight={48}
                 width="100%"
-                renderItem={(session, index, style) => (
+                renderItem={(session, _index, style) => (
                   <SessionItem
                     key={session.id}
                     session={session}

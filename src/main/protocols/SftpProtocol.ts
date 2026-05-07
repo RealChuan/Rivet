@@ -1,6 +1,6 @@
 import Client from 'ssh2-sftp-client'
 import logger from '../logger'
-import { FileInfo, BaseProtocolImpl, SessionHandle } from './BaseProtocol'
+import { FileInfo, BaseProtocolImpl } from './BaseProtocol'
 import { generateSessionId } from '../utils'
 
 export class SftpProtocol extends BaseProtocolImpl<Client> {
@@ -236,20 +236,12 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     await client.rmdir(dirPath)
   }
 
-  private isDir(stats: any): boolean {
-    if (stats.type === 'd') return true
-    if (typeof stats.isDirectory === 'function') return stats.isDirectory()
-    if (typeof stats.isDirectory === 'boolean') return stats.isDirectory
-    if (stats.mode && stats.mode & 0o40000) return true
-    return false
-  }
-
-  async copy(sessionId: string, sourcePath: string, targetPath: string): Promise<void> {
+  async copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
     const handle = this.getSessionHandle(sessionId)
+    const sourcePath = file.absolutePath
 
     try {
-      const stats = await handle.client.stat(sourcePath)
-      if (this.isDir(stats)) {
+      if (file.type === 'directory') {
         await this.copyDirectory(handle.client, sourcePath, targetPath)
       } else {
         await this.copyFile(handle.client, sourcePath, targetPath)
@@ -261,8 +253,9 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     }
   }
 
-  async move(sessionId: string, sourcePath: string, targetPath: string): Promise<void> {
+  async move(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
     const handle = this.getSessionHandle(sessionId)
+    const sourcePath = file.absolutePath
 
     try {
       try {

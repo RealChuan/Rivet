@@ -2,6 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueueStore } from '../../stores/queueStore'
 import { useSessionStore } from '../../stores/sessionStore'
+import { useTransferQueue } from '../../hooks/useTransferQueue'
 import { TransferTask } from '@shared/types'
 
 interface TaskItemProps {
@@ -10,7 +11,8 @@ interface TaskItemProps {
 
 export const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
   const { t } = useTranslation()
-  const { cancelTask, retryTask, removeTask } = useQueueStore()
+  const { removeTask } = useQueueStore()
+  const { cancelTask, retryTask } = useTransferQueue()
   const { sessions } = useSessionStore()
 
   const session = sessions.find(s => s.id === task.sessionId)

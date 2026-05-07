@@ -20,14 +20,14 @@ interface UseFileOperationsReturn {
     resolutions: ConflictResolution[],
     operation?: 'copy' | 'move',
     files?: FileInfo[],
-    targetDir?: FileInfo
+    targetDir?: FileInfo | null
   ) => Promise<void>
   targetFolderDialogOpen: boolean
   conflictDialogOpen: boolean
   conflicts: ConflictItem[]
-  pendingOperation: 'copy' | 'move' | null
+  pendingOperation: 'copy' | 'move' | null | undefined
   pendingFiles: FileInfo[]
-  pendingTargetDir: FileInfo | null
+  pendingTargetDir: FileInfo | null | undefined
   setTargetFolderDialogOpen: (open: boolean) => void
   setConflictDialogOpen: (open: boolean) => void
 }
@@ -87,7 +87,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
       const newFolderPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`
 
       try {
-        await window.electronAPI.createDirectory(sessionId, newFolderPath)
+        await window.electronAPI.mkdir(sessionId, newFolderPath)
         addToast({ type: 'success', message: t('toast.createFolderSuccess') })
         await refreshCurrentDirectory(sessionId)
       } catch (error) {
@@ -108,7 +108,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
           defaultPath: file.name,
         })
         if (result && !result.canceled && result.filePath) {
-          await download(file.absolutePath, result.filePath)
+          await download(file, result.filePath)
         }
       } catch (error) {
         addToast({
@@ -138,8 +138,8 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
 
   const copyDirectory = useCallback(
     async (file: FileInfo, targetPath: string) => {
-      await window.electronAPI.createDirectory(sessionId, targetPath)
-      const sourceFiles = await window.electronAPI.listDirectory(sessionId, file.absolutePath)
+      await window.electronAPI.mkdir(sessionId, targetPath)
+      const sourceFiles = await window.electronAPI.list(sessionId, file.absolutePath)
 
       const childFilesToCopy: FileInfo[] = []
       const childDirectoriesToCopy: Array<{ file: FileInfo; childTargetPath: string }> = []
@@ -159,7 +159,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
         for (const childFile of childFilesToCopy) {
           const childTargetPath =
             targetPath === '/' ? `/${childFile.name}` : `${targetPath}/${childFile.name}`
-          await window.electronAPI.copy(sessionId, childFile.absolutePath, childTargetPath)
+          await window.electronAPI.copy(sessionId, childFile, childTargetPath)
         }
       }
 
@@ -225,14 +225,14 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
           `[Copy] Copying ${filesToCopy.length} files, ${directoriesToCopy.length} directories`
         )
         for (const { file, targetPath } of filesToCopy) {
-          await window.electronAPI.copy(sessionId, file.absolutePath, targetPath)
+          await window.electronAPI.copy(sessionId, file, targetPath)
         }
         for (const { file, targetPath } of directoriesToCopy) {
           await copyDirectory(file, targetPath)
         }
       } else {
         for (const { file, targetPath } of filesToMove) {
-          await window.electronAPI.move(sessionId, file.absolutePath, targetPath)
+          await window.electronAPI.move(sessionId, file, targetPath)
         }
       }
 
@@ -261,10 +261,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
           }
         }
 
-        const targetFiles = await window.electronAPI.listDirectory(
-          sessionId,
-          targetDir.absolutePath
-        )
+        const targetFiles = await window.electronAPI.list(sessionId, targetDir.absolutePath)
         const existingFiles = new Map(targetFiles.map(f => [f.name, f]))
         setTargetFilesCache(new Map(targetFiles.map(f => [f.name, f.type])))
 
@@ -314,9 +311,9 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
   const handleConflictResolution = useCallback(
     async (
       resolutions: ConflictResolution[],
-      operation?: 'copy' | 'move',
+      operation?: 'copy' | 'move' | null | undefined,
       files?: FileInfo[],
-      targetDir?: FileInfo
+      targetDir?: FileInfo | null
     ) => {
       const op = operation || pendingOperation
       const pendingFilesList = files || pendingFiles

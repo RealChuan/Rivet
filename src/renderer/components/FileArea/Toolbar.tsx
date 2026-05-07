@@ -36,7 +36,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
       session.currentPath === '/' ? `/${folderName}` : `${session.currentPath}/${folderName}`
 
     try {
-      await window.electronAPI.createDirectory(sessionId, newFolderPath)
+      await window.electronAPI.mkdir(sessionId, newFolderPath)
       addToast({ type: 'success', message: t('toast.createFolderSuccess') })
       await refreshCurrentDirectory(sessionId)
     } catch (error) {

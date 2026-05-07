@@ -36,8 +36,8 @@ export interface FileProtocol {
   mkdir(sessionId: string, path: string): Promise<void>
   rename(sessionId: string, file: FileInfo, newName: string): Promise<void>
   delete(sessionId: string, files: FileInfo[]): Promise<void>
-  copy(sessionId: string, sourcePath: string, targetPath: string): Promise<void>
-  move(sessionId: string, sourcePath: string, targetPath: string): Promise<void>
+  copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void>
+  move(sessionId: string, file: FileInfo, targetPath: string): Promise<void>
 }
 
 export abstract class BaseProtocolImpl<T = any> implements FileProtocol {
@@ -118,11 +118,11 @@ export abstract class BaseProtocolImpl<T = any> implements FileProtocol {
     throw new Error('Not implemented')
   }
 
-  async copy(sessionId: string, sourcePath: string, targetPath: string): Promise<void> {
+  async copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
     throw new Error('Not implemented')
   }
 
-  async move(sessionId: string, sourcePath: string, targetPath: string): Promise<void> {
+  async move(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
     throw new Error('Not implemented')
   }
 }
