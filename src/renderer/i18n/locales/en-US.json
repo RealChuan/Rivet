@@ -111,11 +111,17 @@
     },
     "toolbar": {
       "copy": "Copy",
+      "darkMode": "Dark Mode",
       "delete": "Delete",
+      "hide": "Hide",
+      "lightMode": "Light Mode",
       "move": "Move",
       "newFolder": "New Folder",
+      "queue": "Queue",
       "refresh": "Refresh",
       "rename": "Rename",
+      "show": "Show",
+      "system": "System",
       "upload": "Upload"
     }
   }

@@ -58,14 +58,12 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`
-          w-full px-3 pr-8 py-2 bg-(--bg) border border-(--border) rounded-md 
-          text-(--text) text-left flex items-center justify-between relative cursor-pointer 
-          transition-colors duration-150 hover:border-(--text-muted) focus:outline-none 
-          focus:ring-2 focus:ring-(--focus-ring) text-[13px] box-border min-h-8.25 m-0
+          w-full px-3 pr-8 py-2 bg-bg border border-border rounded-md
+          text-text text-left flex items-center justify-between relative cursor-pointer
+          transition-colors duration-150 hover:border-text-muted focus:outline-none
+          focus:ring-2 focus:ring-focus-ring text-[13px] box-border min-h-8.25 m-0
           ${className}
-        `
-          .trim()
-          .replace(/\s+/g, ' ')}
+        `}
       >
         <span className="flex-1 truncate">{selectedOption?.label || 'Select...'}</span>
         <svg
@@ -91,7 +89,10 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
       {isOpen && (
         <ul
           ref={listRef}
-          className="absolute top-full left-0 right-0 z-100 bg-(--bg) border border-(--border) rounded-md shadow-lg list-none max-h-50 overflow-y-auto p-1 box-border mt-1"
+          className={`
+            absolute top-full left-0 right-0 z-100 bg-bg border border-border
+            rounded-md shadow-lg list-none max-h-50 overflow-y-auto p-1 box-border mt-1
+          `}
         >
           {options.map((option, index) => (
             <li
@@ -102,11 +103,11 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
               }}
               onMouseEnter={() => setHighlightedIndex(index)}
               onMouseLeave={() => setHighlightedIndex(-1)}
-              className={`px-3 py-2 cursor-pointer transition-colors duration-100 ${
-                highlightedIndex === index ? 'bg-(--hover)' : 'bg-transparent'
-              } ${
-                option.value === value ? 'text-(--accent) font-medium' : 'text-(--text) font-normal'
-              }`}
+              className={`
+                px-3 py-2 cursor-pointer transition-colors duration-100
+                ${highlightedIndex === index ? 'bg-hover' : 'bg-transparent'}
+                ${option.value === value ? 'text-accent font-medium' : 'text-text font-normal'}
+              `}
             >
               {option.label}
             </li>

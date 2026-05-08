@@ -12,7 +12,7 @@ import { useI18n } from './hooks/useI18n'
 import { useTransferQueue } from './hooks/useTransferQueue'
 
 const App: React.FC = () => {
-  const { i18n } = useTranslation()
+  const { i18n, t } = useTranslation()
   const {
     queueDrawerOpen,
     sidebarWidth,
@@ -66,7 +66,7 @@ const App: React.FC = () => {
           initialize({ language: systemLanguage })
           i18n.changeLanguage(systemLanguage)
         }
-      } catch (error) {
+      } catch {
         const systemLanguage = navigator.language.startsWith('zh') ? 'zh-CN' : 'en-US'
         initialize({ language: systemLanguage })
         i18n.changeLanguage(systemLanguage)
@@ -74,7 +74,7 @@ const App: React.FC = () => {
     }
 
     initApp()
-  }, [initialize])
+  }, [i18n, initialize])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -189,47 +189,25 @@ const App: React.FC = () => {
 
   if (!initialized) {
     return (
-      <div
-        style={{
-          height: '100vh',
-          width: '100vw',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#ffffff',
-        }}
-      >
-        <div style={{ color: '#6b6b6b', fontSize: '14px' }}>Loading...</div>
+      <div className="h-screen w-screen flex items-center justify-center bg-bg">
+        <div className="text-text-muted text-sm">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div
-      style={{
-        height: '100vh',
-        width: '100vw',
-        display: 'flex',
-        backgroundColor: 'var(--bg)',
-        overflow: 'hidden',
-      }}
-    >
-      <div style={{ width: sidebarWidth, flexShrink: 0 }}>
+    <div className="h-screen w-screen flex bg-bg overflow-hidden">
+      <div className="shrink-0" style={{ width: sidebarWidth }}>
         <SessionSidebar />
       </div>
 
       <div
-        className="resizer"
+        className={`
+          resizer flex items-center justify-center w-1
+          cursor-col-resize bg-transparent
+          transition-colors duration-150
+        `}
         onMouseDown={() => setIsDraggingSidebar(true)}
-        style={{
-          width: '4px',
-          cursor: 'col-resize',
-          backgroundColor: 'transparent',
-          transition: 'background-color 0.15s',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
         onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border)')}
         onMouseLeave={e => {
           if (!isDraggingSidebar) {
@@ -238,86 +216,59 @@ const App: React.FC = () => {
         }}
       >
         <div
-          style={{
-            width: '2px',
-            height: '24px',
-            backgroundColor: 'var(--text-muted)',
-            opacity: isDraggingSidebar ? 1 : 0.5,
-            borderRadius: '1px',
-          }}
+          className={`
+            w-0.5 h-6 bg-text-muted rounded-sm
+            ${isDraggingSidebar ? 'opacity-100' : 'opacity-50'}
+          `}
         />
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="flex-1 flex flex-col overflow-hidden">
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-end',
-            gap: '8px',
-            padding: '8px 16px',
-            borderBottom: '1px solid var(--border)',
-            backgroundColor: 'var(--bg)',
-            flexShrink: 0,
-          }}
+          className={`
+          flex items-center justify-end gap-2 px-4 py-2
+          border-b border-border bg-bg shrink-0
+        `}
         >
           <button
             onClick={() => changeLanguage(language === 'en-US' ? 'zh-CN' : 'en-US')}
-            style={{
-              padding: '6px 10px',
-              borderRadius: '4px',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--text)',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            className={`
+              px-2.5 py-1.5 rounded text-xs font-semibold text-text
+              bg-transparent border-none cursor-pointer
+              hover:bg-hover transition-colors
+            `}
+            title={language === 'en-US' ? 'English' : '中文'}
           >
             {language === 'en-US' ? 'EN' : '中文'}
           </button>
 
           <button
             onClick={cycleTheme}
-            style={{
-              padding: '6px',
-              borderRadius: '4px',
-              color: 'var(--text)',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            className={`
+              p-1.5 rounded bg-transparent border-none cursor-pointer
+              flex items-center justify-center hover:bg-hover transition-colors
+              text-text
+            `}
+            title={
+              theme === 'light'
+                ? t('toolbar.lightMode')
+                : theme === 'dark'
+                  ? t('toolbar.darkMode')
+                  : t('toolbar.system')
+            }
           >
             <ThemeIcon />
           </button>
 
           <button
             onClick={() => setQueueDrawerOpen(!queueDrawerOpen)}
-            style={{
-              padding: '6px',
-              borderRadius: '4px',
-              color: queueDrawerOpen ? 'var(--accent)' : 'var(--text)',
-              backgroundColor: queueDrawerOpen ? 'var(--hover)' : 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-            onMouseLeave={e =>
-              (e.currentTarget.style.backgroundColor = queueDrawerOpen
-                ? 'var(--hover)'
-                : 'transparent')
-            }
+            className={`
+              p-1.5 rounded bg-transparent border-none cursor-pointer
+              flex items-center justify-center hover:bg-hover transition-colors
+              ${queueDrawerOpen ? 'text-accent bg-hover' : 'text-text bg-transparent'}
+              relative
+            `}
+            title={`${queueDrawerOpen ? t('toolbar.hide') : t('toolbar.show')} ${t('toolbar.queue')}${tasks.length > 0 ? ` (${tasks.length})` : ''}`}
           >
             <svg
               width="16"
@@ -336,19 +287,10 @@ const App: React.FC = () => {
             </svg>
             {tasks.length > 0 && (
               <span
-                style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-4px',
-                  fontSize: '10px',
-                  fontWeight: 'bold',
-                  color: 'white',
-                  backgroundColor: '#f14c4c',
-                  borderRadius: '10px',
-                  padding: '1px 4px',
-                  minWidth: '14px',
-                  textAlign: 'center',
-                }}
+                className={`
+                absolute -top-1 -right-1 text-[10px] font-bold
+                text-white bg-danger rounded-full px-1 min-w-3.5 text-center
+              `}
               >
                 {tasks.length}
               </span>
@@ -362,17 +304,12 @@ const App: React.FC = () => {
       {queueDrawerOpen && (
         <>
           <div
-            className="resizer"
+            className={`
+              resizer flex items-center justify-center w-1
+              cursor-col-resize bg-transparent
+              transition-colors duration-150
+            `}
             onMouseDown={() => setIsDraggingQueue(true)}
-            style={{
-              width: '4px',
-              cursor: 'col-resize',
-              backgroundColor: 'transparent',
-              transition: 'background-color 0.15s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
             onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border)')}
             onMouseLeave={e => {
               if (!isDraggingQueue) {
@@ -381,13 +318,10 @@ const App: React.FC = () => {
             }}
           >
             <div
-              style={{
-                width: '2px',
-                height: '24px',
-                backgroundColor: 'var(--text-muted)',
-                opacity: isDraggingQueue ? 1 : 0.5,
-                borderRadius: '1px',
-              }}
+              className={`
+              w-0.5 h-6 bg-text-muted rounded-sm
+              ${isDraggingQueue ? 'opacity-100' : 'opacity-50'}
+            `}
             />
           </div>
           <QueueDrawer />

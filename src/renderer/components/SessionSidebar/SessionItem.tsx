@@ -40,25 +40,11 @@ export const SessionItem: React.FC<SessionItemProps> = ({
 
   const protocolIcon =
     session.config.protocol === 'sftp' ? (
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
+      <svg className="w-3.5 h-3.5 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
         <path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
     ) : (
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
+      <svg className="w-3.5 h-3.5 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
         <circle cx="12" cy="12" r="10" />
         <line x1="2" y1="12" x2="22" y2="12" />
         <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
@@ -66,41 +52,19 @@ export const SessionItem: React.FC<SessionItemProps> = ({
     )
 
   return (
-    <div style={{ position: 'relative', padding: '4px 8px', ...style }}>
+    <div className="relative px-2 py-1" style={{ ...style }}>
       <div
         onClick={onSelect}
-        style={{
-          padding: '10px 12px',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          backgroundColor: isActive ? 'var(--selected)' : 'transparent',
-          border: '1px solid var(--border)',
-          transition: 'all 0.15s',
-        }}
-        onMouseEnter={e => {
-          if (!isActive) e.currentTarget.style.backgroundColor = 'var(--hover)'
-        }}
-        onMouseLeave={e => {
-          if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'
-        }}
+        className={`
+          px-3 py-2.5 rounded-md cursor-pointer flex items-center gap-2.5
+          border border-border transition-all
+          ${isActive ? 'bg-selected' : 'bg-transparent hover:bg-hover'}
+        `}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-          <div
-            style={{
-              color: session.isConnected ? '#4ec9b0' : '#f59e0b',
-            }}
-          >
+        <div className="flex items-center gap-2 shrink-0">
+          <div className={session.isConnected ? 'text-[#4ec9b0]' : 'text-[#f59e0b]'}>
             {session.isLoading ? (
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                style={{ animation: 'spin 1s linear infinite' }}
-              >
+              <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
                 <circle
                   cx="12"
                   cy="12"
@@ -122,11 +86,9 @@ export const SessionItem: React.FC<SessionItemProps> = ({
               protocolIcon
             ) : (
               <svg
-                width="14"
-                height="14"
+                className="w-3.5 h-3.5 stroke-current"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
                 strokeWidth="2"
               >
                 <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
@@ -136,66 +98,32 @@ export const SessionItem: React.FC<SessionItemProps> = ({
             )}
           </div>
           <span
-            style={{
-              fontSize: '12px',
-              padding: '2px 6px',
-              borderRadius: '2px',
-              backgroundColor:
+            className={`
+              text-xs px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-[0.5px]
+              ${
                 session.config.protocol === 'sftp'
-                  ? 'rgba(59, 130, 246, 0.1)'
-                  : 'rgba(139, 92, 246, 0.1)',
-              color: session.config.protocol === 'sftp' ? '#3b82f6' : '#8b5cf6',
-              fontWeight: 500,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-            }}
+                  ? 'text-accent bg-[rgba(59,130,246,0.1)]'
+                  : 'text-[#8b5cf6] bg-[rgba(139,92,246,0.1)]'
+              }
+            `}
           >
             {session.config.protocol.toUpperCase()}
           </span>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: '14px',
-              fontWeight: 500,
-              color: isActive ? 'var(--accent)' : 'var(--text)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
+        <div className="flex-1 min-w-0">
+          <div className={`text-sm font-medium truncate ${isActive ? 'text-accent' : 'text-text'}`}>
             {session.config.name || session.config.host}
           </div>
-          <div
-            style={{
-              fontSize: '12px',
-              color: 'var(--text-muted)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {session.config.host}
-          </div>
+          <div className="text-xs text-text-muted truncate">{session.config.host}</div>
         </div>
         <button
           onClick={e => {
             e.stopPropagation()
             setShowMenu(!showMenu)
           }}
-          style={{
-            padding: '4px',
-            borderRadius: '4px',
-            flexShrink: 0,
-            color: 'var(--text-muted)',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+          className="p-1 rounded shrink-0 text-text-muted bg-transparent border-none cursor-pointer hover:bg-hover transition-colors"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
             <circle cx="12" cy="5" r="2" />
             <circle cx="12" cy="12" r="2" />
             <circle cx="12" cy="19" r="2" />
@@ -205,26 +133,8 @@ export const SessionItem: React.FC<SessionItemProps> = ({
 
       {showMenu && (
         <>
-          <div
-            style={{ position: 'fixed', inset: 0, zIndex: 10 }}
-            onClick={() => setShowMenu(false)}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              right: '8px',
-              top: '100%',
-              marginTop: '4px',
-              zIndex: 20,
-              backgroundColor: 'var(--bg)',
-              border: '1px solid var(--border)',
-              borderRadius: '6px',
-              padding: '4px',
-              minWidth: '120px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-            }}
-            className="animate-fadeIn"
-          >
+          <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+          <div className="absolute right-2 top-full mt-1 z-20 bg-bg border border-border rounded-md p-1 min-w-30 shadow-lg animate-fadeIn">
             {session.isConnected ? (
               <button
                 onClick={e => {
@@ -232,29 +142,15 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                   onDisconnect()
                   setShowMenu(false)
                 }}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  textAlign: 'left',
-                  fontSize: '12px',
-                  color: 'var(--text-muted)',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                className={`
+                  w-full px-3 py-2 text-left text-xs text-text-muted bg-transparent border-none rounded
+                  cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
+                `}
               >
                 <svg
-                  width="14"
-                  height="14"
+                  className="w-3.5 h-3.5 stroke-current"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="currentColor"
                   strokeWidth="2"
                 >
                   <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
@@ -268,29 +164,15 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                   onReconnect()
                   setShowMenu(false)
                 }}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  textAlign: 'left',
-                  fontSize: '12px',
-                  color: '#4ec9b0',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                className={`
+                  w-full px-3 py-2 text-left text-xs text-[#4ec9b0] bg-transparent border-none rounded
+                  cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
+                `}
               >
                 <svg
-                  width="14"
-                  height="14"
+                  className="w-3.5 h-3.5 stroke-current"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="currentColor"
                   strokeWidth="2"
                 >
                   <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
@@ -301,42 +183,22 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                 {t('sidebar.reconnect')}
               </button>
             )}
-            <div
-              style={{
-                height: '1px',
-                backgroundColor: 'var(--border)',
-                margin: '4px 0',
-              }}
-            />
+            <div className="h-px bg-border my-1" />
             <button
               onClick={e => {
                 e.stopPropagation()
                 onEdit()
                 setShowMenu(false)
               }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                textAlign: 'left',
-                fontSize: '12px',
-                color: 'var(--text)',
-                backgroundColor: 'transparent',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              className={`
+                w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded
+                cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
+              `}
             >
               <svg
-                width="14"
-                height="14"
+                className="w-3.5 h-3.5 stroke-current"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
                 strokeWidth="2"
               >
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
@@ -344,42 +206,22 @@ export const SessionItem: React.FC<SessionItemProps> = ({
               </svg>
               {t('sidebar.edit')}
             </button>
-            <div
-              style={{
-                height: '1px',
-                backgroundColor: 'var(--border)',
-                margin: '4px 0',
-              }}
-            />
+            <div className="h-px bg-border my-1" />
             <button
               onClick={e => {
                 e.stopPropagation()
                 onDelete()
                 setShowMenu(false)
               }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                textAlign: 'left',
-                fontSize: '12px',
-                color: '#f14c4c',
-                backgroundColor: 'transparent',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              className={`
+                w-full px-3 py-2 text-left text-xs text-danger bg-transparent border-none rounded
+                cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
+              `}
             >
               <svg
-                width="14"
-                height="14"
+                className="w-3.5 h-3.5 stroke-current"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="currentColor"
                 strokeWidth="2"
               >
                 <polyline points="3 6 5 6 21 6" />

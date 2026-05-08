@@ -80,7 +80,9 @@ export const SessionSidebar: React.FC = () => {
         await reconnectSession(session)
         addToast({ type: 'success', message: t('toast.connectionSuccess') })
         return
-      } catch {}
+      } catch {
+        /* empty */
+      }
     }
     setReconnectConfig(session)
     setConnectionDialogOpen(true)
@@ -111,25 +113,14 @@ export const SessionSidebar: React.FC = () => {
 
   return (
     <div
-      className="h-full flex flex-col"
-      style={{
-        width: sidebarWidth,
-        backgroundColor: 'var(--sidebar-bg)',
-        borderRight: '1px solid var(--border)',
-      }}
+      className="h-full flex flex-col border-r border-border"
+      style={{ width: sidebarWidth, backgroundColor: 'var(--sidebar-bg)' }}
     >
-      <div style={{ padding: '16px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-2.5 mb-3.5">
           <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '6px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="w-7 h-7 rounded-md flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' }}
           >
             <svg
               width="14"
@@ -147,30 +138,17 @@ export const SessionSidebar: React.FC = () => {
             </svg>
           </div>
           <div>
-            <h1 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>Rivet</h1>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>SFTP / WebDAV</p>
+            <h1 className="text-sm font-semibold text-text">Rivet</h1>
+            <p className="text-xs text-text-muted">SFTP / WebDAV</p>
           </div>
         </div>
         <button
           onClick={handleNewConnection}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            borderRadius: '6px',
-            backgroundColor: 'var(--accent)',
-            color: '#ffffff',
-            fontSize: '14px',
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            transition: 'background-color 0.15s',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--accent-hover)')}
-          onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--accent)')}
+          className={`
+            w-full px-3 py-2 rounded-md bg-accent text-white
+            text-sm font-medium flex items-center justify-center gap-1.5
+            transition-colors border-none cursor-pointer hover:bg-accent-hover
+          `}
         >
           <svg
             width="14"
@@ -187,65 +165,30 @@ export const SessionSidebar: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+      <div className="flex-1 overflow-hidden">
         {sessions.length === 0 ? (
-          <div
-            style={{
-              padding: '24px 16px',
-              textAlign: 'center',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                marginBottom: '12px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--hover)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+          <div className="px-4 py-6 text-center h-full flex flex-col items-center justify-center">
+            <div className="w-12 h-12 mb-3 rounded-full bg-hover flex items-center justify-center">
               <svg
-                width="20"
-                height="20"
+                className="w-5 h-5 stroke-text-muted"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--text-muted)"
                 strokeWidth="1.5"
               >
                 <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-              {t('sidebar.noConnections')}
-            </p>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              {t('sidebar.newConnectionHint')}
-            </p>
+            <p className="text-xs text-text-muted mb-1">{t('sidebar.noConnections')}</p>
+            <p className="text-xs text-text-muted">{t('sidebar.newConnectionHint')}</p>
           </div>
         ) : (
-          <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '14px 16px 8px' }}>
-              <span
-                style={{
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                }}
-              >
+          <div className="h-full flex flex-col">
+            <div className="px-4 pt-3.5 pb-2">
+              <span className="text-sm font-semibold text-text-muted uppercase tracking-[0.5px]">
                 {t('sidebar.connections')}
               </span>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', minHeight: '200px' }}>
+            <div className="flex-1 overflow-y-auto min-h-50">
               <VirtualList
                 items={sessions}
                 itemHeight={72}

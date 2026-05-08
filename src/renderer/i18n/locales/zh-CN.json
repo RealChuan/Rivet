@@ -110,11 +110,17 @@
     },
     "toolbar": {
       "copy": "复制",
+      "darkMode": "深色模式",
       "delete": "删除",
+      "hide": "隐藏",
+      "lightMode": "浅色模式",
       "move": "移动",
       "newFolder": "新建文件夹",
+      "queue": "队列",
       "refresh": "刷新",
       "rename": "重命名",
+      "show": "显示",
+      "system": "系统",
       "upload": "上传"
     }
   }
