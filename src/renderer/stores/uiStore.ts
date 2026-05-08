@@ -32,27 +32,62 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
   setTheme: theme => {
     set({ theme })
-    window.electronAPI.storeSet('ui_settings', { ...get(), theme })
+    const { theme: _, language, sidebarWidth, queueDrawerOpen, queueDrawerWidth } = get()
+    window.electronAPI.storeSet('ui_settings', {
+      theme,
+      language,
+      sidebarWidth,
+      queueDrawerOpen,
+      queueDrawerWidth,
+    })
   },
 
   setLanguage: language => {
     set({ language })
-    window.electronAPI.storeSet('ui_settings', { ...get(), language })
+    const { theme, language: _, sidebarWidth, queueDrawerOpen, queueDrawerWidth } = get()
+    window.electronAPI.storeSet('ui_settings', {
+      theme,
+      language,
+      sidebarWidth,
+      queueDrawerOpen,
+      queueDrawerWidth,
+    })
   },
 
   setSidebarWidth: sidebarWidth => {
     set({ sidebarWidth })
-    window.electronAPI.storeSet('ui_settings', { ...get(), sidebarWidth })
+    const { theme, language, sidebarWidth: _, queueDrawerOpen, queueDrawerWidth } = get()
+    window.electronAPI.storeSet('ui_settings', {
+      theme,
+      language,
+      sidebarWidth,
+      queueDrawerOpen,
+      queueDrawerWidth,
+    })
   },
 
   setQueueDrawerOpen: queueDrawerOpen => {
     set({ queueDrawerOpen })
-    window.electronAPI.storeSet('ui_settings', { ...get(), queueDrawerOpen })
+    const { theme, language, sidebarWidth, queueDrawerOpen: _, queueDrawerWidth } = get()
+    window.electronAPI.storeSet('ui_settings', {
+      theme,
+      language,
+      sidebarWidth,
+      queueDrawerOpen,
+      queueDrawerWidth,
+    })
   },
 
   setQueueDrawerWidth: queueDrawerWidth => {
     set({ queueDrawerWidth })
-    window.electronAPI.storeSet('ui_settings', { ...get(), queueDrawerWidth })
+    const { theme, language, sidebarWidth, queueDrawerOpen, queueDrawerWidth: _ } = get()
+    window.electronAPI.storeSet('ui_settings', {
+      theme,
+      language,
+      sidebarWidth,
+      queueDrawerOpen,
+      queueDrawerWidth,
+    })
   },
 
   initialize: settings => {

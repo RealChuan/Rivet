@@ -97,10 +97,10 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
   if (!open) return null
 
   return (
-    <div className="glass-dialog">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-12">
       <div
         ref={dialogRef}
-        className="dialog-container"
+        className="backdrop-blur-xl rounded-xl p-6 max-w-full max-h-[calc(100vh-96px)] relative box-border overflow-y-auto overflow-x-hidden bg-white/85 border border-white/40 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25),0_8px_32px_rgba(0,0,0,0.1),0_0_0_1px_rgba(255,255,255,0.1)] dark:bg-[rgba(30,30,30,0.85)] dark:border-white/10 dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.35),0_8px_32px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.05)]"
         onMouseDown={handleMouseDown}
         style={{
           position: customPosition ? 'absolute' : undefined,
