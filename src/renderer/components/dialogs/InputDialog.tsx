@@ -40,7 +40,7 @@ export const InputDialog: React.FC<InputDialogProps> = ({
 
   return (
     <GlassDialog open={open} onClose={onClose}>
-      <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginBottom: '16px' }}>
+      <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', marginBottom: '16px' }}>
         {title}
       </h2>
       <form onSubmit={handleSubmit}>
@@ -57,7 +57,7 @@ export const InputDialog: React.FC<InputDialogProps> = ({
             border: '1px solid var(--border)',
             borderRadius: '6px',
             color: 'var(--text)',
-            fontSize: '13px',
+            fontSize: '14px',
             marginBottom: '16px',
             transition: 'border-color 0.15s, box-shadow 0.15s',
           }}
@@ -80,7 +80,7 @@ export const InputDialog: React.FC<InputDialogProps> = ({
               border: '1px solid var(--border)',
               backgroundColor: 'transparent',
               color: 'var(--text)',
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: 500,
               cursor: 'pointer',
             }}
@@ -97,7 +97,7 @@ export const InputDialog: React.FC<InputDialogProps> = ({
               borderRadius: '6px',
               backgroundColor: value.trim() ? 'var(--accent)' : 'var(--text-muted)',
               color: '#ffffff',
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: 500,
               border: 'none',
               cursor: value.trim() ? 'pointer' : 'not-allowed',

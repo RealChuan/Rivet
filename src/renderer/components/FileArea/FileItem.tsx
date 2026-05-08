@@ -46,6 +46,12 @@ export const FileItem: React.FC<FileItemProps> = ({
     columnWidths.modifyTime +
     24
 
+  const nameContent = file.name
+  const permissionsContent = file.permissions || '-'
+  const ownerContent = file.owner || '-'
+  const sizeContent = file.type === 'file' ? formatFileSize(file.size || 0) : '-'
+  const modifyTimeContent = formatDate(file.modifyTime || 0)
+
   return (
     <div
       key={file.name}
@@ -63,11 +69,12 @@ export const FileItem: React.FC<FileItemProps> = ({
             : isHovered
               ? 'var(--hover)'
               : 'transparent',
+        color: isSelected ? 'var(--accent)' : 'var(--text)',
         borderBottom: '1px solid var(--border)',
         minWidth: totalWidth,
         boxSizing: 'border-box',
         position: 'relative',
-        transition: 'background-color 0.10s ease',
+        transition: 'background-color 0.10s ease, color 0.10s ease',
         userSelect: 'none',
         WebkitUserSelect: 'none',
       }}
@@ -85,10 +92,18 @@ export const FileItem: React.FC<FileItemProps> = ({
           alignItems: 'center',
           gap: '10px',
           minWidth: 0,
+          height: '100%',
         }}
+        title={nameContent}
       >
         {file.type === 'directory' ? (
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#dcbb14" stroke="none">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill={isSelected ? 'var(--accent)' : 'var(--warning)'}
+            stroke="none"
+          >
             <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
           </svg>
         ) : (
@@ -97,7 +112,7 @@ export const FileItem: React.FC<FileItemProps> = ({
             height="16"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="var(--text-muted)"
+            stroke={isSelected ? 'var(--accent)' : 'var(--text-muted)'}
             strokeWidth="1.5"
           >
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
@@ -106,8 +121,8 @@ export const FileItem: React.FC<FileItemProps> = ({
         )}
         <span
           style={{
-            fontSize: '13px',
-            color: 'var(--text)',
+            fontSize: '14px',
+            color: isSelected ? 'var(--accent)' : 'var(--text)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -124,7 +139,11 @@ export const FileItem: React.FC<FileItemProps> = ({
           fontSize: '12px',
           color: 'var(--text-muted)',
           textAlign: 'left',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
         }}
+        title={permissionsContent}
       >
         {file.permissions || '-'}
       </div>
@@ -136,7 +155,11 @@ export const FileItem: React.FC<FileItemProps> = ({
           fontSize: '12px',
           color: 'var(--text-muted)',
           textAlign: 'left',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
         }}
+        title={ownerContent}
       >
         {file.owner || '-'}
       </div>
@@ -148,7 +171,11 @@ export const FileItem: React.FC<FileItemProps> = ({
           fontSize: '12px',
           color: 'var(--text-muted)',
           textAlign: 'left',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
         }}
+        title={sizeContent}
       >
         {file.type === 'file' ? formatFileSize(file.size || 0) : '-'}
       </div>
@@ -160,7 +187,11 @@ export const FileItem: React.FC<FileItemProps> = ({
           fontSize: '12px',
           color: 'var(--text-muted)',
           textAlign: 'left',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
         }}
+        title={modifyTimeContent}
       >
         {formatDate(file.modifyTime || 0)}
       </div>

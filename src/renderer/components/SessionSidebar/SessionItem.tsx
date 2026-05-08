@@ -66,11 +66,10 @@ export const SessionItem: React.FC<SessionItemProps> = ({
     )
 
   return (
-    <div style={{ position: 'relative', ...style }}>
+    <div style={{ position: 'relative', padding: '4px 8px', ...style }}>
       <div
         onClick={onSelect}
         style={{
-          margin: '4px 8px',
           padding: '10px 12px',
           borderRadius: '6px',
           cursor: 'pointer',
@@ -138,8 +137,8 @@ export const SessionItem: React.FC<SessionItemProps> = ({
           </div>
           <span
             style={{
-              fontSize: '10px',
-              padding: '1px 4px',
+              fontSize: '12px',
+              padding: '2px 6px',
               borderRadius: '2px',
               backgroundColor:
                 session.config.protocol === 'sftp'
@@ -157,7 +156,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: 500,
               color: isActive ? 'var(--accent)' : 'var(--text)',
               overflow: 'hidden',
@@ -169,7 +168,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
           </div>
           <div
             style={{
-              fontSize: '11px',
+              fontSize: '12px',
               color: 'var(--text-muted)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',

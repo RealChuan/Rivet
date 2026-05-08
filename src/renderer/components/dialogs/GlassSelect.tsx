@@ -89,7 +89,7 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
           border: '1px solid var(--border)',
           borderRadius: '6px',
           color: 'var(--text)',
-          fontSize: '13px',
+          fontSize: '14px',
           cursor: 'pointer',
           textAlign: 'left',
           display: 'flex',

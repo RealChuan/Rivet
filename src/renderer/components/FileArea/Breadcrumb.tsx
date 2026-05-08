@@ -22,7 +22,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, sessionId }) => {
         display: 'flex',
         alignItems: 'center',
         gap: '4px',
-        fontSize: '13px',
+        fontSize: '14px',
         overflowX: 'auto',
         flex: 1,
       }}

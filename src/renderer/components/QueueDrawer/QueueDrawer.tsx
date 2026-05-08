@@ -49,7 +49,7 @@ export const QueueDrawer: React.FC = () => {
             <line x1="3" y1="12" x2="3.01" y2="12" />
             <line x1="3" y1="18" x2="3.01" y2="18" />
           </svg>
-          <h2 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>
+          <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>
             Transfer Queue
           </h2>
           {activeTasks.length > 0 && (
@@ -73,7 +73,7 @@ export const QueueDrawer: React.FC = () => {
               onClick={clearCompletedTasks}
               style={{
                 padding: '4px 10px',
-                fontSize: '11px',
+                fontSize: '12px',
                 borderRadius: '4px',
                 backgroundColor: 'transparent',
                 border: 'none',

@@ -109,7 +109,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
             marginBottom: '16px',
           }}
         >
-          <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>
             {t('dialog.conflict.title')}
           </h2>
           <button
@@ -204,11 +204,11 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                         )}
                       </svg>
-                      <span style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 500 }}>
+                      <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 500 }}>
                         {conflict.sourceFile.name}
                       </span>
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                       {t('dialog.conflict.source')}: {conflict.sourceFile.absolutePath}
                     </div>
                   </div>
@@ -251,11 +251,11 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                           <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                         )}
                       </svg>
-                      <span style={{ fontSize: '13px', color: 'var(--danger)', fontWeight: 500 }}>
+                      <span style={{ fontSize: '14px', color: 'var(--danger)', fontWeight: 500 }}>
                         {conflict.targetFile?.name || conflict.sourceFile.name}
                       </span>
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                       {t('dialog.conflict.target')}:{' '}
                       {conflict.targetFile?.absolutePath || conflict.sourceFile.absolutePath}
                     </div>
@@ -333,7 +333,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                 </div>
 
                 {cannotOverwrite && operation !== 'move' && (
-                  <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--danger)' }}>
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--danger)' }}>
                     {t('dialog.conflict.cannotOverwrite')}
                   </div>
                 )}
@@ -381,7 +381,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                 border: '1px solid var(--border)',
                 backgroundColor: 'transparent',
                 color: 'var(--text)',
-                fontSize: '13px',
+                fontSize: '14px',
                 fontWeight: 500,
                 cursor: 'pointer',
               }}
@@ -397,7 +397,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                 borderRadius: '6px',
                 backgroundColor: 'var(--accent)',
                 color: '#ffffff',
-                fontSize: '13px',
+                fontSize: '14px',
                 fontWeight: 500,
                 border: 'none',
                 cursor: 'pointer',

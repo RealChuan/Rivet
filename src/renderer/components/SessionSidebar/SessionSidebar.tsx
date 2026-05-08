@@ -147,8 +147,8 @@ export const SessionSidebar: React.FC = () => {
             </svg>
           </div>
           <div>
-            <h1 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>Rivet</h1>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>SFTP / WebDAV</p>
+            <h1 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>Rivet</h1>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>SFTP / WebDAV</p>
           </div>
         </div>
         <button
@@ -159,7 +159,7 @@ export const SessionSidebar: React.FC = () => {
             borderRadius: '6px',
             backgroundColor: 'var(--accent)',
             color: '#ffffff',
-            fontSize: '13px',
+            fontSize: '14px',
             fontWeight: 500,
             display: 'flex',
             alignItems: 'center',
@@ -226,16 +226,16 @@ export const SessionSidebar: React.FC = () => {
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
               {t('sidebar.noConnections')}
             </p>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               {t('sidebar.newConnectionHint')}
             </p>
           </div>
         ) : (
           <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '8px 16px 4px' }}>
+            <div style={{ padding: '14px 16px 8px' }}>
               <span
                 style={{
-                  fontSize: '10px',
+                  fontSize: '14px',
                   fontWeight: 600,
                   color: 'var(--text-muted)',
                   textTransform: 'uppercase',
@@ -248,7 +248,7 @@ export const SessionSidebar: React.FC = () => {
             <div style={{ flex: 1, overflowY: 'auto', minHeight: '200px' }}>
               <VirtualList
                 items={sessions}
-                itemHeight={48}
+                itemHeight={72}
                 width="100%"
                 renderItem={(session, _index, style) => (
                   <SessionItem

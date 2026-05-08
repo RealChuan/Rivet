@@ -134,7 +134,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           )}
         </div>
         <div>
-          <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>
             {reconnectMode
               ? t('sidebar.reconnect')
               : editConfig
@@ -307,7 +307,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
                   backgroundColor:
                     authMethod === 'password' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
                   color: authMethod === 'password' ? 'var(--accent)' : 'var(--text)',
-                  fontSize: '13px',
+                  fontSize: '14px',
                   fontWeight: 500,
                   cursor: 'pointer',
                   transition: 'border-color 0.15s, background-color 0.15s',
@@ -338,7 +338,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
                   backgroundColor:
                     authMethod === 'privateKey' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
                   color: authMethod === 'privateKey' ? 'var(--accent)' : 'var(--text)',
-                  fontSize: '13px',
+                  fontSize: '14px',
                   fontWeight: 500,
                   cursor: 'pointer',
                   transition: 'border-color 0.15s, background-color 0.15s',
@@ -445,7 +445,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
               border: '1px solid var(--border)',
               backgroundColor: 'transparent',
               color: 'var(--text)',
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: 500,
               cursor: 'pointer',
             }}
@@ -462,7 +462,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
               borderRadius: '6px',
               backgroundColor: isLoading ? 'var(--text-muted)' : 'var(--accent)',
               color: '#ffffff',
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: 500,
               border: 'none',
               cursor: isLoading ? 'not-allowed' : 'pointer',

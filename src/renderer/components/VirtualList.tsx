@@ -18,7 +18,7 @@ export const VirtualList = <T extends unknown>({
   return (
     <div style={{ width }}>
       {items.map((item, index) => (
-        <div key={index} style={{ height: itemHeight }}>
+        <div key={index} style={{ height: itemHeight, overflow: 'hidden' }}>
           {renderItem(item, index, {})}
         </div>
       ))}

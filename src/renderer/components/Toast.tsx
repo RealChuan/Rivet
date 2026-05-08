@@ -67,7 +67,7 @@ export const Toast: React.FC = () => {
             className="animate-fadeIn"
           >
             {config.icon}
-            <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: '#ffffff' }}>
+            <span style={{ flex: 1, fontSize: '14px', fontWeight: 500, color: '#ffffff' }}>
               {toast.message}
             </span>
             <button

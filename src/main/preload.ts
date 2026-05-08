@@ -60,11 +60,11 @@ const electronAPI: ElectronAPI = {
     return ipcRenderer.invoke('move', sessionId, file, targetPath)
   },
   uploadFile: (sessionId, localPath, remotePath, onProgress) =>
-    ipcRenderer.invoke('uploadFile', sessionId, localPath, remotePath, onProgress),
+    ipcRenderer.invoke('upload-file', sessionId, localPath, remotePath, onProgress),
   downloadFile: (sessionId, file, localPath, onProgress) => {
-    return ipcRenderer.invoke('downloadFile', sessionId, file, localPath, onProgress)
+    return ipcRenderer.invoke('download-file', sessionId, file, localPath, onProgress)
   },
-  cancelTransfer: transferId => ipcRenderer.invoke('cancelTransfer', transferId),
+  cancelTransfer: transferId => ipcRenderer.invoke('cancel-transfer', transferId),
   storeGet: key => ipcRenderer.invoke('store-get', key),
   storeSet: (key, value) => ipcRenderer.invoke('store-set', key, value),
   storeDelete: key => ipcRenderer.invoke('store-delete', key),

@@ -110,11 +110,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           {config.icon}
         </div>
         <h2
-          style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}
+          style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}
         >
           {title}
         </h2>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px' }}>
           {message}
         </p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', width: '100%' }}>
@@ -126,7 +126,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               border: '1px solid var(--border)',
               backgroundColor: 'transparent',
               color: 'var(--text)',
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: 500,
               cursor: 'pointer',
             }}
@@ -145,7 +145,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               borderRadius: '6px',
               backgroundColor: config.button,
               color: '#ffffff',
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: 500,
               border: 'none',
               cursor: 'pointer',

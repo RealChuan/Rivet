@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SessionSidebar } from './components/SessionSidebar/SessionSidebar'
-import { FileArea } from './components/FileArea/FileArea'
+import { FileAreaContainer } from './components/FileArea/FileAreaContainer'
 import { QueueDrawer } from './components/QueueDrawer/QueueDrawer'
 import { Toast } from './components/Toast'
 import { useUiStore } from './stores/uiStore'
@@ -199,7 +199,7 @@ const App: React.FC = () => {
           backgroundColor: '#ffffff',
         }}
       >
-        <div style={{ color: '#6b6b6b', fontSize: '13px' }}>Loading...</div>
+        <div style={{ color: '#6b6b6b', fontSize: '14px' }}>Loading...</div>
       </div>
     )
   }
@@ -266,7 +266,7 @@ const App: React.FC = () => {
             style={{
               padding: '6px 10px',
               borderRadius: '4px',
-              fontSize: '11px',
+              fontSize: '12px',
               fontWeight: 600,
               color: 'var(--text)',
               backgroundColor: 'transparent',
@@ -340,7 +340,7 @@ const App: React.FC = () => {
                   position: 'absolute',
                   top: '-4px',
                   right: '-4px',
-                  fontSize: '9px',
+                  fontSize: '10px',
                   fontWeight: 'bold',
                   color: 'white',
                   backgroundColor: '#f14c4c',
@@ -356,7 +356,7 @@ const App: React.FC = () => {
           </button>
         </div>
 
-        <FileArea />
+        <FileAreaContainer />
       </div>
 
       {queueDrawerOpen && (

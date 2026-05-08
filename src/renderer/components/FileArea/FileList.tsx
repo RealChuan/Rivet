@@ -10,6 +10,7 @@ import FileListHeader from './FileListHeader'
 import FileItem from './FileItem'
 import FileContextMenu from './FileContextMenu'
 import { FileListLoading, FileListError, FileListEmpty } from './FileListStates'
+import ParentDirectoryButton from './ParentDirectoryButton'
 import VirtualList from '../VirtualList'
 import { useFileOperations } from '../../hooks/useFileOperations'
 import { formatFileSize, formatDate, getParentPath } from '../../utils/utils'
@@ -36,12 +37,13 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
   )
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [columnWidths, setColumnWidths] = useState({
-    name: 300,
+    name: 200,
     permissions: 100,
     owner: 100,
-    size: 80,
+    size: 100,
     modifyTime: 100,
   })
+  const [hasUserResized, setHasUserResized] = useState(false)
   const [resizingColumn, setResizingColumn] = useState<string | null>(null)
   const [resizeStartX, setResizeStartX] = useState(0)
   const [resizeStartWidth, setResizeStartWidth] = useState(0)
@@ -397,10 +399,63 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
   }
 
   const handleResizeStart = (column: string, x: number, width: number) => {
+    setHasUserResized(true)
     setResizingColumn(column)
     setResizeStartX(x)
     setResizeStartWidth(width)
   }
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const containerWidth = containerRef.current.offsetWidth
+    const fixedColumnsWidth = 100
+    const numFixedColumns = 4
+    const gapWidth = 6
+    const numGaps = 5
+
+    const totalFixedWidth = fixedColumnsWidth * numFixedColumns + gapWidth * numGaps
+    const nameWidth = Math.max(200, containerWidth - totalFixedWidth)
+
+    setColumnWidths({
+      name: nameWidth,
+      permissions: fixedColumnsWidth,
+      owner: fixedColumnsWidth,
+      size: fixedColumnsWidth,
+      modifyTime: fixedColumnsWidth,
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const handleResize = () => {
+      if (hasUserResized) return
+
+      const containerWidth = containerRef.current!.offsetWidth
+      const fixedColumnsWidth = 100
+      const numFixedColumns = 4
+      const gapWidth = 6
+      const numGaps = 5
+
+      const totalFixedWidth = fixedColumnsWidth * numFixedColumns + gapWidth * numGaps
+      const nameWidth = Math.max(200, containerWidth - totalFixedWidth)
+
+      setColumnWidths({
+        name: nameWidth,
+        permissions: fixedColumnsWidth,
+        owner: fixedColumnsWidth,
+        size: fixedColumnsWidth,
+        modifyTime: fixedColumnsWidth,
+      })
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [hasUserResized])
 
   useEffect(() => {
     if (isDragging) {
@@ -412,6 +467,35 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
       }
     }
   }, [isDragging, handleDragMove, handleDragEnd])
+
+  useEffect(() => {
+    if (session.isLoading) return
+
+    setHasUserResized(false)
+
+    const updateWidths = () => {
+      if (!containerRef.current) return
+
+      const containerWidth = containerRef.current.offsetWidth
+      const fixedColumnsWidth = 100
+      const numFixedColumns = 4
+      const gapWidth = 6
+      const numGaps = 5
+
+      const totalFixedWidth = fixedColumnsWidth * numFixedColumns + gapWidth * numGaps
+      const nameWidth = Math.max(200, containerWidth - totalFixedWidth)
+
+      setColumnWidths({
+        name: nameWidth,
+        permissions: fixedColumnsWidth,
+        owner: fixedColumnsWidth,
+        size: fixedColumnsWidth,
+        modifyTime: fixedColumnsWidth,
+      })
+    }
+
+    requestAnimationFrame(updateWidths)
+  }, [sessionId, session.isLoading])
 
   if (session.isLoading) {
     return <FileListLoading />
@@ -434,6 +518,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
   return (
     <div
       style={{
+        width: '100%',
         minWidth: totalWidth,
         display: 'flex',
         flexDirection: 'column',
@@ -511,47 +596,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         )}
       </div>
 
-      {currentPath !== '/' && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '10px',
-            borderTop: '1px solid var(--border)',
-          }}
-        >
-          <button
-            onClick={handleParentDirectory}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '4px',
-              backgroundColor: 'transparent',
-              border: '1px solid var(--border)',
-              cursor: 'pointer',
-              fontSize: '12px',
-              color: 'var(--text)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            {t('fileList.parentDirectory')}
-          </button>
-        </div>
-      )}
+      <ParentDirectoryButton currentPath={currentPath} onNavigate={handleParentDirectory} />
 
       <ConfirmDialog
         open={deleteDialogOpen}

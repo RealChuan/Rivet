@@ -90,7 +90,7 @@ export const FileListError: React.FC<{ error: string; onRetry: () => void }> = (
       </div>
       <div style={{ textAlign: 'center' }}>
         <h3
-          style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text)', marginBottom: '4px' }}
+          style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text)', marginBottom: '4px' }}
         >
           Error
         </h3>

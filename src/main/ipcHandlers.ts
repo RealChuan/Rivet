@@ -177,7 +177,7 @@ export function setupIpcHandlers(): void {
   })
 
   ipcMain.handle(
-    'uploadFile',
+    'upload-file',
     async (_, sessionId: string, localPath: string, remotePath: string) => {
       const transferId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       const abortController = new AbortController()
@@ -220,7 +220,7 @@ export function setupIpcHandlers(): void {
   )
 
   ipcMain.handle(
-    'downloadFile',
+    'download-file',
     async (_, sessionId: string, file: FileInfo, localPath: string) => {
       const transferId = `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       const abortController = new AbortController()
@@ -262,7 +262,7 @@ export function setupIpcHandlers(): void {
     }
   )
 
-  ipcMain.handle('cancelTransfer', async (_, transferId: string) => {
+  ipcMain.handle('cancel-transfer', async (_, transferId: string) => {
     const controller = transferControllers.get(transferId)
     if (controller) {
       controller.abort()

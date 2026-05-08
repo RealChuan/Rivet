@@ -5,10 +5,14 @@ import FileList from './FileList'
 import Breadcrumb from './Breadcrumb'
 import Toolbar from './Toolbar'
 
-export const FileArea: React.FC = () => {
+interface FileAreaProps {
+  sessionId: string
+}
+
+export const FileArea: React.FC<FileAreaProps> = ({ sessionId }) => {
   const { t } = useTranslation()
-  const { sessions, activeSessionId } = useSessionStore()
-  const activeSession = sessions.find(s => s.id === activeSessionId)
+  const { sessions } = useSessionStore()
+  const activeSession = sessions.find(s => s.id === sessionId)
 
   if (!activeSession || !activeSession.isConnected) {
     return (
