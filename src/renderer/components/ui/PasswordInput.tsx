@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import Input from './Input'
 
 interface PasswordInputProps {
   value: string
@@ -17,14 +18,13 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
 
   return (
     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-      <input
+      <Input
         type={showPassword ? 'text' : 'password'}
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={(e: any) => onChange(e.target.value)}
         placeholder={placeholder}
         className={className}
         style={{
-          width: '100%',
           paddingRight: '40px',
         }}
       />

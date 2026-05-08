@@ -5,19 +5,14 @@ interface SelectOption {
   label: string
 }
 
-interface GlassSelectProps {
+interface SelectProps {
   value: string
   onChange: (value: string) => void
   options: SelectOption[]
   className?: string
 }
 
-export const GlassSelect: React.FC<GlassSelectProps> = ({
-  value,
-  onChange,
-  options,
-  className = '',
-}) => {
+export const Select: React.FC<SelectProps> = ({ value, onChange, options, className = '' }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -57,56 +52,22 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
     }
   }
 
-  const isDark = document.documentElement.dataset.theme === 'dark'
-
-  const handleMouseEnter = (e: React.MouseEvent) => {
-    const target = e.currentTarget as HTMLElement
-    target.style.borderColor = 'var(--text-muted)'
-    target.style.background = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'
-  }
-
-  const handleMouseLeave = (e: React.MouseEvent) => {
-    const target = e.currentTarget as HTMLElement
-    target.style.borderColor = 'var(--border)'
-    target.style.background = 'var(--bg)'
-  }
-
   return (
-    <div
-      ref={containerRef}
-      style={{ position: 'relative', width: '100%' }}
-      onKeyDown={handleKeyDown}
-    >
+    <div ref={containerRef} className="relative w-full" onKeyDown={handleKeyDown}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={className}
-        style={{
-          width: '100%',
-          padding: '8px 12px',
-          paddingRight: '32px',
-          background: 'var(--bg)',
-          border: '1px solid var(--border)',
-          borderRadius: '6px',
-          color: 'var(--text)',
-          fontSize: '14px',
-          cursor: 'pointer',
-          textAlign: 'left',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          transition: 'border-color 0.15s, box-shadow 0.15s',
-          position: 'relative',
-          margin: 0,
-        }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        className={`
+          w-full px-3 pr-8 py-2 bg-(--bg) border border-(--border) rounded-md 
+          text-(--text) text-left flex items-center justify-between relative cursor-pointer 
+          transition-colors duration-150 hover:border-(--text-muted) focus:outline-none 
+          focus:ring-2 focus:ring-(--focus-ring) text-[13px] box-border min-h-8.25 m-0
+          ${className}
+        `
+          .trim()
+          .replace(/\s+/g, ' ')}
       >
-        <span
-          style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-        >
-          {selectedOption?.label || 'Select...'}
-        </span>
+        <span className="flex-1 truncate">{selectedOption?.label || 'Select...'}</span>
         <svg
           width="12"
           height="12"
@@ -130,22 +91,7 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
       {isOpen && (
         <ul
           ref={listRef}
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 2px)',
-            left: 0,
-            right: 0,
-            padding: '4px 0',
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: '6px',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
-            listStyle: 'none',
-            zIndex: 100,
-            maxHeight: '200px',
-            overflowY: 'auto',
-            boxSizing: 'border-box',
-          }}
+          className="absolute top-full left-0 right-0 z-100 bg-(--bg) border border-(--border) rounded-md shadow-lg list-none max-h-50 overflow-y-auto p-1 box-border mt-1"
         >
           {options.map((option, index) => (
             <li
@@ -156,19 +102,11 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
               }}
               onMouseEnter={() => setHighlightedIndex(index)}
               onMouseLeave={() => setHighlightedIndex(-1)}
-              style={{
-                padding: '8px 12px',
-                cursor: 'pointer',
-                backgroundColor:
-                  highlightedIndex === index
-                    ? isDark
-                      ? 'rgba(255, 255, 255, 0.1)'
-                      : 'rgba(0, 0, 0, 0.08)'
-                    : 'transparent',
-                color: option.value === value ? 'var(--accent)' : 'var(--text)',
-                fontWeight: option.value === value ? 500 : 400,
-                transition: 'background-color 0.1s, color 0.1s',
-              }}
+              className={`px-3 py-2 cursor-pointer transition-colors duration-100 ${
+                highlightedIndex === index ? 'bg-(--hover)' : 'bg-transparent'
+              } ${
+                option.value === value ? 'text-(--accent) font-medium' : 'text-(--text) font-normal'
+              }`}
             >
               {option.label}
             </li>
@@ -179,4 +117,4 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
   )
 }
 
-export default GlassSelect
+export default Select

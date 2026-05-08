@@ -2,8 +2,9 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ConnectionConfig } from '@shared/types'
 import GlassDialog from './GlassDialog'
-import PasswordInput from './PasswordInput'
-import GlassSelect from './GlassSelect'
+import PasswordInput from '../ui/PasswordInput'
+import Select from '../ui/Select'
+import Input from '../ui/Input'
 
 interface ConnectionDialogProps {
   open: boolean
@@ -163,12 +164,11 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           >
             {t('connection.name')}
           </label>
-          <input
+          <Input
             type="text"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e: any) => setName(e.target.value)}
             placeholder={t('connection.namePlaceholder')}
-            className="glass-input"
           />
         </div>
 
@@ -184,14 +184,13 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           >
             {t('connection.protocol')}
           </label>
-          <GlassSelect
+          <Select
             value={protocol}
             onChange={handleProtocolChange}
             options={[
               { value: 'sftp', label: 'SFTP' },
               { value: 'webdav', label: 'WebDAV' },
             ]}
-            className="glass-input"
           />
         </div>
 
@@ -208,12 +207,11 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             >
               {t('connection.host')}
             </label>
-            <input
+            <Input
               type="text"
               value={host}
-              onChange={e => setHost(e.target.value)}
+              onChange={(e: any) => setHost(e.target.value)}
               placeholder="192.168.1.100"
-              className="glass-input"
             />
           </div>
           <div>
@@ -228,12 +226,11 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             >
               {t('connection.port')}
             </label>
-            <input
+            <Input
               type="number"
               value={port}
-              onChange={e => setPort(e.target.value)}
+              onChange={(e: any) => setPort(e.target.value)}
               placeholder={protocol === 'sftp' ? '22' : '443'}
-              className="glass-input"
             />
           </div>
         </div>
@@ -251,12 +248,11 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             >
               {t('connection.basePath')}
             </label>
-            <input
+            <Input
               type="text"
               value={basePath}
-              onChange={e => setBasePath(e.target.value)}
+              onChange={(e: any) => setBasePath(e.target.value)}
               placeholder="/dav/files"
-              className="glass-input"
             />
           </div>
         )}
@@ -273,12 +269,11 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           >
             {t('connection.username')}
           </label>
-          <input
+          <Input
             type="text"
             value={username}
-            onChange={e => setUsername(e.target.value)}
+            onChange={(e: any) => setUsername(e.target.value)}
             placeholder={t('connection.usernamePlaceholder')}
-            className="glass-input"
           />
         </div>
 
@@ -375,13 +370,13 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             >
               {t('connection.privateKey')}
             </label>
-            <textarea
+            <Input
+              as="textarea"
               value={privateKey}
-              onChange={e => setPrivateKey(e.target.value)}
+              onChange={(e: any) => setPrivateKey(e.target.value)}
               placeholder={t('connection.privateKeyPlaceholder')}
-              className="glass-input"
               rows={4}
-              style={{ resize: 'vertical', width: '100%' }}
+              style={{ resize: 'vertical' }}
             />
           </div>
         ) : (
@@ -401,7 +396,6 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
               value={password}
               onChange={setPassword}
               placeholder={t('connection.passwordPlaceholder')}
-              className="glass-input"
             />
           </div>
         )}
