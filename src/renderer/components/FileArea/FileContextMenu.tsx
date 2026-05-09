@@ -52,39 +52,18 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
     }
   }, [onClose])
 
-  const menuStyle: React.CSSProperties = {
-    position: 'fixed',
-    left: x,
-    top: y,
-    backgroundColor: 'var(--bg)',
-    borderRadius: '6px',
-    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-    border: '1px solid var(--border)',
-    padding: '4px',
-    minWidth: '160px',
-    zIndex: 1000,
-  }
+  const menuClass = `
+    fixed bg-bg rounded-md shadow-lg border border-border
+    p-1 min-w-[160px] z-[1000]
+  `
 
-  const itemStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '8px 12px',
-    textAlign: 'left' as const,
-    fontSize: '12px',
-    color: 'var(--text)',
-    backgroundColor: 'transparent',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  }
+  const itemClass = `
+    w-full px-3 py-2 text-left text-xs text-text
+    bg-transparent border-none rounded cursor-pointer
+    flex items-center gap-2 hover:bg-hover transition-colors
+  `
 
-  const separatorStyle: React.CSSProperties = {
-    height: '1px',
-    backgroundColor: 'var(--border)',
-    margin: '4px 0',
-  }
+  const separatorClass = 'h-px bg-border my-1'
 
   const handleItemClick = (action: () => void) => {
     action()
@@ -92,97 +71,40 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
   }
 
   return (
-    <div ref={menuRef} style={menuStyle}>
+    <div ref={menuRef} className={menuClass} style={{ left: x, top: y }}>
       {isEmptyArea ? (
-        <button
-          style={itemStyle}
-          onClick={() => handleItemClick(onCreateFolder)}
-          onMouseEnter={e =>
-            ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--hover)')
-          }
-          onMouseLeave={e =>
-            ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')
-          }
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
+        <button className={itemClass} onClick={() => handleItemClick(onCreateFolder)}>
+          <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
             <path d="M12 4v16m8-8H4" />
           </svg>
           {t('fileList.newFolder')}
         </button>
       ) : (
         <>
-          <button
-            style={itemStyle}
-            onClick={() => handleItemClick(() => onCopy(files))}
-            onMouseEnter={e =>
-              ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--hover)')
-            }
-            onMouseLeave={e =>
-              ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')
-            }
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+          <button className={itemClass} onClick={() => handleItemClick(() => onCopy(files))}>
+            <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
               <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
             </svg>
             {t('toolbar.copy')} {files.length > 1 ? `(${files.length})` : ''}
           </button>
-          <button
-            style={itemStyle}
-            onClick={() => handleItemClick(() => onMove(files))}
-            onMouseEnter={e =>
-              ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--hover)')
-            }
-            onMouseLeave={e =>
-              ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')
-            }
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+          <button className={itemClass} onClick={() => handleItemClick(() => onMove(files))}>
+            <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
             {t('toolbar.move')} {files.length > 1 ? `(${files.length})` : ''}
           </button>
           {files.length === 1 && (
             <>
-              <div style={separatorStyle} />
+              <div className={separatorClass} />
               <button
-                style={itemStyle}
+                className={itemClass}
                 onClick={() => handleItemClick(() => onRename(files[0]))}
-                onMouseEnter={e =>
-                  ((e.currentTarget as HTMLElement).style.backgroundColor = 'var(--hover)')
-                }
-                onMouseLeave={e =>
-                  ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')
-                }
               >
                 <svg
-                  width="14"
-                  height="14"
+                  className="w-3.5 h-3.5 stroke-current stroke-2"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
                 >
                   <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                   <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -191,25 +113,12 @@ export const FileContextMenu: React.FC<FileContextMenuProps> = ({
               </button>
             </>
           )}
-          <div style={separatorStyle} />
+          <div className={separatorClass} />
           <button
-            style={{ ...itemStyle, color: '#f14c4c' }}
+            className={`${itemClass} text-danger hover:bg-[rgba(241,76,76,0.1)]`}
             onClick={() => handleItemClick(() => onDelete(files))}
-            onMouseEnter={e =>
-              ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(241, 76, 76, 0.1)')
-            }
-            onMouseLeave={e =>
-              ((e.currentTarget as HTMLElement).style.backgroundColor = 'transparent')
-            }
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+            <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
             </svg>

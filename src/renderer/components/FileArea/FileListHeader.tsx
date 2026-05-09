@@ -30,13 +30,12 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
     if (sortBy !== column) return null
     return (
       <svg
-        width="10"
-        height="10"
+        className={`
+          w-2.5 h-2.5 stroke-accent stroke-2
+          ${sortOrder === 'desc' ? 'rotate-180' : ''}
+        `}
         viewBox="0 0 24 24"
         fill="none"
-        stroke="var(--accent)"
-        strokeWidth="2"
-        style={{ transform: sortOrder === 'desc' ? 'rotate(180deg)' : 'none' }}
       >
         <polyline points="18 9 12 15 6 9" />
       </svg>
@@ -49,173 +48,72 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
         e.preventDefault()
         onResizeStart(column, e.clientX, columnWidths[column as keyof ColumnWidths])
       }}
-      style={{
-        width: '6px',
-        cursor: 'col-resize',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        userSelect: 'none',
-      }}
-      onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border)')}
-      onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+      className={`
+        w-1.5 cursor-col-resize flex items-center justify-center
+        select-none hover:bg-border transition-colors
+      `}
     >
-      <div
-        style={{
-          width: '2px',
-          height: '16px',
-          backgroundColor: 'var(--text-muted)',
-          opacity: 0.5,
-          borderRadius: '1px',
-        }}
-      />
+      <div className="w-0.5 h-4 bg-text-muted/50 rounded" />
     </div>
   )
 
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: '8px 0',
-        borderBottom: '1px solid var(--border)',
-        backgroundColor: 'var(--hover)',
-        flexShrink: 0,
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-      }}
+  const HeaderButton = ({
+    children,
+    onClick,
+    className = '',
+  }: {
+    children: React.ReactNode
+    onClick: () => void
+    className?: string
+  }) => (
+    <button
+      onClick={onClick}
+      className={`
+        flex items-center gap-1 text-xs font-semibold text-text-muted
+        uppercase tracking-[0.5px] bg-transparent border-none cursor-pointer
+        hover:text-text transition-colors
+        ${className}
+      `}
     >
-      <div style={{ width: columnWidths.name, display: 'flex', alignItems: 'center' }}>
-        <button
-          onClick={() => onSort('name')}
-          style={{
-            padding: '0 10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-        >
+      {children}
+    </button>
+  )
+
+  return (
+    <div className="flex items-center py-2 border-b border-border bg-hover shrink-0 select-none">
+      <div className="flex items-center" style={{ width: columnWidths.name }}>
+        <HeaderButton onClick={() => onSort('name')} className="px-2.5">
           {t('fileList.name')}
           <SortIcon column="name" />
-        </button>
+        </HeaderButton>
       </div>
       <ColumnResizer column="name" />
-      <div style={{ width: columnWidths.permissions, paddingLeft: '10px' }}>
-        <button
-          onClick={() => onSort('permissions')}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            gap: '4px',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-        >
+      <div className="pl-2.5" style={{ width: columnWidths.permissions }}>
+        <HeaderButton onClick={() => onSort('permissions')}>
           {t('fileList.permissions')}
           <SortIcon column="permissions" />
-        </button>
+        </HeaderButton>
       </div>
       <ColumnResizer column="permissions" />
-      <div style={{ width: columnWidths.owner, paddingLeft: '10px' }}>
-        <button
-          onClick={() => onSort('owner')}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            gap: '4px',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-        >
+      <div className="pl-2.5" style={{ width: columnWidths.owner }}>
+        <HeaderButton onClick={() => onSort('owner')}>
           {t('fileList.owner')}
           <SortIcon column="owner" />
-        </button>
+        </HeaderButton>
       </div>
       <ColumnResizer column="owner" />
-      <div style={{ width: columnWidths.size, paddingLeft: '10px' }}>
-        <button
-          onClick={() => onSort('size')}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            gap: '4px',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-        >
+      <div className="pl-2.5" style={{ width: columnWidths.size }}>
+        <HeaderButton onClick={() => onSort('size')}>
           {t('fileList.size')}
           <SortIcon column="size" />
-        </button>
+        </HeaderButton>
       </div>
       <ColumnResizer column="size" />
-      <div style={{ width: columnWidths.modifyTime, paddingLeft: '10px' }}>
-        <button
-          onClick={() => onSort('modifyTime')}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'flex-start',
-            gap: '4px',
-            fontSize: '12px',
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 0,
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-        >
+      <div className="pl-2.5" style={{ width: columnWidths.modifyTime }}>
+        <HeaderButton onClick={() => onSort('modifyTime')}>
           {t('fileList.dateModified')}
           <SortIcon column="modifyTime" />
-        </button>
+        </HeaderButton>
       </div>
     </div>
   )

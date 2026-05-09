@@ -17,12 +17,13 @@
     "package:linux": "npm run build && electron-builder --linux",
     "package:mac": "npm run build && electron-builder --mac",
     "lint": "cross-env NODE_ENV=development eslint src --ext .ts,.tsx",
+    "lint:fix": "cross-env NODE_ENV=development eslint src --ext .ts,.tsx --fix",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,html}\"",
-    "extract:i18n": "npx i18next-cli extract",
+    "i18n:extract": "npx i18next-cli extract",
+    "ci": "npm run format && npm run typecheck && npm run i18n:extract && npm run build",
     "postinstall": "electron-rebuild --parallel --types dev,optional",
-    "rebuild": "electron-rebuild --parallel --types dev,optional",
-    "lint:fix": "cross-env NODE_ENV=development eslint src --ext .ts,.tsx --fix"
+    "rebuild": "electron-rebuild --parallel --types dev,optional"
   },
   "dependencies": {
     "electron-log": "^5.4.3",
@@ -41,7 +42,7 @@
   "devDependencies": {
     "@electron/rebuild": "^4.0.4",
     "@eslint/js": "^10.0.1",
-    "@tailwindcss/vite": "^4.2.4",
+    "@tailwindcss/vite": "^4.3.0",
     "@types/node": "^25.6.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -53,13 +54,13 @@
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
-    "electron": "^42.0.0",
+    "electron": "^42.0.1",
     "electron-builder": "^26.8.1",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "i18next-cli": "^1.56.11",
     "prettier": "^3.8.3",
-    "tailwindcss": "^4.2.4",
+    "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.11",
     "wait-on": "^9.0.5"

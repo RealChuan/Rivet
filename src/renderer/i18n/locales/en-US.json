@@ -43,6 +43,8 @@
         "messageMultiple_other": "Are you sure you want to delete these {{count}} items?",
         "title": "Confirm Delete"
       },
+      "deleteConnectionMessage": "Are you sure you want to delete this connection? This action cannot be undone.",
+      "deleteConnectionTitle": "Delete Connection",
       "newFolder": {
         "placeholder": "Enter folder name",
         "title": "New Folder"

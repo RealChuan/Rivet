@@ -8,17 +8,17 @@ export const Toast: React.FC = () => {
 
   const toastConfig = {
     success: {
-      bg: 'rgba(78, 201, 176, 0.95)',
+      bgClass: 'bg-[rgba(78,201,176,0.95)]',
       icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+        <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
           <polyline points="20 6 9 17 4 12" />
         </svg>
       ),
     },
     error: {
-      bg: 'rgba(241, 76, 76, 0.95)',
+      bgClass: 'bg-[rgba(241,76,76,0.95)]',
       icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+        <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="8" x2="12" y2="12" />
           <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -26,9 +26,9 @@ export const Toast: React.FC = () => {
       ),
     },
     info: {
-      bg: 'rgba(59, 130, 246, 0.95)',
+      bgClass: 'bg-[rgba(59,130,246,0.95)]',
       icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+        <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="16" x2="12" y2="12" />
           <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -38,59 +38,30 @@ export const Toast: React.FC = () => {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        zIndex: 100,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-      }}
-    >
+    <div className="fixed bottom-5 right-5 z-100 flex flex-col gap-2">
       {toasts.map(toast => {
         const config = toastConfig[toast.type] || toastConfig.info
         return (
           <div
             key={toast.id}
-            style={{
-              padding: '12px 16px',
-              borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              minWidth: '280px',
-              backgroundColor: config.bg,
-            }}
-            className="animate-fadeIn"
+            className={`
+              px-4 py-3 rounded-lg flex items-center gap-2.5
+              min-w-70 animate-fadeIn ${config.bgClass}
+              shadow-lg dark:shadow-xl
+              dark:shadow-black/30
+            `}
           >
             {config.icon}
-            <span style={{ flex: 1, fontSize: '14px', fontWeight: 500, color: '#ffffff' }}>
-              {toast.message}
-            </span>
+            <span className="flex-1 text-sm font-medium text-white">{toast.message}</span>
             <button
               onClick={() => removeToast(toast.id)}
-              style={{
-                padding: '2px',
-                borderRadius: '4px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'rgba(255, 255, 255, 0.8)',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = '#ffffff')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)')}
+              className={`
+                p-0.5 rounded bg-transparent border-none cursor-pointer
+                text-white/80 hover:text-white transition-colors
+                hover:bg-white/10
+              `}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>

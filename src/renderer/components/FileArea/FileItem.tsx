@@ -52,32 +52,27 @@ export const FileItem: React.FC<FileItemProps> = ({
   const sizeContent = file.type === 'file' ? formatFileSize(file.size || 0) : '-'
   const modifyTimeContent = formatDate(file.modifyTime || 0)
 
+  const getBgColor = () => {
+    if (isSelected || isPending) return 'bg-selected'
+    if (isHovered) return 'bg-hover'
+    return 'bg-transparent'
+  }
+
+  const getTextColor = () => {
+    return isSelected ? 'text-accent' : 'text-text'
+  }
+
   return (
     <div
       key={file.name}
       data-file-item={file.name}
-      style={{
-        ...style,
-        display: 'flex',
-        alignItems: 'center',
-        height: '40px',
-        cursor: 'pointer',
-        backgroundColor: isSelected
-          ? 'var(--selected)'
-          : isPending
-            ? 'var(--selected)'
-            : isHovered
-              ? 'var(--hover)'
-              : 'transparent',
-        color: isSelected ? 'var(--accent)' : 'var(--text)',
-        borderBottom: '1px solid var(--border)',
-        minWidth: totalWidth,
-        boxSizing: 'border-box',
-        position: 'relative',
-        transition: 'background-color 0.10s ease, color 0.10s ease',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-      }}
+      className={`
+        flex items-center h-10 cursor-pointer
+        border-b border-border min-w-full box-border
+        relative select-none transition-all duration-100
+        ${getBgColor()} ${getTextColor()}
+      `}
+      style={{ ...style, minWidth: totalWidth }}
       onMouseEnter={() => onHover(file.name)}
       onMouseLeave={() => onHover(null)}
       onClick={onClick}
@@ -85,112 +80,63 @@ export const FileItem: React.FC<FileItemProps> = ({
       onContextMenu={onContextMenu}
     >
       <div
-        style={{
-          width: columnWidths.name,
-          padding: '0 10px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          minWidth: 0,
-          height: '100%',
-        }}
+        className="flex items-center gap-2.5 min-w-0 h-full"
+        style={{ width: columnWidths.name }}
         title={nameContent}
       >
-        {file.type === 'directory' ? (
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill={isSelected ? 'var(--accent)' : 'var(--warning)'}
-            stroke="none"
-          >
-            <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
-          </svg>
-        ) : (
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={isSelected ? 'var(--accent)' : 'var(--text-muted)'}
-            strokeWidth="1.5"
-          >
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
-        )}
-        <span
-          style={{
-            fontSize: '14px',
-            color: isSelected ? 'var(--accent)' : 'var(--text)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {file.name}
-        </span>
+        <div className="px-2.5">
+          {file.type === 'directory' ? (
+            <svg
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              stroke="none"
+              fill="var(--warning, #FFB600)"
+            >
+              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+            </svg>
+          ) : (
+            <svg
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="rgba(100, 149, 237, 0.85)"
+              stroke="rgba(64, 115, 195, 0.75)"
+              strokeWidth="1.5"
+            >
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+          )}
+        </div>
+        <span className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">{file.name}</span>
       </div>
-      <div style={{ width: '6px' }} />
+      <div className="w-1.5" />
       <div
-        style={{
-          width: columnWidths.permissions,
-          paddingLeft: '10px',
-          fontSize: '12px',
-          color: 'var(--text-muted)',
-          textAlign: 'left',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-        }}
+        className="px-2.5 text-xs text-text-muted h-full flex items-center"
+        style={{ width: columnWidths.permissions }}
         title={permissionsContent}
       >
         {file.permissions || '-'}
       </div>
-      <div style={{ width: '6px' }} />
+      <div className="w-1.5" />
       <div
-        style={{
-          width: columnWidths.owner,
-          paddingLeft: '10px',
-          fontSize: '12px',
-          color: 'var(--text-muted)',
-          textAlign: 'left',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-        }}
+        className="px-2.5 text-xs text-text-muted h-full flex items-center"
+        style={{ width: columnWidths.owner }}
         title={ownerContent}
       >
         {file.owner || '-'}
       </div>
-      <div style={{ width: '6px' }} />
+      <div className="w-1.5" />
       <div
-        style={{
-          width: columnWidths.size,
-          paddingLeft: '10px',
-          fontSize: '12px',
-          color: 'var(--text-muted)',
-          textAlign: 'left',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-        }}
+        className="px-2.5 text-xs text-text-muted h-full flex items-center"
+        style={{ width: columnWidths.size }}
         title={sizeContent}
       >
         {file.type === 'file' ? formatFileSize(file.size || 0) : '-'}
       </div>
-      <div style={{ width: '6px' }} />
+      <div className="w-1.5" />
       <div
-        style={{
-          width: columnWidths.modifyTime,
-          paddingLeft: '10px',
-          fontSize: '12px',
-          color: 'var(--text-muted)',
-          textAlign: 'left',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-        }}
+        className="px-2.5 text-xs text-text-muted h-full flex items-center"
+        style={{ width: columnWidths.modifyTime }}
         title={modifyTimeContent}
       >
         {formatDate(file.modifyTime || 0)}

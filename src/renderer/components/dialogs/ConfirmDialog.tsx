@@ -1,6 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
 import GlassDialog from './GlassDialog'
+import Button from '../ui/Button'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -27,18 +28,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const dialogConfig = {
     danger: {
-      bg: 'rgba(241, 76, 76, 0.1)',
-      color: '#f14c4c',
-      button: '#f14c4c',
+      bgClass: 'bg-[rgba(241,76,76,0.1)]',
+      colorClass: 'text-[#f14c4c]',
+      buttonVariant: 'danger' as const,
       icon: (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#f14c4c"
-          strokeWidth="2"
-        >
+        <svg className="w-5 h-5 stroke-danger stroke-2" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="8" x2="12" y2="12" />
           <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -46,35 +40,21 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       ),
     },
     warning: {
-      bg: 'rgba(219, 187, 20, 0.1)',
-      color: '#dcbb14',
-      button: '#dcbb14',
+      bgClass: 'bg-[rgba(219,187,20,0.1)]',
+      colorClass: 'text-[#dcbb14]',
+      buttonVariant: 'warning' as const,
       icon: (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#dcbb14"
-          strokeWidth="2"
-        >
+        <svg className="w-5 h-5 stroke-warning stroke-2" viewBox="0 0 24 24" fill="none">
           <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
         </svg>
       ),
     },
     info: {
-      bg: 'rgba(59, 130, 246, 0.1)',
-      color: '#3b82f6',
-      button: '#3b82f6',
+      bgClass: 'bg-[rgba(59,130,246,0.1)]',
+      colorClass: 'text-accent',
+      buttonVariant: 'primary' as const,
       icon: (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#3b82f6"
-          strokeWidth="2"
-        >
+        <svg className="w-5 h-5 stroke-accent stroke-2" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="16" x2="12" y2="12" />
           <line x1="12" y1="8" x2="12.01" y2="8" />
@@ -87,75 +67,27 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return (
     <GlassDialog open={open} onClose={onClose}>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-        }}
-      >
+      <div className="flex flex-col items-center text-center">
         <div
-          style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            backgroundColor: config.bg,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '16px',
-          }}
+          className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${config.bgClass}`}
         >
           {config.icon}
         </div>
-        <h2
-          style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)', marginBottom: '8px' }}
-        >
-          {title}
-        </h2>
-        <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px' }}>
-          {message}
-        </p>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', width: '100%' }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: '1px solid var(--border)',
-              backgroundColor: 'transparent',
-              color: 'var(--text)',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
+        <h2 className="text-base font-semibold text-text mb-2">{title}</h2>
+        <p className="text-sm text-text-muted mb-5">{message}</p>
+        <div className="flex justify-end gap-2.5 w-full">
+          <Button variant="secondary" onClick={onClose}>
             {cancelText || t('dialog.cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={config.buttonVariant}
             onClick={() => {
               onConfirm()
               onClose()
             }}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              backgroundColor: config.button,
-              color: '#ffffff',
-              fontSize: '14px',
-              fontWeight: 500,
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
-            onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
           >
             {confirmText || t('dialog.confirm')}
-          </button>
+          </Button>
         </div>
       </div>
     </GlassDialog>

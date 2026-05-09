@@ -4,6 +4,7 @@ import { useSessionStore } from '../../stores/sessionStore'
 import { useUiStore } from '../../stores/uiStore'
 import SessionItem from './SessionItem'
 import ConnectionDialog from '../dialogs/ConnectionDialog'
+import ConfirmDialog from '../dialogs/ConfirmDialog'
 import { ConnectionConfig } from '@shared/types'
 import VirtualList from '../VirtualList'
 
@@ -23,6 +24,8 @@ export const SessionSidebar: React.FC = () => {
   const [connectionDialogOpen, setConnectionDialogOpen] = React.useState(false)
   const [reconnectConfig, setReconnectConfig] = React.useState<(typeof sessions)[0] | null>(null)
   const [editConfig, setEditConfig] = React.useState<(typeof sessions)[0] | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false)
+  const [sessionToDelete, setSessionToDelete] = React.useState<string | null>(null)
 
   const handleNewConnection = () => {
     setConnectionDialogOpen(true)
@@ -62,15 +65,24 @@ export const SessionSidebar: React.FC = () => {
     }
   }
 
-  const handleDelete = async (sessionId: string) => {
+  const handleDelete = (sessionId: string) => {
+    setSessionToDelete(sessionId)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!sessionToDelete) return
     try {
-      await deleteSession(sessionId)
+      await deleteSession(sessionToDelete)
       addToast({ type: 'info', message: t('toast.deleteConnectionSuccess') })
     } catch (error) {
       addToast({
         type: 'error',
         message: `Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       })
+    } finally {
+      setDeleteConfirmOpen(false)
+      setSessionToDelete(null)
     }
   }
 
@@ -225,6 +237,19 @@ export const SessionSidebar: React.FC = () => {
         savedPassword={editConfig?.password || reconnectConfig?.password}
         savedPrivateKey={editConfig?.privateKey || reconnectConfig?.privateKey}
         authMethod={editConfig?.authMethod || reconnectConfig?.authMethod}
+      />
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => {
+          setDeleteConfirmOpen(false)
+          setSessionToDelete(null)
+        }}
+        onConfirm={handleConfirmDelete}
+        title={t('dialog.deleteConnectionTitle')}
+        message={t('dialog.deleteConnectionMessage')}
+        confirmText={t('sidebar.delete')}
+        cancelText={t('dialog.cancel')}
+        type="danger"
       />
     </div>
   )

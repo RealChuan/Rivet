@@ -14,34 +14,12 @@ export const QueueDrawer: React.FC = () => {
 
   return (
     <div
-      style={{
-        height: '100%',
-        borderLeft: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--bg)',
-        width: queueDrawerWidth,
-      }}
-      className="animate-slideInRight"
+      className="h-full border-l border-border flex flex-col bg-bg animate-slideInRight"
+      style={{ width: queueDrawerWidth }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth="2"
-          >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 stroke-accent stroke-2" viewBox="0 0 24 24" fill="none">
             <line x1="8" y1="6" x2="21" y2="6" />
             <line x1="8" y1="12" x2="21" y2="12" />
             <line x1="8" y1="18" x2="21" y2="18" />
@@ -49,64 +27,34 @@ export const QueueDrawer: React.FC = () => {
             <line x1="3" y1="12" x2="3.01" y2="12" />
             <line x1="3" y1="18" x2="3.01" y2="18" />
           </svg>
-          <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>
-            Transfer Queue
-          </h2>
+          <h2 className="text-sm font-semibold text-text">Transfer Queue</h2>
           {activeTasks.length > 0 && (
-            <span
-              style={{
-                padding: '2px 8px',
-                fontSize: '10px',
-                borderRadius: '10px',
-                backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                color: 'var(--accent)',
-                fontWeight: 600,
-              }}
-            >
+            <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-[rgba(59,130,246,0.15)] text-accent">
               {activeTasks.length}
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div className="flex items-center gap-1">
           {completedTasks.length > 0 && (
             <button
               onClick={clearCompletedTasks}
-              style={{
-                padding: '4px 10px',
-                fontSize: '12px',
-                borderRadius: '4px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              className={`
+                px-2.5 py-1 text-xs rounded
+                bg-transparent border-none cursor-pointer
+                text-text-muted hover:bg-hover transition-colors
+              `}
             >
               Clear
             </button>
           )}
           <button
             onClick={() => setQueueDrawerOpen(false)}
-            style={{
-              padding: '4px',
-              borderRadius: '4px',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text-muted)',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            className={`
+              p-1 rounded bg-transparent border-none
+              cursor-pointer text-text-muted hover:bg-hover transition-colors
+            `}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+            <svg className="w-4 h-4 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -114,38 +62,11 @@ export const QueueDrawer: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="flex-1 overflow-y-auto">
         {tasks.length === 0 ? (
-          <div
-            style={{
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '24px',
-            }}
-          >
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--hover)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '12px',
-              }}
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="var(--text-muted)"
-                strokeWidth="1.5"
-              >
+          <div className="h-full flex flex-col items-center justify-center p-6">
+            <div className="w-12 h-12 rounded-full bg-hover flex items-center justify-center mb-3">
+              <svg className="w-5 h-5 stroke-text-muted stroke-1.5" viewBox="0 0 24 24" fill="none">
                 <line x1="8" y1="6" x2="21" y2="6" />
                 <line x1="8" y1="12" x2="21" y2="12" />
                 <line x1="8" y1="18" x2="21" y2="18" />
@@ -154,25 +75,17 @@ export const QueueDrawer: React.FC = () => {
                 <line x1="3" y1="18" x2="3.01" y2="18" />
               </svg>
             </div>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No transfers</p>
+            <p className="text-xs text-text-muted">No transfers</p>
           </div>
         ) : (
-          <div style={{ padding: '8px 0' }}>
+          <div className="py-2">
             {activeTasks.map(task => (
               <TaskItem key={task.id} task={task} />
             ))}
             {completedTasks.length > 0 && (
               <>
-                <div style={{ padding: '12px 16px 4px' }}>
-                  <span
-                    style={{
-                      fontSize: '10px',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
+                <div className="px-4 pt-3 pb-1">
+                  <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
                     Completed
                   </span>
                 </div>

@@ -516,15 +516,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     24
 
   return (
-    <div
-      style={{
-        width: '100%',
-        minWidth: totalWidth,
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-      }}
-    >
+    <div className="flex flex-col h-full" style={{ width: '100%', minWidth: totalWidth }}>
       <FileListHeader
         columnWidths={columnWidths}
         sortBy={sortBy}
@@ -535,12 +527,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
 
       <div
         ref={containerRef}
-        style={{
-          flex: 1,
-          minHeight: '40px',
-          position: 'relative',
-          overflowY: 'auto',
-        }}
+        className="flex-1 min-h-10 relative overflow-y-auto"
         onContextMenu={e => {
           const target = e.target as HTMLElement
           if (target === containerRef.current) {
@@ -551,17 +538,12 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
       >
         {isDragging && hasStartedDrag && (
           <div
+            className="absolute pointer-events-none z-100 rounded-sm border-[1.5px] border-accent bg-[rgba(59,130,246,0.1)]"
             style={{
-              position: 'absolute',
               left: Math.min(dragStart.x, dragEnd.x),
               top: Math.min(dragStart.y, dragEnd.y),
               width: Math.abs(dragEnd.x - dragStart.x),
               height: Math.abs(dragEnd.y - dragStart.y),
-              border: '1.5px solid var(--accent)',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              pointerEvents: 'none',
-              zIndex: 100,
-              borderRadius: '2px',
             }}
           />
         )}

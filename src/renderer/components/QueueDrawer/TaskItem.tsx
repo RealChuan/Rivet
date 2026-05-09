@@ -46,36 +46,18 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
   }[task.status]
 
   return (
-    <div
-      style={{
-        margin: '6px 12px',
-        padding: '12px',
-        borderRadius: '8px',
-        backgroundColor: 'var(--hover)',
-        border: '1px solid var(--border)',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+    <div className="mx-3 my-1.5 p-3 rounded-lg bg-hover border border-border">
+      <div className="flex items-start gap-2.5">
         <div
-          style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '6px',
-            backgroundColor: statusConfig.bg,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
+          className="w-8 h-8 rounded flex items-center justify-center shrink-0"
+          style={{ backgroundColor: statusConfig.bg }}
         >
           {task.type === 'upload' ? (
             <svg
-              width="14"
-              height="14"
+              className="w-3.5 h-3.5 stroke-2"
               viewBox="0 0 24 24"
               fill="none"
-              stroke={statusConfig.color}
-              strokeWidth="2"
+              style={{ stroke: statusConfig.color }}
             >
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
@@ -83,12 +65,10 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
             </svg>
           ) : (
             <svg
-              width="14"
-              height="14"
+              className="w-3.5 h-3.5 stroke-2"
               viewBox="0 0 24 24"
               fill="none"
-              stroke={statusConfig.color}
-              strokeWidth="2"
+              style={{ stroke: statusConfig.color }}
             >
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
@@ -96,89 +76,42 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
             </svg>
           )}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span
-              style={{
-                fontSize: '10px',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
-            >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
               {task.type === 'upload' ? t('queue.upload') : t('queue.download')}
             </span>
             <span
-              style={{
-                fontSize: '10px',
-                padding: '2px 6px',
-                borderRadius: '10px',
-                backgroundColor: statusConfig.bg,
-                color: statusConfig.color,
-                fontWeight: 600,
-              }}
+              className="text-xs font-semibold px-1.5 py-0.5 rounded-full"
+              style={{ backgroundColor: statusConfig.bg, color: statusConfig.color }}
             >
               {statusConfig.label}
             </span>
           </div>
           <div
-            style={{
-              fontSize: '12px',
-              color: 'var(--text)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
+            className="text-sm text-text truncate"
             title={task.type === 'upload' ? task.localPath : task.remotePath}
           >
             {getFileName(task.type === 'upload' ? task.localPath : task.remotePath)}
           </div>
           <div
-            style={{
-              fontSize: '10px',
-              color: 'var(--text-muted)',
-              marginTop: '2px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
+            className="text-xs text-text-muted mt-0.5 truncate"
             title={`${session?.config.protocol?.toUpperCase()}://${session?.config.host}:${session?.config.port}`}
           >
             {session?.config.protocol?.toUpperCase()} {sessionName}
           </div>
           {task.status === 'active' && (
-            <div style={{ marginTop: '8px' }}>
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}
-              >
-                <div
-                  style={{
-                    flex: 1,
-                    height: '4px',
-                    backgroundColor: 'var(--border)',
-                    borderRadius: '2px',
-                    overflow: 'hidden',
-                  }}
-                >
+            <div className="mt-2">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex-1 h-1 bg-border rounded overflow-hidden">
                   <div
-                    style={{
-                      height: '100%',
-                      width: `${task.progress}%`,
-                      backgroundColor: statusConfig.color,
-                      borderRadius: '2px',
-                      transition: 'width 0.3s',
-                    }}
+                    className="h-full rounded transition-all duration-300"
+                    style={{ width: `${task.progress}%`, backgroundColor: statusConfig.color }}
                   />
                 </div>
                 <span
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    color: statusConfig.color,
-                    width: '32px',
-                    textAlign: 'right',
-                  }}
+                  className="text-xs font-semibold w-8 text-right"
+                  style={{ color: statusConfig.color }}
                 >
                   {task.progress}%
                 </span>
@@ -186,72 +119,30 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
             </div>
           )}
           {task.error && (
-            <div
-              style={{
-                fontSize: '10px',
-                color: '#f14c4c',
-                marginTop: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+            <div className="flex items-center gap-1 mt-1.5 text-xs text-danger">
+              <svg className="w-3 h-3 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
-              <span
-                style={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-                title={task.error}
-              >
+              <span className="truncate" title={task.error}>
                 {task.error}
               </span>
             </div>
           )}
         </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '2px',
-            opacity: 0.6,
-          }}
-        >
+        <div className="flex items-center gap-0.5 opacity-60">
           {task.status === 'active' && (
             <button
               onClick={() => cancelTask(task.id)}
-              style={{
-                padding: '4px',
-                borderRadius: '4px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#f14c4c',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(241, 76, 76, 0.1)')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              className={`
+                p-1 rounded bg-transparent border-none
+                cursor-pointer text-danger
+                hover:bg-[rgba(241,76,76,0.1)] transition-colors
+              `}
               title={t('queue.cancel')}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -260,26 +151,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
           {task.status === 'failed' && (
             <button
               onClick={() => retryTask(task)}
-              style={{
-                padding: '4px',
-                borderRadius: '4px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--accent)',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              className={`
+                p-1 rounded bg-transparent border-none
+                cursor-pointer text-accent
+                hover:bg-hover transition-colors
+              `}
               title={t('queue.retry')}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
                 <polyline points="23 4 23 10 17 10" />
                 <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
               </svg>
@@ -288,26 +167,14 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
           {(task.status === 'completed' || task.status === 'failed') && (
             <button
               onClick={() => removeTask(task.id)}
-              style={{
-                padding: '4px',
-                borderRadius: '4px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+              className={`
+                p-1 rounded bg-transparent border-none
+                cursor-pointer text-text-muted
+                hover:bg-hover transition-colors
+              `}
               title={t('queue.clear')}
             >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
+              <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>

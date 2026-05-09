@@ -84,40 +84,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
     <button
       onClick={onClick}
       title={title}
-      style={{
-        padding: '6px',
-        borderRadius: '4px',
-        color: isActive ? 'var(--accent)' : 'var(--text)',
-        backgroundColor: isActive ? 'var(--hover)' : 'transparent',
-        border: 'none',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'all 0.15s',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.backgroundColor = 'var(--hover)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.backgroundColor = isActive ? 'var(--hover)' : 'transparent'
-      }}
+      className={`
+        p-1.5 rounded flex items-center justify-center
+        border-none cursor-pointer transition-all duration-150
+        ${isActive ? 'text-accent bg-hover' : 'text-text hover:bg-hover'}
+      `}
     >
       {children}
     </button>
   )
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginLeft: 'auto' }}>
+    <div className="flex items-center gap-0.5 ml-auto">
       <ToolButton onClick={handleRefresh} title={`${t('toolbar.refresh')} (F5)`}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
+        <svg className="w-4 h-4 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
           <polyline points="23 4 23 10 17 10" />
           <polyline points="1 20 1 14 7 14" />
           <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
@@ -125,14 +105,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
       </ToolButton>
 
       <ToolButton onClick={() => setNewFolderDialogOpen(true)} title={t('toolbar.newFolder')}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
+        <svg className="w-4 h-4 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
           <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
           <line x1="12" y1="11" x2="12" y2="17" />
           <line x1="9" y1="14" x2="15" y2="14" />
@@ -140,14 +113,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
       </ToolButton>
 
       <ToolButton onClick={handleUpload} title={t('toolbar.upload')}>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
+        <svg className="w-4 h-4 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
           <polyline points="17 8 12 3 7 8" />
           <line x1="12" y1="3" x2="12" y2="15" />

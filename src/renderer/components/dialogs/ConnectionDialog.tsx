@@ -5,6 +5,7 @@ import GlassDialog from './GlassDialog'
 import PasswordInput from '../ui/PasswordInput'
 import Select from '../ui/Select'
 import Input from '../ui/Input'
+import Button from '../ui/Button'
 
 interface ConnectionDialogProps {
   open: boolean
@@ -93,41 +94,22 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
   return (
     <GlassDialog open={open} onClose={onClose}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+      <div className="flex items-center gap-3 mb-5">
         <div
-          style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
-            backgroundColor: reconnectMode ? 'rgba(78, 201, 176, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className={`
+            w-9 h-9 rounded-lg flex items-center justify-center
+            ${reconnectMode ? 'bg-[rgba(78,201,176,0.1)]' : 'bg-[rgba(59,130,246,0.1)]'}
+          `}
         >
           {reconnectMode ? (
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#4ec9b0"
-              strokeWidth="2"
-            >
+            <svg className="w-4.5 h-4.5 stroke-[#4ec9b0] stroke-2" viewBox="0 0 24 24" fill="none">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 00-3-3.87" />
               <path d="M16 3.13a4 4 0 010 7.75" />
             </svg>
           ) : (
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="var(--accent)"
-              strokeWidth="2"
-            >
+            <svg className="w-4.5 h-4.5 stroke-accent stroke-2" viewBox="0 0 24 24" fill="none">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
               <polyline points="17 8 12 3 7 8" />
               <line x1="12" y1="3" x2="12" y2="15" />
@@ -135,33 +117,22 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           )}
         </div>
         <div>
-          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>
+          <h2 className="text-base font-semibold text-text">
             {reconnectMode
               ? t('sidebar.reconnect')
               : editConfig
                 ? t('connection.editTitle')
                 : t('connection.title')}
           </h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          <p className="text-xs text-text-muted">
             {reconnectMode ? host : t('connection.subtitle')}
           </p>
         </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
-      >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: '12px',
-              fontWeight: 500,
-              color: 'var(--text)',
-              marginBottom: '6px',
-            }}
-          >
+          <label className="block text-xs font-medium text-text mb-1.5">
             {t('connection.name')}
           </label>
           <Input
@@ -173,15 +144,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         </div>
 
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: '12px',
-              fontWeight: 500,
-              color: 'var(--text)',
-              marginBottom: '6px',
-            }}
-          >
+          <label className="block text-xs font-medium text-text mb-1.5">
             {t('connection.protocol')}
           </label>
           <Select
@@ -194,17 +157,9 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: 500,
-                color: 'var(--text)',
-                marginBottom: '6px',
-              }}
-            >
+            <label className="block text-xs font-medium text-text mb-1.5">
               {t('connection.host')}
             </label>
             <Input
@@ -215,15 +170,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             />
           </div>
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: 500,
-                color: 'var(--text)',
-                marginBottom: '6px',
-              }}
-            >
+            <label className="block text-xs font-medium text-text mb-1.5">
               {t('connection.port')}
             </label>
             <Input
@@ -237,15 +184,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
         {protocol === 'webdav' && (
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: 500,
-                color: 'var(--text)',
-                marginBottom: '6px',
-              }}
-            >
+            <label className="block text-xs font-medium text-text mb-1.5">
               {t('connection.basePath')}
             </label>
             <Input
@@ -258,15 +197,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         )}
 
         <div>
-          <label
-            style={{
-              display: 'block',
-              fontSize: '12px',
-              fontWeight: 500,
-              color: 'var(--text)',
-              marginBottom: '6px',
-            }}
-          >
+          <label className="block text-xs font-medium text-text mb-1.5">
             {t('connection.username')}
           </label>
           <Input
@@ -279,77 +210,37 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
         {protocol === 'sftp' && (
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: 500,
-                color: 'var(--text)',
-                marginBottom: '6px',
-              }}
-            >
+            <label className="block text-xs font-medium text-text mb-1.5">
               {t('connection.authMethod')}
             </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setAuthMethod('password')}
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: `1px solid ${authMethod === 'password' ? 'var(--accent)' : '#c0c0c0'}`,
-                  backgroundColor:
-                    authMethod === 'password' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                  color: authMethod === 'password' ? 'var(--accent)' : 'var(--text)',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'border-color 0.15s, background-color 0.15s',
-                }}
-                onMouseEnter={e => {
-                  if (authMethod !== 'password') {
-                    ;(e.currentTarget as HTMLElement).style.borderColor = '#a0a0a0'
-                    ;(e.currentTarget as HTMLElement).style.background = 'rgba(0, 0, 0, 0.03)'
+                className={`
+                  flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer
+                  transition-colors duration-150
+                  ${
+                    authMethod === 'password'
+                      ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
+                      : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
                   }
-                }}
-                onMouseLeave={e => {
-                  if (authMethod !== 'password') {
-                    ;(e.currentTarget as HTMLElement).style.borderColor = '#c0c0c0'
-                    ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-                  }
-                }}
+                `}
               >
                 {t('connection.password')}
               </button>
               <button
                 type="button"
                 onClick={() => setAuthMethod('privateKey')}
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: `1px solid ${authMethod === 'privateKey' ? 'var(--accent)' : '#c0c0c0'}`,
-                  backgroundColor:
-                    authMethod === 'privateKey' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                  color: authMethod === 'privateKey' ? 'var(--accent)' : 'var(--text)',
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'border-color 0.15s, background-color 0.15s',
-                }}
-                onMouseEnter={e => {
-                  if (authMethod !== 'privateKey') {
-                    ;(e.currentTarget as HTMLElement).style.borderColor = '#a0a0a0'
-                    ;(e.currentTarget as HTMLElement).style.background = 'rgba(0, 0, 0, 0.03)'
+                className={`
+                  flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer
+                  transition-colors duration-150
+                  ${
+                    authMethod === 'privateKey'
+                      ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
+                      : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
                   }
-                }}
-                onMouseLeave={e => {
-                  if (authMethod !== 'privateKey') {
-                    ;(e.currentTarget as HTMLElement).style.borderColor = '#c0c0c0'
-                    ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-                  }
-                }}
+                `}
               >
                 {t('connection.privateKey')}
               </button>
@@ -359,15 +250,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
         {protocol === 'sftp' && authMethod === 'privateKey' ? (
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: 500,
-                color: 'var(--text)',
-                marginBottom: '6px',
-              }}
-            >
+            <label className="block text-xs font-medium text-text mb-1.5">
               {t('connection.privateKey')}
             </label>
             <Input
@@ -376,20 +259,12 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
               onChange={(e: any) => setPrivateKey(e.target.value)}
               placeholder={t('connection.privateKeyPlaceholder')}
               rows={4}
-              style={{ resize: 'vertical' }}
+              className="resize-y"
             />
           </div>
         ) : (
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: 500,
-                color: 'var(--text)',
-                marginBottom: '6px',
-              }}
-            >
+            <label className="block text-xs font-medium text-text mb-1.5">
               {t('connection.password')}
             </label>
             <PasswordInput
@@ -401,26 +276,8 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         )}
 
         {error && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '8px 12px',
-              backgroundColor: 'rgba(241, 76, 76, 0.1)',
-              borderRadius: '6px',
-              color: '#f14c4c',
-              fontSize: '12px',
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+          <div className="flex items-center gap-1.5 px-3 py-2 bg-[rgba(241,76,76,0.1)] rounded-md text-danger text-xs">
+            <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -429,74 +286,17 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '4px' }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              border: '1px solid var(--border)',
-              backgroundColor: 'transparent',
-              color: 'var(--text)',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
+        <div className="flex justify-end gap-2.5 mt-1">
+          <Button type="button" variant="secondary" onClick={onClose}>
             {t('connection.cancel')}
-          </button>
-          <button
-            type="submit"
-            disabled={isLoading}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '6px',
-              backgroundColor: isLoading ? 'var(--text-muted)' : 'var(--accent)',
-              color: '#ffffff',
-              fontSize: '14px',
-              fontWeight: 500,
-              border: 'none',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            {isLoading ? (
-              <>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  style={{ animation: 'spin 1s linear infinite' }}
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    fill="none"
-                    opacity="0.25"
-                  />
-                  <path
-                    d="M12 2a10 10 0 0110 10"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    fill="none"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span>{t('connection.connecting')}</span>
-              </>
-            ) : (
-              <>{reconnectMode ? t('sidebar.reconnect') : t('connection.save')}</>
-            )}
-          </button>
+          </Button>
+          <Button type="submit" variant="primary" isLoading={isLoading}>
+            {isLoading
+              ? t('connection.connecting')
+              : reconnectMode
+                ? t('sidebar.reconnect')
+                : t('connection.save')}
+          </Button>
         </div>
       </form>
     </GlassDialog>

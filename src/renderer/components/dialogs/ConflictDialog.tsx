@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FileInfo } from '@shared/types'
 import GlassDialog from './GlassDialog'
+import Button from '../ui/Button'
+import RadioButton from '../ui/RadioButton'
 import logger from '../../utils/logger'
 
 export type ConflictStrategy = 'overwrite' | 'skip' | 'keepBoth'
@@ -92,65 +94,24 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
 
   return (
     <GlassDialog open={open} onClose={onClose} width={700} height={550}>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '502px',
-          width: '100%',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '16px',
-          }}
-        >
-          <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>
-            {t('dialog.conflict.title')}
-          </h2>
+      <div className="flex flex-col h-125.5 w-full overflow-hidden">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-text">{t('dialog.conflict.title')}</h2>
           <button
             onClick={onClose}
-            style={{
-              padding: '4px',
-              borderRadius: '4px',
-              backgroundColor: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text-muted)',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            className={`
+              p-1 rounded bg-transparent border-none cursor-pointer
+              text-text-muted hover:bg-hover transition-colors
+            `}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
+            <svg className="w-4 h-4 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
 
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            padding: '8px',
-            backgroundColor: 'var(--background)',
-            borderRadius: '6px',
-            border: '1px solid var(--border)',
-            minHeight: '40px',
-          }}
-        >
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-background rounded-md border border-border min-h-10">
           {conflicts.map((conflict, index) => {
             const resolution = resolutions[index] || {
               sourceFile: conflict.sourceFile,
@@ -160,40 +121,11 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
             const cannotOverwrite = !canOverwrite(conflict)
 
             return (
-              <div
-                key={conflict.sourceFile.absolutePath}
-                style={{
-                  padding: '12px',
-                  backgroundColor: 'var(--hover)',
-                  borderRadius: '6px',
-                  marginBottom: '8px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    marginBottom: '12px',
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '4px',
-                      }}
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
+              <div key={conflict.sourceFile.absolutePath} className="p-3 bg-hover rounded-md mb-2">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="w-3.5 h-3.5">
                         {conflict.sourceFile.type === 'directory' ? (
                           <path
                             d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
@@ -201,46 +133,35 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                             stroke="none"
                           />
                         ) : (
-                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                          <path
+                            d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="text-text-muted"
+                          />
                         )}
                       </svg>
-                      <span style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 500 }}>
+                      <span className="text-sm text-text font-medium">
                         {conflict.sourceFile.name}
                       </span>
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    <div className="text-xs text-text-muted">
                       {t('dialog.conflict.source')}: {conflict.sourceFile.absolutePath}
                     </div>
                   </div>
 
                   <svg
-                    width="16"
-                    height="16"
+                    className="w-4 h-4 stroke-text-muted stroke-2"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="var(--text-muted)"
-                    strokeWidth="2"
                   >
                     <polyline points="9 18 15 12 9 6" />
                   </svg>
 
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginBottom: '4px',
-                      }}
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="w-3.5 h-3.5">
                         {conflict.targetFile?.type === 'directory' ? (
                           <path
                             d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
@@ -248,92 +169,54 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                             stroke="none"
                           />
                         ) : (
-                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                          <path
+                            d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="text-text-muted"
+                          />
                         )}
                       </svg>
-                      <span style={{ fontSize: '14px', color: 'var(--danger)', fontWeight: 500 }}>
+                      <span className="text-sm text-danger font-medium">
                         {conflict.targetFile?.name || conflict.sourceFile.name}
                       </span>
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    <div className="text-xs text-text-muted">
                       {t('dialog.conflict.target')}:{' '}
                       {conflict.targetFile?.absolutePath || conflict.sourceFile.absolutePath}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => handleStrategyChange(index, 'skip')}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border)',
-                      backgroundColor:
-                        resolution.strategy === 'skip' ? 'var(--hover)' : 'transparent',
-                      color: 'var(--text)',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-                    onMouseLeave={e =>
-                      (e.currentTarget.style.backgroundColor =
-                        resolution.strategy === 'skip' ? 'var(--hover)' : 'transparent')
-                    }
-                  >
-                    {t('dialog.conflict.skip')}
-                  </button>
-                  <button
-                    onClick={() => handleStrategyChange(index, 'keepBoth')}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border)',
-                      backgroundColor:
-                        resolution.strategy === 'keepBoth' ? 'var(--hover)' : 'transparent',
-                      color: 'var(--text)',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-                    onMouseLeave={e =>
-                      (e.currentTarget.style.backgroundColor =
-                        resolution.strategy === 'keepBoth' ? 'var(--hover)' : 'transparent')
-                    }
-                  >
-                    {t('dialog.conflict.keepBoth')}
-                  </button>
+                <div className="flex gap-4 justify-end">
+                  <RadioButton
+                    label={t('dialog.conflict.skip')}
+                    name={`strategy-${index}`}
+                    checked={resolution.strategy === 'skip'}
+                    onChange={() => handleStrategyChange(index, 'skip')}
+                  />
+                  <RadioButton
+                    label={t('dialog.conflict.keepBoth')}
+                    labelClassName="text-accent"
+                    name={`strategy-${index}`}
+                    checked={resolution.strategy === 'keepBoth'}
+                    onChange={() => handleStrategyChange(index, 'keepBoth')}
+                  />
                   {operation !== 'move' && (
-                    <button
-                      onClick={() => handleStrategyChange(index, 'overwrite')}
+                    <RadioButton
+                      label={t('dialog.conflict.overwrite')}
+                      labelClassName={`text-[#f14c4c] ${cannotOverwrite ? 'cursor-not-allowed opacity-50' : ''}`}
+                      name={`strategy-${index}`}
+                      checked={resolution.strategy === 'overwrite'}
+                      onChange={() => !cannotOverwrite && handleStrategyChange(index, 'overwrite')}
                       disabled={cannotOverwrite}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: '4px',
-                        border: 'none',
-                        backgroundColor:
-                          resolution.strategy === 'overwrite'
-                            ? 'var(--accent)'
-                            : cannotOverwrite
-                              ? 'var(--disabled)'
-                              : 'var(--accent)',
-                        color: '#fff',
-                        fontSize: '12px',
-                        cursor: cannotOverwrite ? 'not-allowed' : 'pointer',
-                        opacity: cannotOverwrite ? 0.5 : 1,
-                      }}
-                      onMouseEnter={e =>
-                        !cannotOverwrite && (e.currentTarget.style.opacity = '0.9')
-                      }
-                      onMouseLeave={e => !cannotOverwrite && (e.currentTarget.style.opacity = '1')}
-                    >
-                      {t('dialog.conflict.overwrite')}
-                    </button>
+                    />
                   )}
                 </div>
 
                 {cannotOverwrite && operation !== 'move' && (
-                  <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--danger)' }}>
+                  <div className="mt-2 text-xs text-danger">
                     {t('dialog.conflict.cannotOverwrite')}
                   </div>
                 )}
@@ -342,158 +225,61 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
           })}
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '16px',
-            paddingTop: '12px',
-            borderTop: '1px solid var(--border)',
-            flexShrink: 0,
-          }}
-        >
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '12px',
-              color: 'var(--text)',
-              cursor: 'pointer',
-            }}
-          >
+        <div className="flex justify-between items-center mt-4 pt-3 border-t border-border shrink-0">
+          <label className="flex items-center gap-2 text-xs text-text cursor-pointer">
             <input
               type="checkbox"
               checked={applyToAll}
               onChange={e => setApplyToAll(e.target.checked)}
-              style={{ width: '14px', height: '14px' }}
+              className="w-3.5 h-3.5"
             />
             {t('dialog.conflict.applyToAll')}
           </label>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                border: '1px solid var(--border)',
-                backgroundColor: 'transparent',
-                color: 'var(--text)',
-                fontSize: '14px',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
-            >
+          <div className="flex gap-2.5">
+            <Button variant="secondary" onClick={onClose}>
               {t('dialog.cancel')}
-            </button>
-            <button
-              onClick={handleConfirm}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                backgroundColor: 'var(--accent)',
-                color: '#ffffff',
-                fontSize: '14px',
-                fontWeight: 500,
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
-              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-            >
+            </Button>
+            <Button variant="primary" onClick={handleConfirm}>
               {t('dialog.confirm')}
-            </button>
+            </Button>
           </div>
         </div>
 
         {applyToAll && (
-          <div
-            style={{
-              marginTop: '8px',
-              padding: '8px',
-              backgroundColor: 'var(--hover)',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              {t('dialog.conflict.globalAction')}:
-            </span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => {
-                  setGlobalStrategy('skip')
-                  setResolutions(resolutions.map(r => ({ ...r, strategy: 'skip' })))
+          <div className="mt-2 p-2 bg-hover rounded flex items-center gap-4 shrink-0">
+            <span className="text-xs text-text-muted">{t('dialog.conflict.globalAction')}:</span>
+            <RadioButton
+              label={t('dialog.conflict.skip')}
+              name="global-strategy"
+              checked={globalStrategy === 'skip'}
+              onChange={() => {
+                setGlobalStrategy('skip')
+                setResolutions(resolutions.map(r => ({ ...r, strategy: 'skip' })))
+              }}
+            />
+            <RadioButton
+              label={t('dialog.conflict.keepBoth')}
+              labelClassName="text-accent"
+              name="global-strategy"
+              checked={globalStrategy === 'keepBoth'}
+              onChange={() => {
+                setGlobalStrategy('keepBoth')
+                setResolutions(resolutions.map(r => ({ ...r, strategy: 'keepBoth' })))
+              }}
+            />
+            {operation !== 'move' && (
+              <RadioButton
+                label={t('dialog.conflict.overwrite')}
+                labelClassName="text-[#f14c4c]"
+                name="global-strategy"
+                checked={globalStrategy === 'overwrite'}
+                onChange={() => {
+                  setGlobalStrategy('overwrite')
+                  setResolutions(resolutions.map(r => ({ ...r, strategy: 'overwrite' })))
                 }}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border)',
-                  backgroundColor: globalStrategy === 'skip' ? 'var(--hover)' : 'transparent',
-                  color: 'var(--text)',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-                onMouseLeave={e =>
-                  (e.currentTarget.style.backgroundColor =
-                    globalStrategy === 'skip' ? 'var(--hover)' : 'transparent')
-                }
-              >
-                {t('dialog.conflict.skip')}
-              </button>
-              <button
-                onClick={() => {
-                  setGlobalStrategy('keepBoth')
-                  setResolutions(resolutions.map(r => ({ ...r, strategy: 'keepBoth' })))
-                }}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border)',
-                  backgroundColor: globalStrategy === 'keepBoth' ? 'var(--hover)' : 'transparent',
-                  color: 'var(--text)',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--hover)')}
-                onMouseLeave={e =>
-                  (e.currentTarget.style.backgroundColor =
-                    globalStrategy === 'keepBoth' ? 'var(--hover)' : 'transparent')
-                }
-              >
-                {t('dialog.conflict.keepBoth')}
-              </button>
-              {operation !== 'move' && (
-                <button
-                  onClick={() => {
-                    setGlobalStrategy('overwrite')
-                    setResolutions(resolutions.map(r => ({ ...r, strategy: 'overwrite' })))
-                  }}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '4px',
-                    border: 'none',
-                    backgroundColor: 'var(--accent)',
-                    color: '#fff',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')}
-                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-                >
-                  {t('dialog.conflict.overwrite')}
-                </button>
-              )}
-            </div>
+              />
+            )}
           </div>
         )}
       </div>

@@ -1,4 +1,5 @@
 import React from 'react'
+import ReactDOM from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
 interface Session {
@@ -37,6 +38,22 @@ export const SessionItem: React.FC<SessionItemProps> = ({
 }) => {
   const { t } = useTranslation()
   const [showMenu, setShowMenu] = React.useState(false)
+  const menuRef = React.useRef<HTMLDivElement>(null)
+  const buttonRef = React.useRef<HTMLButtonElement>(null)
+  const [menuPosition, setMenuPosition] = React.useState<{
+    top: number
+    right: number
+  } | null>(null)
+
+  React.useEffect(() => {
+    if (showMenu && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setMenuPosition({
+        top: rect.bottom + 4,
+        right: window.innerWidth - rect.right,
+      })
+    }
+  }, [showMenu])
 
   const protocolIcon =
     session.config.protocol === 'sftp' ? (
@@ -64,23 +81,13 @@ export const SessionItem: React.FC<SessionItemProps> = ({
         <div className="flex items-center gap-2 shrink-0">
           <div className={session.isConnected ? 'text-[#4ec9b0]' : 'text-[#f59e0b]'}>
             {session.isLoading ? (
-              <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  fill="none"
-                  opacity="0.25"
-                />
-                <path
-                  d="M12 2a10 10 0 0110 10"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  fill="none"
-                  strokeLinecap="round"
-                />
+              <svg
+                className="w-3.5 h-3.5 animate-spin stroke-current stroke-2"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <circle cx="12" cy="12" r="10" className="opacity-25" />
+                <path d="M12 2a10 10 0 0110 10" strokeLinecap="round" />
               </svg>
             ) : session.isConnected ? (
               protocolIcon
@@ -117,6 +124,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
           <div className="text-xs text-text-muted truncate">{session.config.host}</div>
         </div>
         <button
+          ref={buttonRef}
           onClick={e => {
             e.stopPropagation()
             setShowMenu(!showMenu)
@@ -131,43 +139,78 @@ export const SessionItem: React.FC<SessionItemProps> = ({
         </button>
       </div>
 
-      {showMenu && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
-          <div className="absolute right-2 top-full mt-1 z-20 bg-bg border border-border rounded-md p-1 min-w-30 shadow-lg animate-fadeIn">
-            {session.isConnected ? (
-              <button
-                onClick={e => {
-                  e.stopPropagation()
-                  onDisconnect()
-                  setShowMenu(false)
-                }}
-                className={`
+      {showMenu &&
+        menuPosition &&
+        ReactDOM.createPortal(
+          <>
+            <div className="fixed inset-0 z-50" onClick={() => setShowMenu(false)} />
+            <div
+              ref={menuRef}
+              className="fixed z-50 bg-bg border border-border rounded-md p-1 min-w-30 shadow-lg animate-fadeIn"
+              style={{
+                top: menuPosition.top,
+                right: menuPosition.right,
+              }}
+            >
+              {session.isConnected ? (
+                <button
+                  onClick={e => {
+                    e.stopPropagation()
+                    onDisconnect()
+                    setShowMenu(false)
+                  }}
+                  className={`
                   w-full px-3 py-2 text-left text-xs text-text-muted bg-transparent border-none rounded
                   cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
                 `}
-              >
-                <svg
-                  className="w-3.5 h-3.5 stroke-current"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  strokeWidth="2"
                 >
-                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
-                </svg>
-                {t('sidebar.disconnect')}
-              </button>
-            ) : (
-              <button
-                onClick={e => {
-                  e.stopPropagation()
-                  onReconnect()
-                  setShowMenu(false)
-                }}
-                className={`
+                  <svg
+                    className="w-3.5 h-3.5 stroke-current"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    strokeWidth="2"
+                  >
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+                  </svg>
+                  {t('sidebar.disconnect')}
+                </button>
+              ) : (
+                <button
+                  onClick={e => {
+                    e.stopPropagation()
+                    onReconnect()
+                    setShowMenu(false)
+                  }}
+                  className={`
                   w-full px-3 py-2 text-left text-xs text-[#4ec9b0] bg-transparent border-none rounded
                   cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
                 `}
+                >
+                  <svg
+                    className="w-3.5 h-3.5 stroke-current"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    strokeWidth="2"
+                  >
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 00-3-3.87" />
+                    <path d="M16 3.13a4 4 0 010 7.75" />
+                  </svg>
+                  {t('sidebar.reconnect')}
+                </button>
+              )}
+              <div className="h-px bg-border my-1" />
+              <button
+                onClick={e => {
+                  e.stopPropagation()
+                  onEdit()
+                  setShowMenu(false)
+                }}
+                className={`
+                w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded
+                cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
+              `}
               >
                 <svg
                   className="w-3.5 h-3.5 stroke-current"
@@ -175,63 +218,38 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                   fill="none"
                   strokeWidth="2"
                 >
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 00-3-3.87" />
-                  <path d="M16 3.13a4 4 0 010 7.75" />
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
-                {t('sidebar.reconnect')}
+                {t('sidebar.edit')}
               </button>
-            )}
-            <div className="h-px bg-border my-1" />
-            <button
-              onClick={e => {
-                e.stopPropagation()
-                onEdit()
-                setShowMenu(false)
-              }}
-              className={`
-                w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded
-                cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
-              `}
-            >
-              <svg
-                className="w-3.5 h-3.5 stroke-current"
-                viewBox="0 0 24 24"
-                fill="none"
-                strokeWidth="2"
-              >
-                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-              {t('sidebar.edit')}
-            </button>
-            <div className="h-px bg-border my-1" />
-            <button
-              onClick={e => {
-                e.stopPropagation()
-                onDelete()
-                setShowMenu(false)
-              }}
-              className={`
+              <div className="h-px bg-border my-1" />
+              <button
+                onClick={e => {
+                  e.stopPropagation()
+                  onDelete()
+                  setShowMenu(false)
+                }}
+                className={`
                 w-full px-3 py-2 text-left text-xs text-danger bg-transparent border-none rounded
                 cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
               `}
-            >
-              <svg
-                className="w-3.5 h-3.5 stroke-current"
-                viewBox="0 0 24 24"
-                fill="none"
-                strokeWidth="2"
               >
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-              </svg>
-              {t('sidebar.delete')}
-            </button>
-          </div>
-        </>
-      )}
+                <svg
+                  className="w-3.5 h-3.5 stroke-current"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  strokeWidth="2"
+                >
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+                {t('sidebar.delete')}
+              </button>
+            </div>
+          </>,
+          document.body
+        )}
     </div>
   )
 }
