@@ -1,5 +1,7 @@
 import React from 'react'
 import { FileInfo } from '@shared/types'
+import FileIcon from '../ui/FileIcon'
+import { formatFileSize, formatDate } from '../../utils/utils'
 
 interface ColumnWidths {
   name: number
@@ -19,8 +21,6 @@ interface FileItemProps {
   onClick: (e: React.MouseEvent) => void
   onDoubleClick: () => void
   onContextMenu: (e: React.MouseEvent) => void
-  formatFileSize: (bytes: number) => string
-  formatDate: (timestamp: number) => string
   style?: React.CSSProperties
 }
 
@@ -34,8 +34,6 @@ export const FileItem: React.FC<FileItemProps> = ({
   onClick,
   onDoubleClick,
   onContextMenu,
-  formatFileSize,
-  formatDate,
   style,
 }) => {
   const totalWidth =
@@ -85,27 +83,7 @@ export const FileItem: React.FC<FileItemProps> = ({
         title={nameContent}
       >
         <div className="px-2.5">
-          {file.type === 'directory' ? (
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              stroke="none"
-              fill="var(--warning, #FFB600)"
-            >
-              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
-            </svg>
-          ) : (
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="rgba(100, 149, 237, 0.85)"
-              stroke="rgba(64, 115, 195, 0.75)"
-              strokeWidth="1.5"
-            >
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-          )}
+          <FileIcon type={file.type} />
         </div>
         <span className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">{file.name}</span>
       </div>

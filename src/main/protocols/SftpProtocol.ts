@@ -1,9 +1,11 @@
 import Client from 'ssh2-sftp-client'
-import logger from '../logger'
-import { FileInfo, BaseProtocolImpl } from './BaseProtocol'
+import { FileInfo } from '../../shared/types'
+import { BaseProtocolImpl } from './BaseProtocol'
 import { generateSessionId } from '../utils'
 
 export class SftpProtocol extends BaseProtocolImpl<Client> {
+  protected protocolName = 'sftp'
+
   async connect(config: {
     host: string
     port: number
@@ -25,11 +27,11 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
       })
 
       this.sessions.set(sessionId, { client, config })
-      logger.info(`SFTP connected: ${config.host}:${config.port} (${sessionId})`)
+      this.logOperation('connected', `${config.host}:${config.port}`, sessionId)
 
       return sessionId
     } catch (error) {
-      logger.error(`SFTP connection failed: ${error}`)
+      this.logOperation('connection failed', '', '', error)
       await client.end()
       throw error
     }
@@ -41,7 +43,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
       await handle.client.end()
     }
     super.disconnect(sessionId)
-    logger.info(`SFTP disconnected: ${sessionId}`)
+    this.logOperation('disconnected', sessionId, '')
   }
 
   async list(sessionId: string, remotePath: string): Promise<FileInfo[]> {
@@ -79,7 +81,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
         return safeFileInfo
       })
     } catch (error) {
-      logger.error(`SFTP list failed: ${remotePath} - ${error}`)
+      this.logOperation('list failed', remotePath, '', error)
       throw error
     }
   }
@@ -92,37 +94,31 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     signal?: AbortSignal
   ): Promise<void> {
     const handle = this.getSessionHandle(sessionId)
-
-    let aborted = false
-    if (signal) {
-      signal.addEventListener('abort', () => {
-        aborted = true
-      })
-    }
+    const abortState = this.setupAbortHandler(signal)
 
     try {
       const fs = await import('fs')
       const totalSize = (await fs.promises.stat(localPath)).size
 
       await handle.client.fastPut(localPath, remotePath, {
-        step: (totalTransferred: number, _chunk: number, _total: number) => {
-          if (aborted) {
+        step: (totalTransferred: number) => {
+          if (abortState.aborted) {
             throw new Error('Upload cancelled')
           }
           onProgress(this.calculateProgress(totalTransferred, totalSize))
         },
       })
 
-      if (aborted) {
+      if (abortState.aborted) {
         throw new Error('Upload cancelled')
       }
 
-      logger.info(`SFTP uploaded: ${localPath} -> ${remotePath}`)
+      this.logOperation('uploaded', localPath, remotePath)
     } catch (error) {
-      if (aborted) {
-        logger.info(`SFTP upload cancelled: ${localPath}`)
+      if (abortState.aborted) {
+        this.logCancelled('upload', localPath)
       } else {
-        logger.error(`SFTP upload failed: ${localPath} -> ${remotePath} - ${error}`)
+        this.logOperation('upload failed', localPath, remotePath, error)
       }
       throw error
     }
@@ -136,37 +132,31 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     signal?: AbortSignal
   ): Promise<void> {
     const handle = this.getSessionHandle(sessionId)
-
-    let aborted = false
-    if (signal) {
-      signal.addEventListener('abort', () => {
-        aborted = true
-      })
-    }
+    const abortState = this.setupAbortHandler(signal)
 
     try {
       const stats = await handle.client.stat(file.absolutePath)
       const totalSize = stats.size || 0
 
       await handle.client.fastGet(file.absolutePath, localPath, {
-        step: (totalTransferred: number, _chunk: number, _total: number) => {
-          if (aborted) {
+        step: (totalTransferred: number) => {
+          if (abortState.aborted) {
             throw new Error('Download cancelled')
           }
           onProgress(this.calculateProgress(totalTransferred, totalSize))
         },
       })
 
-      if (aborted) {
+      if (abortState.aborted) {
         throw new Error('Download cancelled')
       }
 
-      logger.info(`SFTP downloaded: ${file.absolutePath} -> ${localPath}`)
+      this.logOperation('downloaded', file.absolutePath, localPath)
     } catch (error) {
-      if (aborted) {
-        logger.info(`SFTP download cancelled: ${file.absolutePath}`)
+      if (abortState.aborted) {
+        this.logCancelled('download', file.absolutePath)
       } else {
-        logger.error(`SFTP download failed: ${file.absolutePath} -> ${localPath} - ${error}`)
+        this.logOperation('download failed', file.absolutePath, localPath, error)
       }
       throw error
     }
@@ -177,9 +167,9 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
 
     try {
       await handle.client.mkdir(path, true)
-      logger.info(`SFTP mkdir: ${path}`)
+      this.logOperation('mkdir', path, '')
     } catch (error) {
-      logger.error(`SFTP mkdir failed: ${path} - ${error}`)
+      this.logOperation('mkdir failed', path, '', error)
       throw error
     }
   }
@@ -190,9 +180,9 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     try {
       const newPath = file.absolutePath.replace(/\/[^/]+$/, `/${newName}`)
       await handle.client.rename(file.absolutePath, newPath)
-      logger.info(`SFTP rename: ${file.name} -> ${newName}`)
+      this.logOperation('rename', file.name, newName)
     } catch (error) {
-      logger.error(`SFTP rename failed: ${file.name} -> ${newName} - ${error}`)
+      this.logOperation('rename failed', file.name, newName, error)
       throw error
     }
   }
@@ -212,10 +202,10 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
           }
         }
 
-        logger.info(`SFTP delete: ${file.absolutePath}`)
+        this.logOperation('delete', file.absolutePath, '')
       }
     } catch (error) {
-      logger.error(`SFTP delete failed - ${error}`)
+      this.logOperation('delete failed', '', '', error)
       throw error
     }
   }
@@ -246,9 +236,9 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
       } else {
         await this.copyFile(handle.client, sourcePath, targetPath)
       }
-      logger.info(`SFTP copy completed: ${sourcePath} -> ${targetPath}`)
+      this.logOperation('copy completed', sourcePath, targetPath)
     } catch (error) {
-      logger.error(`SFTP copy failed: ${sourcePath} -> ${targetPath} - ${error}`)
+      this.logOperation('copy failed', sourcePath, targetPath, error)
       throw error
     }
   }
@@ -263,9 +253,9 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
         await handle.client.delete(targetPath)
       } catch {}
       await handle.client.rename(sourcePath, targetPath)
-      logger.info(`SFTP move completed: ${sourcePath} -> ${targetPath}`)
+      this.logOperation('move completed', sourcePath, targetPath)
     } catch (error) {
-      logger.error(`SFTP move failed: ${sourcePath} -> ${targetPath} - ${error}`)
+      this.logOperation('move failed', sourcePath, targetPath, error)
       throw error
     }
   }

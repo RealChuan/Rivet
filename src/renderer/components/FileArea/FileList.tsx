@@ -13,7 +13,7 @@ import { FileListLoading, FileListError, FileListEmpty } from './FileListStates'
 import ParentDirectoryButton from './ParentDirectoryButton'
 import VirtualList from '../VirtualList'
 import { useFileOperations } from '../../hooks/useFileOperations'
-import { formatFileSize, formatDate, getParentPath } from '../../utils/utils'
+import { getParentPath } from '../../utils/utils'
 
 interface FileListProps {
   sessionId: string
@@ -41,7 +41,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     permissions: 100,
     owner: 100,
     size: 100,
-    modifyTime: 100,
+    modifyTime: 150,
   })
   const [hasUserResized, setHasUserResized] = useState(false)
   const [resizingColumn, setResizingColumn] = useState<string | null>(null)
@@ -405,16 +405,18 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     setResizeStartWidth(width)
   }
 
-  useEffect(() => {
+  const calculateColumnWidths = useCallback(() => {
     if (!containerRef.current) return
 
     const containerWidth = containerRef.current.offsetWidth
     const fixedColumnsWidth = 100
-    const numFixedColumns = 4
+    const modifyTimeWidth = 150
+    const numFixedColumns = 3
     const gapWidth = 6
     const numGaps = 5
 
-    const totalFixedWidth = fixedColumnsWidth * numFixedColumns + gapWidth * numGaps
+    const totalFixedWidth =
+      fixedColumnsWidth * numFixedColumns + modifyTimeWidth + gapWidth * numGaps
     const nameWidth = Math.max(200, containerWidth - totalFixedWidth)
 
     setColumnWidths({
@@ -422,40 +424,23 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
       permissions: fixedColumnsWidth,
       owner: fixedColumnsWidth,
       size: fixedColumnsWidth,
-      modifyTime: fixedColumnsWidth,
+      modifyTime: modifyTimeWidth,
     })
   }, [])
 
   useEffect(() => {
-    if (!containerRef.current) return
+    calculateColumnWidths()
+  }, [calculateColumnWidths])
 
+  useEffect(() => {
     const handleResize = () => {
       if (hasUserResized) return
-
-      const containerWidth = containerRef.current!.offsetWidth
-      const fixedColumnsWidth = 100
-      const numFixedColumns = 4
-      const gapWidth = 6
-      const numGaps = 5
-
-      const totalFixedWidth = fixedColumnsWidth * numFixedColumns + gapWidth * numGaps
-      const nameWidth = Math.max(200, containerWidth - totalFixedWidth)
-
-      setColumnWidths({
-        name: nameWidth,
-        permissions: fixedColumnsWidth,
-        owner: fixedColumnsWidth,
-        size: fixedColumnsWidth,
-        modifyTime: fixedColumnsWidth,
-      })
+      calculateColumnWidths()
     }
 
     window.addEventListener('resize', handleResize)
-
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [hasUserResized])
+    return () => window.removeEventListener('resize', handleResize)
+  }, [hasUserResized, calculateColumnWidths])
 
   useEffect(() => {
     if (isDragging) {
@@ -472,30 +457,8 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     if (session.isLoading) return
 
     setHasUserResized(false)
-
-    const updateWidths = () => {
-      if (!containerRef.current) return
-
-      const containerWidth = containerRef.current.offsetWidth
-      const fixedColumnsWidth = 100
-      const numFixedColumns = 4
-      const gapWidth = 6
-      const numGaps = 5
-
-      const totalFixedWidth = fixedColumnsWidth * numFixedColumns + gapWidth * numGaps
-      const nameWidth = Math.max(200, containerWidth - totalFixedWidth)
-
-      setColumnWidths({
-        name: nameWidth,
-        permissions: fixedColumnsWidth,
-        owner: fixedColumnsWidth,
-        size: fixedColumnsWidth,
-        modifyTime: fixedColumnsWidth,
-      })
-    }
-
-    requestAnimationFrame(updateWidths)
-  }, [sessionId, session.isLoading])
+    requestAnimationFrame(calculateColumnWidths)
+  }, [sessionId, session.isLoading, calculateColumnWidths])
 
   if (session.isLoading) {
     return <FileListLoading />
@@ -569,8 +532,6 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
                   e.stopPropagation()
                   handleContextMenu(e, file)
                 }}
-                formatFileSize={formatFileSize}
-                formatDate={formatDate}
                 style={style}
               />
             )}

@@ -1,10 +1,11 @@
 import { createClient } from 'webdav'
-import logger from '../logger'
 import path from 'path'
-import { FileInfo, BaseProtocolImpl } from './BaseProtocol'
+import { FileInfo } from '../../shared/types'
+import { BaseProtocolImpl } from './BaseProtocol'
 import { generateSessionId } from '../utils'
 
 export class WebdavProtocol extends BaseProtocolImpl<any> {
+  protected protocolName = 'webdav'
   async connect(config: {
     host: string
     port: number
@@ -33,8 +34,10 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
         basePath: config.basePath,
       },
     })
-    logger.info(
-      `WebDAV connected: ${config.host}:${config.port} (${sessionId}), basePath: ${config.basePath || '/'}`
+    this.logOperation(
+      'connected',
+      `${config.host}:${config.port} (${sessionId})`,
+      `basePath: ${config.basePath || '/'}`
     )
 
     return sessionId
@@ -71,7 +74,7 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
         }
       })
     } catch (error) {
-      logger.error(`WebDAV list failed: ${fullPath} - ${error}`)
+      this.logOperation('list failed', fullPath, '', error)
       throw error
     }
   }
@@ -85,13 +88,7 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
   ): Promise<void> {
     const handle = this.getSessionHandle(sessionId)
     const fullPath = this.getFullPath(remotePath)
-
-    let aborted = false
-    if (signal) {
-      signal.addEventListener('abort', () => {
-        aborted = true
-      })
-    }
+    const abortState = this.setupAbortHandler(signal)
 
     try {
       const fs = await import('fs')
@@ -102,7 +99,7 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
 
       await handle.client.putFileContents(fullPath, readStream, {
         onUploadProgress: (progress: any) => {
-          if (aborted) {
+          if (abortState.aborted) {
             readStream.destroy()
             throw new Error('Upload cancelled')
           }
@@ -111,16 +108,16 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
         },
       })
 
-      if (aborted) {
+      if (abortState.aborted) {
         throw new Error('Upload cancelled')
       }
 
-      logger.info(`WebDAV uploaded: ${localPath} -> ${fullPath}`)
+      this.logOperation('uploaded', localPath, fullPath)
     } catch (error) {
-      if (aborted) {
-        logger.info(`WebDAV upload cancelled: ${localPath}`)
+      if (abortState.aborted) {
+        this.logCancelled('upload', localPath)
       } else {
-        logger.error(`WebDAV upload failed: ${localPath} -> ${fullPath} - ${error}`)
+        this.logOperation('upload failed', localPath, fullPath, error)
       }
       throw error
     }
@@ -135,13 +132,7 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
   ): Promise<void> {
     const handle = this.getSessionHandle(sessionId)
     const fullPath = this.getFullPath(file.absolutePath)
-
-    let aborted = false
-    if (signal) {
-      signal.addEventListener('abort', () => {
-        aborted = true
-      })
-    }
+    const abortState = this.setupAbortHandler(signal)
 
     try {
       const fs = await import('fs')
@@ -156,7 +147,7 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
         handle.client
           .createReadStream(fullPath)
           .on('data', (chunk: Buffer) => {
-            if (aborted) {
+            if (abortState.aborted) {
               writeStream.destroy()
               reject(new Error('Download cancelled'))
               return
@@ -169,16 +160,16 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
           .on('error', reject)
       })
 
-      if (aborted) {
+      if (abortState.aborted) {
         throw new Error('Download cancelled')
       }
 
-      logger.info(`WebDAV downloaded: ${fullPath} -> ${localPath}`)
+      this.logOperation('downloaded', fullPath, localPath)
     } catch (error) {
-      if (aborted) {
-        logger.info(`WebDAV download cancelled: ${file.absolutePath}`)
+      if (abortState.aborted) {
+        this.logCancelled('download', file.absolutePath)
       } else {
-        logger.error(`WebDAV download failed: ${fullPath} -> ${localPath} - ${error}`)
+        this.logOperation('download failed', fullPath, localPath, error)
       }
       throw error
     }
@@ -190,9 +181,9 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
 
     try {
       await handle.client.createDirectory(fullPath)
-      logger.info(`WebDAV mkdir: ${fullPath}`)
+      this.logOperation('mkdir', fullPath, '')
     } catch (error) {
-      logger.error(`WebDAV mkdir failed: ${fullPath} - ${error}`)
+      this.logOperation('mkdir failed', fullPath, '', error)
       throw error
     }
   }
@@ -206,9 +197,9 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
 
     try {
       await handle.client.move(fullOldPath, fullNewPath)
-      logger.info(`WebDAV rename: ${file.name} -> ${newName}`)
+      this.logOperation('rename', file.name, newName)
     } catch (error) {
-      logger.error(`WebDAV rename failed: ${file.name} -> ${newName} - ${error}`)
+      this.logOperation('rename failed', file.name, newName, error)
       throw error
     }
   }
@@ -225,10 +216,10 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
           await handle.client.deleteFile(fullPath)
         }
 
-        logger.info(`WebDAV delete: ${fullPath}`)
+        this.logOperation('delete', fullPath, '')
       }
     } catch (error) {
-      logger.error(`WebDAV delete failed - ${error}`)
+      this.logOperation('delete failed', '', '', error)
       throw error
     }
   }
@@ -246,9 +237,9 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
       } else {
         await handle.client.copyFile(fullSourcePath, fullTargetPath, { overwrite: true })
       }
-      logger.info(`WebDAV copy completed: ${sourcePath} -> ${targetPath}`)
+      this.logOperation('copy completed', sourcePath, targetPath)
     } catch (error) {
-      logger.error(`WebDAV copy failed: ${sourcePath} -> ${targetPath} - ${error}`)
+      this.logOperation('copy failed', sourcePath, targetPath, error)
       throw error
     }
   }
@@ -266,9 +257,9 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
       } else {
         await handle.client.move(fullSourcePath, fullTargetPath, { overwrite: true })
       }
-      logger.info(`WebDAV move completed: ${sourcePath} -> ${targetPath}`)
+      this.logOperation('move completed', sourcePath, targetPath)
     } catch (error) {
-      logger.error(`WebDAV move failed: ${sourcePath} -> ${targetPath} - ${error}`)
+      this.logOperation('move failed', sourcePath, targetPath, error)
       throw error
     }
   }

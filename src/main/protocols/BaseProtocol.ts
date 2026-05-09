@@ -1,12 +1,6 @@
-export interface FileInfo {
-  name: string
-  type: 'file' | 'directory'
-  size: number
-  modifyTime: number
-  permissions?: string
-  owner?: string
-  absolutePath: string
-}
+import { FileInfo } from '../../shared/types'
+import { normalizePath, joinPaths } from '../../shared/utils'
+import logger from '../logger'
 
 export interface FileProtocol {
   connect(config: {
@@ -42,6 +36,7 @@ export interface FileProtocol {
 
 export abstract class BaseProtocolImpl<T = any> implements FileProtocol {
   protected sessions: Map<string, SessionHandle<T>> = new Map()
+  protected abstract protocolName: string
 
   protected getSessionHandle(sessionId: string): SessionHandle<T> {
     const handle = this.sessions.get(sessionId)
@@ -56,15 +51,30 @@ export abstract class BaseProtocolImpl<T = any> implements FileProtocol {
     return Math.min(Math.round((transferred / totalSize) * 100), 100)
   }
 
-  protected joinPaths(...parts: string[]): string {
-    const filtered = parts.filter(Boolean).join('/')
-    return this.normalizePath(filtered)
+  protected joinPaths = joinPaths
+  protected normalizePath = normalizePath
+
+  protected setupAbortHandler(signal?: AbortSignal): { aborted: boolean } {
+    const state = { aborted: false }
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        state.aborted = true
+      })
+    }
+    return state
   }
 
-  protected normalizePath(path: string): string {
-    const parts = path.split('/').filter(Boolean)
-    if (parts.length === 0) return '/'
-    return '/' + parts.join('/')
+  protected logOperation(operation: string, source: string, target: string, error?: unknown): void {
+    const prefix = `${this.protocolName.toUpperCase()}`
+    if (error) {
+      logger.error(`${prefix} ${operation} failed: ${source} -> ${target} - ${error}`)
+    } else {
+      logger.info(`${prefix} ${operation}: ${source} -> ${target}`)
+    }
+  }
+
+  protected logCancelled(operation: string, path: string): void {
+    logger.info(`${this.protocolName.toUpperCase()} ${operation} cancelled: ${path}`)
   }
 
   async connect(config: {

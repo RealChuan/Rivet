@@ -7,6 +7,7 @@ import { useUiStore } from '../../stores/uiStore'
 import InputDialog from './InputDialog'
 import Button from '../ui/Button'
 import Breadcrumb from '../FileArea/Breadcrumb'
+import FileIcon from '../ui/FileIcon'
 
 interface TargetFolderDialogProps {
   open: boolean
@@ -222,14 +223,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
                       style={{ ...style, width: '100%' }}
                       title={item.name}
                     >
-                      <svg
-                        className="w-4 h-4"
-                        viewBox="0 0 24 24"
-                        stroke="none"
-                        fill="var(--warning, #FFB600)"
-                      >
-                        <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
-                      </svg>
+                      <FileIcon type="directory" />
                       <span className="flex-1 text-sm text-left overflow-hidden text-ellipsis whitespace-nowrap">
                         {item.name}
                       </span>
