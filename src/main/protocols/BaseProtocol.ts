@@ -1,6 +1,6 @@
-import { FileInfo } from '../../shared/types'
-import { normalizePath, joinPaths } from '../../shared/utils'
-import logger from '../logger'
+import { FileInfo } from '../../shared/types.js'
+import { normalizePath, joinPaths } from '../../shared/utils.js'
+import logger from '../logger.js'
 
 export interface FileProtocol {
   connect(config: {

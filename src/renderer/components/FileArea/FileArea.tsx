@@ -1,9 +1,9 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '../../stores/sessionStore'
-import FileList from './FileList'
-import Breadcrumb from './Breadcrumb'
-import Toolbar from './Toolbar'
+import { useSessionStore } from '../../stores/sessionStore.js'
+import FileList from './FileList.js'
+import Breadcrumb from './Breadcrumb.js'
+import Toolbar from './Toolbar.js'
 
 interface FileAreaProps {
   sessionId: string

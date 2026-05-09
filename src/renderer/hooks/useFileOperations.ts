@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '../stores/sessionStore'
-import { useUiStore } from '../stores/uiStore'
-import { useTransferQueue } from './useTransferQueue'
-import logger from '../utils/logger'
-import { FileInfo } from '@shared/types'
-import { ConflictItem, ConflictResolution } from '../components/dialogs/ConflictDialog'
-import { isSubPath, generateUniqueName } from '../utils/utils'
+import { useSessionStore } from '../stores/sessionStore.js'
+import { useUiStore } from '../stores/uiStore.js'
+import { useTransferQueue } from './useTransferQueue.js'
+import logger from '../utils/logger.js'
+import { FileInfo } from '../../shared/types.js'
+import { ConflictItem, ConflictResolution } from '../components/dialogs/ConflictDialog.js'
+import { isSubPath, generateUniqueName } from '../utils/utils.js'
 
 interface UseFileOperationsReturn {
   handleDelete: (files: FileInfo[]) => void

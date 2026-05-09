@@ -1,5 +1,5 @@
 import React from 'react'
-import { useSessionStore } from '../../stores/sessionStore'
+import { useSessionStore } from '../../stores/sessionStore.js'
 
 interface BreadcrumbProps {
   path: string

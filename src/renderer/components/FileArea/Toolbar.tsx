@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '../../stores/sessionStore'
-import { useUiStore } from '../../stores/uiStore'
-import { useTransferQueue } from '../../hooks/useTransferQueue'
-import InputDialog from '../dialogs/InputDialog'
+import { useSessionStore } from '../../stores/sessionStore.js'
+import { useUiStore } from '../../stores/uiStore.js'
+import { useTransferQueue } from '../../hooks/useTransferQueue.js'
+import InputDialog from '../dialogs/InputDialog.js'
 
 interface ToolbarProps {
   sessionId: string

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FileInfo } from '@shared/types'
-import GlassDialog from './GlassDialog'
-import VirtualList from '../VirtualList'
-import { useUiStore } from '../../stores/uiStore'
-import InputDialog from './InputDialog'
-import Button from '../ui/Button'
-import Breadcrumb from '../FileArea/Breadcrumb'
-import FileIcon from '../ui/FileIcon'
+import { FileInfo } from '../../../shared/types.js'
+import GlassDialog from './GlassDialog.js'
+import VirtualList from '../VirtualList.js'
+import { useUiStore } from '../../stores/uiStore.js'
+import InputDialog from './InputDialog.js'
+import Button from '../ui/Button.js'
+import Breadcrumb from '../FileArea/Breadcrumb.js'
+import FileIcon from '../ui/FileIcon.js'
 
 interface TargetFolderDialogProps {
   open: boolean

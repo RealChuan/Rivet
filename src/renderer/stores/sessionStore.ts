@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { ConnectionConfig, FileInfo } from '@shared/types'
+import { ConnectionConfig, FileInfo } from '../../shared/types.js'
 
 interface Session {
   id: string

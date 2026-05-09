@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SessionSidebar } from './components/SessionSidebar/SessionSidebar'
-import { FileAreaContainer } from './components/FileArea/FileAreaContainer'
-import { QueueDrawer } from './components/QueueDrawer/QueueDrawer'
-import { Toast } from './components/Toast'
-import { useUiStore } from './stores/uiStore'
-import { useQueueStore } from './stores/queueStore'
-import { useSessionStore } from './stores/sessionStore'
-import { useTheme } from './hooks/useTheme'
-import { useI18n } from './hooks/useI18n'
-import { useTransferQueue } from './hooks/useTransferQueue'
+import { SessionSidebar } from './components/SessionSidebar/SessionSidebar.js'
+import { FileAreaContainer } from './components/FileArea/FileAreaContainer.js'
+import { QueueDrawer } from './components/QueueDrawer/QueueDrawer.js'
+import { Toast } from './components/Toast.js'
+import { useUiStore } from './stores/uiStore.js'
+import { useQueueStore } from './stores/queueStore.js'
+import { useSessionStore } from './stores/sessionStore.js'
+import { useTheme } from './hooks/useTheme.js'
+import { useI18n } from './hooks/useI18n.js'
+import { useTransferQueue } from './hooks/useTransferQueue.js'
 
 const App: React.FC = () => {
   const { i18n, t } = useTranslation()
@@ -36,40 +36,31 @@ const App: React.FC = () => {
       try {
         const savedSettings = (await window.electronAPI.storeGet('ui_settings')) as any
 
-        const getSystemLanguage = (): 'zh-CN' | 'en-US' => {
-          const systemLang = navigator.language
-          if (systemLang.startsWith('zh')) {
-            return 'zh-CN'
-          }
-          return 'en-US'
-        }
-
         if (savedSettings) {
-          initialize(savedSettings)
-          if (savedSettings.language) {
-            i18n.changeLanguage(savedSettings.language)
-          } else {
-            const systemLanguage = getSystemLanguage()
-            i18n.changeLanguage(systemLanguage)
-          }
-          if (savedSettings.theme) {
-            const resolvedTheme =
-              savedSettings.theme === 'system'
-                ? window.matchMedia('(prefers-color-scheme: dark)').matches
-                  ? 'dark'
-                  : 'light'
-                : savedSettings.theme
-            document.documentElement.dataset.theme = resolvedTheme
-          }
+          const theme = savedSettings.theme || 'system'
+          const language = savedSettings.language || 'en-US'
+
+          initialize({ theme, language })
+          i18n.changeLanguage(language)
+
+          const resolvedTheme =
+            theme === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : theme
+          document.documentElement.dataset.theme = resolvedTheme
         } else {
-          const systemLanguage = getSystemLanguage()
-          initialize({ language: systemLanguage })
-          i18n.changeLanguage(systemLanguage)
+          const theme = 'system'
+          const language = navigator.language.startsWith('zh') ? 'zh-CN' : 'en-US'
+          initialize({ theme, language })
+          i18n.changeLanguage(language)
         }
       } catch {
-        const systemLanguage = navigator.language.startsWith('zh') ? 'zh-CN' : 'en-US'
-        initialize({ language: systemLanguage })
-        i18n.changeLanguage(systemLanguage)
+        const theme = 'system'
+        const language = navigator.language.startsWith('zh') ? 'zh-CN' : 'en-US'
+        initialize({ theme, language })
+        i18n.changeLanguage(language)
       }
     }
 

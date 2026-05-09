@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { FileInfo, ConnectionConfig } from '../shared/types'
+import type { FileInfo, ConnectionConfig } from '../shared/types.js'
 
 interface ElectronAPI {
   connect: (config: {

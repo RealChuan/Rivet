@@ -1,8 +1,8 @@
 import { createClient } from 'webdav'
 import path from 'path'
-import { FileInfo } from '../../shared/types'
-import { BaseProtocolImpl } from './BaseProtocol'
-import { generateSessionId } from '../utils'
+import { FileInfo } from '../../shared/types.js'
+import { BaseProtocolImpl } from './BaseProtocol.js'
+import { generateSessionId } from '../utils/session.js'
 
 export class WebdavProtocol extends BaseProtocolImpl<any> {
   protected protocolName = 'webdav'

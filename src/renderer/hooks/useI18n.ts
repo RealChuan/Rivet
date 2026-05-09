@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useUiStore } from '../stores/uiStore'
+import { useUiStore } from '../stores/uiStore.js'
 
 export function useI18n() {
   const { i18n } = useTranslation()

@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import GlassDialog from './GlassDialog'
-import Button from '../ui/Button'
+import GlassDialog from './GlassDialog.js'
+import Button from '../ui/Button.js'
 
 interface InputDialogProps {
   open: boolean

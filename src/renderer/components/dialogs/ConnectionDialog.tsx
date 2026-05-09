@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ConnectionConfig } from '@shared/types'
-import GlassDialog from './GlassDialog'
-import PasswordInput from '../ui/PasswordInput'
-import Select from '../ui/Select'
-import Input from '../ui/Input'
-import Button from '../ui/Button'
+import { ConnectionConfig } from '../../../shared/types.js'
+import GlassDialog from './GlassDialog.js'
+import PasswordInput from '../ui/PasswordInput.js'
+import Select from '../ui/Select.js'
+import Input from '../ui/Input.js'
+import Button from '../ui/Button.js'
 
 interface ConnectionDialogProps {
   open: boolean

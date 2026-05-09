@@ -1,7 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '../../stores/sessionStore'
-import FileArea from './FileArea'
+import { useSessionStore } from '../../stores/sessionStore.js'
+import FileArea from './FileArea.js'
 
 export const FileAreaContainer: React.FC = () => {
   const { t } = useTranslation()

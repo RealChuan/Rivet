@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FileInfo } from '@shared/types'
-import GlassDialog from './GlassDialog'
-import Button from '../ui/Button'
-import RadioButton from '../ui/RadioButton'
-import logger from '../../utils/logger'
+import { FileInfo } from '../../../shared/types.js'
+import GlassDialog from './GlassDialog.js'
+import Button from '../ui/Button.js'
+import RadioButton from '../ui/RadioButton.js'
+import logger from '../../utils/logger.js'
 
 export type ConflictStrategy = 'overwrite' | 'skip' | 'keepBoth'
 

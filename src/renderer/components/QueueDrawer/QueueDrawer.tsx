@@ -1,7 +1,7 @@
 import React from 'react'
-import { useUiStore } from '../../stores/uiStore'
-import { useQueueStore } from '../../stores/queueStore'
-import TaskItem from './TaskItem'
+import { useUiStore } from '../../stores/uiStore.js'
+import { useQueueStore } from '../../stores/queueStore.js'
+import TaskItem from './TaskItem.js'
 
 export const QueueDrawer: React.FC = () => {
   const { queueDrawerOpen, queueDrawerWidth, setQueueDrawerOpen } = useUiStore()

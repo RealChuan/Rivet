@@ -1,7 +1,11 @@
 import { app, BrowserWindow } from 'electron'
-import path from 'path'
-import logger from './logger'
-import { setupIpcHandlers } from './ipcHandlers'
+import { fileURLToPath, URL } from 'node:url'
+import path from 'node:path'
+import logger from './logger.js'
+import { setupIpcHandlers } from './ipcHandlers.js'
+import { loadConfig, saveConfig } from './store.js'
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 let mainWindow: BrowserWindow | null = null
 
@@ -43,6 +47,8 @@ function createWindow(): void {
 app.whenReady().then(() => {
   logger.info('App ready, starting initialization')
 
+  loadConfig()
+
   setupIpcHandlers()
 
   createWindow()
@@ -62,6 +68,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   logger.info('App quitting')
+  saveConfig()
 })
 
 process.on('uncaughtException', error => {

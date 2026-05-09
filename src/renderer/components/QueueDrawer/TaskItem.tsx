@@ -1,9 +1,9 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQueueStore } from '../../stores/queueStore'
-import { useSessionStore } from '../../stores/sessionStore'
-import { useTransferQueue } from '../../hooks/useTransferQueue'
-import { TransferTask } from '@shared/types'
+import { useQueueStore } from '../../stores/queueStore.js'
+import { useSessionStore } from '../../stores/sessionStore.js'
+import { useTransferQueue } from '../../hooks/useTransferQueue.js'
+import { TransferTask } from '../../../shared/types.js'
 
 interface TaskItemProps {
   task: TransferTask

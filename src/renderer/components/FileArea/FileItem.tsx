@@ -1,7 +1,7 @@
 import React from 'react'
-import { FileInfo } from '@shared/types'
-import FileIcon from '../ui/FileIcon'
-import { formatFileSize, formatDate } from '../../utils/utils'
+import { FileInfo } from '../../../shared/types.js'
+import FileIcon from '../ui/FileIcon.js'
+import { formatFileSize, formatDate } from '../../utils/utils.js'
 
 interface ColumnWidths {
   name: number

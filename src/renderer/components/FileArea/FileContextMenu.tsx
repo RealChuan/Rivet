@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FileInfo } from '@shared/types'
+import { FileInfo } from '../../../shared/types.js'
 
 interface FileContextMenuProps {
   x: number

@@ -6,4 +6,4 @@ export {
   formatFileSize,
   formatDate,
   generateUniqueName,
-} from '@shared/utils'
+} from '../../shared/utils.js'

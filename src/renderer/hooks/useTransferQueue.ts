@@ -1,8 +1,8 @@
 import { useEffect, useCallback, useRef } from 'react'
-import { useQueueStore } from '../stores/queueStore'
-import { useSessionStore } from '../stores/sessionStore'
-import { useUiStore } from '../stores/uiStore'
-import { TransferTask, FileInfo } from '@shared/types'
+import { useQueueStore } from '../stores/queueStore.js'
+import { useSessionStore } from '../stores/sessionStore.js'
+import { useUiStore } from '../stores/uiStore.js'
+import { TransferTask, FileInfo } from '../../shared/types.js'
 
 const MAX_CONCURRENT_TRANSFERS = 3
 

@@ -1,12 +1,12 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '../../stores/sessionStore'
-import { useUiStore } from '../../stores/uiStore'
-import SessionItem from './SessionItem'
-import ConnectionDialog from '../dialogs/ConnectionDialog'
-import ConfirmDialog from '../dialogs/ConfirmDialog'
-import { ConnectionConfig } from '@shared/types'
-import VirtualList from '../VirtualList'
+import { useSessionStore } from '../../stores/sessionStore.js'
+import { useUiStore } from '../../stores/uiStore.js'
+import SessionItem from './SessionItem.js'
+import ConnectionDialog from '../dialogs/ConnectionDialog.js'
+import ConfirmDialog from '../dialogs/ConfirmDialog.js'
+import { ConnectionConfig } from '../../../shared/types.js'
+import VirtualList from '../VirtualList.js'
 
 export const SessionSidebar: React.FC = () => {
   const { t } = useTranslation()

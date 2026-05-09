@@ -1,6 +1,7 @@
 {
   "name": "rivet",
   "version": "1.0.0",
+  "type": "module",
   "description": "Electron SFTP/WebDAV 文件浏览器",
   "main": "dist/main/main/main.js",
   "author": "Rivet Team",

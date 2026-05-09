@@ -1,6 +1,6 @@
-import { FileProtocol } from './BaseProtocol'
-import { SftpProtocol } from './SftpProtocol'
-import { WebdavProtocol } from './WebdavProtocol'
+import { FileProtocol } from './BaseProtocol.js'
+import { SftpProtocol } from './SftpProtocol.js'
+import { WebdavProtocol } from './WebdavProtocol.js'
 
 export class ProtocolFactory {
   private static sftpProtocol = new SftpProtocol()

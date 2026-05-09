@@ -1,7 +1,7 @@
 import Client from 'ssh2-sftp-client'
-import { FileInfo } from '../../shared/types'
-import { BaseProtocolImpl } from './BaseProtocol'
-import { generateSessionId } from '../utils'
+import { FileInfo } from '../../shared/types.js'
+import { BaseProtocolImpl } from './BaseProtocol.js'
+import { generateSessionId } from '../utils/session.js'
 
 export class SftpProtocol extends BaseProtocolImpl<Client> {
   protected protocolName = 'sftp'

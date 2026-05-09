@@ -1,4 +1,4 @@
-import { getCallerInfo } from '../../shared/utils'
+import { getCallerInfo } from '../../shared/utils.js'
 
 const logger = {
   info: (message: string, ...args: unknown[]) =>

@@ -1,7 +1,10 @@
 import { create } from 'zustand'
-import { UiSettings } from '@shared/types'
+import { UiSettings } from '../../shared/types.js'
 
 interface UiStore extends UiSettings {
+  sidebarWidth: number
+  queueDrawerOpen: boolean
+  queueDrawerWidth: number
   initialized: boolean
   toasts: Toast[]
   setTheme: (theme: 'light' | 'dark' | 'system') => void
@@ -32,62 +35,32 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
   setTheme: theme => {
     set({ theme })
-    const { theme: _, language, sidebarWidth, queueDrawerOpen, queueDrawerWidth } = get()
+    const { language } = get()
     window.electronAPI.storeSet('ui_settings', {
       theme,
       language,
-      sidebarWidth,
-      queueDrawerOpen,
-      queueDrawerWidth,
     })
   },
 
   setLanguage: language => {
     set({ language })
-    const { theme, language: _, sidebarWidth, queueDrawerOpen, queueDrawerWidth } = get()
+    const { theme } = get()
     window.electronAPI.storeSet('ui_settings', {
       theme,
       language,
-      sidebarWidth,
-      queueDrawerOpen,
-      queueDrawerWidth,
     })
   },
 
   setSidebarWidth: sidebarWidth => {
     set({ sidebarWidth })
-    const { theme, language, sidebarWidth: _, queueDrawerOpen, queueDrawerWidth } = get()
-    window.electronAPI.storeSet('ui_settings', {
-      theme,
-      language,
-      sidebarWidth,
-      queueDrawerOpen,
-      queueDrawerWidth,
-    })
   },
 
   setQueueDrawerOpen: queueDrawerOpen => {
     set({ queueDrawerOpen })
-    const { theme, language, sidebarWidth, queueDrawerOpen: _, queueDrawerWidth } = get()
-    window.electronAPI.storeSet('ui_settings', {
-      theme,
-      language,
-      sidebarWidth,
-      queueDrawerOpen,
-      queueDrawerWidth,
-    })
   },
 
   setQueueDrawerWidth: queueDrawerWidth => {
     set({ queueDrawerWidth })
-    const { theme, language, sidebarWidth, queueDrawerOpen, queueDrawerWidth: _ } = get()
-    window.electronAPI.storeSet('ui_settings', {
-      theme,
-      language,
-      sidebarWidth,
-      queueDrawerOpen,
-      queueDrawerWidth,
-    })
   },
 
   initialize: settings => {

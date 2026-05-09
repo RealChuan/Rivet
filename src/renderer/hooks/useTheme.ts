@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useSyncExternalStore } from 'react'
-import { useUiStore } from '../stores/uiStore'
+import { useUiStore } from '../stores/uiStore.js'
 
 // 系统主题监听（稳定引用，避免重复订阅）
 function subscribeSystemTheme(callback: () => void) {

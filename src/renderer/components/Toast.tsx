@@ -1,5 +1,5 @@
 import React from 'react'
-import { useUiStore } from '../stores/uiStore'
+import { useUiStore } from '../stores/uiStore.js'
 
 export const Toast: React.FC = () => {
   const { toasts, removeToast } = useUiStore()

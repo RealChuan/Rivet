@@ -2,9 +2,9 @@ import { ipcMain, BrowserWindow } from 'electron'
 import keytar from 'keytar'
 import { v4 as uuidv4 } from 'uuid'
 import { app } from 'electron'
-import { ProtocolFactory } from './protocols/ProtocolFactory'
-import logger from './logger'
-import { ConnectionConfig, FileInfo, ProgressEvent } from '../shared/types'
+import { ProtocolFactory } from './protocols/ProtocolFactory.js'
+import logger from './logger.js'
+import { ConnectionConfig, FileInfo, ProgressEvent } from '../shared/types.js'
 
 const SERVICE_NAME = 'RivetCredentials'
 const activeConnections: Map<
@@ -65,7 +65,7 @@ export function setupIpcHandlers(): void {
         })
 
         // 保存连接到 store
-        const { saveConnection } = await import('./store')
+        const { saveConnection } = await import('./store.js')
         saveConnection(connectionConfig)
 
         logger.info(`Connection established: ${connectionConfig.name} (${credentialId})`)
@@ -272,27 +272,31 @@ export function setupIpcHandlers(): void {
   })
 
   ipcMain.handle('store-get', async (_, key: string) => {
-    const { store } = await import('./store')
-    return (store as any)[key]
+    const { getConfigValue } = await import('./store.js')
+    return getConfigValue(key)
   })
 
   ipcMain.handle('store-set', async (_, key: string, value: unknown) => {
-    const { store } = await import('./store')
-    ;(store as any)[key] = value
+    const { setConfigValue } = await import('./store.js')
+    setConfigValue(key, value)
   })
 
   ipcMain.handle('store-delete', async (_, key: string) => {
-    const { store } = await import('./store')
-    delete (store as any)[key]
+    const { setConfigValue, defaultUiSettings } = await import('./store.js')
+    if (key === 'saved_connections') {
+      setConfigValue(key, [])
+    } else if (key === 'ui_settings') {
+      setConfigValue(key, { ...defaultUiSettings })
+    }
   })
 
   ipcMain.handle('get-saved-connections', async () => {
-    const { getSavedConnections } = await import('./store')
+    const { getSavedConnections } = await import('./store.js')
     return getSavedConnections()
   })
 
   ipcMain.handle('delete-connection', async (_, id: string) => {
-    const { deleteConnection } = await import('./store')
+    const { deleteConnection } = await import('./store.js')
     deleteConnection(id)
     await keytar.deletePassword(SERVICE_NAME, `connection_${id}`)
   })

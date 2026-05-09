@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import Input from './Input'
+import Input from './Input.js'
 
 interface PasswordInputProps {
   value: string

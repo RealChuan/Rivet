@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { TransferTask, FileInfo } from '@shared/types'
+import { TransferTask, FileInfo } from '../../shared/types.js'
 import { v4 as uuidv4 } from 'uuid'
 
 interface QueueStore {

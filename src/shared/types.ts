@@ -33,10 +33,7 @@ export interface TransferTask {
 
 export interface UiSettings {
   theme: 'light' | 'dark' | 'system'
-  language: 'zh-CN' | 'en-US'
-  sidebarWidth: number
-  queueDrawerOpen: boolean
-  queueDrawerWidth: number
+  language: 'zh-CN' | 'en-US' | ''
 }
 
 export interface ElectronAPI {
