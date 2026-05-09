@@ -18,6 +18,8 @@ interface ConnectionConfig {
   username: string
   credentialId: string
   basePath?: string
+  scheme?: 'http' | 'https'
+  rejectUnauthorized?: boolean
 }
 
 interface StoreSchema {
@@ -81,7 +83,9 @@ function isValidConnection(config: unknown): config is ConnectionConfig {
     typeof c.port === 'number' &&
     typeof c.username === 'string' &&
     typeof c.credentialId === 'string' &&
-    (c.basePath === undefined || typeof c.basePath === 'string')
+    (c.basePath === undefined || typeof c.basePath === 'string') &&
+    (c.scheme === undefined || c.scheme === 'http' || c.scheme === 'https') &&
+    (c.rejectUnauthorized === undefined || typeof c.rejectUnauthorized === 'boolean')
   )
 }
 

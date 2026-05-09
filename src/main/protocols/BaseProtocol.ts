@@ -10,6 +10,8 @@ export interface FileProtocol {
     password?: string
     privateKey?: string
     basePath?: string
+    scheme?: 'http' | 'https'
+    rejectUnauthorized?: boolean
   }): Promise<string>
   disconnect(sessionId: string): Promise<void>
   list(sessionId: string, path: string): Promise<FileInfo[]>
@@ -84,6 +86,8 @@ export abstract class BaseProtocolImpl<T = any> implements FileProtocol {
     password?: string
     privateKey?: string
     basePath?: string
+    scheme?: 'http' | 'https'
+    rejectUnauthorized?: boolean
   }): Promise<string> {
     throw new Error('Not implemented')
   }

@@ -45,6 +45,8 @@ export function setupIpcHandlers(): void {
           password: config.password,
           privateKey: config.privateKey,
           basePath: config.basePath,
+          scheme: config.scheme,
+          rejectUnauthorized: config.rejectUnauthorized,
         })
 
         const connectionConfig: ConnectionConfig = {
@@ -56,6 +58,8 @@ export function setupIpcHandlers(): void {
           username: config.username,
           credentialId,
           basePath: config.basePath,
+          scheme: config.scheme,
+          rejectUnauthorized: config.rejectUnauthorized,
         }
 
         activeConnections.set(credentialId, {

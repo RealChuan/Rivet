@@ -44,6 +44,10 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   )
   const [privateKey, setPrivateKey] = useState(savedPrivateKey)
   const [basePath, setBasePath] = useState(editConfig?.basePath || '')
+  const [scheme, setScheme] = useState<'http' | 'https'>(editConfig?.scheme || 'https')
+  const [rejectUnauthorized, setRejectUnauthorized] = useState(
+    editConfig?.rejectUnauthorized !== false
+  )
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -72,6 +76,8 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           port: portNum,
           username: username.trim(),
           basePath: protocol === 'webdav' ? basePath.trim() : undefined,
+          scheme: protocol === 'webdav' ? scheme : undefined,
+          rejectUnauthorized: protocol === 'webdav' ? rejectUnauthorized : undefined,
         },
         authMethod === 'password' ? password : undefined,
         authMethod === 'privateKey' ? privateKey : undefined
@@ -183,17 +189,70 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         </div>
 
         {protocol === 'webdav' && (
-          <div>
-            <label className="block text-xs font-medium text-text mb-1.5">
-              {t('connection.basePath')}
-            </label>
-            <Input
-              type="text"
-              value={basePath}
-              onChange={(e: any) => setBasePath(e.target.value)}
-              placeholder="/dav/files"
-            />
-          </div>
+          <>
+            <div>
+              <label className="block text-xs font-medium text-text mb-1.5">
+                {t('connection.scheme')}
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setScheme('http')}
+                  className={`
+                    flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer
+                    transition-colors duration-150
+                    ${
+                      scheme === 'http'
+                        ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
+                        : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
+                    }
+                  `}
+                >
+                  HTTP
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScheme('https')}
+                  className={`
+                    flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer
+                    transition-colors duration-150
+                    ${
+                      scheme === 'https'
+                        ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
+                        : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
+                    }
+                  `}
+                >
+                  HTTPS
+                </button>
+              </div>
+            </div>
+            {scheme === 'https' && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="rejectUnauthorized"
+                  checked={rejectUnauthorized}
+                  onChange={e => setRejectUnauthorized(e.target.checked)}
+                  className="w-4 h-4 rounded border-[#c0c0c0] text-accent focus:ring-accent focus:ring-offset-0"
+                />
+                <label htmlFor="rejectUnauthorized" className="text-sm text-text cursor-pointer">
+                  {t('connection.rejectUnauthorized')}
+                </label>
+              </div>
+            )}
+            <div>
+              <label className="block text-xs font-medium text-text mb-1.5">
+                {t('connection.basePath')}
+              </label>
+              <Input
+                type="text"
+                value={basePath}
+                onChange={(e: any) => setBasePath(e.target.value)}
+                placeholder="/dav/files"
+              />
+            </div>
+          </>
         )}
 
         <div>

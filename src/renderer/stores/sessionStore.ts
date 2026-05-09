@@ -269,6 +269,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         protocol: session.config.protocol,
         password: usePassword,
         privateKey: usePrivateKey,
+        basePath: session.config.basePath,
+        scheme: session.config.scheme,
+        rejectUnauthorized: session.config.rejectUnauthorized,
       })
 
       set(state => ({

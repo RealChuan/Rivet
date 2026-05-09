@@ -12,17 +12,21 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
     username: string
     password?: string
     basePath?: string
+    scheme?: 'http' | 'https'
+    rejectUnauthorized?: boolean
   }): Promise<string> {
     const sessionId = generateSessionId('webdav')
+    const useScheme = config.scheme || 'https'
 
-    const url =
-      config.port === 443 || config.host.startsWith('https://')
-        ? config.host
-        : `http://${config.host}:${config.port}`
+    const url = `${useScheme}://${config.host}:${config.port}`
 
     const client = createClient(url, {
       username: config.username,
       password: config.password,
+      httpsAgent:
+        useScheme === 'https' && config.rejectUnauthorized === false
+          ? new (await import('https')).Agent({ rejectUnauthorized: false })
+          : undefined,
     })
 
     this.sessions.set(sessionId, {
@@ -37,7 +41,8 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
     this.logOperation(
       'connected',
       `${config.host}:${config.port} (${sessionId})`,
-      `basePath: ${config.basePath || '/'}`
+      `basePath: ${config.basePath || '/'}`,
+      `rejectUnauthorized: ${config.rejectUnauthorized !== false}`
     )
 
     return sessionId
@@ -62,7 +67,15 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
 
     try {
       const response = await handle.client.getDirectoryContents(fullPath)
-      return response.map((item: any) => {
+      console.log(`[WebDAV] list remotePath: ${remotePath}, fullPath: ${fullPath}`)
+      console.log(`[WebDAV] raw response items:`)
+      response.forEach((item: any) => {
+        console.log(
+          `  - ${item.filename} (type: ${item.type}, basename: ${path.basename(item.filename)})`
+        )
+      })
+
+      const result = response.map((item: any) => {
         const itemName = path.basename(item.filename)
         const absolutePath = this.joinPaths(remotePath, itemName)
         return {
@@ -73,6 +86,8 @@ export class WebdavProtocol extends BaseProtocolImpl<any> {
           absolutePath,
         }
       })
+
+      return result
     } catch (error) {
       this.logOperation('list failed', fullPath, '', error)
       throw error

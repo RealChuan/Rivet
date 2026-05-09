@@ -7,6 +7,8 @@ export interface ConnectionConfig {
   username: string
   credentialId: string
   basePath?: string
+  scheme?: 'http' | 'https'
+  rejectUnauthorized?: boolean
 }
 
 export interface FileInfo {

@@ -6,9 +6,13 @@ interface ElectronAPI {
     host: string
     port: number
     username: string
+    name: string
+    protocol: 'sftp' | 'webdav'
     password?: string
     privateKey?: string
     basePath?: string
+    scheme?: 'http' | 'https'
+    rejectUnauthorized?: boolean
   }) => Promise<string>
   disconnect: (sessionId: string) => Promise<void>
   list: (sessionId: string, path: string) => Promise<FileInfo[]>
