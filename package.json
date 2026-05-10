@@ -1,6 +1,6 @@
 {
   "name": "rivet",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "type": "module",
   "description": "Electron SFTP/WebDAV 文件浏览器",
   "main": "dist/main/main/main.js",
@@ -23,8 +23,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,html}\"",
     "i18n:extract": "npx i18next-cli extract",
     "ci": "npm run format && npm run typecheck && npm run i18n:extract && npm run build",
-    "postinstall": "electron-rebuild --parallel --types dev,optional",
-    "rebuild": "electron-rebuild --parallel --types dev,optional"
+    "postinstall": "electron-builder install-app-deps",
+    "rebuild": "electron-builder install-app-deps"
   },
   "dependencies": {
     "electron-log": "^5.4.3",
@@ -41,7 +41,6 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.4",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.0",
     "@types/node": "^25.6.2",
@@ -66,6 +65,11 @@
     "vite": "^8.0.11",
     "wait-on": "^9.0.5"
   },
+  "overrides": {
+    "ssh2": {
+      "cpu-features": "npm:empty-npm-package@1.0.0"
+    }
+  },
   "build": {
     "appId": "com.rivet.app",
     "productName": "Rivet",
@@ -80,6 +84,7 @@
       "package.json"
     ],
     "win": {
+      "signAndEditExecutable": false,
       "target": [
         {
           "target": "7z",
@@ -120,14 +125,6 @@
     "mac": {
       "target": [
         {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64",
-            "universal"
-          ]
-        },
-        {
           "target": "7z",
           "arch": [
             "x64",
@@ -136,7 +133,7 @@
           ]
         },
         {
-          "target": "pkg",
+          "target": "dmg",
           "arch": [
             "x64",
             "arm64",
@@ -144,7 +141,8 @@
           ]
         }
       ],
-      "hardenedRuntime": true,
+      "identity": null,
+      "hardenedRuntime": false,
       "gatekeeperAssess": false
     },
     "dmg": {
