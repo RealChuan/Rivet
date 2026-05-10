@@ -53,7 +53,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
     async (files: FileInfo[]) => {
       if (files.length === 0) return
       try {
-        await window.electronAPI.delete(sessionId, files)
+        await window.electronAPI.protocol.delete(sessionId, files)
         addToast({ type: 'success', message: t('toast.deleteSuccess') })
         await refreshCurrentDirectory(sessionId)
       } catch (error) {
@@ -69,7 +69,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
   const handleRename = useCallback(
     async (file: FileInfo, newName: string) => {
       try {
-        await window.electronAPI.rename(sessionId, file, newName)
+        await window.electronAPI.protocol.rename(sessionId, file, newName)
         addToast({ type: 'success', message: t('toast.renameSuccess') })
         await refreshCurrentDirectory(sessionId)
       } catch (error) {
@@ -87,7 +87,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
       const newFolderPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`
 
       try {
-        await window.electronAPI.mkdir(sessionId, newFolderPath)
+        await window.electronAPI.protocol.mkdir(sessionId, newFolderPath)
         addToast({ type: 'success', message: t('toast.createFolderSuccess') })
         await refreshCurrentDirectory(sessionId)
       } catch (error) {
@@ -104,7 +104,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
     async (file: FileInfo) => {
       if (file.type === 'directory') return
       try {
-        const result = await window.electronAPI.showSaveDialog({
+        const result = await window.electronAPI.common.showSaveDialog({
           defaultPath: file.name,
         })
         if (result && !result.canceled && result.filePath) {
@@ -136,40 +136,6 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
     return targetDir === '/' ? `/${fileName}` : `${targetDir}/${fileName}`
   }
 
-  const copyDirectory = useCallback(
-    async (file: FileInfo, targetPath: string) => {
-      await window.electronAPI.mkdir(sessionId, targetPath)
-      const sourceFiles = await window.electronAPI.list(sessionId, file.absolutePath)
-
-      const childFilesToCopy: FileInfo[] = []
-      const childDirectoriesToCopy: Array<{ file: FileInfo; childTargetPath: string }> = []
-
-      for (const childFile of sourceFiles) {
-        const childTargetPath =
-          targetPath === '/' ? `/${childFile.name}` : `${targetPath}/${childFile.name}`
-
-        if (childFile.type === 'directory') {
-          childDirectoriesToCopy.push({ file: childFile, childTargetPath })
-        } else {
-          childFilesToCopy.push(childFile)
-        }
-      }
-
-      if (childFilesToCopy.length > 0) {
-        for (const childFile of childFilesToCopy) {
-          const childTargetPath =
-            targetPath === '/' ? `/${childFile.name}` : `${targetPath}/${childFile.name}`
-          await window.electronAPI.copy(sessionId, childFile, childTargetPath)
-        }
-      }
-
-      for (const { file: childDir, childTargetPath } of childDirectoriesToCopy) {
-        await copyDirectory(childDir, childTargetPath)
-      }
-    },
-    [sessionId]
-  )
-
   const executeOperation = useCallback(
     async (
       files: FileInfo[],
@@ -182,9 +148,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
       const targetFilesMap = existingNames || new Map()
       const existingNamesSet = new Set(targetFilesMap.keys())
 
-      const filesToCopy: Array<{ file: FileInfo; targetPath: string }> = []
-      const filesToMove: Array<{ file: FileInfo; targetPath: string }> = []
-      const directoriesToCopy: Array<{ file: FileInfo; targetPath: string }> = []
+      const itemsToProcess: Array<{ file: FileInfo; targetPath: string }> = []
 
       for (const file of files) {
         const defaultTargetPath = getTargetPath(file.name, targetDir.absolutePath)
@@ -209,30 +173,16 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
 
         if (!shouldProcess) continue
 
-        if (op === 'copy') {
-          if (file.type === 'directory') {
-            directoriesToCopy.push({ file, targetPath })
-          } else {
-            filesToCopy.push({ file, targetPath })
-          }
-        } else {
-          filesToMove.push({ file, targetPath })
-        }
+        itemsToProcess.push({ file, targetPath })
       }
 
-      if (op === 'copy') {
-        logger.info(
-          `[Copy] Copying ${filesToCopy.length} files, ${directoriesToCopy.length} directories`
-        )
-        for (const { file, targetPath } of filesToCopy) {
-          await window.electronAPI.copy(sessionId, file, targetPath)
-        }
-        for (const { file, targetPath } of directoriesToCopy) {
-          await copyDirectory(file, targetPath)
-        }
-      } else {
-        for (const { file, targetPath } of filesToMove) {
-          await window.electronAPI.move(sessionId, file, targetPath)
+      logger.info(`[${op === 'copy' ? 'Copy' : 'Move'}] Processing ${itemsToProcess.length} items`)
+
+      for (const { file, targetPath } of itemsToProcess) {
+        if (op === 'copy') {
+          await window.electronAPI.protocol.copy(sessionId, file, targetPath)
+        } else {
+          await window.electronAPI.protocol.move(sessionId, file, targetPath)
         }
       }
 
@@ -244,7 +194,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
 
       await refreshCurrentDirectory(sessionId)
     },
-    [sessionId, pendingOperation, addToast, t, refreshCurrentDirectory, copyDirectory]
+    [sessionId, pendingOperation, addToast, t, refreshCurrentDirectory]
   )
 
   const handleSelectTargetFolder = useCallback(
@@ -261,7 +211,10 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
           }
         }
 
-        const targetFiles = await window.electronAPI.list(sessionId, targetDir.absolutePath)
+        const targetFiles = await window.electronAPI.protocol.list(
+          sessionId,
+          targetDir.absolutePath
+        )
         const existingFiles = new Map(targetFiles.map(f => [f.name, f]))
         setTargetFilesCache(new Map(targetFiles.map(f => [f.name, f.type])))
 

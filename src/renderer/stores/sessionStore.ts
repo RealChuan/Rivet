@@ -9,34 +9,26 @@ interface Session {
   isConnected: boolean
   isLoading: boolean
   error: string | null
-  password?: string
-  privateKey?: string
-  authMethod?: 'password' | 'privateKey'
 }
 
 interface SessionStore {
   sessions: Session[]
   activeSessionId: string | null
-  addSession: (
-    config: Omit<ConnectionConfig, 'id' | 'credentialId'>,
-    password?: string,
-    privateKey?: string
-  ) => Promise<string>
+  addSession: (config: Omit<ConnectionConfig, 'connectionId'>) => Promise<string>
   updateSession: (
-    sessionId: string,
-    config: Omit<ConnectionConfig, 'id' | 'credentialId'>,
-    password?: string,
-    privateKey?: string
+    connectionId: string,
+    config: Omit<ConnectionConfig, 'connectionId'>
   ) => Promise<void>
   removeSession: (id: string) => void
   deleteSession: (id: string) => void
   setActiveSession: (id: string) => void
-  updateCurrentPath: (sessionId: string, path: string) => void
-  setFiles: (sessionId: string, files: FileInfo[]) => void
-  setLoading: (sessionId: string, loading: boolean) => void
-  setError: (sessionId: string, error: string | null) => void
-  refreshCurrentDirectory: (sessionId: string) => Promise<void>
-  reconnectSession: (session: Session, password?: string, privateKey?: string) => Promise<void>
+  updateCurrentPath: (connectionId: string, path: string) => void
+  setFiles: (connectionId: string, files: FileInfo[]) => void
+  setLoading: (connectionId: string, loading: boolean) => void
+  setError: (connectionId: string, error: string | null) => void
+  refreshCurrentDirectory: (connectionId: string) => Promise<void>
+  reconnectSession: (session: Session, password?: string) => Promise<void>
+  loadSavedConnections: () => Promise<void>
 }
 
 // 安全地处理文件列表数据
@@ -70,83 +62,68 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   sessions: [],
   activeSessionId: null,
 
-  addSession: async (config, password, privateKey) => {
-    const sessionId = await window.electronAPI.connect({
+  addSession: async config => {
+    const connectionId = await window.electronAPI.protocol.connect(config)
+
+    const fullConfig: ConnectionConfig = {
       ...config,
-      password,
-      privateKey,
-    })
+      connectionId,
+    } as ConnectionConfig
 
     const session: Session = {
-      id: sessionId,
-      config: {
-        ...config,
-        id: sessionId,
-        credentialId: sessionId,
-      } as ConnectionConfig,
+      id: connectionId,
+      config: fullConfig,
       currentPath: '/',
       files: [],
       isConnected: true,
       isLoading: true,
       error: null,
-      password,
-      privateKey,
-      authMethod: password ? 'password' : 'privateKey',
     }
 
     set(state => ({
       sessions: [...state.sessions, session],
-      activeSessionId: sessionId,
+      activeSessionId: connectionId,
     }))
 
     await new Promise(resolve => setTimeout(resolve, 100))
-    await get().refreshCurrentDirectory(sessionId)
+    await get().refreshCurrentDirectory(connectionId)
 
-    return sessionId
+    return connectionId
   },
 
-  updateSession: async (sessionId, config, password, privateKey) => {
-    const session = get().sessions.find(s => s.id === sessionId)
+  updateSession: async (connectionId, config) => {
+    const session = get().sessions.find(s => s.id === connectionId)
     if (!session) return
 
     const wasConnected = session.isConnected
     if (wasConnected) {
-      await window.electronAPI.disconnect(sessionId)
+      await window.electronAPI.protocol.disconnect(connectionId)
     }
 
-    const usePassword = password ?? session.password
-    const usePrivateKey = privateKey ?? session.privateKey
+    const fullConfig: ConnectionConfig = {
+      ...config,
+      connectionId: session.config.connectionId,
+    } as ConnectionConfig
 
-    let newSessionId = sessionId
+    let newConnectionId = connectionId
     let isConnected = false
 
-    if (wasConnected || usePassword || usePrivateKey) {
+    if (wasConnected || config.password) {
       try {
-        newSessionId = await window.electronAPI.connect({
-          ...config,
-          password: usePassword,
-          privateKey: usePrivateKey,
-        })
+        newConnectionId = await window.electronAPI.protocol.connect(fullConfig)
         isConnected = true
-      } catch (error) {
+      } catch {
         isConnected = false
       }
     }
 
     set(state => ({
       sessions: state.sessions.map(s =>
-        s.id === sessionId
+        s.id === connectionId
           ? {
               ...s,
-              id: newSessionId,
-              config: {
-                ...config,
-                id: newSessionId,
-                credentialId: newSessionId,
-              } as ConnectionConfig,
-              password: usePassword,
-              privateKey: usePrivateKey,
-              authMethod: usePassword ? 'password' : 'privateKey',
+              id: newConnectionId,
+              config: fullConfig,
               isConnected,
               currentPath: isConnected ? '/' : s.currentPath,
               files: isConnected ? [] : s.files,
@@ -155,19 +132,19 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
             }
           : s
       ),
-      activeSessionId: isConnected ? newSessionId : state.activeSessionId,
+      activeSessionId: isConnected ? newConnectionId : state.activeSessionId,
     }))
 
     if (isConnected) {
       await new Promise(resolve => setTimeout(resolve, 100))
-      await get().refreshCurrentDirectory(newSessionId)
+      await get().refreshCurrentDirectory(newConnectionId)
     }
   },
 
   removeSession: async id => {
     const session = get().sessions.find(s => s.id === id)
     if (session?.isConnected) {
-      await window.electronAPI.disconnect(id)
+      await window.electronAPI.protocol.disconnect(id)
     }
 
     set(state => ({
@@ -178,10 +155,10 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   },
 
   deleteSession: async id => {
-    await window.electronAPI.deleteConnection(id)
+    await window.electronAPI.common.deleteConnection(id)
     const session = get().sessions.find(s => s.id === id)
     if (session?.isConnected) {
-      await window.electronAPI.disconnect(id)
+      await window.electronAPI.protocol.disconnect(id)
     }
 
     set(state => {
@@ -198,101 +175,95 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     set({ activeSessionId: id })
   },
 
-  updateCurrentPath: (sessionId, path) => {
+  updateCurrentPath: (connectionId, path) => {
     set(state => ({
-      sessions: state.sessions.map(s => (s.id === sessionId ? { ...s, currentPath: path } : s)),
+      sessions: state.sessions.map(s => (s.id === connectionId ? { ...s, currentPath: path } : s)),
     }))
   },
 
-  setFiles: (sessionId, files) => {
+  setFiles: (connectionId, files) => {
     const safeFiles = sanitizeFiles(files)
     set(state => ({
-      sessions: state.sessions.map(s => (s.id === sessionId ? { ...s, files: safeFiles } : s)),
+      sessions: state.sessions.map(s => (s.id === connectionId ? { ...s, files: safeFiles } : s)),
     }))
   },
 
-  setLoading: (sessionId, loading) => {
+  setLoading: (connectionId, loading) => {
     set(state => ({
-      sessions: state.sessions.map(s => (s.id === sessionId ? { ...s, isLoading: loading } : s)),
+      sessions: state.sessions.map(s => (s.id === connectionId ? { ...s, isLoading: loading } : s)),
     }))
   },
 
-  setError: (sessionId, error) => {
+  setError: (connectionId, error) => {
     set(state => ({
       sessions: state.sessions.map(s =>
-        s.id === sessionId ? { ...s, error, isConnected: error ? false : s.isConnected } : s
+        s.id === connectionId ? { ...s, error, isConnected: error ? false : s.isConnected } : s
       ),
     }))
   },
 
-  refreshCurrentDirectory: async sessionId => {
-    let session = get().sessions.find(s => s.id === sessionId)
+  refreshCurrentDirectory: async connectionId => {
+    let session = get().sessions.find(s => s.id === connectionId)
     if (!session) return
 
     set(state => ({
       sessions: state.sessions.map(s =>
-        s.id === sessionId ? { ...s, isLoading: true, error: null } : s
+        s.id === connectionId ? { ...s, isLoading: true, error: null } : s
       ),
     }))
 
     try {
-      session = get().sessions.find(s => s.id === sessionId)
+      session = get().sessions.find(s => s.id === connectionId)
       if (!session) return
 
-      const result = await window.electronAPI.list(sessionId, session.currentPath)
+      const result = await window.electronAPI.protocol.list(connectionId, session.currentPath)
       const safeFiles = sanitizeFiles(result)
       set(state => ({
         sessions: state.sessions.map(s =>
-          s.id === sessionId ? { ...s, files: safeFiles, isLoading: false } : s
+          s.id === connectionId ? { ...s, files: safeFiles, isLoading: false } : s
         ),
       }))
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to list directory'
       set(state => ({
         sessions: state.sessions.map(s =>
-          s.id === sessionId ? { ...s, error: errorMsg, isLoading: false, files: [] } : s
+          s.id === connectionId ? { ...s, error: errorMsg, isLoading: false, files: [] } : s
         ),
       }))
     }
   },
 
-  reconnectSession: async (session, password, privateKey) => {
+  reconnectSession: async (session, password) => {
     try {
-      const usePassword = password ?? session.password
-      const usePrivateKey = privateKey ?? session.privateKey
+      const { connectionId, ...configWithoutId } = session.config
+      const configToUse = {
+        ...configWithoutId,
+        password: password ?? session.config.password,
+      }
 
-      const sessionId = await window.electronAPI.connect({
-        host: session.config.host,
-        port: session.config.port,
-        username: session.config.username,
-        name: session.config.name,
-        protocol: session.config.protocol,
-        password: usePassword,
-        privateKey: usePrivateKey,
-        basePath: session.config.basePath,
-        scheme: session.config.scheme,
-        rejectUnauthorized: session.config.rejectUnauthorized,
-      })
+      const newConnectionId = await window.electronAPI.protocol.connect(configToUse)
 
       set(state => ({
         sessions: state.sessions.map(s =>
           s.id === session.id
             ? {
                 ...s,
-                id: sessionId,
+                id: newConnectionId,
+                config: {
+                  ...session.config,
+                  ...configToUse,
+                  connectionId: newConnectionId,
+                },
                 isConnected: true,
                 error: null,
-                password: usePassword,
-                privateKey: usePrivateKey,
-                authMethod: usePassword ? 'password' : 'privateKey',
                 currentPath: '/',
               }
             : s
         ),
-        activeSessionId: sessionId,
+        activeSessionId: newConnectionId,
       }))
 
-      await get().refreshCurrentDirectory(sessionId)
+      await get().refreshCurrentDirectory(newConnectionId)
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to reconnect'
       set(state => ({
@@ -301,6 +272,29 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         ),
       }))
       throw error
+    }
+  },
+
+  loadSavedConnections: async () => {
+    try {
+      const savedConnections = await window.electronAPI.common.getSavedConnections()
+      if (!savedConnections || !Array.isArray(savedConnections)) {
+        return
+      }
+
+      const sessionsToAdd: Session[] = savedConnections.map((config: ConnectionConfig) => ({
+        id: config.connectionId,
+        config: config,
+        currentPath: '/',
+        files: [],
+        isConnected: false,
+        isLoading: false,
+        error: null,
+      }))
+
+      set({ sessions: sessionsToAdd })
+    } catch (error) {
+      console.error('Failed to load saved connections:', error)
     }
   },
 }))

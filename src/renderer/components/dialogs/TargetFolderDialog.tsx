@@ -38,7 +38,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     if (!open) return
     setIsLoading(true)
     try {
-      const result = await window.electronAPI.list(sessionId, currentPath)
+      const result = await window.electronAPI.protocol.list(sessionId, currentPath)
       const dirs = result
         .filter((f: FileInfo) => f.type === 'directory')
         .map(f => ({ ...f })) as FolderItem[]
@@ -80,7 +80,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     const newFolderPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`
 
     try {
-      await window.electronAPI.mkdir(sessionId, newFolderPath)
+      await window.electronAPI.protocol.mkdir(sessionId, newFolderPath)
       addToast({ type: 'success', message: t('toast.createFolderSuccess') })
       await loadFolders()
     } catch (error) {

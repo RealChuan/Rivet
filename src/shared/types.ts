@@ -1,11 +1,11 @@
 export interface ConnectionConfig {
-  id: string
+  connectionId: string
   name: string
   protocol: 'sftp' | 'webdav'
   host: string
   port: number
   username: string
-  credentialId: string
+  password?: string
   basePath?: string
   scheme?: 'http' | 'https'
   rejectUnauthorized?: boolean
@@ -23,7 +23,7 @@ export interface FileInfo {
 
 export interface TransferTask {
   id: string
-  sessionId: string
+  connectionId: string
   type: 'upload' | 'download'
   localPath: string
   remotePath: string
@@ -38,38 +38,33 @@ export interface UiSettings {
   language: 'zh-CN' | 'en-US' | ''
 }
 
-export interface ElectronAPI {
-  connect(
-    config: Omit<ConnectionConfig, 'id' | 'credentialId'> & {
-      password?: string
-      privateKey?: string
-    }
-  ): Promise<string>
-  disconnect(sessionId: string): Promise<void>
-  list(sessionId: string, path: string): Promise<FileInfo[]>
-  mkdir(sessionId: string, path: string): Promise<void>
-  rename(sessionId: string, file: FileInfo, newName: string): Promise<void>
-  delete(sessionId: string, files: FileInfo[]): Promise<void>
-  copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void>
-  move(sessionId: string, file: FileInfo, targetPath: string): Promise<void>
+export interface ProtocolAPI {
+  connect(config: Omit<ConnectionConfig, 'connectionId'>): Promise<string>
+  disconnect(connectionId: string): Promise<void>
+  list(connectionId: string, path: string): Promise<FileInfo[]>
+  mkdir(connectionId: string, path: string): Promise<void>
+  rename(connectionId: string, file: FileInfo, newName: string): Promise<void>
+  delete(connectionId: string, files: FileInfo[]): Promise<void>
+  copy(connectionId: string, file: FileInfo, targetPath: string): Promise<void>
+  move(connectionId: string, file: FileInfo, targetPath: string): Promise<void>
   uploadFile(
-    sessionId: string,
+    connectionId: string,
     localPath: string,
-    remotePath: string,
-    onProgress: (percent: number) => void,
-    signal?: AbortSignal
-  ): Promise<void>
+    remotePath: string
+  ): Promise<{ transferId: string; success: boolean }>
   downloadFile(
-    sessionId: string,
+    connectionId: string,
     file: FileInfo,
-    localPath: string,
-    onProgress: (percent: number) => void,
-    signal?: AbortSignal
-  ): Promise<void>
+    localPath: string
+  ): Promise<{ transferId: string; success: boolean }>
   cancelTransfer(transferId: string): Promise<void>
-  storeGet(key: string): unknown
-  storeSet(key: string, value: unknown): void
-  storeDelete(key: string): void
+  onProgress(callback: (event: ProgressEvent) => void): () => void
+}
+
+export interface CommonAPI {
+  storeGet(key: string): Promise<unknown>
+  storeSet(key: string, value: unknown): Promise<void>
+  storeDelete(key: string): Promise<void>
   showOpenDialog(options: {
     title?: string
     defaultPath?: string
@@ -80,17 +75,21 @@ export interface ElectronAPI {
     defaultPath?: string
   }): Promise<{ canceled: boolean; filePath?: string } | null>
   getSavedConnections(): Promise<ConnectionConfig[]>
-  deleteConnection(id: string): Promise<void>
-  getCredential(credentialId: string): Promise<string | null>
+  deleteConnection(connectionId: string): Promise<void>
+  getCredential(connectionId: string): Promise<string | null>
   getTempDir(): Promise<string>
   getDownloadDir(): Promise<string>
-  onProgress(callback: (event: ProgressEvent) => void): () => void
   getLastError(): Promise<string | null>
+}
+
+export interface ElectronAPI {
+  protocol: ProtocolAPI
+  common: CommonAPI
 }
 
 export interface ProgressEvent {
   transferId: string
-  sessionId: string
+  connectionId: string
   operation: 'upload' | 'download'
   path: string
   percent: number

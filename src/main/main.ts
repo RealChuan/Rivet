@@ -2,7 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import { fileURLToPath, URL } from 'node:url'
 import path from 'node:path'
 import logger from './logger.js'
-import { setupIpcHandlers } from './ipcHandlers.js'
+import { setupIpcHandlers } from './ipc-handlers/index.js'
 import { loadConfig, saveConfig } from './store.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -18,7 +18,7 @@ function createWindow(): void {
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

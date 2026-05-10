@@ -1,29 +1,17 @@
 import Store from 'electron-store'
 import { app } from 'electron'
 import logger from './logger.js'
+import type { ConnectionConfig } from '../shared/types.js'
 
-// ============ 类型定义 ============
+type StoredConnection = Omit<ConnectionConfig, 'password'>
 
 interface UiSettings {
   theme: 'light' | 'dark' | 'system'
-  language: SupportedLanguage | '' // '' 表示未设置，跟随系统
-}
-
-interface ConnectionConfig {
-  id: string
-  name: string
-  protocol: 'sftp' | 'webdav'
-  host: string
-  port: number
-  username: string
-  credentialId: string
-  basePath?: string
-  scheme?: 'http' | 'https'
-  rejectUnauthorized?: boolean
+  language: SupportedLanguage | ''
 }
 
 interface StoreSchema {
-  saved_connections: ConnectionConfig[]
+  saved_connections: StoredConnection[]
   ui_settings: UiSettings
 }
 
@@ -70,19 +58,18 @@ function detectSystemLanguage(): SupportedLanguage {
   return 'en-US' // 兜底
 }
 
-function isValidConnection(config: unknown): config is ConnectionConfig {
+function isValidConnection(config: unknown): config is StoredConnection {
   if (!config || typeof config !== 'object') return false
 
   const c = config as Record<string, unknown>
 
   return (
-    typeof c.id === 'string' &&
+    typeof c.connectionId === 'string' &&
     typeof c.name === 'string' &&
     (c.protocol === 'sftp' || c.protocol === 'webdav') &&
     typeof c.host === 'string' &&
     typeof c.port === 'number' &&
     typeof c.username === 'string' &&
-    typeof c.credentialId === 'string' &&
     (c.basePath === undefined || typeof c.basePath === 'string') &&
     (c.scheme === undefined || c.scheme === 'http' || c.scheme === 'https') &&
     (c.rejectUnauthorized === undefined || typeof c.rejectUnauthorized === 'boolean')
@@ -159,35 +146,39 @@ export function loadConfig(): void {
 
 // ============ 连接管理 ============
 
-export function getSavedConnections(): ConnectionConfig[] {
+export function getSavedConnections(): StoredConnection[] {
   const connections = store.get('saved_connections')
   if (!Array.isArray(connections)) return []
   return connections.filter(isValidConnection)
 }
 
 export function saveConnection(config: ConnectionConfig): void {
-  if (!isValidConnection(config)) {
-    logger.error(`Invalid connection config rejected: ${JSON.stringify(config)}`)
+  const { password, ...configToSave } = config
+
+  if (!isValidConnection(configToSave)) {
+    logger.error(`Invalid connection config rejected: ${JSON.stringify(configToSave)}`)
     throw new Error('Invalid connection configuration')
   }
 
   const connections = getSavedConnections()
-  const index = connections.findIndex(c => c.id === config.id)
+  const index = connections.findIndex(c => c.connectionId === config.connectionId)
 
   if (index >= 0) {
-    connections[index] = config
+    connections[index] = configToSave
   } else {
-    connections.push(config)
+    connections.push(configToSave)
   }
 
   store.set('saved_connections', connections)
-  logger.info(`Connection ${index >= 0 ? 'updated' : 'added'}: ${config.name} (${config.id})`)
+  logger.info(
+    `Connection ${index >= 0 ? 'updated' : 'added'}: ${config.name} (${config.connectionId})`
+  )
 }
 
-export function deleteConnection(id: string): void {
-  const connections = getSavedConnections().filter(c => c.id !== id)
+export function deleteConnection(connectionId: string): void {
+  const connections = getSavedConnections().filter(c => c.connectionId !== connectionId)
   store.set('saved_connections', connections)
-  logger.info(`Connection deleted: ${id}`)
+  logger.info(`Connection deleted: ${connectionId}`)
 }
 
 // ============ UI 设置管理 ============
@@ -241,7 +232,7 @@ export function getConfigValue(key: string): unknown {
 
 export function setConfigValue(key: string, value: unknown): void {
   if (key === 'saved_connections') {
-    const connections = (value as ConnectionConfig[]).filter(isValidConnection)
+    const connections = (value as StoredConnection[]).filter(isValidConnection)
     store.set(key, connections)
   } else if (key === 'ui_settings') {
     if (!isValidUiSettings(value)) {

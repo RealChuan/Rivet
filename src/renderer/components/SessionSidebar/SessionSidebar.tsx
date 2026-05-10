@@ -31,17 +31,13 @@ export const SessionSidebar: React.FC = () => {
     setConnectionDialogOpen(true)
   }
 
-  const handleSaveConnection = async (
-    config: Omit<ConnectionConfig, 'id' | 'credentialId'>,
-    password?: string,
-    privateKey?: string
-  ) => {
+  const handleSaveConnection = async (config: Omit<ConnectionConfig, 'connectionId'>) => {
     try {
       if (editConfig) {
-        await updateSession(editConfig.id, config, password, privateKey)
+        await updateSession(editConfig.id, config)
         addToast({ type: 'success', message: t('toast.connectionSuccess') })
       } else {
-        await addSession(config, password, privateKey)
+        await addSession(config)
         addToast({ type: 'success', message: t('toast.connectionSuccess') })
       }
     } catch (error) {
@@ -87,7 +83,7 @@ export const SessionSidebar: React.FC = () => {
   }
 
   const handleReconnect = async (session: (typeof sessions)[0]) => {
-    if (session.password || session.privateKey) {
+    if (session.config.password) {
       try {
         await reconnectSession(session)
         addToast({ type: 'success', message: t('toast.connectionSuccess') })
@@ -100,14 +96,10 @@ export const SessionSidebar: React.FC = () => {
     setConnectionDialogOpen(true)
   }
 
-  const handleReconnectSubmit = async (
-    _config: Omit<ConnectionConfig, 'id' | 'credentialId'>,
-    password?: string,
-    privateKey?: string
-  ) => {
+  const handleReconnectSubmit = async (config: Omit<ConnectionConfig, 'connectionId'>) => {
     if (!reconnectConfig) return
     try {
-      await reconnectSession(reconnectConfig, password, privateKey)
+      await reconnectSession(reconnectConfig, config.password)
       addToast({ type: 'success', message: t('toast.connectionSuccess') })
     } catch (error) {
       addToast({
@@ -234,9 +226,7 @@ export const SessionSidebar: React.FC = () => {
         onSave={reconnectConfig ? handleReconnectSubmit : handleSaveConnection}
         editConfig={editConfig?.config || reconnectConfig?.config}
         reconnectMode={!!reconnectConfig}
-        savedPassword={editConfig?.password || reconnectConfig?.password}
-        savedPrivateKey={editConfig?.privateKey || reconnectConfig?.privateKey}
-        authMethod={editConfig?.authMethod || reconnectConfig?.authMethod}
+        savedPassword={editConfig?.config?.password || reconnectConfig?.config?.password}
       />
       <ConfirmDialog
         open={deleteConfirmOpen}

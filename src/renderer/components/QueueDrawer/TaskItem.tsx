@@ -15,8 +15,8 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
   const { cancelTask, retryTask } = useTransferQueue()
   const { sessions } = useSessionStore()
 
-  const session = sessions.find(s => s.id === task.sessionId)
-  const sessionName = session?.config.name || session?.config.host || task.sessionId
+  const session = sessions.find(s => s.id === task.connectionId)
+  const sessionName = session?.config.name || session?.config.host || task.connectionId
 
   const getFileName = (path: string): string => {
     return path.split(/[/\\]/).pop() || path

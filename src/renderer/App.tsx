@@ -23,7 +23,7 @@ const App: React.FC = () => {
     initialized,
   } = useUiStore()
   const { tasks } = useQueueStore()
-  const { refreshCurrentDirectory, activeSessionId } = useSessionStore()
+  const { refreshCurrentDirectory, activeSessionId, loadSavedConnections } = useSessionStore()
   const { theme, cycleTheme } = useTheme()
   const { language, changeLanguage } = useI18n()
   useTransferQueue()
@@ -34,7 +34,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const initApp = async () => {
       try {
-        const savedSettings = (await window.electronAPI.storeGet('ui_settings')) as any
+        const savedSettings = (await window.electronAPI.common.storeGet('ui_settings')) as any
 
         if (savedSettings) {
           const theme = savedSettings.theme || 'system'
@@ -96,6 +96,11 @@ const App: React.FC = () => {
     mediaQuery.addEventListener('change', handleSystemThemeChange)
     return () => mediaQuery.removeEventListener('change', handleSystemThemeChange)
   }, [initialized])
+
+  useEffect(() => {
+    if (!initialized) return
+    loadSavedConnections()
+  }, [initialized, loadSavedConnections])
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {

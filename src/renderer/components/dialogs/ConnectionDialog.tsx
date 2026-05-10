@@ -10,16 +10,10 @@ import Button from '../ui/Button.js'
 interface ConnectionDialogProps {
   open: boolean
   onClose: () => void
-  onSave: (
-    config: Omit<ConnectionConfig, 'id' | 'credentialId'>,
-    password?: string,
-    privateKey?: string
-  ) => Promise<void>
+  onSave: (config: Omit<ConnectionConfig, 'connectionId'>) => Promise<void>
   editConfig?: ConnectionConfig
   reconnectMode?: boolean
   savedPassword?: string
-  savedPrivateKey?: string
-  authMethod?: 'password' | 'privateKey'
 }
 
 export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
@@ -29,8 +23,6 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   editConfig,
   reconnectMode = false,
   savedPassword = '',
-  savedPrivateKey = '',
-  authMethod: initialAuthMethod,
 }) => {
   const { t } = useTranslation()
   const [name, setName] = useState(editConfig?.name || '')
@@ -39,10 +31,6 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   const [port, setPort] = useState(editConfig?.port?.toString() || '22')
   const [username, setUsername] = useState(editConfig?.username || '')
   const [password, setPassword] = useState(savedPassword)
-  const [authMethod, setAuthMethod] = useState<'password' | 'privateKey'>(
-    initialAuthMethod || 'password'
-  )
-  const [privateKey, setPrivateKey] = useState(savedPrivateKey)
   const [basePath, setBasePath] = useState(editConfig?.basePath || '')
   const [scheme, setScheme] = useState<'http' | 'https'>(editConfig?.scheme || 'https')
   const [rejectUnauthorized, setRejectUnauthorized] = useState(
@@ -68,20 +56,17 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
     setError('')
 
     try {
-      await onSave(
-        {
-          name: name.trim(),
-          protocol,
-          host: host.trim(),
-          port: portNum,
-          username: username.trim(),
-          basePath: protocol === 'webdav' ? basePath.trim() : undefined,
-          scheme: protocol === 'webdav' ? scheme : undefined,
-          rejectUnauthorized: protocol === 'webdav' ? rejectUnauthorized : undefined,
-        },
-        authMethod === 'password' ? password : undefined,
-        authMethod === 'privateKey' ? privateKey : undefined
-      )
+      await onSave({
+        name: name.trim(),
+        protocol,
+        host: host.trim(),
+        port: portNum,
+        username: username.trim(),
+        password: password || undefined,
+        basePath: protocol === 'webdav' ? basePath.trim() : undefined,
+        scheme: protocol === 'webdav' ? scheme : undefined,
+        rejectUnauthorized: protocol === 'webdav' ? rejectUnauthorized : undefined,
+      })
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -93,9 +78,6 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   const handleProtocolChange = (value: string) => {
     setProtocol(value as 'sftp' | 'webdav')
     setPort(value === 'webdav' ? '443' : '22')
-    if (value === 'webdav') {
-      setAuthMethod('password')
-    }
   }
 
   return (
@@ -267,72 +249,16 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           />
         </div>
 
-        {protocol === 'sftp' && (
-          <div>
-            <label className="block text-xs font-medium text-text mb-1.5">
-              {t('connection.authMethod')}
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setAuthMethod('password')}
-                className={`
-                  flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer
-                  transition-colors duration-150
-                  ${
-                    authMethod === 'password'
-                      ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
-                      : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
-                  }
-                `}
-              >
-                {t('connection.password')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMethod('privateKey')}
-                className={`
-                  flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer
-                  transition-colors duration-150
-                  ${
-                    authMethod === 'privateKey'
-                      ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
-                      : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
-                  }
-                `}
-              >
-                {t('connection.privateKey')}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {protocol === 'sftp' && authMethod === 'privateKey' ? (
-          <div>
-            <label className="block text-xs font-medium text-text mb-1.5">
-              {t('connection.privateKey')}
-            </label>
-            <Input
-              as="textarea"
-              value={privateKey}
-              onChange={(e: any) => setPrivateKey(e.target.value)}
-              placeholder={t('connection.privateKeyPlaceholder')}
-              rows={4}
-              className="resize-y"
-            />
-          </div>
-        ) : (
-          <div>
-            <label className="block text-xs font-medium text-text mb-1.5">
-              {t('connection.password')}
-            </label>
-            <PasswordInput
-              value={password}
-              onChange={setPassword}
-              placeholder={t('connection.passwordPlaceholder')}
-            />
-          </div>
-        )}
+        <div>
+          <label className="block text-xs font-medium text-text mb-1.5">
+            {t('connection.password')}
+          </label>
+          <PasswordInput
+            value={password}
+            onChange={setPassword}
+            placeholder={t('connection.passwordPlaceholder')}
+          />
+        </div>
 
         {error && (
           <div className="flex items-center gap-1.5 px-3 py-2 bg-[rgba(241,76,76,0.1)] rounded-md text-danger text-xs">

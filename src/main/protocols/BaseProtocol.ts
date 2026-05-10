@@ -1,18 +1,9 @@
-import { FileInfo } from '../../shared/types.js'
+import { FileInfo, ConnectionConfig } from '../../shared/types.js'
 import { normalizePath, joinPaths } from '../../shared/utils.js'
 import logger from '../logger.js'
 
 export interface FileProtocol {
-  connect(config: {
-    host: string
-    port: number
-    username: string
-    password?: string
-    privateKey?: string
-    basePath?: string
-    scheme?: 'http' | 'https'
-    rejectUnauthorized?: boolean
-  }): Promise<string>
+  connect(config: ConnectionConfig): Promise<string>
   disconnect(sessionId: string): Promise<void>
   list(sessionId: string, path: string): Promise<FileInfo[]>
   uploadFile(
@@ -79,16 +70,7 @@ export abstract class BaseProtocolImpl<T = any> implements FileProtocol {
     logger.info(`${this.protocolName.toUpperCase()} ${operation} cancelled: ${path}`)
   }
 
-  async connect(config: {
-    host: string
-    port: number
-    username: string
-    password?: string
-    privateKey?: string
-    basePath?: string
-    scheme?: 'http' | 'https'
-    rejectUnauthorized?: boolean
-  }): Promise<string> {
+  async connect(config: ConnectionConfig): Promise<string> {
     throw new Error('Not implemented')
   }
 
@@ -143,13 +125,7 @@ export abstract class BaseProtocolImpl<T = any> implements FileProtocol {
 
 export interface SessionHandle<T = any> {
   client: T
-  config: {
-    host: string
-    username: string
-    password?: string
-    privateKey?: string
-    basePath?: string
-  }
+  config: ConnectionConfig
 }
 
 export default FileProtocol

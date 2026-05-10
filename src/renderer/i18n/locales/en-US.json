@@ -1,7 +1,6 @@
 {
   "translation": {
     "connection": {
-      "authMethod": "Authentication Method",
       "basePath": "Access Path",
       "cancel": "Cancel",
       "connecting": "Connecting...",
@@ -14,8 +13,6 @@
       "password": "Password",
       "passwordPlaceholder": "Enter password",
       "port": "Port",
-      "privateKey": "Private Key",
-      "privateKeyPlaceholder": "Enter private key path",
       "protocol": "Protocol",
       "rejectUnauthorized": "Verify server certificate",
       "save": "Save",

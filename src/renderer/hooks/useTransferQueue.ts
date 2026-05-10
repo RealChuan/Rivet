@@ -19,14 +19,19 @@ export function useTransferQueue() {
   const { sessions, activeSessionId } = useSessionStore()
   const { addToast } = useUiStore()
   const isProcessingRef = useRef(false)
+  const transferIdToTaskIdRef = useRef<Map<string, string>>(new Map())
 
   useEffect(() => {
-    const unsubscribe = window.electronAPI.onProgress(event => {
-      updateTaskProgress(event.transferId, event.percent)
+    const unsubscribe = window.electronAPI.protocol.onProgress(event => {
+      const taskId = transferIdToTaskIdRef.current.get(event.transferId)
+      if (taskId) {
+        updateTaskProgress(taskId, event.percent)
+      }
     })
 
     return () => {
       unsubscribe()
+      transferIdToTaskIdRef.current.clear()
     }
   }, [updateTaskProgress])
 
@@ -57,40 +62,39 @@ export function useTransferQueue() {
   const startTransfer = useCallback(
     async (task: TransferTask) => {
       try {
+        let result
         if (task.type === 'download') {
-          const session = sessions.find(s => s.id === task.sessionId)
+          const session = sessions.find(s => s.id === task.connectionId)
           if (!session) {
             failTask(task.id, 'Session not found')
             return
           }
 
-          await window.electronAPI.downloadFile(
-            task.sessionId,
+          result = await window.electronAPI.protocol.downloadFile(
+            task.connectionId,
             task.file!,
-            task.localPath,
-            (percent: number) => {
-              updateTaskProgress(task.id, percent)
-            }
+            task.localPath
           )
-
-          completeTask(task.id)
-          addToast({
-            type: 'success',
-            message: `Downloaded: ${task.file?.name || task.remotePath}`,
-          })
         } else {
-          await window.electronAPI.uploadFile(
-            task.sessionId,
+          result = await window.electronAPI.protocol.uploadFile(
+            task.connectionId,
             task.localPath,
-            task.remotePath,
-            (percent: number) => {
-              updateTaskProgress(task.id, percent)
-            }
+            task.remotePath
           )
-
-          completeTask(task.id)
-          addToast({ type: 'success', message: `Uploaded: ${task.localPath}` })
         }
+
+        if (result && result.transferId) {
+          transferIdToTaskIdRef.current.set(result.transferId, task.id)
+        }
+
+        completeTask(task.id)
+        addToast({
+          type: 'success',
+          message:
+            task.type === 'download'
+              ? `Downloaded: ${task.file?.name || task.remotePath}`
+              : `Uploaded: ${task.localPath}`,
+        })
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Transfer failed'
         failTask(task.id, errorMessage)
@@ -138,7 +142,12 @@ export function useTransferQueue() {
     async (taskId: string) => {
       const task = tasks.find(t => t.id === taskId)
       if (task && task.status === 'active') {
-        await window.electronAPI.cancelTransfer(taskId)
+        const transferId = Array.from(transferIdToTaskIdRef.current.entries()).find(
+          ([, tid]) => tid === taskId
+        )?.[0]
+        if (transferId) {
+          await window.electronAPI.protocol.cancelTransfer(transferId)
+        }
       }
       removeTask(taskId)
     },
@@ -147,7 +156,7 @@ export function useTransferQueue() {
 
   const retryTask = useCallback(
     (task: TransferTask) => {
-      const newTask = addTask(task.sessionId, task.type, task.localPath, task.remotePath)
+      const newTask = addTask(task.connectionId, task.type, task.localPath, task.remotePath)
       processQueue()
       return newTask
     },

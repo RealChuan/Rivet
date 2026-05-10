@@ -36,7 +36,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
       session.currentPath === '/' ? `/${folderName}` : `${session.currentPath}/${folderName}`
 
     try {
-      await window.electronAPI.mkdir(sessionId, newFolderPath)
+      await window.electronAPI.protocol.mkdir(sessionId, newFolderPath)
       addToast({ type: 'success', message: t('toast.createFolderSuccess') })
       await refreshCurrentDirectory(sessionId)
     } catch (error) {
@@ -50,7 +50,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
   const handleUpload = async () => {
     if (!session) return
     try {
-      const result = await window.electronAPI.showOpenDialog({
+      const result = await window.electronAPI.common.showOpenDialog({
         properties: ['openFile', 'multiSelections'],
       })
 

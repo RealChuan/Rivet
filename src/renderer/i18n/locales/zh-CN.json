@@ -1,7 +1,6 @@
 {
   "translation": {
     "connection": {
-      "authMethod": "认证方式",
       "basePath": "访问路径",
       "cancel": "取消",
       "connecting": "连接中...",
@@ -14,8 +13,6 @@
       "password": "密码",
       "passwordPlaceholder": "输入密码",
       "port": "端口",
-      "privateKey": "私钥",
-      "privateKeyPlaceholder": "输入私钥路径",
       "protocol": "协议",
       "rejectUnauthorized": "验证服务器证书",
       "save": "保存",

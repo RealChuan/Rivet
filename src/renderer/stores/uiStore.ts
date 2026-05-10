@@ -36,7 +36,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
   setTheme: theme => {
     set({ theme })
     const { language } = get()
-    window.electronAPI.storeSet('ui_settings', {
+    window.electronAPI.common.storeSet('ui_settings', {
       theme,
       language,
     })
@@ -45,7 +45,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
   setLanguage: language => {
     set({ language })
     const { theme } = get()
-    window.electronAPI.storeSet('ui_settings', {
+    window.electronAPI.common.storeSet('ui_settings', {
       theme,
       language,
     })

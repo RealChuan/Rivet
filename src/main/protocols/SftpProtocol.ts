@@ -1,18 +1,12 @@
 import Client from 'ssh2-sftp-client'
-import { FileInfo } from '../../shared/types.js'
+import { FileInfo, ConnectionConfig } from '../../shared/types.js'
 import { BaseProtocolImpl } from './BaseProtocol.js'
 import { generateSessionId } from '../utils/session.js'
 
 export class SftpProtocol extends BaseProtocolImpl<Client> {
   protected protocolName = 'sftp'
 
-  async connect(config: {
-    host: string
-    port: number
-    username: string
-    password?: string
-    privateKey?: string
-  }): Promise<string> {
+  async connect(config: ConnectionConfig): Promise<string> {
     const client = new Client()
     const sessionId = generateSessionId('sftp')
 
@@ -22,7 +16,6 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
         port: config.port,
         username: config.username,
         password: config.password,
-        privateKey: config.privateKey,
         readyTimeout: 20000,
       })
 
@@ -69,9 +62,10 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
         }
 
         const absolutePath = this.joinPaths(remotePath, item.name)
+        const fileType = item.type === 'd' ? 'directory' : 'file'
         const safeFileInfo: FileInfo = {
           name: String(item.name || ''),
-          type: item.type === 'd' ? 'directory' : 'file',
+          type: fileType as 'file' | 'directory',
           size: Number(item.size || 0),
           modifyTime: item.modifyTime ? new Date(item.modifyTime).getTime() : 0,
           permissions: permissions !== '-----------' ? permissions : undefined,
@@ -135,8 +129,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     const abortState = this.setupAbortHandler(signal)
 
     try {
-      const stats = await handle.client.stat(file.absolutePath)
-      const totalSize = stats.size || 0
+      const totalSize = file.size || 0
 
       await handle.client.fastGet(file.absolutePath, localPath, {
         step: (totalTransferred: number) => {
@@ -192,38 +185,17 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
 
     try {
       for (const file of files) {
-        try {
+        if (file.type === 'directory') {
+          await handle.client.rmdir(file.absolutePath, true)
+        } else {
           await handle.client.delete(file.absolutePath)
-        } catch (deleteError: any) {
-          if (deleteError.code === 4) {
-            await this.deleteDirectoryRecursive(handle.client, file.absolutePath)
-          } else {
-            throw deleteError
-          }
         }
-
         this.logOperation('delete', file.absolutePath, '')
       }
     } catch (error) {
       this.logOperation('delete failed', '', '', error)
       throw error
     }
-  }
-
-  private async deleteDirectoryRecursive(client: Client, dirPath: string): Promise<void> {
-    const list = await client.list(dirPath)
-
-    for (const item of list) {
-      const itemPath = this.joinPaths(dirPath, item.name)
-
-      if (item.type === 'd') {
-        await this.deleteDirectoryRecursive(client, itemPath)
-      } else {
-        await client.delete(itemPath)
-      }
-    }
-
-    await client.rmdir(dirPath)
   }
 
   async copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
@@ -234,7 +206,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
       if (file.type === 'directory') {
         await this.copyDirectory(handle.client, sourcePath, targetPath)
       } else {
-        await this.copyFile(handle.client, sourcePath, targetPath)
+        await handle.client.rcopy(sourcePath, targetPath)
       }
       this.logOperation('copy completed', sourcePath, targetPath)
     } catch (error) {
@@ -260,10 +232,6 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     }
   }
 
-  private async copyFile(client: Client, sourcePath: string, targetPath: string): Promise<void> {
-    await client.rcopy(sourcePath, targetPath)
-  }
-
   private async copyDirectory(
     client: Client,
     sourcePath: string,
@@ -285,7 +253,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
           await client.mkdir(targetItemPath, true)
           queue.push({ src: sourceItemPath, dest: targetItemPath })
         } else {
-          await this.copyFile(client, sourceItemPath, targetItemPath)
+          await client.rcopy(sourceItemPath, targetItemPath)
         }
       }
     }

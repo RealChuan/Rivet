@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid'
 interface QueueStore {
   tasks: TransferTask[]
   addTask: (
-    sessionId: string,
+    connectionId: string,
     type: 'upload' | 'download',
     localPath: string,
     remotePath: string,
@@ -24,10 +24,10 @@ interface QueueStore {
 export const useQueueStore = create<QueueStore>((set, get) => ({
   tasks: [],
 
-  addTask: (sessionId, type, localPath, remotePath, file?) => {
+  addTask: (connectionId, type, localPath, remotePath, file?) => {
     const task: TransferTask = {
       id: uuidv4(),
-      sessionId,
+      connectionId,
       type,
       localPath,
       remotePath,
