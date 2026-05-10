@@ -1,61 +1,107 @@
-import { app, BrowserWindow } from 'electron'
-import { fileURLToPath, URL } from 'node:url'
-import path from 'node:path'
-import logger from './logger.js'
+/**
+ * Rivet 主进程入口
+ *
+ * 职责：
+ * 1. 注册全局 IPC 处理器（窗口控制、子窗口管理）
+ * 2. 初始化应用配置、日志、业务 IPC
+ * 3. 使用 WindowManager 创建主窗口
+ */
+
+import { app, BrowserWindow, ipcMain } from 'electron'
+import { WindowManager } from './window-factory.js'
+import logger from './utils/logger.js'
 import { setupIpcHandlers } from './ipc-handlers/index.js'
-import { loadConfig, saveConfig } from './store.js'
+import { loadConfig, saveConfig } from './utils/store.js'
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
+// ============================================================
+// IPC：窗口控制（所有窗口复用同一套处理器）
+// ============================================================
 
-let mainWindow: BrowserWindow | null = null
+ipcMain.on('window-minimize', event => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  win?.minimize()
+})
 
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+ipcMain.on('window-maximize', event => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win?.isMaximized()) {
+    win.unmaximize()
+  } else {
+    win?.maximize()
+  }
+})
 
-function createWindow(): void {
-  mainWindow = new BrowserWindow({
+ipcMain.on('window-close', event => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  win?.close()
+})
+
+ipcMain.handle('window-get-state', event => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  return {
+    isMaximized: win?.isMaximized() ?? false,
+    platform: process.platform,
+  }
+})
+
+// ============================================================
+// IPC：子窗口管理
+// ============================================================
+
+ipcMain.handle(
+  'window-create',
+  (
+    _event,
+    options: {
+      id: string
+      route: string
+      width?: number
+      height?: number
+      title?: string
+    }
+  ) => {
+    WindowManager.create({
+      ...options,
+      width: options.width ?? 800,
+      height: options.height ?? 600,
+    })
+    return options.id
+  }
+)
+
+ipcMain.handle('window-close-by-id', (_event, id: string) => {
+  WindowManager.close(id)
+  return true
+})
+
+// ============================================================
+// 应用生命周期
+// ============================================================
+
+app.whenReady().then(() => {
+  logger.info('App ready, initializing...')
+
+  loadConfig()
+  setupIpcHandlers()
+
+  // 创建主窗口
+  WindowManager.create({
+    id: 'main',
+    route: '/',
     width: 1200,
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload/index.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-    },
-    show: false,
+    title: 'Rivet',
   })
-
-  mainWindow.on('ready-to-show', () => {
-    mainWindow?.show()
-  })
-
-  if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
-    mainWindow.webContents.openDevTools()
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../../renderer/index.html'))
-  }
-
-  mainWindow.on('closed', () => {
-    mainWindow = null
-  })
-
-  logger.info('Main window created')
-}
-
-app.whenReady().then(() => {
-  logger.info('App ready, starting initialization')
-
-  loadConfig()
-
-  setupIpcHandlers()
-
-  createWindow()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+      WindowManager.create({
+        id: 'main',
+        route: '/',
+        title: 'Rivet',
+      })
     }
   })
 })

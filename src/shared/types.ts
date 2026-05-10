@@ -82,9 +82,37 @@ export interface CommonAPI {
   getLastError(): Promise<string | null>
 }
 
+export interface WindowState {
+  isMaximized: boolean
+  platform: string
+}
+
+export interface WindowControlAPI {
+  minimize: () => void
+  maximize: () => void
+  close: () => void
+  getState: () => Promise<WindowState>
+  onStateChange: (callback: (state: { isMaximized: boolean }) => void) => () => void
+  createChild: (options: {
+    id: string
+    route: string
+    width?: number
+    height?: number
+    title?: string
+  }) => Promise<string>
+  closeChild: (id: string) => Promise<boolean>
+}
+
+export interface WindowMeta {
+  windowId: string
+  route: string
+}
+
 export interface ElectronAPI {
   protocol: ProtocolAPI
   common: CommonAPI
+  windowControl: WindowControlAPI
+  windowMeta: WindowMeta
 }
 
 export interface ProgressEvent {

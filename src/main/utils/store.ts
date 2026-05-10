@@ -1,7 +1,7 @@
 import Store from 'electron-store'
 import { app } from 'electron'
 import logger from './logger.js'
-import type { ConnectionConfig } from '../shared/types.js'
+import type { ConnectionConfig } from '../../shared/types.js'
 
 type StoredConnection = Omit<ConnectionConfig, 'password'>
 

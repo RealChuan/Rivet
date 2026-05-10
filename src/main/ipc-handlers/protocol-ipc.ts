@@ -2,7 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import keytar from 'keytar'
 import { v4 as uuidv4 } from 'uuid'
 import { ProtocolFactory } from '../protocols/ProtocolFactory.js'
-import logger from '../logger.js'
+import logger from '../utils/logger.js'
 import { ConnectionConfig, FileInfo } from '../../shared/types.js'
 import { activeConnections, transferControllers } from './index.js'
 
@@ -36,7 +36,7 @@ export function setupProtocolIpcHandlers(): void {
           config: fullConfig,
         })
 
-        const { saveConnection } = await import('../store.js')
+        const { saveConnection } = await import('../utils/store.js')
         saveConnection(fullConfig)
 
         logger.info(`Connection established: ${fullConfig.name} (${connectionId})`)

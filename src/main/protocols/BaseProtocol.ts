@@ -1,6 +1,6 @@
 import { FileInfo, ConnectionConfig } from '../../shared/types.js'
 import { normalizePath, joinPaths } from '../../shared/utils.js'
-import logger from '../logger.js'
+import logger from '../utils/logger.js'
 
 export interface FileProtocol {
   connect(config: ConnectionConfig): Promise<string>

@@ -142,3 +142,32 @@
     transform: translateX(0);
   }
 }
+
+/* ========== Electron 无边框窗口拖拽工具类 ========== */
+@layer utilities {
+  /**
+   * 使元素成为窗口拖拽区域
+   * 应用此类的元素可拖动整个窗口位置
+   */
+  .draggable {
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  /**
+   * 在拖拽区域内排除特定元素
+   * 应用此类的元素可正常接收鼠标事件（点击、hover）
+   */
+  .no-drag {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+
+  /**
+   * 标题栏文字防选中
+   */
+  .titlebar-text {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}

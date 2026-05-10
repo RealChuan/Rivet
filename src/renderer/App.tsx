@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { SessionSidebar } from './components/SessionSidebar/SessionSidebar.js'
 import { FileAreaContainer } from './components/FileArea/FileAreaContainer.js'
 import { QueueDrawer } from './components/QueueDrawer/QueueDrawer.js'
-import { Toast } from './components/Toast.js'
-import { Resizer } from './components/Resizer.js'
+import { Toast } from './components/ui/Toast.js'
+import { Resizer } from './components/ui/Resizer.js'
+import { TitleBar } from './components/ui/TitleBar.js'
 import { useUiStore } from './stores/uiStore.js'
 import { useQueueStore } from './stores/queueStore.js'
 import { useSessionStore } from './stores/sessionStore.js'
@@ -193,98 +194,81 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="h-screen w-screen flex bg-bg overflow-hidden">
-      <div className="shrink-0" style={{ width: sidebarWidth }}>
-        <SessionSidebar />
-      </div>
-
-      <Resizer isDragging={isDraggingSidebar} onMouseDown={() => setIsDraggingSidebar(true)} />
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div
-          className={`
-          flex items-center justify-end gap-2 px-4 py-2
-          border-b border-border bg-bg shrink-0
-        `}
-        >
-          <button
-            onClick={() => changeLanguage(language === 'en-US' ? 'zh-CN' : 'en-US')}
-            className={`
-              px-2.5 py-1.5 rounded text-xs font-semibold text-text
-              bg-transparent border-none cursor-pointer
-              hover:bg-hover transition-colors
-            `}
-            title={language === 'en-US' ? 'English' : '中文'}
-          >
-            {language === 'en-US' ? 'EN' : '中文'}
-          </button>
-
-          <button
-            onClick={cycleTheme}
-            className={`
-              p-1.5 rounded bg-transparent border-none cursor-pointer
-              flex items-center justify-center hover:bg-hover transition-colors
-              text-text
-            `}
-            title={
-              theme === 'light'
-                ? t('toolbar.lightMode')
-                : theme === 'dark'
-                  ? t('toolbar.darkMode')
-                  : t('toolbar.system')
-            }
-          >
-            <ThemeIcon />
-          </button>
-
-          <button
-            onClick={() => setQueueDrawerOpen(!queueDrawerOpen)}
-            className={`
-              p-1.5 rounded bg-transparent border-none cursor-pointer
-              flex items-center justify-center hover:bg-hover transition-colors
-              ${queueDrawerOpen ? 'text-accent bg-hover' : 'text-text bg-transparent'}
-              relative
-            `}
-            title={`${queueDrawerOpen ? t('toolbar.hide') : t('toolbar.show')} ${t('toolbar.queue')}${tasks.length > 0 ? ` (${tasks.length})` : ''}`}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+    <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden">
+      <TitleBar
+        childMode={false}
+        title="Rivet"
+        centerContent={
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => changeLanguage(language === 'en-US' ? 'zh-CN' : 'en-US')}
+              className="px-2 py-1 rounded text-[10px] font-semibold text-text bg-transparent border-none cursor-default hover:bg-hover transition-colors"
+              title={language === 'en-US' ? 'English' : '中文'}
             >
-              <line x1="8" y1="6" x2="21" y2="6" />
-              <line x1="8" y1="12" x2="21" y2="12" />
-              <line x1="8" y1="18" x2="21" y2="18" />
-              <line x1="3" y1="6" x2="3.01" y2="6" />
-              <line x1="3" y1="12" x2="3.01" y2="12" />
-              <line x1="3" y1="18" x2="3.01" y2="18" />
-            </svg>
-            {tasks.length > 0 && (
-              <span
-                className={`
-                absolute -top-1 -right-1 text-[10px] font-bold
-                text-white bg-danger rounded-full px-1 min-w-3.5 text-center
-              `}
+              {language === 'en-US' ? 'EN' : '中文'}
+            </button>
+
+            <button
+              onClick={cycleTheme}
+              className="p-1 rounded bg-transparent border-none cursor-default flex items-center justify-center hover:bg-hover transition-colors text-text"
+              title={
+                theme === 'light'
+                  ? t('toolbar.lightMode')
+                  : theme === 'dark'
+                    ? t('toolbar.darkMode')
+                    : t('toolbar.system')
+              }
+            >
+              <ThemeIcon />
+            </button>
+
+            <button
+              onClick={() => setQueueDrawerOpen(!queueDrawerOpen)}
+              className={`p-1 rounded bg-transparent border-none cursor-default flex items-center justify-center hover:bg-hover transition-colors ${queueDrawerOpen ? 'text-accent bg-hover' : 'text-text bg-transparent'} relative`}
+              title={`${queueDrawerOpen ? t('toolbar.hide') : t('toolbar.show')} ${t('toolbar.queue')}${tasks.length > 0 ? ` (${tasks.length})` : ''}`}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
               >
-                {tasks.length}
-              </span>
-            )}
-          </button>
+                <line x1="8" y1="6" x2="21" y2="6" />
+                <line x1="8" y1="12" x2="21" y2="12" />
+                <line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" />
+                <line x1="3" y1="12" x2="3.01" y2="12" />
+                <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+              {tasks.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold text-white bg-danger rounded-full px-1 min-w-3 text-center">
+                  {tasks.length}
+                </span>
+              )}
+            </button>
+          </div>
+        }
+      />
+      <div className="flex-1 flex overflow-hidden">
+        <div className="shrink-0" style={{ width: sidebarWidth }}>
+          <SessionSidebar />
         </div>
 
-        <FileAreaContainer />
+        <Resizer isDragging={isDraggingSidebar} onMouseDown={() => setIsDraggingSidebar(true)} />
+
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <FileAreaContainer />
+        </div>
+
+        {queueDrawerOpen && (
+          <>
+            <Resizer isDragging={isDraggingQueue} onMouseDown={() => setIsDraggingQueue(true)} />
+            <QueueDrawer />
+          </>
+        )}
       </div>
-
-      {queueDrawerOpen && (
-        <>
-          <Resizer isDragging={isDraggingQueue} onMouseDown={() => setIsDraggingQueue(true)} />
-          <QueueDrawer />
-        </>
-      )}
-
       <Toast />
     </div>
   )

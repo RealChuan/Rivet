@@ -1,22 +1,22 @@
 import { ipcMain, app, BrowserWindow } from 'electron'
 import keytar from 'keytar'
-import logger from '../logger.js'
+import logger from '../utils/logger.js'
 
 const SERVICE_NAME = 'RivetCredentials'
 
 export function setupCommonIpcHandlers(): void {
   ipcMain.handle('store-get', async (_, key: string) => {
-    const { getConfigValue } = await import('../store.js')
+    const { getConfigValue } = await import('../utils/store.js')
     return getConfigValue(key)
   })
 
   ipcMain.handle('store-set', async (_, key: string, value: unknown) => {
-    const { setConfigValue } = await import('../store.js')
+    const { setConfigValue } = await import('../utils/store.js')
     setConfigValue(key, value)
   })
 
   ipcMain.handle('store-delete', async (_, key: string) => {
-    const { setConfigValue, defaultUiSettings } = await import('../store.js')
+    const { setConfigValue, defaultUiSettings } = await import('../utils/store.js')
     if (key === 'saved_connections') {
       setConfigValue(key, [])
     } else if (key === 'ui_settings') {
@@ -25,12 +25,12 @@ export function setupCommonIpcHandlers(): void {
   })
 
   ipcMain.handle('get-saved-connections', async () => {
-    const { getSavedConnections } = await import('../store.js')
+    const { getSavedConnections } = await import('../utils/store.js')
     const connections = getSavedConnections()
 
     // 从 keytar 读取密码
     const connectionsWithPassword = await Promise.all(
-      connections.map(async config => {
+      connections.map(async (config: { connectionId: string }) => {
         try {
           const password = await keytar.getPassword(
             SERVICE_NAME,
@@ -47,7 +47,7 @@ export function setupCommonIpcHandlers(): void {
   })
 
   ipcMain.handle('delete-connection', async (_, connectionId: string) => {
-    const { deleteConnection } = await import('../store.js')
+    const { deleteConnection } = await import('../utils/store.js')
     deleteConnection(connectionId)
     await keytar.deletePassword(SERVICE_NAME, `connection_${connectionId}`)
   })

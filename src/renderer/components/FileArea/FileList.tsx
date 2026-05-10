@@ -11,7 +11,7 @@ import FileItem from './FileItem.js'
 import FileContextMenu from './FileContextMenu.js'
 import { FileListLoading, FileListError, FileListEmpty } from './FileListStates.js'
 import ParentDirectoryButton from './ParentDirectoryButton.js'
-import VirtualList from '../VirtualList.js'
+import VirtualList from '../ui/VirtualList.js'
 import { useFileOperations } from '../../hooks/useFileOperations.js'
 import { getParentPath } from '../../utils/utils.js'
 

@@ -6,7 +6,7 @@ import SessionItem from './SessionItem.js'
 import ConnectionDialog from '../dialogs/ConnectionDialog.js'
 import ConfirmDialog from '../dialogs/ConfirmDialog.js'
 import { ConnectionConfig } from '../../../shared/types.js'
-import VirtualList from '../VirtualList.js'
+import VirtualList from '../ui/VirtualList.js'
 
 export const SessionSidebar: React.FC = () => {
   const { t } = useTranslation()
