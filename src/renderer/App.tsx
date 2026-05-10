@@ -4,6 +4,7 @@ import { SessionSidebar } from './components/SessionSidebar/SessionSidebar.js'
 import { FileAreaContainer } from './components/FileArea/FileAreaContainer.js'
 import { QueueDrawer } from './components/QueueDrawer/QueueDrawer.js'
 import { Toast } from './components/Toast.js'
+import { Resizer } from './components/Resizer.js'
 import { useUiStore } from './stores/uiStore.js'
 import { useQueueStore } from './stores/queueStore.js'
 import { useSessionStore } from './stores/sessionStore.js'
@@ -197,27 +198,7 @@ const App: React.FC = () => {
         <SessionSidebar />
       </div>
 
-      <div
-        className={`
-          resizer flex items-center justify-center w-1
-          cursor-col-resize bg-transparent
-          transition-colors duration-150
-        `}
-        onMouseDown={() => setIsDraggingSidebar(true)}
-        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border)')}
-        onMouseLeave={e => {
-          if (!isDraggingSidebar) {
-            e.currentTarget.style.backgroundColor = 'transparent'
-          }
-        }}
-      >
-        <div
-          className={`
-            w-0.5 h-6 bg-text-muted rounded-sm
-            ${isDraggingSidebar ? 'opacity-100' : 'opacity-50'}
-          `}
-        />
-      </div>
+      <Resizer isDragging={isDraggingSidebar} onMouseDown={() => setIsDraggingSidebar(true)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <div
@@ -299,27 +280,7 @@ const App: React.FC = () => {
 
       {queueDrawerOpen && (
         <>
-          <div
-            className={`
-              resizer flex items-center justify-center w-1
-              cursor-col-resize bg-transparent
-              transition-colors duration-150
-            `}
-            onMouseDown={() => setIsDraggingQueue(true)}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--border)')}
-            onMouseLeave={e => {
-              if (!isDraggingQueue) {
-                e.currentTarget.style.backgroundColor = 'transparent'
-              }
-            }}
-          >
-            <div
-              className={`
-              w-0.5 h-6 bg-text-muted rounded-sm
-              ${isDraggingQueue ? 'opacity-100' : 'opacity-50'}
-            `}
-            />
-          </div>
+          <Resizer isDragging={isDraggingQueue} onMouseDown={() => setIsDraggingQueue(true)} />
           <QueueDrawer />
         </>
       )}
