@@ -22,6 +22,7 @@ interface FileItemProps {
   onDoubleClick: () => void
   onContextMenu: (e: React.MouseEvent) => void
   style?: React.CSSProperties
+  isWebdav?: boolean
 }
 
 export const FileItem: React.FC<FileItemProps> = ({
@@ -35,14 +36,17 @@ export const FileItem: React.FC<FileItemProps> = ({
   onDoubleClick,
   onContextMenu,
   style,
+  isWebdav = false,
 }) => {
+  const gapWidth = 6
+  const numGaps = isWebdav ? 3 : 5
   const totalWidth =
     columnWidths.name +
     columnWidths.permissions +
     columnWidths.owner +
     columnWidths.size +
     columnWidths.modifyTime +
-    24
+    gapWidth * numGaps
 
   const nameContent = file.name
   const permissionsContent = file.permissions ?? '-'
@@ -88,22 +92,26 @@ export const FileItem: React.FC<FileItemProps> = ({
         <span className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">{file.name}</span>
       </div>
       <div className="w-1.5" />
-      <div
-        className="px-2.5 text-xs text-text-muted h-full flex items-center"
-        style={{ width: columnWidths.permissions }}
-        title={permissionsContent}
-      >
-        {permissionsContent}
-      </div>
-      <div className="w-1.5" />
-      <div
-        className="px-2.5 text-xs text-text-muted h-full flex items-center"
-        style={{ width: columnWidths.owner }}
-        title={ownerContent}
-      >
-        {ownerContent}
-      </div>
-      <div className="w-1.5" />
+      {!isWebdav && (
+        <>
+          <div
+            className="px-2.5 text-xs text-text-muted h-full flex items-center"
+            style={{ width: columnWidths.permissions }}
+            title={permissionsContent}
+          >
+            {permissionsContent}
+          </div>
+          <div className="w-1.5" />
+          <div
+            className="px-2.5 text-xs text-text-muted h-full flex items-center"
+            style={{ width: columnWidths.owner }}
+            title={ownerContent}
+          >
+            {ownerContent}
+          </div>
+          <div className="w-1.5" />
+        </>
+      )}
       <div
         className="px-2.5 text-xs text-text-muted h-full flex items-center"
         style={{ width: columnWidths.size }}

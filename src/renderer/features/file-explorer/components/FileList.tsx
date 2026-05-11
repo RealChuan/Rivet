@@ -22,8 +22,10 @@ interface FileListProps {
 
 export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) => {
   const { t } = useTranslation()
-  const { sessions, updateCurrentPath, refreshCurrentDirectory } = useSessionStore()
+  const { sessions, connections, updateCurrentPath, refreshCurrentDirectory } = useSessionStore()
   const session = sessions.find(s => s.sessionId === sessionId)
+  const connection = connections.find(c => c.connectionUuid === session?.connectionUuid)
+  const isWebdav = connection?.protocol === 'webdav'
   const containerRef = useRef<HTMLDivElement>(null)
 
   const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null)
@@ -296,9 +298,16 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     const containerWidth = containerRef.current.offsetWidth
     const fixedColumnsWidth = 100
     const modifyTimeWidth = 150
-    const numFixedColumns = 3
     const gapWidth = 6
-    const numGaps = 5
+
+    const { numFixedColumns, numGaps, permissionsWidth, ownerWidth } = isWebdav
+      ? { numFixedColumns: 1, numGaps: 3, permissionsWidth: 0, ownerWidth: 0 }
+      : {
+          numFixedColumns: 3,
+          numGaps: 5,
+          permissionsWidth: fixedColumnsWidth,
+          ownerWidth: fixedColumnsWidth,
+        }
 
     const totalFixedWidth =
       fixedColumnsWidth * numFixedColumns + modifyTimeWidth + gapWidth * numGaps
@@ -306,12 +315,12 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
 
     setColumnWidths({
       name: nameWidth,
-      permissions: fixedColumnsWidth,
-      owner: fixedColumnsWidth,
+      permissions: permissionsWidth,
+      owner: ownerWidth,
       size: fixedColumnsWidth,
       modifyTime: modifyTimeWidth,
     })
-  }, [])
+  }, [isWebdav])
 
   useEffect(() => {
     calculateColumnWidths()
@@ -478,13 +487,15 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     )
   }
 
+  const gapWidth = 6
+  const numGaps = isWebdav ? 3 : 5
   const totalWidth =
     columnWidths.name +
     columnWidths.permissions +
     columnWidths.owner +
     columnWidths.size +
     columnWidths.modifyTime +
-    24
+    gapWidth * numGaps
 
   return (
     <div className="flex flex-col h-full" style={{ width: '100%', minWidth: totalWidth }}>
@@ -494,6 +505,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         sortOrder={sortOrder}
         onSort={handleSort}
         onResizeStart={handleResizeStart}
+        isWebdav={isWebdav}
       />
 
       <div
@@ -541,6 +553,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
                   handleContextMenu(e, file)
                 }}
                 style={style}
+                isWebdav={isWebdav}
               />
             )}
           />

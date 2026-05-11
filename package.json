@@ -4,8 +4,32 @@
   "type": "module",
   "description": "Electron SFTP/WebDAV 文件浏览器",
   "main": "dist/main/app/main.js",
-  "author": "Rivet Team",
-  "license": "MIT",
+  "author": {
+    "name": "RealChuan",
+    "url": "https://github.com/RealChuan"
+  },
+  "license": "GPL-3.0",
+  "homepage": "https://github.com/RealChuan/Rivet#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RealChuan/Rivet.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RealChuan/Rivet/issues"
+  },
+  "keywords": [
+    "electron",
+    "sftp",
+    "webdav",
+    "file-manager",
+    "file-browser",
+    "react",
+    "vite",
+    "tailwindcss"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
     "dev:vite": "vite",
@@ -125,7 +149,7 @@
         }
       ],
       "category": "Utility",
-      "maintainer": "Rivet Team"
+      "maintainer": "RealChuan"
     },
     "mac": {
       "target": [

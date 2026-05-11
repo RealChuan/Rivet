@@ -15,6 +15,7 @@ interface FileListHeaderProps {
   sortOrder: 'asc' | 'desc'
   onSort: (column: 'name' | 'permissions' | 'owner' | 'size' | 'modifyTime') => void
   onResizeStart: (column: string, x: number, width: number) => void
+  isWebdav?: boolean
 }
 
 export const FileListHeader: React.FC<FileListHeaderProps> = ({
@@ -23,6 +24,7 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
   sortOrder,
   onSort,
   onResizeStart,
+  isWebdav = false,
 }) => {
   const { t } = useTranslation()
 
@@ -88,20 +90,24 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
         </HeaderButton>
       </div>
       <ColumnResizer column="name" />
-      <div className="pl-2.5" style={{ width: columnWidths.permissions }}>
-        <HeaderButton onClick={() => onSort('permissions')}>
-          {t('fileList.permissions')}
-          <SortIcon column="permissions" />
-        </HeaderButton>
-      </div>
-      <ColumnResizer column="permissions" />
-      <div className="pl-2.5" style={{ width: columnWidths.owner }}>
-        <HeaderButton onClick={() => onSort('owner')}>
-          {t('fileList.owner')}
-          <SortIcon column="owner" />
-        </HeaderButton>
-      </div>
-      <ColumnResizer column="owner" />
+      {!isWebdav && (
+        <>
+          <div className="pl-2.5" style={{ width: columnWidths.permissions }}>
+            <HeaderButton onClick={() => onSort('permissions')}>
+              {t('fileList.permissions')}
+              <SortIcon column="permissions" />
+            </HeaderButton>
+          </div>
+          <ColumnResizer column="permissions" />
+          <div className="pl-2.5" style={{ width: columnWidths.owner }}>
+            <HeaderButton onClick={() => onSort('owner')}>
+              {t('fileList.owner')}
+              <SortIcon column="owner" />
+            </HeaderButton>
+          </div>
+          <ColumnResizer column="owner" />
+        </>
+      )}
       <div className="pl-2.5" style={{ width: columnWidths.size }}>
         <HeaderButton onClick={() => onSort('size')}>
           {t('fileList.size')}

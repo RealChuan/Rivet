@@ -248,7 +248,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
       const fullTargetPath = this.getFullPath(sessionId, targetPath)
 
       // webdav-client 的 copyFile 默认支持递归复制文件夹（Depth: "infinity"）
-      await handle.client.copyFile(fullSourcePath, fullTargetPath)
+      await handle.client.copyFile(fullSourcePath, fullTargetPath, { overwrite: true })
       this.logOperation('copy completed', sourcePath, targetPath)
     } catch (error) {
       this.logOperation('copy failed', sourcePath, targetPath, error)
