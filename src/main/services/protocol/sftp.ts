@@ -2,9 +2,10 @@ import Client from 'ssh2-sftp-client'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
 import { generateSessionId } from '@shared/utils/index.js'
 import { BaseProtocolImpl } from './base.js'
+import { sessionManager } from './session-manager.js'
 
 export class SftpProtocol extends BaseProtocolImpl<Client> {
-  protected protocolName = 'sftp'
+  readonly protocolType = 'sftp' as const
 
   override async connect(config: ConnectionConfig): Promise<string> {
     const client = new Client()
@@ -19,31 +20,34 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
         readyTimeout: 20000,
       })
 
-      this.sessions.set(sessionId, { client, config })
+      sessionManager.register(sessionId, client, config, 'sftp')
       this.logOperation('connected', `${config.host}:${config.port}`, sessionId)
 
       return sessionId
     } catch (error) {
       this.logOperation('connection failed', '', '', error)
-      await client.end()
+      await client.end().catch(() => {})
       throw error
     }
   }
 
   override async disconnect(sessionId: string): Promise<void> {
-    const handle = this.sessions.get(sessionId)
-    if (handle) {
-      await handle.client.end()
+    try {
+      const client = this.getClient(sessionId)
+      await client.end()
+    } catch {
+      // 连接可能已断开，忽略错误
+    } finally {
+      sessionManager.unregister(sessionId)
+      this.logOperation('disconnected', sessionId, '')
     }
-    await super.disconnect(sessionId)
-    this.logOperation('disconnected', sessionId, '')
   }
 
   override async list(sessionId: string, remotePath: string): Promise<FileInfo[]> {
-    const handle = this.getSessionHandle(sessionId)
+    const client = this.getClient(sessionId)
 
     try {
-      const list = (await handle.client.list(remotePath)) as unknown as Array<{
+      const list = (await client.list(remotePath)) as unknown as Array<{
         name: string
         type: string
         size: number
@@ -76,7 +80,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
         const itemName = typeof item.name === 'string' ? item.name : ''
         const absolutePath = this.joinPaths(remotePath, itemName)
         const fileType = item.type === 'd' ? 'directory' : 'file'
-        const safeFileInfo: FileInfo = {
+        return {
           name: itemName,
           type: fileType,
           size: typeof item.size === 'number' ? item.size : 0,
@@ -85,7 +89,6 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
           owner,
           absolutePath,
         }
-        return safeFileInfo
       })
     } catch (error) {
       this.logOperation('list failed', remotePath, '', error)
@@ -100,14 +103,14 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     onProgress: (percent: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const client = this.getClient(sessionId)
     const abortState = this.setupAbortHandler(signal)
 
     try {
       const fs = await import('fs')
       const totalSize = (await fs.promises.stat(localPath)).size
 
-      await handle.client.fastPut(localPath, remotePath, {
+      await client.fastPut(localPath, remotePath, {
         step: (totalTransferred: number) => {
           if (abortState.aborted) {
             throw new Error('Upload cancelled')
@@ -138,13 +141,13 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     onProgress: (percent: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const client = this.getClient(sessionId)
     const abortState = this.setupAbortHandler(signal)
 
     try {
       const totalSize = file.size || 0
 
-      await handle.client.fastGet(file.absolutePath, localPath, {
+      await client.fastGet(file.absolutePath, localPath, {
         step: (totalTransferred: number) => {
           if (abortState.aborted) {
             throw new Error('Download cancelled')
@@ -169,10 +172,10 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
   }
 
   override async mkdir(sessionId: string, path: string): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const client = this.getClient(sessionId)
 
     try {
-      await handle.client.mkdir(path, true)
+      await client.mkdir(path, true)
       this.logOperation('mkdir', path, '')
     } catch (error) {
       this.logOperation('mkdir failed', path, '', error)
@@ -181,11 +184,11 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
   }
 
   override async rename(sessionId: string, file: FileInfo, newName: string): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const client = this.getClient(sessionId)
 
     try {
       const newPath = file.absolutePath.replace(/\/[^/]+$/, `/${newName}`)
-      await handle.client.rename(file.absolutePath, newPath)
+      await client.rename(file.absolutePath, newPath)
       this.logOperation('rename', file.name, newName)
     } catch (error) {
       this.logOperation('rename failed', file.name, newName, error)
@@ -194,14 +197,14 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
   }
 
   override async delete(sessionId: string, files: FileInfo[]): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const client = this.getClient(sessionId)
 
     try {
       for (const file of files) {
         if (file.type === 'directory') {
-          await handle.client.rmdir(file.absolutePath, true)
+          await client.rmdir(file.absolutePath, true)
         } else {
-          await handle.client.delete(file.absolutePath)
+          await client.delete(file.absolutePath)
         }
         this.logOperation('delete', file.absolutePath, '')
       }
@@ -212,14 +215,14 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
   }
 
   override async copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const client = this.getClient(sessionId)
     const sourcePath = file.absolutePath
 
     try {
       if (file.type === 'directory') {
-        await this.copyDirectory(handle.client, sourcePath, targetPath)
+        await this.copyDirectory(client, sourcePath, targetPath)
       } else {
-        await handle.client.rcopy(sourcePath, targetPath)
+        await client.rcopy(sourcePath, targetPath)
       }
       this.logOperation('copy completed', sourcePath, targetPath)
     } catch (error) {
@@ -229,17 +232,17 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
   }
 
   override async move(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const client = this.getClient(sessionId)
     const sourcePath = file.absolutePath
 
     try {
       try {
-        await handle.client.stat(targetPath)
-        await handle.client.delete(targetPath)
+        await client.stat(targetPath)
+        await client.delete(targetPath)
       } catch {
-        // ignore if target does not exist
+        // target does not exist, ignore
       }
-      await handle.client.rename(sourcePath, targetPath)
+      await client.rename(sourcePath, targetPath)
       this.logOperation('move completed', sourcePath, targetPath)
     } catch (error) {
       this.logOperation('move failed', sourcePath, targetPath, error)

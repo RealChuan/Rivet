@@ -1,4 +1,6 @@
-export { FileProtocol, BaseProtocolImpl, SessionHandle } from './base.js'
-export { ProtocolFactory } from './factory.js'
+export { FileProtocol, BaseProtocolImpl, type SessionHandle } from './base.js'
+export { type ProtocolType } from '@shared/types/index.js'
+export { sessionManager } from './session-manager.js'
 export { SftpProtocol } from './sftp.js'
 export { WebdavProtocol } from './webdav.js'
+export { ProtocolFactory } from './factory.js'

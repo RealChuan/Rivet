@@ -1,64 +1,109 @@
 import { createClient, type WebDAVClient, type FileStat } from 'webdav'
 import path from 'path'
-import { type FileInfo, type ConnectionConfig } from '@shared/types/index.js'
+import http from 'node:http'
+import https from 'node:https'
+import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
 import { generateSessionId } from '@shared/utils/index.js'
 import { BaseProtocolImpl } from './base.js'
+import { sessionManager } from './session-manager.js'
 
-export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
-  protected protocolName = 'webdav'
+interface WebDAVSession {
+  client: WebDAVClient
+  controller: AbortController
+  httpAgent?: http.Agent
+  httpsAgent?: https.Agent
+}
+
+export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
+  readonly protocolType = 'webdav' as const
 
   override async connect(config: ConnectionConfig): Promise<string> {
     const sessionId = generateSessionId('webdav')
     const useScheme = config.scheme ?? 'https'
-
     const url = `${useScheme}://${config.host}:${config.port}`
+
+    // 创建连接池 Agent
+    const httpAgent = new http.Agent({
+      keepAlive: true,
+      maxSockets: 10,
+      maxFreeSockets: 5,
+      timeout: 30000,
+    })
+
+    const httpsAgent = new https.Agent({
+      keepAlive: true,
+      maxSockets: 10,
+      maxFreeSockets: 5,
+      timeout: 30000,
+      rejectUnauthorized: config.rejectUnauthorized ?? true,
+    })
+
+    // 创建统一的 AbortController 用于这个会话的所有请求
+    const controller = new AbortController()
 
     const client = createClient(url, {
       username: config.username,
       password: config.password ?? '',
-      httpsAgent:
-        useScheme === 'https' && config.rejectUnauthorized === false
-          ? new (await import('https')).Agent({ rejectUnauthorized: false })
-          : undefined,
+      httpAgent: useScheme === 'http' ? httpAgent : undefined,
+      httpsAgent: useScheme === 'https' ? httpsAgent : undefined,
     })
 
     // 验证连接是否有效 - 尝试列出根目录
     try {
       const testPath = config.basePath ?? '/'
-      await client.getDirectoryContents(testPath)
+      await client.getDirectoryContents(testPath, { signal: controller.signal })
     } catch (error) {
       this.logOperation('connection failed', `${config.host}:${config.port}`, '', error)
+      httpAgent.destroy()
+      httpsAgent.destroy()
       throw error
     }
 
-    this.sessions.set(sessionId, {
-      client,
-      config,
-    })
+    const session: WebDAVSession = { client, controller, httpAgent, httpsAgent }
+    sessionManager.register(sessionId, session, config, 'webdav')
     this.logOperation(
       'connected',
       `${config.host}:${config.port} (${sessionId})`,
-      `basePath: ${config.basePath ?? '/'}`,
-      `rejectUnauthorized: ${config.rejectUnauthorized !== false}`
+      `basePath: ${config.basePath ?? '/'}`
     )
 
     return sessionId
   }
 
+  override disconnect(sessionId: string): Promise<void> {
+    try {
+      const session = this.getClient(sessionId)
+      // 第一步：取消所有进行中的请求
+      session.controller.abort()
+      // 第二步：销毁连接池
+      session.httpAgent?.destroy()
+      session.httpsAgent?.destroy()
+    } catch {
+      // 连接可能已断开，忽略错误
+    } finally {
+      sessionManager.unregister(sessionId)
+      this.logOperation('disconnected', sessionId, '')
+    }
+    return Promise.resolve()
+  }
+
   private getFullPath(sessionId: string, remotePath: string): string {
-    const handle = this.getSessionHandle(sessionId)
-    const basePath = handle.config.basePath ?? '/'
-    return path.posix.join(basePath, remotePath)
+    const config = this.getSessionConfig(sessionId)
+    const basePath = config?.basePath ?? '/'
+    const normalizedRemote = remotePath.startsWith('/') ? remotePath.slice(1) : remotePath
+    return path.posix.join(basePath, normalizedRemote)
   }
 
   override async list(sessionId: string, remotePath: string): Promise<FileInfo[]> {
-    const handle = this.getSessionHandle(sessionId)
+    const session = this.getClient(sessionId)
     const fullPath = this.getFullPath(sessionId, remotePath)
 
     try {
-      const response = await handle.client.getDirectoryContents(fullPath)
+      const response = await session.client.getDirectoryContents(fullPath, {
+        signal: session.controller.signal,
+      })
 
-      const result = response.map((item: FileStat): FileInfo => {
+      return response.map((item: FileStat): FileInfo => {
         const itemName = path.basename(item.filename)
         const absolutePath = this.joinPaths(remotePath, itemName)
         const fileType = item.type === 'directory' ? 'directory' : 'file'
@@ -72,8 +117,6 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
           absolutePath,
         }
       })
-
-      return result
     } catch (error) {
       this.logOperation('list failed', fullPath, '', error)
       throw error
@@ -87,7 +130,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
     onProgress: (percent: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const session = this.getClient(sessionId)
     const fullPath = this.getFullPath(sessionId, remotePath)
     const abortState = this.setupAbortHandler(signal)
 
@@ -104,7 +147,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
         })
       }
 
-      await handle.client.putFileContents(fullPath, readStream, {
+      await session.client.putFileContents(fullPath, readStream, {
         onUploadProgress: (progress: { loaded: number }) => {
           if (abortState.aborted) {
             readStream.destroy()
@@ -113,6 +156,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
           transferred = progress.loaded ?? 0
           onProgress(this.calculateProgress(transferred, totalSize))
         },
+        signal: session.controller.signal,
       })
 
       if (abortState.aborted) {
@@ -137,14 +181,15 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
     onProgress: (percent: number) => void,
     signal?: AbortSignal
   ): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const session = this.getClient(sessionId)
     const fullPath = this.getFullPath(sessionId, file.absolutePath)
     const abortState = this.setupAbortHandler(signal)
 
     try {
       const fs = await import('fs')
-
-      const stat = (await handle.client.stat(fullPath)) as FileStat
+      const stat = (await session.client.stat(fullPath, {
+        signal: session.controller.signal,
+      })) as FileStat
       const totalSize = stat.size || 0
       let transferred = 0
 
@@ -157,7 +202,9 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
       }
 
       await new Promise<void>((resolve, reject) => {
-        const readStream = handle.client.createReadStream(fullPath)
+        const readStream = session.client.createReadStream(fullPath, {
+          signal: session.controller.signal,
+        })
 
         readStream
           .on('data', (chunk: Buffer) => {
@@ -189,12 +236,15 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
     }
   }
 
-  override async mkdir(sessionId: string, path: string): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
-    const fullPath = this.getFullPath(sessionId, path)
+  override async mkdir(sessionId: string, dirPath: string): Promise<void> {
+    const session = this.getClient(sessionId)
+    const fullPath = this.getFullPath(sessionId, dirPath)
 
     try {
-      await handle.client.createDirectory(fullPath, { recursive: true })
+      await session.client.createDirectory(fullPath, {
+        recursive: true,
+        signal: session.controller.signal,
+      })
       this.logOperation('mkdir', fullPath, '')
     } catch (error) {
       this.logOperation('mkdir failed', fullPath, '', error)
@@ -203,14 +253,13 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
   }
 
   override async rename(sessionId: string, file: FileInfo, newName: string): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
-
+    const session = this.getClient(sessionId)
     const fullOldPath = this.getFullPath(sessionId, file.absolutePath)
     const newPath = file.absolutePath.replace(/\/[^/]+$/, `/${newName}`)
     const fullNewPath = this.getFullPath(sessionId, newPath)
 
     try {
-      await handle.client.moveFile(fullOldPath, fullNewPath)
+      await session.client.moveFile(fullOldPath, fullNewPath, { signal: session.controller.signal })
       this.logOperation('rename', file.name, newName)
     } catch (error) {
       this.logOperation('rename failed', file.name, newName, error)
@@ -219,13 +268,12 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
   }
 
   override async delete(sessionId: string, files: FileInfo[]): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const session = this.getClient(sessionId)
 
     try {
       for (const file of files) {
         const fullPath = this.getFullPath(sessionId, file.absolutePath)
-        // webdav-client 的 deleteFile 支持删除文件和文件夹
-        await handle.client.deleteFile(fullPath)
+        await session.client.deleteFile(fullPath, { signal: session.controller.signal })
         this.logOperation('delete', fullPath, '')
       }
     } catch (error) {
@@ -235,15 +283,17 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
   }
 
   override async copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const session = this.getClient(sessionId)
     const sourcePath = file.absolutePath
 
     try {
       const fullSourcePath = this.getFullPath(sessionId, sourcePath)
       const fullTargetPath = this.getFullPath(sessionId, targetPath)
 
-      // webdav-client 的 copyFile 默认支持递归复制文件夹（Depth: "infinity"）
-      await handle.client.copyFile(fullSourcePath, fullTargetPath, { overwrite: true })
+      await session.client.copyFile(fullSourcePath, fullTargetPath, {
+        overwrite: true,
+        signal: session.controller.signal,
+      })
       this.logOperation('copy completed', sourcePath, targetPath)
     } catch (error) {
       this.logOperation('copy failed', sourcePath, targetPath, error)
@@ -252,15 +302,16 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
   }
 
   override async move(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
-    const handle = this.getSessionHandle(sessionId)
+    const session = this.getClient(sessionId)
     const sourcePath = file.absolutePath
 
     try {
       const fullSourcePath = this.getFullPath(sessionId, sourcePath)
       const fullTargetPath = this.getFullPath(sessionId, targetPath)
 
-      // webdav-client 的 moveFile 默认支持递归移动文件夹（Depth: "infinity"）
-      await handle.client.moveFile(fullSourcePath, fullTargetPath)
+      await session.client.moveFile(fullSourcePath, fullTargetPath, {
+        signal: session.controller.signal,
+      })
       this.logOperation('move completed', sourcePath, targetPath)
     } catch (error) {
       this.logOperation('move failed', sourcePath, targetPath, error)

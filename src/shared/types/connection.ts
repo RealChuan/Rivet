@@ -1,7 +1,9 @@
+export type ProtocolType = 'sftp' | 'webdav'
+
 export interface ConnectionConfig {
   connectionUuid: string
   name: string
-  protocol: 'sftp' | 'webdav'
+  protocol: ProtocolType
   host: string
   port: number
   username: string

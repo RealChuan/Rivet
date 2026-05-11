@@ -1,6 +1,7 @@
-import { type FileInfo, type ConnectionConfig } from '@shared/types/index.js'
+import { type FileInfo, type ConnectionConfig, type ProtocolType } from '@shared/types/index.js'
 import { normalizePath, joinPaths } from '@shared/utils/index.js'
 import logger from '../../utils/logger.js'
+import { sessionManager } from './session-manager.js'
 
 export interface FileProtocol {
   connect(config: ConnectionConfig): Promise<string>
@@ -27,16 +28,24 @@ export interface FileProtocol {
   move(sessionId: string, file: FileInfo, targetPath: string): Promise<void>
 }
 
-export abstract class BaseProtocolImpl<T> implements FileProtocol {
-  protected sessions: Map<string, SessionHandle<T>> = new Map()
-  protected abstract protocolName: string
+export interface SessionHandle<T = unknown> {
+  client: T
+  config: ConnectionConfig
+}
 
-  protected getSessionHandle(sessionId: string): SessionHandle<T> {
-    const handle = this.sessions.get(sessionId)
+export abstract class BaseProtocolImpl<T> implements FileProtocol {
+  abstract readonly protocolType: ProtocolType
+
+  protected getClient(sessionId: string): T {
+    const handle = sessionManager.get<T>(sessionId, this.protocolType)
     if (!handle) {
-      throw new Error(`Session not found: ${sessionId}`)
+      throw new Error(`Invalid ${this.protocolType} session: ${sessionId}`)
     }
-    return handle
+    return handle.client
+  }
+
+  protected getSessionConfig(sessionId: string): ConnectionConfig | undefined {
+    return sessionManager.get(sessionId, this.protocolType)?.config
   }
 
   protected calculateProgress(transferred: number, totalSize: number): number {
@@ -58,7 +67,7 @@ export abstract class BaseProtocolImpl<T> implements FileProtocol {
   }
 
   protected logOperation(operation: string, source: string, target: string, error?: unknown): void {
-    const prefix = `${this.protocolName.toUpperCase()}`
+    const prefix = this.protocolType.toUpperCase()
     if (error) {
       const errorMsg = error instanceof Error ? error.message : JSON.stringify(error)
       logger.error(`${prefix} ${operation} failed: ${source} -> ${target} - ${errorMsg}`)
@@ -68,7 +77,7 @@ export abstract class BaseProtocolImpl<T> implements FileProtocol {
   }
 
   protected logCancelled(operation: string, path: string): void {
-    logger.info(`${this.protocolName.toUpperCase()} ${operation} cancelled: ${path}`)
+    logger.info(`${this.protocolType.toUpperCase()} ${operation} cancelled: ${path}`)
   }
 
   connect(_config: ConnectionConfig): Promise<string> {
@@ -76,7 +85,7 @@ export abstract class BaseProtocolImpl<T> implements FileProtocol {
   }
 
   disconnect(sessionId: string): Promise<void> {
-    this.sessions.delete(sessionId)
+    sessionManager.unregister(sessionId)
     return Promise.resolve()
   }
 
@@ -123,11 +132,6 @@ export abstract class BaseProtocolImpl<T> implements FileProtocol {
   move(_sessionId: string, _file: FileInfo, _targetPath: string): Promise<void> {
     return Promise.reject(new Error('Not implemented'))
   }
-}
-
-export interface SessionHandle<T> {
-  client: T
-  config: ConnectionConfig
 }
 
 export default FileProtocol

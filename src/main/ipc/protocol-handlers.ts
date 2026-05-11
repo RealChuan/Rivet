@@ -1,10 +1,11 @@
 import { ipcMain, type BrowserWindow } from 'electron'
 import keytar from 'keytar'
 import { ProtocolFactory } from '../services/protocol/factory.js'
+import { sessionManager } from '../services/protocol/session-manager.js'
 import { logger } from '../utils/index.js'
 import { SERVICE_NAME, MAIN_WINDOW_ID } from '@shared/constants/index.js'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
-import { activeConnections, transferControllers } from '../stores/index.js'
+import { transferControllers } from '../stores/index.js'
 import { WindowManager } from '../app/window-factory.js'
 
 function getMainWindow(): BrowserWindow | null {
@@ -14,28 +15,21 @@ function getMainWindow(): BrowserWindow | null {
 export function setupProtocolIpcHandlers(): void {
   ipcMain.handle('connect', async (_, config: ConnectionConfig) => {
     try {
-      const fullConfig = config
-
-      if (fullConfig.password) {
+      if (config.password) {
         await keytar.setPassword(
           SERVICE_NAME,
-          `connection_${fullConfig.connectionUuid}`,
-          fullConfig.password
+          `connection_${config.connectionUuid}`,
+          config.password
         )
       }
 
-      const protocolImpl = ProtocolFactory.getProtocol(fullConfig.protocol)
-      const sessionId = await protocolImpl.connect(fullConfig)
-
-      activeConnections.set(sessionId, {
-        sessionId,
-        config: fullConfig,
-      })
+      const protocol = ProtocolFactory.getProtocol(config.protocol)
+      const sessionId = await protocol.connect(config)
 
       const { saveConnection } = await import('../stores/index.js')
-      saveConnection(fullConfig)
+      saveConnection(config)
 
-      logger.info(`Connection established: ${fullConfig.name} (${fullConfig.connectionUuid})`)
+      logger.info(`Connection established: ${config.name} (${config.connectionUuid})`)
       return sessionId
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
@@ -46,13 +40,16 @@ export function setupProtocolIpcHandlers(): void {
 
   ipcMain.handle('disconnect', async (_, sessionId: string) => {
     try {
-      const handle = activeConnections.get(sessionId)
-      if (handle) {
-        const protocolImpl = ProtocolFactory.getProtocol(handle.config.protocol)
-        await protocolImpl.disconnect(sessionId)
-        activeConnections.delete(sessionId)
-        logger.info(`Disconnected: ${sessionId}`)
+      const handle =
+        sessionManager.get(sessionId, 'sftp') ?? sessionManager.get(sessionId, 'webdav')
+      if (!handle) {
+        logger.warn(`Session not found for disconnect: ${sessionId}`)
+        return
       }
+
+      const protocol = ProtocolFactory.getProtocol(handle.protocolType)
+      await protocol.disconnect(sessionId)
+      logger.info(`Disconnected: ${sessionId}`)
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logger.error(`Disconnect failed: ${errMsg}`)
@@ -62,12 +59,13 @@ export function setupProtocolIpcHandlers(): void {
 
   ipcMain.handle('list', async (_, sessionId: string, remotePath: string) => {
     try {
-      const handle = activeConnections.get(sessionId)
+      const handle =
+        sessionManager.get(sessionId, 'sftp') ?? sessionManager.get(sessionId, 'webdav')
       if (!handle) {
         throw new Error(`Connection not found: ${sessionId}`)
       }
-      const protocolImpl = ProtocolFactory.getProtocol(handle.config.protocol)
-      return await protocolImpl.list(sessionId, remotePath)
+      const protocol = ProtocolFactory.getProtocol(handle.protocolType)
+      return await protocol.list(sessionId, remotePath)
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logger.error(`List directory failed: ${remotePath} - ${errMsg}`)
@@ -77,12 +75,13 @@ export function setupProtocolIpcHandlers(): void {
 
   ipcMain.handle('mkdir', async (_, sessionId: string, remotePath: string) => {
     try {
-      const handle = activeConnections.get(sessionId)
+      const handle =
+        sessionManager.get(sessionId, 'sftp') ?? sessionManager.get(sessionId, 'webdav')
       if (!handle) {
         throw new Error(`Connection not found: ${sessionId}`)
       }
-      const protocolImpl = ProtocolFactory.getProtocol(handle.config.protocol)
-      await protocolImpl.mkdir(sessionId, remotePath)
+      const protocol = ProtocolFactory.getProtocol(handle.protocolType)
+      await protocol.mkdir(sessionId, remotePath)
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logger.error(`Create directory failed: ${remotePath} - ${errMsg}`)
@@ -92,12 +91,13 @@ export function setupProtocolIpcHandlers(): void {
 
   ipcMain.handle('rename', async (_, sessionId: string, file: FileInfo, newName: string) => {
     try {
-      const handle = activeConnections.get(sessionId)
+      const handle =
+        sessionManager.get(sessionId, 'sftp') ?? sessionManager.get(sessionId, 'webdav')
       if (!handle) {
         throw new Error(`Connection not found: ${sessionId}`)
       }
-      const protocolImpl = ProtocolFactory.getProtocol(handle.config.protocol)
-      await protocolImpl.rename(sessionId, file, newName)
+      const protocol = ProtocolFactory.getProtocol(handle.protocolType)
+      await protocol.rename(sessionId, file, newName)
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logger.error(`Rename failed: ${file.name} -> ${newName} - ${errMsg}`)
@@ -107,12 +107,13 @@ export function setupProtocolIpcHandlers(): void {
 
   ipcMain.handle('delete', async (_, sessionId: string, files: FileInfo[]) => {
     try {
-      const handle = activeConnections.get(sessionId)
+      const handle =
+        sessionManager.get(sessionId, 'sftp') ?? sessionManager.get(sessionId, 'webdav')
       if (!handle) {
         throw new Error(`Connection not found: ${sessionId}`)
       }
-      const protocolImpl = ProtocolFactory.getProtocol(handle.config.protocol)
-      await protocolImpl.delete(sessionId, files)
+      const protocol = ProtocolFactory.getProtocol(handle.protocolType)
+      await protocol.delete(sessionId, files)
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logger.error(`Delete failed - ${errMsg}`)
@@ -122,12 +123,13 @@ export function setupProtocolIpcHandlers(): void {
 
   ipcMain.handle('copy', async (_, sessionId: string, file: FileInfo, targetPath: string) => {
     try {
-      const handle = activeConnections.get(sessionId)
+      const handle =
+        sessionManager.get(sessionId, 'sftp') ?? sessionManager.get(sessionId, 'webdav')
       if (!handle) {
         throw new Error(`Connection not found: ${sessionId}`)
       }
-      const protocolImpl = ProtocolFactory.getProtocol(handle.config.protocol)
-      await protocolImpl.copy(sessionId, file, targetPath)
+      const protocol = ProtocolFactory.getProtocol(handle.protocolType)
+      await protocol.copy(sessionId, file, targetPath)
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logger.error(`Copy failed: ${file.absolutePath} -> ${targetPath} - ${errMsg}`)
@@ -137,12 +139,13 @@ export function setupProtocolIpcHandlers(): void {
 
   ipcMain.handle('move', async (_, sessionId: string, file: FileInfo, targetPath: string) => {
     try {
-      const handle = activeConnections.get(sessionId)
+      const handle =
+        sessionManager.get(sessionId, 'sftp') ?? sessionManager.get(sessionId, 'webdav')
       if (!handle) {
         throw new Error(`Connection not found: ${sessionId}`)
       }
-      const protocolImpl = ProtocolFactory.getProtocol(handle.config.protocol)
-      await protocolImpl.move(sessionId, file, targetPath)
+      const protocol = ProtocolFactory.getProtocol(handle.protocolType)
+      await protocol.move(sessionId, file, targetPath)
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logger.error(`Move failed: ${file.absolutePath} -> ${targetPath} - ${errMsg}`)
@@ -158,13 +161,16 @@ export function setupProtocolIpcHandlers(): void {
       transferControllers.set(transferId, abortController)
 
       try {
-        const handle = activeConnections.get(sessionId)
+        const handle =
+          sessionManager.get(sessionId, 'sftp') ?? sessionManager.get(sessionId, 'webdav')
         if (!handle) {
           throw new Error(`Connection not found: ${sessionId}`)
         }
 
-        const protocolImpl = ProtocolFactory.getProtocol(handle.config.protocol)
-        await protocolImpl.uploadFile(
+        const protocol = ProtocolFactory.getProtocol(handle.protocolType)
+        const config = handle.config
+
+        await protocol.uploadFile(
           sessionId,
           localPath,
           remotePath,
@@ -173,7 +179,7 @@ export function setupProtocolIpcHandlers(): void {
             if (mainWindow) {
               mainWindow.webContents.send('transfer-progress', {
                 transferId,
-                connectionUuid: handle.config.connectionUuid,
+                connectionUuid: config.connectionUuid,
                 operation: 'upload' as const,
                 path: remotePath,
                 percent,
@@ -202,13 +208,16 @@ export function setupProtocolIpcHandlers(): void {
       transferControllers.set(transferId, abortController)
 
       try {
-        const handle = activeConnections.get(sessionId)
+        const handle =
+          sessionManager.get(sessionId, 'sftp') ?? sessionManager.get(sessionId, 'webdav')
         if (!handle) {
           throw new Error(`Connection not found: ${sessionId}`)
         }
 
-        const protocolImpl = ProtocolFactory.getProtocol(handle.config.protocol)
-        await protocolImpl.downloadFile(
+        const protocol = ProtocolFactory.getProtocol(handle.protocolType)
+        const config = handle.config
+
+        await protocol.downloadFile(
           sessionId,
           file,
           localPath,
@@ -217,7 +226,7 @@ export function setupProtocolIpcHandlers(): void {
             if (mainWindow) {
               mainWindow.webContents.send('transfer-progress', {
                 transferId,
-                connectionUuid: handle.config.connectionUuid,
+                connectionUuid: config.connectionUuid,
                 operation: 'download',
                 path: file.absolutePath,
                 percent,
