@@ -78,9 +78,10 @@ export const useUiStore = create<UiStore>((set, get) => ({
     }))
 
     if (toast.duration !== 0) {
+      const duration = toast.duration ?? (toast.type === 'error' ? 6000 : 3000)
       setTimeout(() => {
         get().removeToast(id)
-      }, toast.duration ?? 3000)
+      }, duration)
     }
   },
 

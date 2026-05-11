@@ -83,6 +83,7 @@
       "upload": "Upload"
     },
     "sidebar": {
+      "connect": "Connect",
       "connections": "Connections",
       "delete": "Delete",
       "disconnect": "Disconnect",
@@ -94,8 +95,8 @@
     },
     "toast": {
       "cannotMoveToSelf": "Cannot move folder to itself or its subfolder",
-      "connectionFailed": "Connection failed",
-      "connectionSuccess": "Connected successfully",
+      "connectionFailed": "{{protocol}} connection \"{{name}}\" failed",
+      "connectionSuccess": "{{protocol}} connection \"{{name}}\" connected",
       "copyFailed": "Copy failed",
       "copySuccess": "Copied successfully",
       "createFolderFailed": "Failed to create folder",
@@ -103,7 +104,8 @@
       "deleteConnectionSuccess": "Connection deleted",
       "deleteFailed": "Delete failed",
       "deleteSuccess": "Deleted successfully",
-      "disconnectSuccess": "Disconnected",
+      "disconnectFailed": "Failed to disconnect {{protocol}} connection \"{{name}}\"",
+      "disconnectSuccess": "{{protocol}} connection \"{{name}}\" disconnected",
       "downloadFailed": "Download failed",
       "moveFailed": "Move failed",
       "moveSuccess": "Moved successfully",

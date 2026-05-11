@@ -32,32 +32,55 @@ export const SessionSidebar: React.FC = () => {
     setConnectionDialogOpen(true)
   }
 
+  const showConnectionToast = (
+    type: 'success' | 'error',
+    config: { protocol: string; name: string }
+  ) => {
+    addToast({
+      type,
+      message: t(`toast.connection${type === 'success' ? 'Success' : 'Failed'}`, {
+        protocol: config.protocol.toUpperCase(),
+        name: config.name,
+      }),
+    })
+  }
+
   const handleSaveConnection = async (config: Omit<ConnectionConfig, 'connectionUuid'>) => {
     try {
+      const fullConfig: ConnectionConfig = {
+        ...config,
+        connectionUuid: editConfig?.connectionUuid ?? '',
+      }
       if (editConfig) {
         await updateConnection(editConfig.connectionUuid, config)
-        addToast({ type: 'success', message: t('toast.connectionSuccess') })
       } else {
         await addConnection(config)
-        addToast({ type: 'success', message: t('toast.connectionSuccess') })
       }
+      showConnectionToast('success', fullConfig)
     } catch (error) {
-      addToast({
-        type: 'error',
-        message: `${t('toast.connectionFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      })
+      showConnectionToast('error', config)
       throw error
     }
   }
 
   const handleDisconnect = (connectionUuid: string) => {
+    const connection = connections.find(c => c.connectionUuid === connectionUuid)
     try {
       void removeConnection(connectionUuid)
-      addToast({ type: 'info', message: t('toast.disconnectSuccess') })
-    } catch (error) {
+      addToast({
+        type: 'info',
+        message: t('toast.disconnectSuccess', {
+          protocol: connection ? connection.protocol.toUpperCase() : 'Unknown',
+          name: connection?.name ?? 'Unknown',
+        }),
+      })
+    } catch (_error) {
       addToast({
         type: 'error',
-        message: `Disconnect failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: t('toast.disconnectFailed', {
+          protocol: connection ? connection.protocol.toUpperCase() : 'Unknown',
+          name: connection?.name ?? 'Unknown',
+        }),
       })
     }
   }
@@ -87,7 +110,7 @@ export const SessionSidebar: React.FC = () => {
     if (connection.password) {
       try {
         await reconnectSession(connection.connectionUuid)
-        addToast({ type: 'success', message: t('toast.connectionSuccess') })
+        showConnectionToast('success', connection)
         return
       } catch {
         /* empty */
@@ -101,12 +124,9 @@ export const SessionSidebar: React.FC = () => {
     if (!reconnectConfig) return
     try {
       await reconnectSession(reconnectConfig.connectionUuid, config.password)
-      addToast({ type: 'success', message: t('toast.connectionSuccess') })
+      showConnectionToast('success', reconnectConfig)
     } catch (error) {
-      addToast({
-        type: 'error',
-        message: `${t('toast.connectionFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      })
+      showConnectionToast('error', reconnectConfig)
       throw error
     }
   }
