@@ -12,6 +12,7 @@ import { WindowManager } from './window-factory.js'
 import { logger } from '../utils/index.js'
 import { setupIpcHandlers } from '../ipc/index.js'
 import { loadConfig, saveConfig } from '../stores/index.js'
+import { MAIN_WINDOW_ID } from '@shared/constants/index.js'
 
 // ============================================================
 // IPC：窗口控制（所有窗口复用同一套处理器）
@@ -86,7 +87,7 @@ void app.whenReady().then(() => {
 
   // 创建主窗口
   void WindowManager.create({
-    id: 'main',
+    id: MAIN_WINDOW_ID,
     route: '/',
     width: 1000,
     height: 700,
@@ -98,7 +99,7 @@ void app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       void WindowManager.create({
-        id: 'main',
+        id: MAIN_WINDOW_ID,
         route: '/',
         title: 'Rivet',
       })

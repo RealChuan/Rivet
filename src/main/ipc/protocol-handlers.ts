@@ -1,14 +1,14 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, type BrowserWindow } from 'electron'
 import keytar from 'keytar'
 import { ProtocolFactory } from '../services/protocol/factory.js'
 import { logger } from '../utils/index.js'
-import { SERVICE_NAME } from '@shared/constants/index.js'
+import { SERVICE_NAME, MAIN_WINDOW_ID } from '@shared/constants/index.js'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
 import { activeConnections, transferControllers } from '../stores/index.js'
+import { WindowManager } from '../app/window-factory.js'
 
 function getMainWindow(): BrowserWindow | null {
-  const windows = BrowserWindow.getAllWindows()
-  return windows.length > 0 ? (windows[0] ?? null) : null
+  return WindowManager.get(MAIN_WINDOW_ID) ?? null
 }
 
 export function setupProtocolIpcHandlers(): void {

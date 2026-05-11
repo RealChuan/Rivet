@@ -48,12 +48,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVClient> {
   private getFullPath(sessionId: string, remotePath: string): string {
     const handle = this.getSessionHandle(sessionId)
     const basePath = handle.config.basePath ?? '/'
-    const normalizedBase = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath
-    const normalizedRemote = remotePath.startsWith('/') ? remotePath : `/${remotePath}`
-    if (normalizedBase === '/') {
-      return normalizedRemote
-    }
-    return `${normalizedBase}${normalizedRemote}`
+    return path.posix.join(basePath, remotePath)
   }
 
   override async list(sessionId: string, remotePath: string): Promise<FileInfo[]> {

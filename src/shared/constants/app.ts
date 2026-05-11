@@ -1,6 +1,7 @@
 export const APP_NAME = 'Rivet'
 export const APP_VERSION = '0.0.1'
 export const SERVICE_NAME = 'RivetCredentials'
+export const MAIN_WINDOW_ID = 'main'
 export const DEFAULT_SIDEBAR_WIDTH = 240
 export const MIN_SIDEBAR_WIDTH = 180
 export const MAX_SIDEBAR_WIDTH = 400

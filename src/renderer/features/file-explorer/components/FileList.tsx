@@ -345,20 +345,12 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     requestAnimationFrame(calculateColumnWidths)
   }, [session, sessionId, calculateColumnWidths])
 
-  const safeGetFiles = useCallback((): FileInfo[] => {
+  const files = useMemo((): FileInfo[] => {
     if (!session?.files || !Array.isArray(session.files)) {
       return []
     }
-    return session.files.filter(
-      (file): file is FileInfo =>
-        file &&
-        typeof file === 'object' &&
-        typeof file.name === 'string' &&
-        (file.type === 'file' || file.type === 'directory')
-    )
+    return session.files
   }, [session?.files])
-
-  const files = useMemo(() => safeGetFiles(), [safeGetFiles])
 
   const sortedFiles = useMemo(() => {
     return [...files].sort((a, b) => {
