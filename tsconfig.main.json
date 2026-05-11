@@ -11,15 +11,22 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": false,
+    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "outDir": "dist/main",
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "outDir": "dist",
     "rootDir": "src",
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["src/shared/*"]
+      "@/*": ["./src/*"],
+      "@renderer/*": ["./src/renderer/*"],
+      "@main/*": ["./src/main/*"],
+      "@shared/*": ["./src/shared/*"]
     },
     "ignoreDeprecations": "6.0",
+    "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true
   },
   "include": ["src/main/**/*", "src/shared/**/*"],

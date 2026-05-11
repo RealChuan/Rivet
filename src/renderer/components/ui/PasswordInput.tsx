@@ -21,7 +21,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
       <Input
         type={showPassword ? 'text' : 'password'}
         value={value}
-        onChange={(e: any) => onChange(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}
         className={`${className} pr-10`}
       />

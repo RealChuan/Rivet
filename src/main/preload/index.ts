@@ -7,7 +7,7 @@
  * - 所有通信使用 send/invoke/on 的包装器
  */
 
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { protocolAPI } from './protocol-preload.js'
 import { commonAPI } from './common-preload.js'
 

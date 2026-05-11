@@ -1,9 +1,7 @@
 import React from 'react'
 
-interface InputProps {
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement | HTMLTextAreaElement> {
   as?: 'input' | 'textarea'
-  className?: string
-  [key: string]: any
 }
 
 export const Input: React.FC<InputProps> = ({ className = '', as = 'input', ...props }) => {

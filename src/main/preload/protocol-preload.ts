@@ -1,24 +1,22 @@
 import { ipcRenderer } from 'electron'
-import type { FileInfo, ConnectionConfig, ProgressEvent } from '../../shared/types.js'
+import type { FileInfo, ConnectionConfig, ProgressEvent } from '@shared/types/index.js'
 
 export const protocolAPI = {
-  connect: (config: Omit<ConnectionConfig, 'connectionId'>) =>
-    ipcRenderer.invoke('connect', config),
-  disconnect: (connectionId: string) => ipcRenderer.invoke('disconnect', connectionId),
-  list: (connectionId: string, path: string) => ipcRenderer.invoke('list', connectionId, path),
-  mkdir: (connectionId: string, path: string) => ipcRenderer.invoke('mkdir', connectionId, path),
-  rename: (connectionId: string, file: FileInfo, newName: string) =>
-    ipcRenderer.invoke('rename', connectionId, file, newName),
-  delete: (connectionId: string, files: FileInfo[]) =>
-    ipcRenderer.invoke('delete', connectionId, files),
-  copy: (connectionId: string, file: FileInfo, targetPath: string) =>
-    ipcRenderer.invoke('copy', connectionId, file, targetPath),
-  move: (connectionId: string, file: FileInfo, targetPath: string) =>
-    ipcRenderer.invoke('move', connectionId, file, targetPath),
-  uploadFile: (connectionId: string, localPath: string, remotePath: string) =>
-    ipcRenderer.invoke('upload-file', connectionId, localPath, remotePath),
-  downloadFile: (connectionId: string, file: FileInfo, localPath: string) =>
-    ipcRenderer.invoke('download-file', connectionId, file, localPath),
+  connect: (config: ConnectionConfig) => ipcRenderer.invoke('connect', config),
+  disconnect: (sessionId: string) => ipcRenderer.invoke('disconnect', sessionId),
+  list: (sessionId: string, path: string) => ipcRenderer.invoke('list', sessionId, path),
+  mkdir: (sessionId: string, path: string) => ipcRenderer.invoke('mkdir', sessionId, path),
+  rename: (sessionId: string, file: FileInfo, newName: string) =>
+    ipcRenderer.invoke('rename', sessionId, file, newName),
+  delete: (sessionId: string, files: FileInfo[]) => ipcRenderer.invoke('delete', sessionId, files),
+  copy: (sessionId: string, file: FileInfo, targetPath: string) =>
+    ipcRenderer.invoke('copy', sessionId, file, targetPath),
+  move: (sessionId: string, file: FileInfo, targetPath: string) =>
+    ipcRenderer.invoke('move', sessionId, file, targetPath),
+  uploadFile: (sessionId: string, localPath: string, remotePath: string) =>
+    ipcRenderer.invoke('upload-file', sessionId, localPath, remotePath),
+  downloadFile: (sessionId: string, file: FileInfo, localPath: string) =>
+    ipcRenderer.invoke('download-file', sessionId, file, localPath),
   cancelTransfer: (transferId: string) => ipcRenderer.invoke('cancel-transfer', transferId),
   onProgress: (callback: (event: ProgressEvent) => void) => {
     const handler = (_: Electron.IpcRendererEvent, event: ProgressEvent) => callback(event)

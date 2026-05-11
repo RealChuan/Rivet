@@ -7,7 +7,7 @@ interface VirtualListProps<T> {
   renderItem: (item: T, index: number, style: React.CSSProperties) => React.ReactNode
 }
 
-export const VirtualList = <T extends unknown>({
+export const VirtualList = <T,>({
   items: rawItems,
   itemHeight,
   width,

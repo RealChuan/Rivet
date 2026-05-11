@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useSyncExternalStore } from 'react'
-import { useUiStore } from '../stores/uiStore.js'
+import { useUiStore } from '../stores/index.js'
 
 // 系统主题监听（稳定引用，避免重复订阅）
 function subscribeSystemTheme(callback: () => void) {
@@ -40,8 +40,8 @@ export function useTheme() {
   // 循环切换
   const cycleTheme = useCallback(() => {
     const themes: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system']
-    const nextIndex = (themes.indexOf(theme) + 1) % themes.length
-    setTheme(themes[nextIndex])
+    const nextIndex = (themes.indexOf(theme || 'system') + 1) % themes.length
+    setTheme(themes[nextIndex] as 'light' | 'dark' | 'system')
   }, [theme, setTheme])
 
   return {

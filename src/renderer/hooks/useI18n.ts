@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useUiStore } from '../stores/uiStore.js'
+import { useUiStore } from '../stores/index.js'
 
 export function useI18n() {
   const { i18n } = useTranslation()
@@ -8,7 +8,7 @@ export function useI18n() {
 
   const changeLanguage = useCallback(
     (lang: 'zh-CN' | 'en-US') => {
-      i18n.changeLanguage(lang)
+      void i18n.changeLanguage(lang)
       setLanguage(lang)
     },
     [i18n, setLanguage]
@@ -16,7 +16,7 @@ export function useI18n() {
 
   const t = useCallback(
     (key: string, options?: Record<string, unknown>) => {
-      return i18n.t(key, options)
+      return i18n.t(key, options ?? {})
     },
     [i18n]
   )

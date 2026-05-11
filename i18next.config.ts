@@ -5,9 +5,9 @@ export default defineConfig({
   extract: {
     input: ['src/renderer/**/*.{ts,tsx}', '!src/renderer/i18n/locales/**'],
     output: 'src/renderer/i18n/locales/{{lng}}.json',
-    namespaceAsJSON: false,
     keySeparator: '.',
     nsSeparator: ':',
+    // @ts-ignore - func 属性在当前版本类型定义中未声明
     func: {
       list: ['t'],
     },

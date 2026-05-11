@@ -10,22 +10,27 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "strict": false,
+    "strict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": false,
+    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
       "*": ["./*"],
-      "@/*": ["./src/renderer/*"],
+      "@/*": ["./src/*"],
+      "@renderer/*": ["./src/renderer/*"],
+      "@main/*": ["./src/main/*"],
       "@shared/*": ["./src/shared/*"]
     },
     "ignoreDeprecations": "6.0",
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true
   },
-  "include": ["src/renderer/**/*", "src/shared/**/*"],
+  "include": ["./src/renderer/**/*", "./src/shared/**/*"],
   "exclude": ["node_modules", "dist"]
 }

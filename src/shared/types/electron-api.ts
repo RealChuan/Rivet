@@ -1,0 +1,71 @@
+import type { FileInfo } from './file.js'
+
+export interface WindowControlAPI {
+  minimize: () => void
+  maximize: () => void
+  close: () => void
+  getState: () => Promise<{ isMaximized: boolean; platform: string }>
+  onStateChange: (callback: (state: { isMaximized: boolean }) => void) => () => void
+  createChild: (options: {
+    id: string
+    route: string
+    width?: number
+    height?: number
+    title?: string
+  }) => Promise<string>
+  closeChild: (id: string) => Promise<boolean>
+}
+
+export interface ProtocolAPI {
+  connect: (config: unknown) => Promise<string>
+  disconnect: (sessionId: string) => Promise<void>
+  list: (sessionId: string, path: string) => Promise<unknown>
+  downloadFile: (
+    sessionId: string,
+    file: FileInfo,
+    localPath: string
+  ) => Promise<{ transferId: string } | undefined>
+  uploadFile: (
+    sessionId: string,
+    localPath: string,
+    remotePath: string
+  ) => Promise<{ transferId: string } | undefined>
+  cancelTransfer: (transferId: string) => Promise<void>
+  onProgress: (callback: (event: { transferId: string; percent: number }) => void) => () => void
+  delete: (sessionId: string, files: FileInfo[]) => Promise<void>
+  rename: (sessionId: string, file: FileInfo, newName: string) => Promise<void>
+  mkdir: (sessionId: string, path: string) => Promise<void>
+  copy: (sessionId: string, file: FileInfo, targetPath: string) => Promise<void>
+  move: (sessionId: string, file: FileInfo, targetPath: string) => Promise<void>
+}
+
+export interface CommonAPI {
+  storeGet: (key: string) => Promise<unknown>
+  storeSet: (key: string, value: unknown) => Promise<void>
+  storeDelete: (key: string) => Promise<void>
+  showOpenDialog: (options: {
+    properties: string[]
+  }) => Promise<{ canceled: boolean; filePaths: string[] } | undefined>
+  showSaveDialog: (
+    options: unknown
+  ) => Promise<{ canceled: boolean; filePath?: string } | undefined>
+  getSavedConnections: () => Promise<unknown>
+  deleteConnection: (connectionUuid: string) => Promise<void>
+  getCredential: (connectionUuid: string) => Promise<unknown>
+  getTempDir: () => Promise<string>
+  getDownloadDir: () => Promise<string>
+  getLastError: () => Promise<unknown>
+}
+
+export interface ElectronAPI {
+  windowControl: WindowControlAPI
+  windowMeta: { windowId: string; route: string }
+  protocol: ProtocolAPI
+  common: CommonAPI
+}
+
+declare global {
+  interface Window {
+    electronAPI: ElectronAPI
+  }
+}

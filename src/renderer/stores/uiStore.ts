@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { UiSettings } from '../../shared/types.js'
+import { type UiSettings } from '@shared/types/index.js'
 
 interface UiStore extends UiSettings {
   sidebarWidth: number
@@ -36,7 +36,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
   setTheme: theme => {
     set({ theme })
     const { language } = get()
-    window.electronAPI.common.storeSet('ui_settings', {
+    void window.electronAPI.common.storeSet('ui_settings', {
       theme,
       language,
     })
@@ -45,7 +45,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
   setLanguage: language => {
     set({ language })
     const { theme } = get()
-    window.electronAPI.common.storeSet('ui_settings', {
+    void window.electronAPI.common.storeSet('ui_settings', {
       theme,
       language,
     })
@@ -80,7 +80,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
     if (toast.duration !== 0) {
       setTimeout(() => {
         get().removeToast(id)
-      }, toast.duration || 3000)
+      }, toast.duration ?? 3000)
     }
   },
 

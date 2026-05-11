@@ -39,7 +39,8 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && highlightedIndex >= 0) {
-      onChange(options[highlightedIndex].value)
+      const selectedValue = options[highlightedIndex]?.value ?? options[0]?.value ?? ''
+      onChange(selectedValue)
       setIsOpen(false)
     } else if (e.key === 'Escape') {
       setIsOpen(false)
@@ -65,7 +66,7 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
           ${className}
         `}
       >
-        <span className="flex-1 truncate">{selectedOption?.label || 'Select...'}</span>
+        <span className="flex-1 truncate">{selectedOption?.label ?? 'Select...'}</span>
         <svg
           width="12"
           height="12"
