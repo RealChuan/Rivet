@@ -1,7 +1,5 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { useUiStore } from '../stores/index.js'
-import { useQueueStore } from '../features/transfer/stores/queueStore.js'
 import { useTheme, useI18n } from '../hooks/index.js'
 import { Toast, TitleBar } from '../components/common/index.js'
 import { ResizablePanel } from './ResizablePanel.js'
@@ -9,13 +7,10 @@ import { ResizablePanel } from './ResizablePanel.js'
 interface MainLayoutProps {
   sidebar: React.ReactNode
   content: React.ReactNode
-  queueDrawer?: React.ReactNode
 }
 
-export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content, queueDrawer }) => {
+export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content }) => {
   const { t } = useTranslation()
-  const { queueDrawerOpen, setQueueDrawerOpen } = useUiStore()
-  const { tasks } = useQueueStore()
   const { theme, cycleTheme } = useTheme()
   const { language, changeLanguage } = useI18n()
 
@@ -99,38 +94,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content, queueD
             >
               <ThemeIcon />
             </button>
-
-            <button
-              onClick={() => setQueueDrawerOpen(!queueDrawerOpen)}
-              className={`p-1 rounded bg-transparent border-none cursor-default flex items-center justify-center hover:bg-hover transition-colors ${queueDrawerOpen ? 'text-accent bg-hover' : 'text-text bg-transparent'} relative`}
-              title={`${queueDrawerOpen ? t('toolbar.hide') : t('toolbar.show')} ${t('toolbar.queue')}${tasks.length > 0 ? ` (${tasks.length})` : ''}`}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <line x1="8" y1="6" x2="21" y2="6" />
-                <line x1="8" y1="12" x2="21" y2="12" />
-                <line x1="8" y1="18" x2="21" y2="18" />
-                <line x1="3" y1="6" x2="3.01" y2="6" />
-                <line x1="3" y1="12" x2="3.01" y2="12" />
-                <line x1="3" y1="18" x2="3.01" y2="18" />
-              </svg>
-              {tasks.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 text-[9px] font-bold text-white bg-danger rounded-full px-1 min-w-3 text-center">
-                  {tasks.length}
-                </span>
-              )}
-            </button>
           </div>
         }
       />
 
-      <ResizablePanel sidebar={sidebar} content={content} queueDrawer={queueDrawer} />
+      <ResizablePanel sidebar={sidebar} content={content} />
 
       <Toast />
     </div>

@@ -2,20 +2,18 @@ import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/sessionStore.js'
 import { useUiStore } from '@renderer/stores/index.js'
-import { useTransferQueue } from '@renderer/features/transfer/hooks/useTransferQueue.js'
 import { logger } from '@renderer/utils/index.js'
 import { type FileInfo } from '@shared/types/index.js'
 import {
   type ConflictItem,
   type ConflictResolution,
-} from '@renderer/features/transfer/components/ConflictDialog.js'
+} from '@renderer/features/file-explorer/components/ConflictDialog.js'
 import { isSubPath, generateUniqueName } from '@shared/utils/index.js'
 
 interface UseFileOperationsReturn {
   handleDelete: (files: FileInfo[]) => Promise<void>
   handleRename: (file: FileInfo, newName: string) => Promise<void>
   handleCreateFolder: (currentPath: string, folderName: string) => Promise<void>
-  handleDownload: (file: FileInfo) => Promise<void>
   handleCopy: (files: FileInfo[]) => void
   handleMove: (files: FileInfo[]) => void
   handleSelectTargetFolder: (targetDir: FileInfo) => Promise<void>
@@ -39,7 +37,6 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
   const { t } = useTranslation()
   const { refreshCurrentDirectory } = useSessionStore()
   const { addToast } = useUiStore()
-  const { download } = useTransferQueue()
 
   const [targetFolderDialogOpen, setTargetFolderDialogOpen] = useState(false)
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false)
@@ -102,26 +99,6 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
       }
     },
     [sessionId, addToast, t, refreshCurrentDirectory]
-  )
-
-  const handleDownload = useCallback(
-    async (file: FileInfo) => {
-      if (file.type === 'directory') return
-      try {
-        const result = await window.electronAPI.common.showSaveDialog({
-          defaultPath: file.name,
-        })
-        if (result && !result.canceled && result.filePath) {
-          download(file, result.filePath)
-        }
-      } catch (error) {
-        addToast({
-          type: 'error',
-          message: `${t('toast.downloadFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        })
-      }
-    },
-    [addToast, t, download]
   )
 
   const handleCopy = useCallback((files: FileInfo[]) => {
@@ -322,7 +299,6 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
     handleDelete,
     handleRename,
     handleCreateFolder,
-    handleDownload,
     handleCopy,
     handleMove,
     handleSelectTargetFolder,

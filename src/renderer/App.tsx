@@ -1,12 +1,10 @@
 import React from 'react'
 import { SessionSidebar } from './features/session/index.js'
 import { FileAreaContainer } from './features/file-explorer/index.js'
-import { QueueDrawer } from './features/transfer/index.js'
 import { MainLayout } from './layout/MainLayout.js'
 import { useAppInit } from './hooks/useAppInit.js'
 import { useSystemTheme } from './hooks/useSystemTheme.js'
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts.js'
-import { useTransferQueue } from './features/transfer/hooks/useTransferQueue.js'
 import { useUiStore } from './stores/uiStore.js'
 
 const App: React.FC = () => {
@@ -15,7 +13,6 @@ const App: React.FC = () => {
   useAppInit()
   useSystemTheme()
   useGlobalShortcuts()
-  useTransferQueue()
 
   if (!initialized) {
     return (
@@ -25,13 +22,7 @@ const App: React.FC = () => {
     )
   }
 
-  return (
-    <MainLayout
-      sidebar={<SessionSidebar />}
-      content={<FileAreaContainer />}
-      queueDrawer={<QueueDrawer />}
-    />
-  )
+  return <MainLayout sidebar={<SessionSidebar />} content={<FileAreaContainer />} />
 }
 
 export default App

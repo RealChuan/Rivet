@@ -5,39 +5,28 @@ import { Resizer } from '../components/ui/index.js'
 interface ResizablePanelProps {
   sidebar: React.ReactNode
   content: React.ReactNode
-  queueDrawer?: React.ReactNode
 }
 
-export const ResizablePanel: React.FC<ResizablePanelProps> = ({
-  sidebar,
-  content,
-  queueDrawer,
-}) => {
-  const { queueDrawerOpen, sidebarWidth, setSidebarWidth, queueDrawerWidth, setQueueDrawerWidth } =
-    useUiStore()
+export const ResizablePanel: React.FC<ResizablePanelProps> = ({ sidebar, content }) => {
+  const { sidebarWidth, setSidebarWidth } = useUiStore()
   const [isDraggingSidebar, setIsDraggingSidebar] = useState(false)
-  const [isDraggingQueue, setIsDraggingQueue] = useState(false)
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (isDraggingSidebar) {
         const newWidth = Math.max(180, Math.min(400, e.clientX))
         setSidebarWidth(newWidth)
-      } else if (isDraggingQueue) {
-        const newWidth = Math.max(200, Math.min(500, window.innerWidth - e.clientX))
-        setQueueDrawerWidth(newWidth)
       }
     },
-    [isDraggingSidebar, isDraggingQueue, setSidebarWidth, setQueueDrawerWidth]
+    [isDraggingSidebar, setSidebarWidth]
   )
 
   const handleMouseUp = useCallback(() => {
     setIsDraggingSidebar(false)
-    setIsDraggingQueue(false)
   }, [])
 
   useEffect(() => {
-    if (isDraggingSidebar || isDraggingQueue) {
+    if (isDraggingSidebar) {
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
       return () => {
@@ -45,7 +34,7 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
         document.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [isDraggingSidebar, isDraggingQueue, handleMouseMove, handleMouseUp])
+  }, [isDraggingSidebar, handleMouseMove, handleMouseUp])
 
   return (
     <div className="flex-1 flex overflow-hidden">
@@ -56,15 +45,6 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({
       <Resizer isDragging={isDraggingSidebar} onMouseDown={() => setIsDraggingSidebar(true)} />
 
       <div className="flex-1 flex flex-col overflow-hidden">{content}</div>
-
-      {queueDrawerOpen && queueDrawer && (
-        <>
-          <Resizer isDragging={isDraggingQueue} onMouseDown={() => setIsDraggingQueue(true)} />
-          <div className="shrink-0" style={{ width: queueDrawerWidth }}>
-            {queueDrawer}
-          </div>
-        </>
-      )}
     </div>
   )
 }

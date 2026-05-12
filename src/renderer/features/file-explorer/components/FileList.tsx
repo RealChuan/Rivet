@@ -4,8 +4,8 @@ import { useSessionStore } from '@renderer/features/session/stores/sessionStore.
 import { type FileInfo } from '@shared/types/index.js'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.js'
 import InputDialog from '@renderer/components/common/InputDialog.js'
-import TargetFolderDialog from '@renderer/features/transfer/components/TargetFolderDialog.js'
-import ConflictDialog from '@renderer/features/transfer/components/ConflictDialog.js'
+import TargetFolderDialog from './TargetFolderDialog.js'
+import ConflictDialog from './ConflictDialog.js'
 import FileListHeader from './FileListHeader.js'
 import FileItem from './FileItem.js'
 import FileContextMenu from './FileContextMenu.js'
@@ -79,6 +79,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     pendingFiles,
     pendingTargetDir,
     setTargetFolderDialogOpen,
+    setConflictDialogOpen,
   } = useFileOperations(sessionId)
 
   const handleNavigate = useCallback(
@@ -622,13 +623,14 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         onClose={() => {
           setTargetFolderDialogOpen(false)
         }}
-        onConfirm={targetDir => void handleSelectTargetFolder(targetDir)}
+        onConfirm={(targetDir: FileInfo) => void handleSelectTargetFolder(targetDir)}
         sessionId={sessionId}
       />
 
       <ConflictDialog
         open={conflictDialogOpen}
         onClose={() => {
+          setConflictDialogOpen(false)
           setTargetFolderDialogOpen(false)
         }}
         onConfirm={handleConflictResolution}

@@ -71,17 +71,6 @@
       "retry": "Retry",
       "size": "Size"
     },
-    "queue": {
-      "active": "Active",
-      "cancel": "Cancel",
-      "clear": "Clear",
-      "completed": "Completed",
-      "download": "Download",
-      "failed": "Failed",
-      "pending": "Pending",
-      "retry": "Retry",
-      "upload": "Upload"
-    },
     "sidebar": {
       "connect": "Connect",
       "connections": "Connections",
@@ -106,7 +95,6 @@
       "deleteSuccess": "Deleted successfully",
       "disconnectFailed": "Failed to disconnect {{protocol}} connection \"{{name}}\"",
       "disconnectSuccess": "{{protocol}} connection \"{{name}}\" disconnected",
-      "downloadFailed": "Download failed",
       "moveFailed": "Move failed",
       "moveSuccess": "Moved successfully",
       "renameFailed": "Rename failed",
@@ -116,16 +104,12 @@
       "copy": "Copy",
       "darkMode": "Dark Mode",
       "delete": "Delete",
-      "hide": "Hide",
       "lightMode": "Light Mode",
       "move": "Move",
       "newFolder": "New Folder",
-      "queue": "Queue",
       "refresh": "Refresh",
       "rename": "Rename",
-      "show": "Show",
-      "system": "System",
-      "upload": "Upload"
+      "system": "System"
     }
   }
 }

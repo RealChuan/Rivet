@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/sessionStore.js'
 import { useUiStore } from '@renderer/stores/index.js'
-import { useTransferQueue } from '@renderer/features/transfer/hooks/useTransferQueue.js'
 import InputDialog from '@renderer/components/common/InputDialog.js'
 
 interface ToolbarProps {
@@ -13,7 +12,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
   const { t } = useTranslation()
   const { refreshCurrentDirectory, sessions } = useSessionStore()
   const { addToast } = useUiStore()
-  const { upload } = useTransferQueue()
 
   const session = sessions.find(s => s.sessionId === sessionId)
 
@@ -43,30 +41,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
       addToast({
         type: 'error',
         message: `${t('toast.createFolderFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      })
-    }
-  }
-
-  const handleUpload = async () => {
-    if (!session) return
-    try {
-      const result = await window.electronAPI.common.showOpenDialog({
-        properties: ['openFile', 'multiSelections'],
-      })
-
-      if (result && !result.canceled && result.filePaths.length > 0) {
-        for (const filePath of result.filePaths) {
-          const fileName = filePath.split(/[/\\]/).pop() ?? 'file'
-          const remotePath =
-            session.currentPath === '/' ? `/${fileName}` : `${session.currentPath}/${fileName}`
-          upload(filePath, remotePath)
-        }
-      }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      addToast({
-        type: 'error',
-        message: `Upload failed: ${errorMsg}`,
       })
     }
   }
@@ -110,14 +84,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
           <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
           <line x1="12" y1="11" x2="12" y2="17" />
           <line x1="9" y1="14" x2="15" y2="14" />
-        </svg>
-      </ToolButton>
-
-      <ToolButton onClick={() => void handleUpload()} title={t('toolbar.upload')}>
-        <svg className="w-4 h-4 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-          <polyline points="17 8 12 3 7 8" />
-          <line x1="12" y1="3" x2="12" y2="15" />
         </svg>
       </ToolButton>
 

@@ -70,17 +70,6 @@
       "retry": "重试",
       "size": "大小"
     },
-    "queue": {
-      "active": "进行中",
-      "cancel": "取消",
-      "clear": "清空",
-      "completed": "已完成",
-      "download": "下载",
-      "failed": "失败",
-      "pending": "等待中",
-      "retry": "重试",
-      "upload": "上传"
-    },
     "sidebar": {
       "connect": "连接",
       "connections": "连接",
@@ -105,7 +94,6 @@
       "deleteSuccess": "删除成功",
       "disconnectFailed": "断开 {{protocol}} 连接 \"{{name}}\" 失败",
       "disconnectSuccess": "已断开 {{protocol}} 连接 \"{{name}}\"",
-      "downloadFailed": "下载失败",
       "moveFailed": "移动失败",
       "moveSuccess": "移动成功",
       "renameFailed": "重命名失败",
@@ -115,16 +103,12 @@
       "copy": "复制",
       "darkMode": "深色模式",
       "delete": "删除",
-      "hide": "隐藏",
       "lightMode": "浅色模式",
       "move": "移动",
       "newFolder": "新建文件夹",
-      "queue": "队列",
       "refresh": "刷新",
       "rename": "重命名",
-      "show": "显示",
-      "system": "系统",
-      "upload": "上传"
+      "system": "系统"
     }
   }
 }

@@ -48,15 +48,13 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
   const { t } = useTranslation()
   const [resolutions, setResolutions] = useState<ConflictResolution[]>([])
   const [applyToAll, setApplyToAll] = useState(false)
-  const [globalStrategy, setGlobalStrategy] = useState<ConflictStrategy>(
-    operation === 'move' ? 'keepBoth' : 'overwrite'
-  )
+  const [globalStrategy, setGlobalStrategy] = useState<ConflictStrategy>('keepBoth')
 
   React.useEffect(() => {}, [])
 
   React.useEffect(() => {
     if (open && conflicts.length > 0) {
-      const defaultStrategy: ConflictStrategy = operation === 'move' ? 'keepBoth' : 'overwrite'
+      const defaultStrategy: ConflictStrategy = 'keepBoth'
       const initialResolutions: ConflictResolution[] = conflicts.map(c => ({
         sourceFile: c.sourceFile,
         targetFile: c.targetFile ?? c.sourceFile,
@@ -99,20 +97,8 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
   return (
     <GlassDialog open={open} onClose={onClose} width={700} height={550}>
       <div className="flex flex-col h-125.5 w-full overflow-hidden">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center mb-4">
           <h2 className="text-base font-semibold text-text">{t('dialog.conflict.title')}</h2>
-          <button
-            onClick={onClose}
-            className={`
-              p-1 rounded bg-transparent border-none cursor-pointer
-              text-text-muted hover:bg-hover transition-colors
-            `}
-          >
-            <svg className="w-4 h-4 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-background rounded-md border border-border min-h-10">
@@ -209,7 +195,13 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
           </label>
 
           <div className="flex gap-2.5">
-            <Button variant="secondary" onClick={onClose}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setResolutions([])
+                onClose()
+              }}
+            >
               {t('dialog.cancel')}
             </Button>
             <Button variant="primary" onClick={handleConfirm}>
