@@ -55,7 +55,7 @@
   "dependencies": {
     "electron-log": "^5.4.3",
     "electron-store": "^11.0.2",
-    "i18next": "^26.0.10",
+    "i18next": "^26.1.0",
     "keytar": "^7.9.0",
     "module-alias": "^2.3.4",
     "react": "^19.2.6",
@@ -71,14 +71,14 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.3.0",
-    "@types/node": "^25.6.2",
+    "@types/node": "^25.7.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/react-window": "^2.0.0",
     "@types/ssh2-sftp-client": "^9.0.6",
     "@types/uuid": "^11.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.59.2",
-    "@typescript-eslint/parser": "^8.59.2",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
@@ -86,13 +86,13 @@
     "electron-builder": "^26.8.1",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "i18next-cli": "^1.56.11",
+    "i18next-cli": "^1.56.12",
     "prettier": "^3.8.3",
     "tailwindcss": "^4.3.0",
     "tsc-alias": "^1.8.17",
     "typescript": "^6.0.3",
     "vite": "^8.0.12",
-    "wait-on": "^9.0.5"
+    "wait-on": "^9.0.10"
   },
   "overrides": {
     "ssh2": {
