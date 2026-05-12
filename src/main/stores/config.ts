@@ -55,7 +55,8 @@ function isValidConnection(config: unknown): config is StoredConnection {
     typeof c.username === 'string' &&
     (c.basePath === undefined || typeof c.basePath === 'string') &&
     (c.scheme === undefined || c.scheme === 'http' || c.scheme === 'https') &&
-    (c.rejectUnauthorized === undefined || typeof c.rejectUnauthorized === 'boolean')
+    (c.rejectUnauthorized === undefined || typeof c.rejectUnauthorized === 'boolean') &&
+    (c.savePassword === undefined || typeof c.savePassword === 'boolean')
   )
 }
 

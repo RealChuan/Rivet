@@ -1,8 +1,13 @@
 import { ipcRenderer } from 'electron'
-import type { FileInfo, ConnectionConfig, ProgressEvent } from '@shared/types/index.js'
+import type {
+  FileInfo,
+  ConnectionConfigWithoutPassword,
+  ProgressEvent,
+} from '@shared/types/index.js'
 
 export const protocolAPI = {
-  connect: (config: ConnectionConfig) => ipcRenderer.invoke('connect', config),
+  connect: (config: ConnectionConfigWithoutPassword & { password?: string }) =>
+    ipcRenderer.invoke('connect', config),
   disconnect: (sessionId: string) => ipcRenderer.invoke('disconnect', sessionId),
   list: (sessionId: string, path: string) => ipcRenderer.invoke('list', sessionId, path),
   mkdir: (sessionId: string, path: string) => ipcRenderer.invoke('mkdir', sessionId, path),

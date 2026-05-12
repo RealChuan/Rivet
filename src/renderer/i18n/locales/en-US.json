@@ -16,6 +16,7 @@
       "protocol": "Protocol",
       "rejectUnauthorized": "Verify server certificate",
       "save": "Save",
+      "savePassword": "Save password for quick reconnect",
       "scheme": "Scheme",
       "subtitle": "Manage your connections",
       "title": "New Connection",
@@ -79,8 +80,7 @@
       "edit": "Edit",
       "newConnection": "New Connection",
       "newConnectionHint": "Create your first connection",
-      "noConnections": "No connections",
-      "reconnect": "Reconnect"
+      "noConnections": "No connections"
     },
     "toast": {
       "cannotMoveToSelf": "Cannot move folder to itself or its subfolder",

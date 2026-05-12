@@ -16,6 +16,7 @@
       "protocol": "协议",
       "rejectUnauthorized": "验证服务器证书",
       "save": "保存",
+      "savePassword": "保存密码以便下次快速连接",
       "scheme": "连接协议",
       "subtitle": "管理您的连接",
       "title": "新建连接",
@@ -78,8 +79,7 @@
       "edit": "编辑",
       "newConnection": "新建连接",
       "newConnectionHint": "创建您的第一个连接",
-      "noConnections": "暂无连接",
-      "reconnect": "重新连接"
+      "noConnections": "暂无连接"
     },
     "toast": {
       "cannotMoveToSelf": "无法将文件夹移动到自身或其子文件夹中",

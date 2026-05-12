@@ -15,16 +15,27 @@ function getMainWindow(): BrowserWindow | null {
 export function setupProtocolIpcHandlers(): void {
   ipcMain.handle('connect', async (_, config: ConnectionConfig) => {
     try {
-      if (config.password) {
-        await keytar.setPassword(
-          SERVICE_NAME,
-          `connection_${config.connectionUuid}`,
-          config.password
-        )
+      const password =
+        config.password ??
+        (await keytar.getPassword(SERVICE_NAME, `connection_${config.connectionUuid}`))
+
+      if (!password) {
+        throw new Error('Password is required for connection')
+      }
+
+      const fullConfig: ConnectionConfig = {
+        ...config,
+        password,
+      }
+
+      if (config.savePassword && password) {
+        await keytar.setPassword(SERVICE_NAME, `connection_${config.connectionUuid}`, password)
+      } else {
+        await keytar.deletePassword(SERVICE_NAME, `connection_${config.connectionUuid}`)
       }
 
       const protocol = ProtocolFactory.getProtocol(config.protocol)
-      const sessionId = await protocol.connect(config)
+      const sessionId = await protocol.connect(fullConfig)
 
       const { saveConnection } = await import('../stores/index.js')
       saveConnection(config)

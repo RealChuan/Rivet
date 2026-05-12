@@ -1,4 +1,5 @@
 import type { FileInfo } from './file.js'
+import type { ConnectionConfig } from './connection.js'
 
 export interface WindowControlAPI {
   minimize: () => void
@@ -17,7 +18,7 @@ export interface WindowControlAPI {
 }
 
 export interface ProtocolAPI {
-  connect: (config: unknown) => Promise<string>
+  connect: (config: ConnectionConfig) => Promise<string>
   disconnect: (sessionId: string) => Promise<void>
   list: (sessionId: string, path: string) => Promise<unknown>
   downloadFile: (

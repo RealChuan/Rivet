@@ -8,7 +8,10 @@ export interface ConnectionConfig {
   port: number
   username: string
   password?: string
+  savePassword?: boolean
   basePath?: string
   scheme?: 'http' | 'https'
   rejectUnauthorized?: boolean
 }
+
+export type ConnectionConfigWithoutPassword = Omit<ConnectionConfig, 'password'>

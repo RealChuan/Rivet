@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type ConnectionConfig } from '@shared/types/index.js'
 import GlassDialog from '@renderer/components/ui/GlassDialog.js'
@@ -7,37 +7,63 @@ import Select from '@renderer/components/ui/Select.js'
 import Input from '@renderer/components/ui/Input.js'
 import Button from '@renderer/components/ui/Button.js'
 
-interface ConnectionDialogProps {
+export interface ConnectionDialogProps {
   open: boolean
   onClose: () => void
   onSave: (config: Omit<ConnectionConfig, 'connectionUuid'>) => Promise<void>
-  editConfig?: ConnectionConfig
-  reconnectMode?: boolean
-  savedPassword?: string
+  config?: ConnectionConfig | undefined
 }
 
 export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   open,
   onClose,
   onSave,
-  editConfig,
-  reconnectMode = false,
-  savedPassword = '',
+  config,
 }) => {
   const { t } = useTranslation()
-  const [name, setName] = useState(editConfig?.name ?? '')
-  const [protocol, setProtocol] = useState<'sftp' | 'webdav'>(editConfig?.protocol ?? 'sftp')
-  const [host, setHost] = useState(editConfig?.host ?? '')
-  const [port, setPort] = useState(editConfig?.port?.toString() ?? '22')
-  const [username, setUsername] = useState(editConfig?.username ?? '')
-  const [password, setPassword] = useState(savedPassword)
-  const [basePath, setBasePath] = useState(editConfig?.basePath ?? '')
-  const [scheme, setScheme] = useState<'http' | 'https'>(editConfig?.scheme ?? 'https')
-  const [rejectUnauthorized, setRejectUnauthorized] = useState(
-    editConfig?.rejectUnauthorized !== false
-  )
+  const [name, setName] = useState(config?.name ?? '')
+  const [protocol, setProtocol] = useState<'sftp' | 'webdav'>(config?.protocol ?? 'sftp')
+  const [host, setHost] = useState(config?.host ?? '')
+  const [port, setPort] = useState(config?.port?.toString() ?? '22')
+  const [username, setUsername] = useState(config?.username ?? '')
+  const [password, setPassword] = useState('')
+  const [savePassword, setSavePassword] = useState(config?.savePassword ?? false)
+  const [basePath, setBasePath] = useState(config?.basePath ?? '')
+  const [scheme, setScheme] = useState<'http' | 'https'>(config?.scheme ?? 'https')
+  const [rejectUnauthorized, setRejectUnauthorized] = useState(config?.rejectUnauthorized !== false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (config) {
+      setName(config.name)
+      setProtocol(config.protocol)
+      setHost(config.host)
+      setPort(config.port?.toString() ?? '22')
+      setUsername(config.username)
+      setBasePath(config.basePath ?? '')
+      setScheme(config.scheme ?? 'https')
+      setRejectUnauthorized(config.rejectUnauthorized !== false)
+      setSavePassword(config.savePassword ?? false)
+      setPassword('')
+
+      if (open && config.savePassword && config.connectionUuid) {
+        const loadPassword = async () => {
+          try {
+            const savedPassword = await window.electronAPI.common.getCredential(
+              config.connectionUuid
+            )
+            if (typeof savedPassword === 'string') {
+              setPassword(savedPassword)
+            }
+          } catch (error) {
+            console.error('Failed to load password:', error)
+          }
+        }
+        void loadPassword()
+      }
+    }
+  }, [config, open])
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -63,6 +89,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         port: portNum,
         username: username.trim(),
         password: password || '',
+        savePassword,
         basePath: protocol === 'webdav' ? basePath.trim() : '',
         scheme: protocol === 'webdav' ? scheme : 'http',
         rejectUnauthorized: protocol === 'webdav' ? rejectUnauthorized : false,
@@ -80,16 +107,17 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
     setPort(value === 'webdav' ? '443' : '22')
   }
 
+  const isEditMode = !!config
+
   return (
     <GlassDialog open={open} onClose={onClose}>
       <div className="flex items-center gap-3 mb-5">
         <div
-          className={`
-            w-9 h-9 rounded-lg flex items-center justify-center
-            ${reconnectMode ? 'bg-[rgba(78,201,176,0.1)]' : 'bg-[rgba(59,130,246,0.1)]'}
-          `}
+          className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+            isEditMode ? 'bg-[rgba(78,201,176,0.1)]' : 'bg-[rgba(59,130,246,0.1)]'
+          }`}
         >
-          {reconnectMode ? (
+          {isEditMode ? (
             <svg className="w-4.5 h-4.5 stroke-[#4ec9b0] stroke-2" viewBox="0 0 24 24" fill="none">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
               <circle cx="9" cy="7" r="4" />
@@ -106,15 +134,9 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         </div>
         <div>
           <h2 className="text-base font-semibold text-text">
-            {reconnectMode
-              ? t('sidebar.reconnect')
-              : editConfig
-                ? t('connection.editTitle')
-                : t('connection.title')}
+            {isEditMode ? t('connection.editTitle') : t('connection.title')}
           </h2>
-          <p className="text-xs text-text-muted">
-            {reconnectMode ? host : t('connection.subtitle')}
-          </p>
+          <p className="text-xs text-text-muted">{isEditMode ? host : t('connection.subtitle')}</p>
         </div>
       </div>
 
@@ -132,7 +154,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           <Input
             type="text"
             value={name}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            onChange={e => setName(e.target.value)}
             placeholder={t('connection.namePlaceholder')}
           />
         </div>
@@ -159,7 +181,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             <Input
               type="text"
               value={host}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHost(e.target.value)}
+              onChange={e => setHost(e.target.value)}
               placeholder="192.168.1.100"
             />
           </div>
@@ -170,7 +192,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             <Input
               type="number"
               value={port}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPort(e.target.value)}
+              onChange={e => setPort(e.target.value)}
               placeholder={protocol === 'sftp' ? '22' : '443'}
             />
           </div>
@@ -186,30 +208,22 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
                 <button
                   type="button"
                   onClick={() => setScheme('http')}
-                  className={`
-                    flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer
-                    transition-colors duration-150
-                    ${
-                      scheme === 'http'
-                        ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
-                        : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
-                    }
-                  `}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 ${
+                    scheme === 'http'
+                      ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
+                      : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
+                  }`}
                 >
                   HTTP
                 </button>
                 <button
                   type="button"
                   onClick={() => setScheme('https')}
-                  className={`
-                    flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer
-                    transition-colors duration-150
-                    ${
-                      scheme === 'https'
-                        ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
-                        : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
-                    }
-                  `}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 ${
+                    scheme === 'https'
+                      ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
+                      : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
+                  }`}
                 >
                   HTTPS
                 </button>
@@ -236,7 +250,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
               <Input
                 type="text"
                 value={basePath}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBasePath(e.target.value)}
+                onChange={e => setBasePath(e.target.value)}
                 placeholder="/dav/files"
               />
             </div>
@@ -250,7 +264,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           <Input
             type="text"
             value={username}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
+            onChange={e => setUsername(e.target.value)}
             placeholder={t('connection.usernamePlaceholder')}
           />
         </div>
@@ -264,6 +278,19 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             onChange={setPassword}
             placeholder={t('connection.passwordPlaceholder')}
           />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="savePassword"
+            checked={savePassword}
+            onChange={e => setSavePassword(e.target.checked)}
+            className="w-4 h-4 rounded border-[#c0c0c0] text-accent focus:ring-accent focus:ring-offset-0"
+          />
+          <label htmlFor="savePassword" className="text-sm text-text cursor-pointer">
+            {t('connection.savePassword')}
+          </label>
         </div>
 
         {error && (
@@ -282,11 +309,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             {t('connection.cancel')}
           </Button>
           <Button type="submit" variant="primary" isLoading={isLoading}>
-            {isLoading
-              ? t('connection.connecting')
-              : reconnectMode
-                ? t('sidebar.reconnect')
-                : t('connection.save')}
+            {isLoading ? t('connection.connecting') : t('connection.save')}
           </Button>
         </div>
       </form>

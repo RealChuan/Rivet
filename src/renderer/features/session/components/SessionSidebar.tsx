@@ -123,7 +123,14 @@ export const SessionSidebar: React.FC = () => {
   const handleReconnectSubmit = async (config: Omit<ConnectionConfig, 'connectionUuid'>) => {
     if (!reconnectConfig) return
     try {
-      await reconnectSession(reconnectConfig.connectionUuid, config.password)
+      const passwordConfig: Partial<{ password?: string; savePassword?: boolean }> = {}
+      if (config.password) {
+        passwordConfig.password = config.password
+      }
+      if (config.savePassword !== undefined) {
+        passwordConfig.savePassword = config.savePassword
+      }
+      await reconnectSession(reconnectConfig.connectionUuid, passwordConfig)
       showConnectionToast('success', reconnectConfig)
     } catch (error) {
       showConnectionToast('error', reconnectConfig)
@@ -249,9 +256,7 @@ export const SessionSidebar: React.FC = () => {
           setEditConfig(null)
         }}
         onSave={reconnectConfig ? handleReconnectSubmit : handleSaveConnection}
-        editConfig={(editConfig ?? reconnectConfig) as ConnectionConfig}
-        reconnectMode={!!reconnectConfig}
-        savedPassword={editConfig?.password ?? reconnectConfig?.password ?? ''}
+        config={editConfig ?? reconnectConfig ?? undefined}
       />
       <ConfirmDialog
         open={deleteConfirmOpen}

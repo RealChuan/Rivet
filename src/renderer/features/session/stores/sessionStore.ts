@@ -1,9 +1,14 @@
 import { create } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
-import { type ConnectionConfig, type FileInfo, type Session } from '@shared/types/index.js'
+import {
+  type ConnectionConfig,
+  type ConnectionConfigWithoutPassword,
+  type FileInfo,
+  type Session,
+} from '@shared/types/index.js'
 
 export interface SessionStore {
-  connections: ConnectionConfig[]
+  connections: ConnectionConfigWithoutPassword[]
   sessions: Session[]
   activeSessionId: string | null
 
@@ -20,7 +25,10 @@ export interface SessionStore {
   setLoading: (sessionId: string, loading: boolean) => void
   setError: (sessionId: string, error: string | null) => void
   refreshCurrentDirectory: (sessionId: string) => Promise<void>
-  reconnectSession: (connectionUuid: string, password?: string) => Promise<void>
+  reconnectSession: (
+    connectionUuid: string,
+    passwordConfig?: Partial<{ password?: string; savePassword?: boolean }>
+  ) => Promise<void>
   loadSavedConnections: () => Promise<void>
 
   getSessionByconnectionUuid: (connectionUuid: string) => Session | undefined
@@ -69,9 +77,21 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   addConnection: async config => {
     const connectionUuid = uuidv4()
+
     const fullConfig: ConnectionConfig = {
-      ...config,
       connectionUuid,
+      name: config.name,
+      protocol: config.protocol,
+      host: config.host,
+      port: config.port,
+      username: config.username,
+      password: config.password ?? '',
+      savePassword: config.savePassword ?? false,
+      ...(config.basePath ? { basePath: config.basePath } : {}),
+      ...(config.scheme ? { scheme: config.scheme } : {}),
+      ...(config.rejectUnauthorized !== undefined
+        ? { rejectUnauthorized: config.rejectUnauthorized }
+        : {}),
     }
 
     const sessionId = await window.electronAPI.protocol.connect(fullConfig)
@@ -86,8 +106,23 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       error: null,
     }
 
+    const configWithoutPassword: ConnectionConfigWithoutPassword = {
+      connectionUuid,
+      name: config.name,
+      protocol: config.protocol,
+      host: config.host,
+      port: config.port,
+      username: config.username,
+      savePassword: config.savePassword ?? false,
+      ...(config.basePath ? { basePath: config.basePath } : {}),
+      ...(config.scheme ? { scheme: config.scheme } : {}),
+      ...(config.rejectUnauthorized !== undefined
+        ? { rejectUnauthorized: config.rejectUnauthorized }
+        : {}),
+    }
+
     set(state => ({
-      connections: [...state.connections, fullConfig],
+      connections: [...state.connections, configWithoutPassword],
       sessions: [...state.sessions, session],
       activeSessionId: sessionId,
     }))
@@ -104,9 +139,19 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       await window.electronAPI.protocol.disconnect(session.sessionId)
     }
 
-    const fullConfig: ConnectionConfig = {
-      ...config,
+    const configWithoutPassword: ConnectionConfigWithoutPassword = {
       connectionUuid,
+      name: config.name,
+      protocol: config.protocol,
+      host: config.host,
+      port: config.port,
+      username: config.username,
+      basePath: config.basePath ?? undefined,
+      scheme: config.scheme ?? undefined,
+      rejectUnauthorized: config.rejectUnauthorized ?? undefined,
+    } as ConnectionConfigWithoutPassword
+    if (config.savePassword) {
+      configWithoutPassword.savePassword = config.savePassword
     }
 
     let newSessionId: string | undefined
@@ -114,7 +159,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     if (session?.isConnected || config.password) {
       try {
-        newSessionId = await window.electronAPI.protocol.connect(fullConfig)
+        newSessionId = await window.electronAPI.protocol.connect(configWithoutPassword)
         isConnected = true
       } catch {
         isConnected = false
@@ -123,7 +168,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     set(state => ({
       connections: state.connections.map(c =>
-        c.connectionUuid === connectionUuid ? fullConfig : c
+        c.connectionUuid === connectionUuid ? configWithoutPassword : c
       ),
       sessions: state.sessions
         .filter(s => s.connectionUuid !== connectionUuid)
@@ -245,16 +290,12 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     }
   },
 
-  reconnectSession: async (connectionUuid, password) => {
+  reconnectSession: async (connectionUuid, passwordConfig?) => {
     const connection = get().connections.find(c => c.connectionUuid === connectionUuid)
     if (!connection) throw new Error('Connection not found')
 
-    const configToUse = {
-      ...connection,
-      password: password ?? connection.password,
-    }
-
-    const sessionId = await window.electronAPI.protocol.connect(configToUse)
+    const configToConnect = passwordConfig ? { ...connection, ...passwordConfig } : connection
+    const sessionId = await window.electronAPI.protocol.connect(configToConnect)
 
     set(state => ({
       sessions: state.sessions
