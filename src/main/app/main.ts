@@ -16,6 +16,22 @@ import { MAIN_WINDOW_ID } from '@shared/constants/index.js'
 import { sessionManager, ProtocolFactory } from '../services/protocol/index.js'
 
 // ============================================================
+// 窗口元数据管理（解决 sandbox 模式下 process.argv 不可用问题）
+// ============================================================
+const windowMetaMap = new Map<number, { windowId: string; route: string }>()
+
+export function registerWindowMeta(win: BrowserWindow, id: string, route: string): void {
+  windowMetaMap.set(win.id, { windowId: id, route })
+  win.on('closed', () => windowMetaMap.delete(win.id))
+}
+
+ipcMain.handle('get-window-meta', event => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (!win) return { windowId: 'unknown', route: '/' }
+  return windowMetaMap.get(win.id) ?? { windowId: 'unknown', route: '/' }
+})
+
+// ============================================================
 // IPC：窗口控制（所有窗口复用同一套处理器）
 // ============================================================
 

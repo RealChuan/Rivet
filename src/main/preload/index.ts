@@ -59,16 +59,24 @@ const windowControl = {
 } as const
 
 // ============================================================
-// 窗口元数据（从 additionalArguments 解析）
+// 窗口元数据（使用 URL hash 作为初始值，避免 sendSync 阻塞）
 // ============================================================
 
-function getWindowMeta() {
-  const args = process.argv
-  const idArg = args.find(a => a.startsWith('--window-id='))
-  const routeArg = args.find(a => a.startsWith('--route='))
+function getWindowMetaFromHash(): { windowId: string; route: string } {
+  const hash = window.location.hash.replace('#', '')
   return {
-    windowId: idArg?.replace('--window-id=', '') ?? 'unknown',
-    route: routeArg?.replace('--route=', '') ?? '/',
+    windowId: 'main',
+    route: hash || '/',
+  }
+}
+
+const initialWindowMeta = getWindowMetaFromHash()
+
+async function refreshWindowMeta(): Promise<{ windowId: string; route: string }> {
+  try {
+    return (await ipcRenderer.invoke('get-window-meta')) as { windowId: string; route: string }
+  } catch {
+    return initialWindowMeta
   }
 }
 
@@ -77,11 +85,9 @@ function getWindowMeta() {
 // ============================================================
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  // 窗口控制
   windowControl,
-  // 窗口元数据
-  windowMeta: getWindowMeta(),
-  // 原有 API
+  windowMeta: initialWindowMeta,
+  refreshWindowMeta,
   protocol: protocolAPI,
   common: commonAPI,
 })

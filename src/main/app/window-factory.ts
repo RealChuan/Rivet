@@ -8,6 +8,7 @@
 import { BrowserWindow, type BrowserWindowConstructorOptions, app } from 'electron'
 import { fileURLToPath, URL } from 'node:url'
 import path from 'node:path'
+import { registerWindowMeta } from './main.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const isDev = !app.isPackaged
@@ -73,12 +74,10 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
     modal: options.modal ?? false,
 
     webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
+      preload: path.join(__dirname, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
-      // 通过命令行参数传递窗口元数据到渲染进程
-      additionalArguments: [`--window-id=${options.id}`, `--route=${options.route ?? '/'}`],
+      sandbox: true,
     },
   }
 
@@ -134,7 +133,6 @@ export const WindowManager = {
    * 创建并注册窗口
    */
   create(options: FramelessWindowOptions): BrowserWindow {
-    // 防止重复创建：若已存在则聚焦
     const existing = windowMap.get(options.id)
     if (existing && !existing.isDestroyed()) {
       existing.focus()
@@ -143,6 +141,8 @@ export const WindowManager = {
 
     const win = createFramelessWindow(options)
     windowMap.set(options.id, win)
+
+    registerWindowMeta(win, options.id, options.route ?? '/')
 
     win.on('closed', () => {
       windowMap.delete(options.id)
