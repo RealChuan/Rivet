@@ -213,16 +213,6 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     [currentPath, handleCreateFolder]
   )
 
-  useEffect(() => {
-    if (!containerRef.current) return
-
-    const resizeObserver = new ResizeObserver(() => {})
-
-    resizeObserver.observe(containerRef.current)
-
-    return () => resizeObserver.disconnect()
-  }, [])
-
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return
     if ((e.target as HTMLElement).closest('button')) return
@@ -256,48 +246,57 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     setResizeStartWidth(width)
   }
 
-  const calculateColumnWidths = useCallback(() => {
+  const calculateColumnWidths = useCallback(
+    (containerWidth?: number) => {
+      const width = containerWidth ?? containerRef.current?.offsetWidth
+      if (!width) return
+
+      const fixedColumnsWidth = 100
+      const modifyTimeWidth = 150
+      const gapWidth = 6
+
+      const { numFixedColumns, numGaps, permissionsWidth, ownerWidth } = isWebdav
+        ? { numFixedColumns: 1, numGaps: 3, permissionsWidth: 0, ownerWidth: 0 }
+        : {
+            numFixedColumns: 3,
+            numGaps: 5,
+            permissionsWidth: fixedColumnsWidth,
+            ownerWidth: fixedColumnsWidth,
+          }
+
+      const totalFixedWidth =
+        fixedColumnsWidth * numFixedColumns + modifyTimeWidth + gapWidth * numGaps
+      const nameWidth = Math.max(200, width - totalFixedWidth)
+
+      setColumnWidths({
+        name: nameWidth,
+        permissions: permissionsWidth,
+        owner: ownerWidth,
+        size: fixedColumnsWidth,
+        modifyTime: modifyTimeWidth,
+      })
+    },
+    [isWebdav]
+  )
+
+  useEffect(() => {
     if (!containerRef.current) return
 
-    const containerWidth = containerRef.current.offsetWidth
-    const fixedColumnsWidth = 100
-    const modifyTimeWidth = 150
-    const gapWidth = 6
-
-    const { numFixedColumns, numGaps, permissionsWidth, ownerWidth } = isWebdav
-      ? { numFixedColumns: 1, numGaps: 3, permissionsWidth: 0, ownerWidth: 0 }
-      : {
-          numFixedColumns: 3,
-          numGaps: 5,
-          permissionsWidth: fixedColumnsWidth,
-          ownerWidth: fixedColumnsWidth,
-        }
-
-    const totalFixedWidth =
-      fixedColumnsWidth * numFixedColumns + modifyTimeWidth + gapWidth * numGaps
-    const nameWidth = Math.max(200, containerWidth - totalFixedWidth)
-
-    setColumnWidths({
-      name: nameWidth,
-      permissions: permissionsWidth,
-      owner: ownerWidth,
-      size: fixedColumnsWidth,
-      modifyTime: modifyTimeWidth,
-    })
-  }, [isWebdav])
-
-  useEffect(() => {
-    calculateColumnWidths()
-  }, [calculateColumnWidths])
-
-  useEffect(() => {
-    const handleResize = () => {
+    const resizeObserver = new ResizeObserver(entries => {
       if (hasUserResized) return
-      calculateColumnWidths()
-    }
+      for (const entry of entries) {
+        const width = (entry.target as HTMLElement).offsetWidth
+        calculateColumnWidths(width)
+      }
+    })
 
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    resizeObserver.observe(containerRef.current)
+
+    requestAnimationFrame(() => {
+      calculateColumnWidths(containerRef.current?.offsetWidth)
+    })
+
+    return () => resizeObserver.disconnect()
   }, [hasUserResized, calculateColumnWidths])
 
   useEffect(() => {
@@ -306,7 +305,9 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     if (session.isLoading) return
 
     setHasUserResized(false)
-    requestAnimationFrame(calculateColumnWidths)
+    requestAnimationFrame(() => {
+      calculateColumnWidths(containerRef.current?.offsetWidth)
+    })
   }, [session, sessionId, calculateColumnWidths])
 
   const files = useMemo(() => session?.files ?? [], [session?.files])
