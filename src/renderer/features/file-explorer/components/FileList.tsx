@@ -346,12 +346,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     requestAnimationFrame(calculateColumnWidths)
   }, [session, sessionId, calculateColumnWidths])
 
-  const files = useMemo((): FileInfo[] => {
-    if (!session?.files || !Array.isArray(session.files)) {
-      return []
-    }
-    return session.files
-  }, [session?.files])
+  const files = useMemo(() => session?.files ?? [], [session?.files])
 
   const sortedFiles = useMemo(() => {
     return [...files].sort((a, b) => {
