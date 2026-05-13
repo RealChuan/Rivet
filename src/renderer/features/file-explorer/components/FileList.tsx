@@ -228,9 +228,14 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     (e: MouseEvent) => {
       if (!isDragging || !containerRef.current) return
 
-      const rect = containerRef.current.getBoundingClientRect()
-      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width))
-      const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height))
+      const container = containerRef.current
+      const rect = container.getBoundingClientRect()
+      const scrollLeft = container.scrollLeft
+      const scrollTop = container.scrollTop
+
+      // 计算相对于容器内容区域的坐标（包含滚动偏移）
+      const x = e.clientX - rect.left + scrollLeft
+      const y = e.clientY - rect.top + scrollTop
 
       setDragEnd({ x, y })
 
@@ -252,15 +257,14 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         setSelectedFile(null)
       }
 
-      const fileElements = containerRef.current.querySelectorAll('[data-file-item]')
+      const fileElements = container.querySelectorAll('[data-file-item]')
       const newPendingSelection = new Set<string>()
 
       fileElements.forEach(el => {
         const fileRect = el.getBoundingClientRect()
-        const containerRect = containerRef.current!.getBoundingClientRect()
-
-        const fileLeft = fileRect.left - containerRect.left
-        const fileTop = fileRect.top - containerRect.top
+        // 转换为相对于容器内容区域的坐标（包含滚动偏移）
+        const fileLeft = fileRect.left - rect.left + scrollLeft
+        const fileTop = fileRect.top - rect.top + scrollTop
         const fileRight = fileLeft + fileRect.width
         const fileBottom = fileTop + fileRect.height
 
@@ -417,14 +421,17 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     const endY = Math.max(dragStart.y, dragEnd.y)
 
     const selectedInBox: FileInfo[] = []
-    const fileElements = containerRef.current?.querySelectorAll('[data-file-item]')
+    const container = containerRef.current
+    const fileElements = container?.querySelectorAll('[data-file-item]')
+    const rect = container?.getBoundingClientRect()
+    const scrollLeft = container?.scrollLeft ?? 0
+    const scrollTop = container?.scrollTop ?? 0
 
     fileElements?.forEach(el => {
       const fileRect = el.getBoundingClientRect()
-      const containerRect = containerRef.current!.getBoundingClientRect()
-
-      const fileLeft = fileRect.left - containerRect.left
-      const fileTop = fileRect.top - containerRect.top
+      // 转换为相对于容器内容区域的坐标（包含滚动偏移）
+      const fileLeft = fileRect.left - (rect?.left ?? 0) + scrollLeft
+      const fileTop = fileRect.top - (rect?.top ?? 0) + scrollTop
       const fileRight = fileLeft + fileRect.width
       const fileBottom = fileTop + fileRect.height
 
