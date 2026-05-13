@@ -6,7 +6,10 @@
     "connection": {
       "basePath": "访问路径",
       "cancel": "取消",
+      "certWarningMessage": "关闭证书验证会使您的连接变得不安全，可能遭受中间人攻击。确定要继续吗？",
+      "certWarningTitle": "安全警告",
       "connecting": "连接中...",
+      "continue": "继续",
       "editTitle": "编辑连接",
       "fillRequired": "请填写必填字段",
       "host": "主机",

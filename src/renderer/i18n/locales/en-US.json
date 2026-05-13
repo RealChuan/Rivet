@@ -6,7 +6,10 @@
     "connection": {
       "basePath": "Access Path",
       "cancel": "Cancel",
+      "certWarningMessage": "Disabling certificate verification makes your connection insecure and vulnerable to man-in-the-middle attacks. Are you sure you want to continue?",
+      "certWarningTitle": "Security Warning",
       "connecting": "Connecting...",
+      "continue": "Continue",
       "editTitle": "Edit Connection",
       "fillRequired": "Please fill in required fields",
       "host": "Host",

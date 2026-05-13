@@ -6,6 +6,7 @@ import PasswordInput from '@renderer/components/ui/PasswordInput.js'
 import Select from '@renderer/components/ui/Select.js'
 import Input from '@renderer/components/ui/Input.js'
 import Button from '@renderer/components/ui/Button.js'
+import { ConfirmDialog } from '@renderer/components/common/ConfirmDialog.js'
 
 export interface ConnectionDialogProps {
   open: boolean
@@ -33,6 +34,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   const [rejectUnauthorized, setRejectUnauthorized] = useState(config?.rejectUnauthorized !== false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showCertWarning, setShowCertWarning] = useState(false)
 
   useEffect(() => {
     if (config) {
@@ -78,6 +80,15 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
       return
     }
 
+    if (protocol === 'webdav' && scheme === 'https' && !rejectUnauthorized) {
+      setShowCertWarning(true)
+      return
+    }
+
+    await doSave()
+  }
+
+  const doSave = async () => {
     setIsLoading(true)
     setError('')
 
@@ -86,7 +97,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         name: name.trim(),
         protocol,
         host: host.trim(),
-        port: portNum,
+        port: parseInt(port, 10),
         username: username.trim(),
         password: password || '',
         savePassword,
@@ -100,6 +111,16 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleCertWarningConfirm = () => {
+    setShowCertWarning(false)
+    void doSave()
+  }
+
+  const handleCertWarningCancel = () => {
+    setShowCertWarning(false)
+    setRejectUnauthorized(true)
   }
 
   const handleProtocolChange = (value: string) => {
@@ -313,6 +334,18 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           </Button>
         </div>
       </form>
+
+      <ConfirmDialog
+        open={showCertWarning}
+        onClose={() => setShowCertWarning(false)}
+        onConfirm={handleCertWarningConfirm}
+        onCancel={handleCertWarningCancel}
+        title={t('connection.certWarningTitle')}
+        message={t('connection.certWarningMessage')}
+        type="warning"
+        confirmText={t('connection.continue')}
+        cancelText={t('connection.cancel')}
+      />
     </GlassDialog>
   )
 }
