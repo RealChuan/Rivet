@@ -94,6 +94,13 @@ ipcMain.handle('window-close-by-id', (_event, id: string) => {
 
 let isCleaningUp = false
 
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  const timeout = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+  })
+  return Promise.race([promise, timeout])
+}
+
 async function disconnectAllSessions(): Promise<void> {
   if (isCleaningUp || sessionManager.count === 0) return
 
@@ -104,27 +111,36 @@ async function disconnectAllSessions(): Promise<void> {
     const sftpSessions = sessionManager.getByProtocol('sftp')
     const webdavSessions = sessionManager.getByProtocol('webdav')
 
-    await Promise.all([
+    // 并发发起所有 disconnect，每个独立带 5 秒超时
+    const disconnectPromises = [
       ...sftpSessions.map(({ sessionId }) =>
-        ProtocolFactory.getProtocol('sftp')
-          .disconnect(sessionId)
-          .catch((err: unknown) => {
-            const errMsg = err instanceof Error ? err.message : String(err)
-            logger.error(`Failed to disconnect SFTP session ${sessionId}: ${errMsg}`)
-          })
+        withTimeout(
+          ProtocolFactory.getProtocol('sftp').disconnect(sessionId),
+          5000,
+          `SFTP disconnect ${sessionId}`
+        ).catch((err: unknown) => {
+          logger.error(`Failed to disconnect SFTP session ${sessionId}:`, err)
+        })
       ),
       ...webdavSessions.map(({ sessionId }) =>
-        ProtocolFactory.getProtocol('webdav')
-          .disconnect(sessionId)
-          .catch((err: unknown) => {
-            const errMsg = err instanceof Error ? err.message : String(err)
-            logger.error(`Failed to disconnect WebDAV session ${sessionId}: ${errMsg}`)
-          })
+        withTimeout(
+          ProtocolFactory.getProtocol('webdav').disconnect(sessionId),
+          5000,
+          `WebDAV disconnect ${sessionId}`
+        ).catch((err: unknown) => {
+          logger.error(`Failed to disconnect WebDAV session ${sessionId}:`, err)
+        })
       ),
-    ])
+    ]
+
+    // 等待所有 disconnect 完成（或超时）
+    const results = await Promise.allSettled(disconnectPromises)
+
+    const succeeded = results.filter(r => r.status === 'fulfilled').length
+    const failed = results.filter(r => r.status === 'rejected').length
+    logger.info(`Disconnect complete: ${succeeded} succeeded, ${failed} failed`)
 
     sessionManager.clear()
-    logger.info('All sessions disconnected')
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error)
     logger.error(`Error during disconnectAllSessions: ${errMsg}`)
@@ -178,6 +194,12 @@ app.on('before-quit', event => {
   logger.info('App quitting, cleaning up sessions...')
 
   void (async () => {
+    // 总超时 10 秒，无论 cleanup 是否完成都强制退出
+    const forceExitTimeout = setTimeout(() => {
+      logger.warn('Force exiting after timeout - some sessions may not have disconnected properly')
+      app.exit(0)
+    }, 10000)
+
     try {
       await disconnectAllSessions()
       saveConfig()
@@ -185,6 +207,7 @@ app.on('before-quit', event => {
       const errMsg = error instanceof Error ? error.message : String(error)
       logger.error(`Error during quit cleanup: ${errMsg}`)
     } finally {
+      clearTimeout(forceExitTimeout)
       app.exit(0)
     }
   })()
