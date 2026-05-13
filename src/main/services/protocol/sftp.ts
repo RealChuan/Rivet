@@ -86,7 +86,13 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
       }
 
       this.logOperation('connection failed', '', '', error)
-      await client.end().catch(() => {})
+
+      try {
+        await client.end()
+      } catch (cleanupError) {
+        this.logOperation('cleanup failed', '', '', cleanupError)
+      }
+
       throw error
     }
   }
