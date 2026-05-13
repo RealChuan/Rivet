@@ -14,6 +14,7 @@ export interface SessionStore {
   sessions: Session[]
   activeSessionId: string | null
   hostKeyDialog: HostKeyDialogState
+  requestCounters: Record<string, number>
 
   addConnection: (config: Omit<ConnectionConfig, 'connectionUuid'>) => Promise<string | null>
   updateConnection: (
@@ -124,6 +125,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     sessionId: '',
     connectionUuid: '',
   },
+  requestCounters: {},
 
   getSessionByconnectionUuid: connectionUuid => {
     return get().sessions.find(s => s.connectionUuid === connectionUuid)
@@ -353,6 +355,14 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     const session = get().sessions.find(s => s.sessionId === sessionId)
     if (!session) return
 
+    const currentCount = (get().requestCounters[sessionId] ?? 0) + 1
+    set(state => ({
+      requestCounters: {
+        ...state.requestCounters,
+        [sessionId]: currentCount,
+      },
+    }))
+
     set(state => ({
       sessions: state.sessions.map(s =>
         s.sessionId === sessionId ? { ...s, isLoading: true, error: null } : s
@@ -361,6 +371,11 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     try {
       const result = await window.electronAPI.protocol.list(sessionId, session.currentPath)
+
+      if (get().requestCounters[sessionId] !== currentCount) {
+        return
+      }
+
       const safeFiles = sanitizeFiles(result)
       set(state => ({
         sessions: state.sessions.map(s =>
@@ -368,6 +383,10 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         ),
       }))
     } catch (error) {
+      if (get().requestCounters[sessionId] !== currentCount) {
+        return
+      }
+
       const errorMsg = error instanceof Error ? error.message : 'Failed to list directory'
       set(state => ({
         sessions: state.sessions.map(s =>

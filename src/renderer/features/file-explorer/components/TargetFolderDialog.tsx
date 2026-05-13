@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type FileInfo } from '@shared/types/index.js'
 import GlassDialog from '@renderer/components/ui/GlassDialog.js'
@@ -33,6 +33,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState<FolderItem | null>(null)
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
+  const requestCounter = useRef(0)
 
   useEffect(() => {
     if (open) {
@@ -44,12 +45,18 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
   useEffect(() => {
     if (!open) return
     setIsLoading(true)
+    const currentRequestCount = ++requestCounter.current
     const load = async () => {
       try {
         const result = (await window.electronAPI.protocol.list(
           sessionId,
           currentPath
         )) as FileInfo[]
+
+        if (requestCounter.current !== currentRequestCount) {
+          return
+        }
+
         const dirs = result
           .filter((f: FileInfo) => f.type === 'directory')
           .map((f: FileInfo) => ({ ...f })) as FolderItem[]
@@ -58,7 +65,9 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
       } catch (error) {
         console.error('Failed to load folders:', error)
       } finally {
-        setIsLoading(false)
+        if (requestCounter.current === currentRequestCount) {
+          setIsLoading(false)
+        }
       }
     }
     void load()
