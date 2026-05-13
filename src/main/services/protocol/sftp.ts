@@ -1,15 +1,58 @@
 import Client from 'ssh2-sftp-client'
-import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
+import {
+  type ConnectionConfig,
+  type FileInfo,
+  type SftpConnectDetail,
+} from '@shared/types/index.js'
 import { generateSessionId } from '@shared/utils/index.js'
+import { type StatusCode, ProtocolStatus, SftpStatus } from '@shared/constants/index.js'
 import { BaseProtocolImpl } from './base.js'
 import { sessionManager } from './session-manager.js'
+import { getKnownHost } from '../../stores/index.js'
 
 export class SftpProtocol extends BaseProtocolImpl<Client> {
   readonly protocolType = 'sftp' as const
 
-  override async connect(config: ConnectionConfig): Promise<string> {
+  private createHostVerifier(config: ConnectionConfig): {
+    verifier: (hashedKey: string) => boolean
+    getResult: () => { detail: SftpConnectDetail | null; status: StatusCode | null }
+  } {
+    let capturedDetail: SftpConnectDetail | null = null
+    let capturedStatus: StatusCode | null = null
+
+    const verifier = (hashedKey: string): boolean => {
+      const hostKey = getKnownHost(config.connectionUuid)
+
+      if (!hostKey) {
+        capturedDetail = { fingerprint: hashedKey }
+        capturedStatus = ProtocolStatus.FIRST_CONNECT
+        return true
+      }
+
+      if (hostKey.fingerprint === hashedKey) {
+        capturedDetail = { fingerprint: hashedKey }
+        capturedStatus = ProtocolStatus.OK
+        return true
+      }
+
+      capturedDetail = {
+        fingerprint: hashedKey,
+        previousFingerprint: hostKey.fingerprint,
+      }
+      capturedStatus = SftpStatus.HOST_KEY_MISMATCH
+      return false
+    }
+
+    return {
+      verifier,
+      getResult: () => ({ detail: capturedDetail, status: capturedStatus }),
+    }
+  }
+
+  override async connect(config: ConnectionConfig) {
     const client = new Client()
     const sessionId = generateSessionId('sftp')
+    const { verifier, getResult } = this.createHostVerifier(config)
 
     try {
       await client.connect({
@@ -18,13 +61,30 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
         username: config.username,
         password: config.password ?? '',
         readyTimeout: 20000,
+        hostHash: 'sha256',
+        hostVerifier: verifier,
       })
 
+      const { detail, status } = getResult()
       sessionManager.register(sessionId, client, config, 'sftp')
       this.logOperation('connected', `${config.host}:${config.port}`, sessionId)
 
-      return sessionId
+      return {
+        sessionId,
+        statusCode: status!,
+        detail: detail!,
+      }
     } catch (error) {
+      const { detail, status } = getResult()
+
+      if (status === SftpStatus.HOST_KEY_MISMATCH && detail) {
+        return {
+          sessionId: '',
+          statusCode: status,
+          detail,
+        }
+      }
+
       this.logOperation('connection failed', '', '', error)
       await client.end().catch(() => {})
       throw error

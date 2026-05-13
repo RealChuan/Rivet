@@ -1,5 +1,8 @@
 {
   "translation": {
+    "common": {
+      "close": "关闭"
+    },
     "connection": {
       "basePath": "访问路径",
       "cancel": "取消",
@@ -70,6 +73,17 @@
       "reconnectHint": "点击重新连接",
       "retry": "重试",
       "size": "大小"
+    },
+    "hostKey": {
+      "currentFingerprint": "当前密钥",
+      "disconnect": "断开连接",
+      "firstConnectTitle": "首次连接到此服务器",
+      "firstConnectWarning": "这是您第一次连接到此服务器。点击\"信任并保存\"将保存此服务器的指纹，以便未来自动验证。",
+      "mismatchTitle": "主机密钥发生改变",
+      "mismatchWarning": "远程服务器的主机密钥与已保存的记录不匹配。这可能表示有人正在拦截您的连接。",
+      "previousFingerprint": "原密钥",
+      "trustAndSave": "信任并保存",
+      "trustNew": "信任新密钥并重新连接"
     },
     "sidebar": {
       "connect": "连接",

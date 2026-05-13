@@ -7,6 +7,7 @@ import {
   setConfigValue,
   getSavedConnections,
   deleteConnection,
+  deleteKnownHost,
   defaultUiSettings,
 } from '../stores/index.js'
 
@@ -49,6 +50,7 @@ export function setupCommonIpcHandlers(): void {
 
   ipcMain.handle('delete-connection', async (_, connectionUuid: string) => {
     deleteConnection(connectionUuid)
+    deleteKnownHost(connectionUuid)
     await keytar.deletePassword(SERVICE_NAME, `connection_${connectionUuid}`)
   })
 

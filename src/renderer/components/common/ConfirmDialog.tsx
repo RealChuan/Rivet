@@ -6,23 +6,27 @@ import Button from '../../components/ui/Button.js'
 interface ConfirmDialogProps {
   open: boolean
   onClose: () => void
-  onConfirm: () => void
+  onConfirm: () => void | Promise<void>
+  onCancel?: () => void | Promise<void>
   title: string
-  message: string
+  message?: string | React.ReactNode
   confirmText?: string
   cancelText?: string
   type?: 'danger' | 'warning' | 'info'
+  customContent?: React.ReactNode
 }
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   open,
   onClose,
   onConfirm,
+  onCancel,
   title,
   message,
   confirmText,
   cancelText,
   type = 'danger',
+  customContent,
 }) => {
   const { t } = useTranslation()
 
@@ -65,8 +69,20 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const config = dialogConfig[type]
 
+  const handleConfirm = async () => {
+    await onConfirm()
+    onClose()
+  }
+
+  const handleCancel = async () => {
+    if (onCancel) {
+      await onCancel()
+    }
+    onClose()
+  }
+
   return (
-    <GlassDialog open={open} onClose={onClose}>
+    <GlassDialog open={open} onClose={() => void handleCancel()}>
       <div className="flex flex-col items-center text-center">
         <div
           className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${config.bgClass}`}
@@ -74,18 +90,18 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           {config.icon}
         </div>
         <h2 className="text-base font-semibold text-text mb-2">{title}</h2>
-        <p className="text-sm text-text-muted mb-5">{message}</p>
+
+        {customContent ? (
+          <div className="w-full mb-5">{customContent}</div>
+        ) : message ? (
+          <p className="text-sm text-text-muted mb-5">{message}</p>
+        ) : null}
+
         <div className="flex justify-end gap-2.5 w-full">
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={() => void handleCancel()}>
             {cancelText ?? t('dialog.cancel')}
           </Button>
-          <Button
-            variant={config.buttonVariant}
-            onClick={() => {
-              void onConfirm()
-              onClose()
-            }}
-          >
+          <Button variant={config.buttonVariant} onClick={() => void handleConfirm()}>
             {confirmText ?? t('dialog.confirm')}
           </Button>
         </div>

@@ -2,10 +2,10 @@ import { ipcMain, type BrowserWindow } from 'electron'
 import keytar from 'keytar'
 import { ProtocolFactory } from '../services/protocol/factory.js'
 import { sessionManager } from '../services/protocol/session-manager.js'
+import { saveKnownHost, deleteKnownHost, transferControllers } from '../stores/index.js'
 import { logger } from '../utils/index.js'
 import { SERVICE_NAME, MAIN_WINDOW_ID } from '@shared/constants/index.js'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
-import { transferControllers } from '../stores/index.js'
 import { WindowManager } from '../app/window-factory.js'
 
 function getMainWindow(): BrowserWindow | null {
@@ -35,13 +35,13 @@ export function setupProtocolIpcHandlers(): void {
       }
 
       const protocol = ProtocolFactory.getProtocol(config.protocol)
-      const sessionId = await protocol.connect(fullConfig)
+      const result = await protocol.connect(fullConfig)
 
       const { saveConnection } = await import('../stores/index.js')
       saveConnection(config)
 
       logger.info(`Connection established: ${config.name} (${config.connectionUuid})`)
-      return sessionId
+      return result
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error)
       logger.error(`Connection failed: ${errMsg}`)
@@ -265,5 +265,26 @@ export function setupProtocolIpcHandlers(): void {
       transferControllers.delete(transferId)
       logger.info(`Transfer cancelled: ${transferId}`)
     }
+  })
+
+  ipcMain.handle(
+    'save-known-host',
+    (_, record: { connectionUuid: string; fingerprint: string }) => {
+      const result = saveKnownHost(record)
+      if (!result.success) {
+        throw new Error(`Failed to save known host: ${result.error}`)
+      }
+      logger.info(`Host key saved for connection: ${record.connectionUuid}`)
+      return { success: true }
+    }
+  )
+
+  ipcMain.handle('delete-known-host', (_, connectionUuid: string) => {
+    const result = deleteKnownHost(connectionUuid)
+    if (!result.success) {
+      throw new Error(`Failed to delete known host: ${result.error}`)
+    }
+    logger.info(`Host key deleted for connection: ${connectionUuid}`)
+    return { success: true }
   })
 }

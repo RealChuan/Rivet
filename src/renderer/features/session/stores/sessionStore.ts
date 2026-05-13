@@ -5,14 +5,17 @@ import {
   type ConnectionConfigWithoutPassword,
   type FileInfo,
   type Session,
+  type HostKeyDialogState,
 } from '@shared/types/index.js'
+import { ProtocolStatus, SftpStatus } from '@shared/constants/index.js'
 
 export interface SessionStore {
   connections: ConnectionConfigWithoutPassword[]
   sessions: Session[]
   activeSessionId: string | null
+  hostKeyDialog: HostKeyDialogState
 
-  addConnection: (config: Omit<ConnectionConfig, 'connectionUuid'>) => Promise<string>
+  addConnection: (config: Omit<ConnectionConfig, 'connectionUuid'>) => Promise<string | null>
   updateConnection: (
     connectionUuid: string,
     config: Omit<ConnectionConfig, 'connectionUuid'>
@@ -28,8 +31,11 @@ export interface SessionStore {
   reconnectSession: (
     connectionUuid: string,
     passwordConfig?: Partial<{ password?: string; savePassword?: boolean }>
-  ) => Promise<void>
+  ) => Promise<string | null>
   loadSavedConnections: () => Promise<void>
+
+  setHostKeyDialog: (state: Partial<HostKeyDialogState>) => void
+  closeHostKeyDialog: () => void
 
   getSessionByconnectionUuid: (connectionUuid: string) => Session | undefined
   getSessionById: (sessionId: string) => Session | undefined
@@ -62,10 +68,62 @@ const sanitizeFiles = (files: unknown): FileInfo[] => {
     }))
 }
 
+/**
+ * 公共函数：处理 connect 调用和 host key 对话框逻辑
+ */
+const handleConnectWithHostKey = async (
+  fullConfig: ConnectionConfig,
+  set: (partial: Partial<SessionStore>) => void
+): Promise<{ sessionId: string | null; shouldProceed: boolean }> => {
+  const result = await window.electronAPI.protocol.connect(fullConfig)
+
+  if (result.statusCode === ProtocolStatus.OK) {
+    return { sessionId: result.sessionId, shouldProceed: true }
+  }
+
+  if (result.statusCode === ProtocolStatus.FIRST_CONNECT) {
+    set({
+      hostKeyDialog: {
+        open: true,
+        type: 'first-connect',
+        fingerprint: result.detail.fingerprint,
+        previousFingerprint: undefined,
+        sessionId: result.sessionId,
+        connectionUuid: fullConfig.connectionUuid,
+      },
+    })
+    return { sessionId: result.sessionId, shouldProceed: false }
+  }
+
+  if (result.statusCode === SftpStatus.HOST_KEY_MISMATCH) {
+    set({
+      hostKeyDialog: {
+        open: true,
+        type: 'mismatch',
+        fingerprint: result.detail.fingerprint,
+        previousFingerprint: result.detail.previousFingerprint,
+        sessionId: '',
+        connectionUuid: fullConfig.connectionUuid,
+      },
+    })
+    return { sessionId: null, shouldProceed: false }
+  }
+
+  throw new Error(`Unexpected status: ${result.statusCode}`)
+}
+
 export const useSessionStore = create<SessionStore>((set, get) => ({
   connections: [],
   sessions: [],
   activeSessionId: null,
+  hostKeyDialog: {
+    open: false,
+    type: 'first-connect',
+    fingerprint: '',
+    previousFingerprint: undefined,
+    sessionId: '',
+    connectionUuid: '',
+  },
 
   getSessionByconnectionUuid: connectionUuid => {
     return get().sessions.find(s => s.connectionUuid === connectionUuid)
@@ -73,6 +131,18 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   getSessionById: sessionId => {
     return get().sessions.find(s => s.sessionId === sessionId)
+  },
+
+  setHostKeyDialog: state => {
+    set(prev => ({
+      hostKeyDialog: { ...prev.hostKeyDialog, ...state, open: true },
+    }))
+  },
+
+  closeHostKeyDialog: () => {
+    set(prev => ({
+      hostKeyDialog: { ...prev.hostKeyDialog, open: false },
+    }))
   },
 
   addConnection: async config => {
@@ -94,7 +164,11 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         : {}),
     }
 
-    const sessionId = await window.electronAPI.protocol.connect(fullConfig)
+    const { sessionId, shouldProceed } = await handleConnectWithHostKey(fullConfig, set)
+
+    if (!sessionId) {
+      return null
+    }
 
     const session: Session = {
       sessionId,
@@ -105,32 +179,34 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       isLoading: true,
       error: null,
     }
-
-    const configWithoutPassword: ConnectionConfigWithoutPassword = {
-      connectionUuid,
-      name: config.name,
-      protocol: config.protocol,
-      host: config.host,
-      port: config.port,
-      username: config.username,
-      savePassword: config.savePassword ?? false,
-      ...(config.basePath ? { basePath: config.basePath } : {}),
-      ...(config.scheme ? { scheme: config.scheme } : {}),
-      ...(config.rejectUnauthorized !== undefined
-        ? { rejectUnauthorized: config.rejectUnauthorized }
-        : {}),
-    }
-
     set(state => ({
-      connections: [...state.connections, configWithoutPassword],
+      connections: [
+        ...state.connections,
+        {
+          connectionUuid,
+          name: config.name,
+          protocol: config.protocol,
+          host: config.host,
+          port: config.port,
+          username: config.username,
+          savePassword: config.savePassword ?? false,
+          ...(config.basePath ? { basePath: config.basePath } : {}),
+          ...(config.scheme ? { scheme: config.scheme } : {}),
+          ...(config.rejectUnauthorized !== undefined
+            ? { rejectUnauthorized: config.rejectUnauthorized }
+            : {}),
+        },
+      ],
       sessions: [...state.sessions, session],
       activeSessionId: sessionId,
     }))
 
-    await new Promise(resolve => setTimeout(resolve, 100))
-    await get().refreshCurrentDirectory(sessionId)
+    if (shouldProceed) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      await get().refreshCurrentDirectory(sessionId)
+    }
 
-    return connectionUuid
+    return shouldProceed ? connectionUuid : null
   },
 
   updateConnection: async (connectionUuid, config) => {
@@ -156,11 +232,22 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
     let newSessionId: string | undefined
     let isConnected = false
+    let shouldRefresh = false
 
     if (session?.isConnected || config.password) {
       try {
-        newSessionId = await window.electronAPI.protocol.connect(configWithoutPassword)
-        isConnected = true
+        const fullConfig: ConnectionConfig = {
+          ...configWithoutPassword,
+          connectionUuid,
+          password: config.password ?? '',
+        }
+        const { sessionId, shouldProceed } = await handleConnectWithHostKey(fullConfig, set)
+
+        if (sessionId) {
+          newSessionId = sessionId
+          isConnected = true
+          shouldRefresh = shouldProceed
+        }
       } catch {
         isConnected = false
       }
@@ -192,7 +279,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         : state.activeSessionId,
     }))
 
-    if (isConnected && newSessionId) {
+    if (shouldRefresh && newSessionId) {
       await new Promise(resolve => setTimeout(resolve, 100))
       await get().refreshCurrentDirectory(newSessionId)
     }
@@ -295,24 +382,32 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     if (!connection) throw new Error('Connection not found')
 
     const configToConnect = passwordConfig ? { ...connection, ...passwordConfig } : connection
-    const sessionId = await window.electronAPI.protocol.connect(configToConnect)
+    const { sessionId, shouldProceed } = await handleConnectWithHostKey(configToConnect, set)
 
+    if (!sessionId) {
+      return null
+    }
+
+    const session: Session = {
+      sessionId,
+      connectionUuid,
+      currentPath: '/',
+      files: [],
+      isConnected: true,
+      isLoading: true,
+      error: null,
+    }
     set(state => ({
-      sessions: state.sessions
-        .filter(s => s.connectionUuid !== connectionUuid)
-        .concat({
-          sessionId,
-          connectionUuid,
-          currentPath: '/',
-          files: [],
-          isConnected: true,
-          isLoading: true,
-          error: null,
-        }),
+      sessions: state.sessions.filter(s => s.connectionUuid !== connectionUuid).concat(session),
       activeSessionId: sessionId,
     }))
 
-    await get().refreshCurrentDirectory(sessionId)
+    if (shouldProceed) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      await get().refreshCurrentDirectory(sessionId)
+    }
+
+    return shouldProceed ? connectionUuid : null
   },
 
   loadSavedConnections: async () => {

@@ -15,6 +15,10 @@ export const commonAPI = {
   getTempDir: () => ipcRenderer.invoke('get-temp-dir'),
   getDownloadDir: () => ipcRenderer.invoke('get-download-dir'),
   getLastError: () => ipcRenderer.invoke('get-last-error'),
+  saveKnownHost: (record: { connectionUuid: string; fingerprint: string }) =>
+    ipcRenderer.invoke('save-known-host', record),
+  deleteKnownHost: (connectionUuid: string) =>
+    ipcRenderer.invoke('delete-known-host', connectionUuid),
 }
 
 export type CommonAPI = typeof commonAPI

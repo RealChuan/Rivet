@@ -1,10 +1,15 @@
-import { type FileInfo, type ConnectionConfig, type ProtocolType } from '@shared/types/index.js'
+import {
+  type FileInfo,
+  type ConnectionConfig,
+  type ProtocolType,
+  type OperationResult,
+} from '@shared/types/index.js'
 import { normalizePath, joinPaths } from '@shared/utils/index.js'
 import logger from '../../utils/logger.js'
 import { sessionManager } from './session-manager.js'
 
 export interface FileProtocol {
-  connect(config: ConnectionConfig): Promise<string>
+  connect(config: ConnectionConfig): Promise<OperationResult>
   disconnect(sessionId: string): Promise<void>
   list(sessionId: string, path: string): Promise<FileInfo[]>
   uploadFile(
@@ -80,7 +85,7 @@ export abstract class BaseProtocolImpl<T> implements FileProtocol {
     logger.info(`${this.protocolType.toUpperCase()} ${operation} cancelled: ${path}`)
   }
 
-  connect(_config: ConnectionConfig): Promise<string> {
+  connect(_config: ConnectionConfig): Promise<OperationResult> {
     return Promise.reject(new Error('Not implemented'))
   }
 

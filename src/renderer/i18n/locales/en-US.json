@@ -1,5 +1,8 @@
 {
   "translation": {
+    "common": {
+      "close": "Close"
+    },
     "connection": {
       "basePath": "Access Path",
       "cancel": "Cancel",
@@ -71,6 +74,17 @@
       "reconnectHint": "Click to reconnect",
       "retry": "Retry",
       "size": "Size"
+    },
+    "hostKey": {
+      "currentFingerprint": "Current Key",
+      "disconnect": "Disconnect",
+      "firstConnectTitle": "First Connection to Server",
+      "firstConnectWarning": "This is your first connection to this server. Click 'Trust and Save' to save the server fingerprint for future automatic verification.",
+      "mismatchTitle": "Host Key Changed",
+      "mismatchWarning": "The remote server's host key does not match the saved record. This could indicate someone is intercepting your connection.",
+      "previousFingerprint": "Previous Key",
+      "trustAndSave": "Trust and Save",
+      "trustNew": "Trust New Key and Reconnect"
     },
     "sidebar": {
       "connect": "Connect",

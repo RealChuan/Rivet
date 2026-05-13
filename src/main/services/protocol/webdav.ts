@@ -4,6 +4,7 @@ import http from 'node:http'
 import https from 'node:https'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
 import { generateSessionId } from '@shared/utils/index.js'
+import { ProtocolStatus } from '@shared/constants/index.js'
 import { BaseProtocolImpl } from './base.js'
 import { sessionManager } from './session-manager.js'
 
@@ -17,12 +18,11 @@ interface WebDAVSession {
 export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
   readonly protocolType = 'webdav' as const
 
-  override async connect(config: ConnectionConfig): Promise<string> {
+  override async connect(config: ConnectionConfig) {
     const sessionId = generateSessionId('webdav')
     const useScheme = config.scheme ?? 'https'
     const url = `${useScheme}://${config.host}:${config.port}`
 
-    // 创建连接池 Agent
     const httpAgent = new http.Agent({
       keepAlive: true,
       maxSockets: 10,
@@ -38,7 +38,6 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
       rejectUnauthorized: config.rejectUnauthorized ?? true,
     })
 
-    // 创建统一的 AbortController 用于这个会话的所有请求
     const controller = new AbortController()
 
     const client = createClient(url, {
@@ -48,7 +47,6 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
       httpsAgent: useScheme === 'https' ? httpsAgent : undefined,
     })
 
-    // 验证连接是否有效 - 尝试列出根目录
     try {
       const testPath = config.basePath ?? '/'
       await client.getDirectoryContents(testPath, { signal: controller.signal })
@@ -67,7 +65,13 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
       `basePath: ${config.basePath ?? '/'}`
     )
 
-    return sessionId
+    return {
+      sessionId,
+      statusCode: ProtocolStatus.OK,
+      detail: {
+        fingerprint: '',
+      },
+    }
   }
 
   override disconnect(sessionId: string): Promise<void> {
