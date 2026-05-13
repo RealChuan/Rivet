@@ -336,6 +336,11 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
       }
     }
   }
+
+  override async ping(sessionId: string): Promise<void> {
+    const client = this.getClient(sessionId)
+    await client.stat('/')
+  }
 }
 
 export default SftpProtocol

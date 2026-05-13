@@ -322,6 +322,13 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
       throw error
     }
   }
+
+  override async ping(sessionId: string): Promise<void> {
+    const session = this.getClient(sessionId)
+    const config = this.getSessionConfig(sessionId)
+    const path = config?.basePath ?? '/'
+    await session.client.stat(path)
+  }
 }
 
 export default WebdavProtocol

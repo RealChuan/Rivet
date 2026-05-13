@@ -28,6 +28,21 @@ export const protocolAPI = {
     ipcRenderer.on('transfer-progress', handler)
     return () => ipcRenderer.removeListener('transfer-progress', handler)
   },
+  onSessionDisconnected: (
+    callback: (event: {
+      sessionId: string
+      connectionUuid: string
+      protocol: string
+      name: string
+    }) => void
+  ) => {
+    const handler = (
+      _: Electron.IpcRendererEvent,
+      event: { sessionId: string; connectionUuid: string; protocol: string; name: string }
+    ) => callback(event)
+    ipcRenderer.on('session-disconnected', handler)
+    return () => ipcRenderer.removeListener('session-disconnected', handler)
+  },
 }
 
 export type ProtocolAPI = typeof protocolAPI

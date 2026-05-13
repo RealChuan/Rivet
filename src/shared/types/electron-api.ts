@@ -34,6 +34,14 @@ export interface ProtocolAPI {
   ) => Promise<{ transferId: string } | undefined>
   cancelTransfer: (transferId: string) => Promise<void>
   onProgress: (callback: (event: { transferId: string; percent: number }) => void) => () => void
+  onSessionDisconnected: (
+    callback: (event: {
+      sessionId: string
+      connectionUuid: string
+      protocol: string
+      name: string
+    }) => void
+  ) => () => void
   delete: (sessionId: string, files: FileInfo[]) => Promise<void>
   rename: (sessionId: string, file: FileInfo, newName: string) => Promise<void>
   mkdir: (sessionId: string, path: string) => Promise<void>

@@ -31,6 +31,7 @@ export interface FileProtocol {
   delete(sessionId: string, files: FileInfo[]): Promise<void>
   copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void>
   move(sessionId: string, file: FileInfo, targetPath: string): Promise<void>
+  ping(sessionId: string): Promise<void>
 }
 
 export interface SessionHandle<T = unknown> {
@@ -135,6 +136,10 @@ export abstract class BaseProtocolImpl<T> implements FileProtocol {
   }
 
   move(_sessionId: string, _file: FileInfo, _targetPath: string): Promise<void> {
+    return Promise.reject(new Error('Not implemented'))
+  }
+
+  ping(_sessionId: string): Promise<void> {
     return Promise.reject(new Error('Not implemented'))
   }
 }

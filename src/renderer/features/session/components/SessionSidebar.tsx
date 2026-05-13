@@ -29,6 +29,25 @@ export const SessionSidebar: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false)
   const [connectionToDelete, setConnectionToDelete] = React.useState<string | null>(null)
 
+  // 监听会话断开事件
+  React.useEffect(() => {
+    const unsubscribe = window.electronAPI.protocol.onSessionDisconnected(event => {
+      // 从 store 中移除会话
+      void removeConnection(event.connectionUuid)
+
+      // 显示 Toast 提示
+      addToast({
+        type: 'error',
+        message: t('toast.connectionLost', {
+          protocol: event.protocol.toUpperCase(),
+          name: event.name,
+        }),
+      })
+    })
+
+    return unsubscribe
+  }, [t, removeConnection, addToast])
+
   const handleNewConnection = () => {
     setConnectionDialogOpen(true)
   }

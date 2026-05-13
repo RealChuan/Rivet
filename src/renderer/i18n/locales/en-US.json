@@ -102,6 +102,7 @@
     "toast": {
       "cannotMoveToSelf": "Cannot move folder to itself or its subfolder",
       "connectionFailed": "{{protocol}} connection \"{{name}}\" failed",
+      "connectionLost": "{{protocol}} connection \"{{name}}\" lost",
       "connectionSuccess": "{{protocol}} connection \"{{name}}\" connected",
       "copyFailed": "Copy failed",
       "copySuccess": "Copied successfully",
