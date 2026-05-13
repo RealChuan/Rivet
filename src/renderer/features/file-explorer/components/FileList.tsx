@@ -64,6 +64,18 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
   const [dragEnd, setDragEnd] = useState({ x: 0, y: 0 })
   const [pendingSelection, setPendingSelection] = useState<Set<string>>(new Set<string>())
 
+  const isDraggingRef = useRef(isDragging)
+  isDraggingRef.current = isDragging
+
+  const hasStartedDragRef = useRef(hasStartedDrag)
+  hasStartedDragRef.current = hasStartedDrag
+
+  const dragStartRef = useRef(dragStart)
+  dragStartRef.current = dragStart
+
+  const dragEndRef = useRef(dragEnd)
+  dragEndRef.current = dragEnd
+
   const {
     handleDelete,
     handleRename,
@@ -170,10 +182,14 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     setContextMenu(null)
   }, [])
 
+  const handleCloseContextMenuRef = useRef(handleCloseContextMenu)
+  handleCloseContextMenuRef.current = handleCloseContextMenu
+
   useEffect(() => {
-    document.addEventListener('click', handleCloseContextMenu)
-    return () => document.removeEventListener('click', handleCloseContextMenu)
-  }, [handleCloseContextMenu])
+    const handler = () => handleCloseContextMenuRef.current()
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [])
 
   const handleParentDirectory = useCallback(() => {
     if (currentPath === '/') return
@@ -223,63 +239,6 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     setDragEnd({ x, y })
     setPendingSelection(new Set<string>())
   }, [])
-
-  const handleDragMove = useCallback(
-    (e: MouseEvent) => {
-      if (!isDragging || !containerRef.current) return
-
-      const container = containerRef.current
-      const rect = container.getBoundingClientRect()
-      const scrollLeft = container.scrollLeft
-      const scrollTop = container.scrollTop
-
-      // 计算相对于容器内容区域的坐标（包含滚动偏移）
-      const x = e.clientX - rect.left + scrollLeft
-      const y = e.clientY - rect.top + scrollTop
-
-      setDragEnd({ x, y })
-
-      const startX = Math.min(dragStart.x, x)
-      const startY = Math.min(dragStart.y, y)
-      const endX = Math.max(dragStart.x, x)
-      const endY = Math.max(dragStart.y, y)
-
-      const minDragDistance = 5
-      const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2))
-
-      if (distance < minDragDistance) {
-        return
-      }
-
-      if (!hasStartedDrag) {
-        setHasStartedDrag(true)
-        setSelectedFiles([])
-        setSelectedFile(null)
-      }
-
-      const fileElements = container.querySelectorAll('[data-file-item]')
-      const newPendingSelection = new Set<string>()
-
-      fileElements.forEach(el => {
-        const fileRect = el.getBoundingClientRect()
-        // 转换为相对于容器内容区域的坐标（包含滚动偏移）
-        const fileLeft = fileRect.left - rect.left + scrollLeft
-        const fileTop = fileRect.top - rect.top + scrollTop
-        const fileRight = fileLeft + fileRect.width
-        const fileBottom = fileTop + fileRect.height
-
-        if (fileRight > startX && fileLeft < endX && fileBottom > startY && fileTop < endY) {
-          const fileName = el.getAttribute('data-file-item')
-          if (fileName) {
-            newPendingSelection.add(fileName)
-          }
-        }
-      })
-
-      setPendingSelection(newPendingSelection)
-    },
-    [isDragging, dragStart, hasStartedDrag]
-  )
 
   const handleSort = (column: 'name' | 'permissions' | 'owner' | 'size' | 'modifyTime') => {
     if (sortBy === column) {
@@ -407,65 +366,122 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     [selectedFiles, sortedFiles]
   )
 
-  const handleDragEndCallback = useCallback(() => {
-    if (!isDragging) return
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current || !containerRef.current) return
 
-    if (!hasStartedDrag) {
-      setIsDragging(false)
-      return
-    }
+      const container = containerRef.current
+      const rect = container.getBoundingClientRect()
+      const scrollLeft = container.scrollLeft
+      const scrollTop = container.scrollTop
 
-    const startX = Math.min(dragStart.x, dragEnd.x)
-    const startY = Math.min(dragStart.y, dragEnd.y)
-    const endX = Math.max(dragStart.x, dragEnd.x)
-    const endY = Math.max(dragStart.y, dragEnd.y)
+      const x = e.clientX - rect.left + scrollLeft
+      const y = e.clientY - rect.top + scrollTop
 
-    const selectedInBox: FileInfo[] = []
-    const container = containerRef.current
-    const fileElements = container?.querySelectorAll('[data-file-item]')
-    const rect = container?.getBoundingClientRect()
-    const scrollLeft = container?.scrollLeft ?? 0
-    const scrollTop = container?.scrollTop ?? 0
+      const currentDragStart = dragStartRef.current
+      const currentHasStartedDrag = hasStartedDragRef.current
 
-    fileElements?.forEach(el => {
-      const fileRect = el.getBoundingClientRect()
-      // 转换为相对于容器内容区域的坐标（包含滚动偏移）
-      const fileLeft = fileRect.left - (rect?.left ?? 0) + scrollLeft
-      const fileTop = fileRect.top - (rect?.top ?? 0) + scrollTop
-      const fileRight = fileLeft + fileRect.width
-      const fileBottom = fileTop + fileRect.height
+      setDragEnd({ x, y })
 
-      if (fileRight > startX && fileLeft < endX && fileBottom > startY && fileTop < endY) {
-        const fileName = el.getAttribute('data-file-item')
-        if (fileName) {
-          const file = sortedFiles.find(f => f.name === fileName)
-          if (file) {
-            selectedInBox.push(file)
+      const startX = Math.min(currentDragStart.x, x)
+      const startY = Math.min(currentDragStart.y, y)
+      const endX = Math.max(currentDragStart.x, x)
+      const endY = Math.max(currentDragStart.y, y)
+
+      const minDragDistance = 5
+      const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2))
+
+      if (distance < minDragDistance) {
+        return
+      }
+
+      if (!currentHasStartedDrag) {
+        setHasStartedDrag(true)
+        setSelectedFiles([])
+        setSelectedFile(null)
+      }
+
+      const fileElements = container.querySelectorAll('[data-file-item]')
+      const newPendingSelection = new Set<string>()
+
+      fileElements.forEach(el => {
+        const fileRect = el.getBoundingClientRect()
+        const fileLeft = fileRect.left - rect.left + scrollLeft
+        const fileTop = fileRect.top - rect.top + scrollTop
+        const fileRight = fileLeft + fileRect.width
+        const fileBottom = fileTop + fileRect.height
+
+        if (fileRight > startX && fileLeft < endX && fileBottom > startY && fileTop < endY) {
+          const fileName = el.getAttribute('data-file-item')
+          if (fileName) {
+            newPendingSelection.add(fileName)
           }
         }
-      }
-    })
+      })
 
-    setSelectedFiles(selectedInBox)
-    if (selectedInBox.length > 0) {
-      setSelectedFile(selectedInBox[selectedInBox.length - 1] ?? null)
+      setPendingSelection(newPendingSelection)
     }
 
-    setIsDragging(false)
-    setHasStartedDrag(false)
-    setPendingSelection(new Set<string>())
-  }, [isDragging, hasStartedDrag, dragStart, dragEnd, sortedFiles])
+    const handleMouseUp = () => {
+      if (!isDraggingRef.current) return
 
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleDragMove)
-      document.addEventListener('mouseup', handleDragEndCallback)
-      return () => {
-        document.removeEventListener('mousemove', handleDragMove)
-        document.removeEventListener('mouseup', handleDragEndCallback)
+      const currentHasStartedDrag = hasStartedDragRef.current
+      const currentDragStart = dragStartRef.current
+      const currentDragEnd = dragEndRef.current
+
+      if (!currentHasStartedDrag) {
+        setIsDragging(false)
+        return
       }
+
+      const startX = Math.min(currentDragStart.x, currentDragEnd.x)
+      const startY = Math.min(currentDragStart.y, currentDragEnd.y)
+      const endX = Math.max(currentDragStart.x, currentDragEnd.x)
+      const endY = Math.max(currentDragStart.y, currentDragEnd.y)
+
+      const selectedInBox: FileInfo[] = []
+      const container = containerRef.current
+      const fileElements = container?.querySelectorAll('[data-file-item]')
+      const rect = container?.getBoundingClientRect()
+      const scrollLeft = container?.scrollLeft ?? 0
+      const scrollTop = container?.scrollTop ?? 0
+
+      fileElements?.forEach(el => {
+        const fileRect = el.getBoundingClientRect()
+        const fileLeft = fileRect.left - (rect?.left ?? 0) + scrollLeft
+        const fileTop = fileRect.top - (rect?.top ?? 0) + scrollTop
+        const fileRight = fileLeft + fileRect.width
+        const fileBottom = fileTop + fileRect.height
+
+        if (fileRight > startX && fileLeft < endX && fileBottom > startY && fileTop < endY) {
+          const fileName = el.getAttribute('data-file-item')
+          if (fileName) {
+            const file = sortedFiles.find(f => f.name === fileName)
+            if (file) {
+              selectedInBox.push(file)
+            }
+          }
+        }
+      })
+
+      setSelectedFiles(selectedInBox)
+      if (selectedInBox.length > 0) {
+        setSelectedFile(selectedInBox[selectedInBox.length - 1] ?? null)
+      }
+
+      setIsDragging(false)
+      setHasStartedDrag(false)
+      setPendingSelection(new Set<string>())
     }
-  }, [isDragging, handleDragMove, handleDragEndCallback])
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [sortedFiles])
 
   if (!session) return null
 
