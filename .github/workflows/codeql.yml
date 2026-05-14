@@ -40,9 +40,13 @@ jobs:
           node-version: latest
           cache: 'npm'
 
+      - name: Remove package-lock.json to force fresh install from official registry
+        shell: bash
+        run: rm -f package-lock.json
+
       - name: Install dependencies
         shell: bash
-        run: npm ci
+        run: npm install
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4

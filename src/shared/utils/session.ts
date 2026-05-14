@@ -1,3 +1,6 @@
+import crypto from 'node:crypto'
+
 export const generateSessionId = (protocol: string): string => {
-  return `${protocol}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  const randomBytes = crypto.randomBytes(8).toString('base64url')
+  return `${protocol}_${Date.now()}_${randomBytes}`
 }
