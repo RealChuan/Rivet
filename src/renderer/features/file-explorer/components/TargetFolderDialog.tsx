@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type FileInfo } from '@shared/types/index.js'
 import GlassDialog from '@renderer/components/ui/GlassDialog.js'
@@ -73,18 +73,18 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     void load()
   }, [open, sessionId, currentPath])
 
-  const handleNavigate = (folder: FolderItem) => {
+  const handleNavigate = useCallback((folder: FolderItem) => {
     setCurrentPath(folder.absolutePath)
     setSelectedFolder(null)
-  }
+  }, [])
 
-  const handleParentDirectory = () => {
+  const handleParentDirectory = useCallback(() => {
     if (currentPath === '/') return
     const parts = currentPath.split('/').filter(Boolean)
     const parentPath = parts.length === 0 ? '/' : '/' + parts.slice(0, -1).join('/')
     setCurrentPath(parentPath)
     setSelectedFolder(null)
-  }
+  }, [currentPath])
 
   const handleNewFolder = async (folderName: string) => {
     const newFolderPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`
@@ -122,6 +122,57 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     void onConfirm(targetDir)
     onClose()
   }
+
+  const renderFolderItem = useCallback(
+    (item: FolderItem, _index: number, style: React.CSSProperties) => {
+      if (item.isParent || item.name === '..') {
+        return (
+          <button
+            onClick={handleParentDirectory}
+            className={`
+              flex items-center gap-2 h-10 px-3 cursor-pointer
+              border-none rounded transition-all duration-100
+              bg-transparent text-text hover:bg-hover
+            `}
+            style={{ ...style, width: '100%' }}
+            title={t('fileList.parentDirectory')}
+          >
+            <svg className="w-4 h-4 stroke-text-muted stroke-2" viewBox="0 0 24 24" fill="none">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            <span className="text-sm">{t('fileList.parentDirectory')}</span>
+          </button>
+        )
+      }
+      const isSelected = selectedFolder?.name === item.name
+      return (
+        <button
+          onClick={() => setSelectedFolder(item)}
+          onDoubleClick={() => handleNavigate(item)}
+          className={`
+            flex items-center gap-2 h-10 px-3 cursor-pointer
+            border-none rounded transition-all duration-100
+            ${isSelected ? 'bg-selected text-accent' : 'bg-transparent text-text hover:bg-hover'}
+          `}
+          style={{ ...style, width: '100%' }}
+          title={item.name}
+        >
+          <FileIcon type="directory" />
+          <span className="flex-1 text-sm text-left overflow-hidden text-ellipsis whitespace-nowrap">
+            {item.name}
+          </span>
+          <svg
+            className={`w-4 h-4 stroke-1.5 transition-colors ${isSelected ? 'stroke-accent' : 'stroke-text-muted'}`}
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      )
+    },
+    [selectedFolder, handleParentDirectory, handleNavigate, t]
+  )
 
   if (!open) return null
 
@@ -205,59 +256,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
                 items={allItems}
                 itemHeight={40}
                 width="100%"
-                renderItem={(item, _index, style) => {
-                  if (item.isParent || item.name === '..') {
-                    return (
-                      <button
-                        key=".."
-                        onClick={handleParentDirectory}
-                        className={`
-                          flex items-center gap-2 h-10 px-3 cursor-pointer
-                          border-none rounded transition-all duration-100
-                          bg-transparent text-text hover:bg-hover
-                        `}
-                        style={{ ...style, width: '100%' }}
-                        title={t('fileList.parentDirectory')}
-                      >
-                        <svg
-                          className="w-4 h-4 stroke-text-muted stroke-2"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                        >
-                          <polyline points="15 18 9 12 15 6" />
-                        </svg>
-                        <span className="text-sm">{t('fileList.parentDirectory')}</span>
-                      </button>
-                    )
-                  }
-                  const isSelected = selectedFolder?.name === item.name
-                  return (
-                    <button
-                      key={item.name}
-                      onClick={() => setSelectedFolder(item)}
-                      onDoubleClick={() => handleNavigate(item)}
-                      className={`
-                        flex items-center gap-2 h-10 px-3 cursor-pointer
-                        border-none rounded transition-all duration-100
-                        ${isSelected ? 'bg-selected text-accent' : 'bg-transparent text-text hover:bg-hover'}
-                      `}
-                      style={{ ...style, width: '100%' }}
-                      title={item.name}
-                    >
-                      <FileIcon type="directory" />
-                      <span className="flex-1 text-sm text-left overflow-hidden text-ellipsis whitespace-nowrap">
-                        {item.name}
-                      </span>
-                      <svg
-                        className={`w-4 h-4 stroke-1.5 transition-colors ${isSelected ? 'stroke-accent' : 'stroke-text-muted'}`}
-                        viewBox="0 0 24 24"
-                        fill="none"
-                      >
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </button>
-                  )
-                }}
+                renderItem={renderFolderItem}
               />
             )}
           </div>

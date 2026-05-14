@@ -62,11 +62,11 @@ export const SessionItem: React.FC<SessionItemProps> = ({
     )
 
   return (
-    <div className="relative px-2 py-1" style={{ ...style }}>
+    <div className="relative" style={style}>
       <div
         onClick={onSelect}
         className={`
-          px-3 py-2.5 rounded-md cursor-pointer flex items-center gap-2.5
+          mx-2 my-1 px-3 py-2.5 rounded-md cursor-pointer flex items-center gap-2.5
           border border-border transition-all
           ${isActive ? 'bg-selected' : 'bg-transparent hover:bg-hover'}
         `}

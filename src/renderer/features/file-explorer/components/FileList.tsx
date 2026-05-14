@@ -76,6 +76,8 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
   const dragEndRef = useRef(dragEnd)
   dragEndRef.current = dragEnd
 
+  const sortedFilesRef = useRef<FileInfo[]>([])
+
   const {
     handleDelete,
     handleRename,
@@ -313,7 +315,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
   const files = useMemo(() => session?.files ?? [], [session?.files])
 
   const sortedFiles = useMemo(() => {
-    return [...files].sort((a, b) => {
+    const result = [...files].sort((a, b) => {
       if (a.type !== b.type) {
         return a.type === 'directory' ? -1 : 1
       }
@@ -337,6 +339,8 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
       }
       return sortOrder === 'asc' ? result : -result
     })
+    sortedFilesRef.current = result
+    return result
   }, [files, sortBy, sortOrder])
 
   const handleFileClick = useCallback(
@@ -366,6 +370,8 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     },
     [selectedFiles, sortedFiles]
   )
+
+  const ITEM_HEIGHT = 40
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -402,23 +408,17 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         setSelectedFile(null)
       }
 
-      const fileElements = container.querySelectorAll('[data-file-item]')
+      const startIndex = Math.floor(startY / ITEM_HEIGHT)
+      const endIndex = Math.ceil(endY / ITEM_HEIGHT)
+      const currentSortedFiles = sortedFilesRef.current
+
       const newPendingSelection = new Set<string>()
-
-      fileElements.forEach(el => {
-        const fileRect = el.getBoundingClientRect()
-        const fileLeft = fileRect.left - rect.left + scrollLeft
-        const fileTop = fileRect.top - rect.top + scrollTop
-        const fileRight = fileLeft + fileRect.width
-        const fileBottom = fileTop + fileRect.height
-
-        if (fileRight > startX && fileLeft < endX && fileBottom > startY && fileTop < endY) {
-          const fileName = el.getAttribute('data-file-item')
-          if (fileName) {
-            newPendingSelection.add(fileName)
-          }
+      for (let i = startIndex; i < endIndex && i < currentSortedFiles.length; i++) {
+        const file = currentSortedFiles[i]
+        if (file) {
+          newPendingSelection.add(file.name)
         }
-      })
+      }
 
       setPendingSelection(newPendingSelection)
     }
@@ -435,35 +435,20 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         return
       }
 
-      const startX = Math.min(currentDragStart.x, currentDragEnd.x)
       const startY = Math.min(currentDragStart.y, currentDragEnd.y)
-      const endX = Math.max(currentDragStart.x, currentDragEnd.x)
       const endY = Math.max(currentDragStart.y, currentDragEnd.y)
 
+      const startIndex = Math.floor(startY / ITEM_HEIGHT)
+      const endIndex = Math.ceil(endY / ITEM_HEIGHT)
+      const currentSortedFiles = sortedFilesRef.current
+
       const selectedInBox: FileInfo[] = []
-      const container = containerRef.current
-      const fileElements = container?.querySelectorAll('[data-file-item]')
-      const rect = container?.getBoundingClientRect()
-      const scrollLeft = container?.scrollLeft ?? 0
-      const scrollTop = container?.scrollTop ?? 0
-
-      fileElements?.forEach(el => {
-        const fileRect = el.getBoundingClientRect()
-        const fileLeft = fileRect.left - (rect?.left ?? 0) + scrollLeft
-        const fileTop = fileRect.top - (rect?.top ?? 0) + scrollTop
-        const fileRight = fileLeft + fileRect.width
-        const fileBottom = fileTop + fileRect.height
-
-        if (fileRight > startX && fileLeft < endX && fileBottom > startY && fileTop < endY) {
-          const fileName = el.getAttribute('data-file-item')
-          if (fileName) {
-            const file = sortedFiles.find(f => f.name === fileName)
-            if (file) {
-              selectedInBox.push(file)
-            }
-          }
+      for (let i = startIndex; i < endIndex && i < currentSortedFiles.length; i++) {
+        const file = currentSortedFiles[i]
+        if (file) {
+          selectedInBox.push(file)
         }
-      })
+      }
 
       setSelectedFiles(selectedInBox)
       if (selectedInBox.length > 0) {
@@ -482,7 +467,39 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [sortedFiles])
+  }, [])
+
+  const renderFileItem = useCallback(
+    (file: FileInfo, _index: number, style: React.CSSProperties) => (
+      <FileItem
+        file={file}
+        columnWidths={columnWidths}
+        isSelected={selectedFiles.some(f => f.name === file.name)}
+        isPending={pendingSelection.has(file.name)}
+        isHovered={hoveredFile === file.name}
+        onHover={setHoveredFile}
+        onClick={e => handleFileClick(file, e)}
+        onDoubleClick={() => void handleDoubleClick(file)}
+        onContextMenu={e => {
+          e.stopPropagation()
+          handleContextMenu(e, file)
+        }}
+        style={style}
+        isWebdav={isWebdav}
+      />
+    ),
+    [
+      columnWidths,
+      selectedFiles,
+      pendingSelection,
+      hoveredFile,
+      setHoveredFile,
+      handleFileClick,
+      handleDoubleClick,
+      handleContextMenu,
+      isWebdav,
+    ]
+  )
 
   if (!session) return null
 
@@ -522,10 +539,11 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
 
       <div
         ref={containerRef}
-        className="flex-1 min-h-10 relative overflow-y-auto"
+        className="flex-1 min-h-10 relative"
         onContextMenu={e => {
           const target = e.target as HTMLElement
-          if (target === containerRef.current) {
+          const fileItem = target.closest('[data-file-item]')
+          if (!fileItem) {
             handleContextMenu(e)
           }
         }}
@@ -547,27 +565,9 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         ) : (
           <VirtualList
             items={sortedFiles}
-            itemHeight={40}
-            width="100%"
-            renderItem={(file, _index, style) => (
-              <FileItem
-                key={file.name}
-                file={file}
-                columnWidths={columnWidths}
-                isSelected={selectedFiles.some(f => f.name === file.name)}
-                isPending={pendingSelection.has(file.name)}
-                isHovered={hoveredFile === file.name}
-                onHover={setHoveredFile}
-                onClick={e => handleFileClick(file, e)}
-                onDoubleClick={() => void handleDoubleClick(file)}
-                onContextMenu={e => {
-                  e.stopPropagation()
-                  handleContextMenu(e, file)
-                }}
-                style={style}
-                isWebdav={isWebdav}
-              />
-            )}
+            itemHeight={ITEM_HEIGHT}
+            width={totalWidth}
+            renderItem={renderFileItem}
           />
         )}
       </div>

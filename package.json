@@ -63,6 +63,7 @@
     "react-dom": "^19.2.6",
     "react-i18next": "^17.0.7",
     "react-router-dom": "^7.15.0",
+    "react-virtualized-auto-sizer": "^2.0.3",
     "react-window": "^2.2.7",
     "ssh2-sftp-client": "^12.1.1",
     "uuid": "^14.0.0",

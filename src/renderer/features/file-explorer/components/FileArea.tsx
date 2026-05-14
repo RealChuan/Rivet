@@ -41,7 +41,7 @@ export const FileArea: React.FC<FileAreaProps> = ({ sessionId }) => {
         <Toolbar sessionId={activeSession.sessionId} />
       </div>
       <div className="flex-1 overflow-x-auto overflow-y-hidden bg-bg">
-        <div className="min-w-full h-full overflow-y-auto">
+        <div className="min-w-full h-full">
           <FileList sessionId={activeSession.sessionId} currentPath={activeSession.currentPath} />
         </div>
       </div>

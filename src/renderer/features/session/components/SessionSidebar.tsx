@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/sessionStore.js'
 import { useUiStore } from '@renderer/stores/index.js'
@@ -13,6 +13,7 @@ export const SessionSidebar: React.FC = () => {
   const { t } = useTranslation()
   const {
     connections,
+    sessions,
     activeSessionId,
     setActiveSession,
     addConnection,
@@ -52,18 +53,18 @@ export const SessionSidebar: React.FC = () => {
     setConnectionDialogOpen(true)
   }
 
-  const showConnectionToast = (
-    type: 'success' | 'error',
-    config: { protocol: string; name: string }
-  ) => {
-    addToast({
-      type,
-      message: t(`toast.connection${type === 'success' ? 'Success' : 'Failed'}`, {
-        protocol: config.protocol.toUpperCase(),
-        name: config.name,
-      }),
-    })
-  }
+  const showConnectionToast = useCallback(
+    (type: 'success' | 'error', config: { protocol: string; name: string }) => {
+      addToast({
+        type,
+        message: t(`toast.connection${type === 'success' ? 'Success' : 'Failed'}`, {
+          protocol: config.protocol.toUpperCase(),
+          name: config.name,
+        }),
+      })
+    },
+    [addToast, t]
+  )
 
   const handleSaveConnection = async (config: Omit<ConnectionConfig, 'connectionUuid'>) => {
     try {
@@ -83,32 +84,35 @@ export const SessionSidebar: React.FC = () => {
     }
   }
 
-  const handleDisconnect = (connectionUuid: string) => {
-    const connection = connections.find(c => c.connectionUuid === connectionUuid)
-    try {
-      void removeConnection(connectionUuid)
-      addToast({
-        type: 'info',
-        message: t('toast.disconnectSuccess', {
-          protocol: connection ? connection.protocol.toUpperCase() : 'Unknown',
-          name: connection?.name ?? 'Unknown',
-        }),
-      })
-    } catch (_error) {
-      addToast({
-        type: 'error',
-        message: t('toast.disconnectFailed', {
-          protocol: connection ? connection.protocol.toUpperCase() : 'Unknown',
-          name: connection?.name ?? 'Unknown',
-        }),
-      })
-    }
-  }
+  const handleDisconnect = useCallback(
+    (connectionUuid: string) => {
+      const connection = connections.find(c => c.connectionUuid === connectionUuid)
+      try {
+        void removeConnection(connectionUuid)
+        addToast({
+          type: 'info',
+          message: t('toast.disconnectSuccess', {
+            protocol: connection ? connection.protocol.toUpperCase() : 'Unknown',
+            name: connection?.name ?? 'Unknown',
+          }),
+        })
+      } catch (_error) {
+        addToast({
+          type: 'error',
+          message: t('toast.disconnectFailed', {
+            protocol: connection ? connection.protocol.toUpperCase() : 'Unknown',
+            name: connection?.name ?? 'Unknown',
+          }),
+        })
+      }
+    },
+    [connections, removeConnection, addToast, t]
+  )
 
-  const handleDelete = (connectionUuid: string) => {
+  const handleDelete = useCallback((connectionUuid: string) => {
     setConnectionToDelete(connectionUuid)
     setDeleteConfirmOpen(true)
-  }
+  }, [])
 
   const handleConfirmDelete = () => {
     if (!connectionToDelete) return
@@ -126,19 +130,22 @@ export const SessionSidebar: React.FC = () => {
     }
   }
 
-  const handleReconnect = async (connection: ConnectionConfig) => {
-    if (connection.password) {
-      try {
-        await reconnectSession(connection.connectionUuid)
-        showConnectionToast('success', connection)
-        return
-      } catch {
-        /* empty */
+  const handleReconnect = useCallback(
+    async (connection: ConnectionConfig) => {
+      if (connection.password) {
+        try {
+          await reconnectSession(connection.connectionUuid)
+          showConnectionToast('success', connection)
+          return
+        } catch {
+          /* empty */
+        }
       }
-    }
-    setReconnectConfig(connection)
-    setConnectionDialogOpen(true)
-  }
+      setReconnectConfig(connection)
+      setConnectionDialogOpen(true)
+    },
+    [reconnectSession, showConnectionToast]
+  )
 
   const handleReconnectSubmit = async (config: Omit<ConnectionConfig, 'connectionUuid'>) => {
     if (!reconnectConfig) return
@@ -158,10 +165,44 @@ export const SessionSidebar: React.FC = () => {
     }
   }
 
-  const handleEdit = (connection: ConnectionConfig) => {
+  const handleEdit = useCallback((connection: ConnectionConfig) => {
     setEditConfig(connection)
     setConnectionDialogOpen(true)
-  }
+  }, [])
+
+  const sessionsHash = useMemo(() => {
+    return JSON.stringify(sessions)
+  }, [sessions])
+
+  const renderSessionItem = useCallback(
+    (connection: ConnectionConfig, _index: number, style: React.CSSProperties) => {
+      const session = getSessionByconnectionUuid(connection.connectionUuid)
+      return (
+        <SessionItem
+          connection={connection}
+          session={session}
+          isActive={session?.sessionId === activeSessionId}
+          onSelect={() => session && setActiveSession(session.sessionId)}
+          onDisconnect={() => void handleDisconnect(connection.connectionUuid)}
+          onReconnect={() => void handleReconnect(connection)}
+          onEdit={() => void handleEdit(connection)}
+          onDelete={() => handleDelete(connection.connectionUuid)}
+          style={style}
+        />
+      )
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      activeSessionId,
+      getSessionByconnectionUuid,
+      setActiveSession,
+      handleDisconnect,
+      handleReconnect,
+      handleEdit,
+      handleDelete,
+      sessionsHash,
+    ]
+  )
 
   return (
     <>
@@ -241,28 +282,12 @@ export const SessionSidebar: React.FC = () => {
                   {t('sidebar.connections')}
                 </span>
               </div>
-              <div className="flex-1 overflow-y-auto min-h-50">
+              <div className="flex-1 min-h-50">
                 <VirtualList
                   items={connections}
                   itemHeight={72}
                   width="100%"
-                  renderItem={(connection, _index, style) => {
-                    const session = getSessionByconnectionUuid(connection.connectionUuid)
-                    return (
-                      <SessionItem
-                        key={connection.connectionUuid}
-                        connection={connection}
-                        session={session}
-                        isActive={session?.sessionId === activeSessionId}
-                        onSelect={() => session && setActiveSession(session.sessionId)}
-                        onDisconnect={() => void handleDisconnect(connection.connectionUuid)}
-                        onReconnect={() => void handleReconnect(connection)}
-                        onEdit={() => void handleEdit(connection)}
-                        onDelete={() => handleDelete(connection.connectionUuid)}
-                        style={style}
-                      />
-                    )
-                  }}
+                  renderItem={renderSessionItem}
                 />
               </div>
             </div>
