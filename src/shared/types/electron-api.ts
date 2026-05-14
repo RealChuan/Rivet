@@ -22,18 +22,6 @@ export interface ProtocolAPI {
   connect: (config: ConnectionConfig) => Promise<OperationResult>
   disconnect: (sessionId: string) => Promise<void>
   list: (sessionId: string, path: string) => Promise<unknown>
-  downloadFile: (
-    sessionId: string,
-    file: FileInfo,
-    localPath: string
-  ) => Promise<{ transferId: string } | undefined>
-  uploadFile: (
-    sessionId: string,
-    localPath: string,
-    remotePath: string
-  ) => Promise<{ transferId: string } | undefined>
-  cancelTransfer: (transferId: string) => Promise<void>
-  onProgress: (callback: (event: { transferId: string; percent: number }) => void) => () => void
   onSessionDisconnected: (
     callback: (event: {
       sessionId: string
@@ -42,7 +30,7 @@ export interface ProtocolAPI {
       name: string
     }) => void
   ) => () => void
-  delete: (sessionId: string, files: FileInfo[]) => Promise<void>
+  delete: (sessionId: string, file: FileInfo) => Promise<void>
   rename: (sessionId: string, file: FileInfo, newName: string) => Promise<void>
   mkdir: (sessionId: string, path: string) => Promise<void>
   copy: (sessionId: string, file: FileInfo, targetPath: string) => Promise<void>

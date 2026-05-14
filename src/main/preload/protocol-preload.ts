@@ -1,9 +1,6 @@
 import { ipcRenderer } from 'electron'
-import type {
-  FileInfo,
-  ConnectionConfigWithoutPassword,
-  ProgressEvent,
-} from '@shared/types/index.js'
+import { listenerManager } from './listener-manager.js'
+import type { FileInfo, ConnectionConfigWithoutPassword } from '@shared/types/index.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
 
 export const protocolAPI = {
@@ -17,23 +14,12 @@ export const protocolAPI = {
     ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.MKDIR, sessionId, path),
   rename: (sessionId: string, file: FileInfo, newName: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.RENAME, sessionId, file, newName),
-  delete: (sessionId: string, files: FileInfo[]) =>
-    ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.DELETE, sessionId, files),
+  delete: (sessionId: string, file: FileInfo) =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.DELETE, sessionId, file),
   copy: (sessionId: string, file: FileInfo, targetPath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.COPY, sessionId, file, targetPath),
   move: (sessionId: string, file: FileInfo, targetPath: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.MOVE, sessionId, file, targetPath),
-  uploadFile: (sessionId: string, localPath: string, remotePath: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.UPLOAD_FILE, sessionId, localPath, remotePath),
-  downloadFile: (sessionId: string, file: FileInfo, localPath: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.DOWNLOAD_FILE, sessionId, file, localPath),
-  cancelTransfer: (transferId: string) =>
-    ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.CANCEL_TRANSFER, transferId),
-  onProgress: (callback: (event: ProgressEvent) => void) => {
-    const handler = (_: Electron.IpcRendererEvent, event: ProgressEvent) => callback(event)
-    ipcRenderer.on(IPC_CHANNELS.EVENTS.TRANSFER_PROGRESS, handler)
-    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENTS.TRANSFER_PROGRESS, handler)
-  },
   onSessionDisconnected: (
     callback: (event: {
       sessionId: string
@@ -46,8 +32,7 @@ export const protocolAPI = {
       _: Electron.IpcRendererEvent,
       event: { sessionId: string; connectionUuid: string; protocol: string; name: string }
     ) => callback(event)
-    ipcRenderer.on(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, handler)
-    return () => ipcRenderer.removeListener(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, handler)
+    return listenerManager.on(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, handler)
   },
 }
 

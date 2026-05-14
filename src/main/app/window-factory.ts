@@ -8,7 +8,7 @@
 import { BrowserWindow, type BrowserWindowConstructorOptions, app } from 'electron'
 import { fileURLToPath, URL } from 'node:url'
 import path from 'node:path'
-import { registerWindowMeta } from './main.js'
+import { registerWindowMeta, unregisterWindowMeta } from './main.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const isDev = !app.isPackaged
@@ -146,6 +146,7 @@ export const WindowManager = {
 
     win.on('closed', () => {
       windowMap.delete(options.id)
+      unregisterWindowMeta(win)
     })
 
     return win

@@ -1,23 +1,13 @@
-import { ipcMain, type BrowserWindow } from 'electron'
+import { ipcMain } from 'electron'
 import keytar from 'keytar'
 import { ProtocolFactory } from '../services/protocol/factory.js'
 import { sessionManager, type SessionHandle } from '../services/protocol/session-manager.js'
-import { saveKnownHost, deleteKnownHost, transferControllers } from '../stores/index.js'
+import { saveConnection, saveKnownHost, deleteKnownHost } from '../stores/index.js'
 import { logger } from '../utils/index.js'
-import {
-  SERVICE_NAME,
-  MAIN_WINDOW_ID,
-  ProtocolType,
-  IPC_CHANNELS,
-} from '@shared/constants/index.js'
+import { SERVICE_NAME, ProtocolType, IPC_CHANNELS, SftpStatus } from '@shared/constants/index.js'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
 import { toErrorMessage } from '@shared/utils/index.js'
-import { WindowManager } from '../app/window-factory.js'
 import { type FileProtocol } from '../services/protocol/base.js'
-
-function getMainWindow(): BrowserWindow | null {
-  return WindowManager.get(MAIN_WINDOW_ID) ?? null
-}
 
 function getSessionAndProtocol(sessionId: string): {
   handle: SessionHandle<unknown>
@@ -58,7 +48,14 @@ export function setupProtocolIpcHandlers(): void {
       const protocol = ProtocolFactory.getProtocol(config.protocol)
       const result = await protocol.connect(fullConfig)
 
-      const { saveConnection } = await import('../stores/index.js')
+      if (result.statusCode === SftpStatus.HOST_KEY_MISMATCH) {
+        return result
+      }
+
+      if (!result.sessionId) {
+        throw new Error('Connection failed: no session ID returned')
+      }
+
       saveConnection(config)
 
       logger.info(`Connection established: ${config.name} (${config.connectionUuid})`)
@@ -118,10 +115,10 @@ export function setupProtocolIpcHandlers(): void {
     }
   )
 
-  ipcMain.handle(IPC_CHANNELS.PROTOCOL.DELETE, async (_, sessionId: string, files: FileInfo[]) => {
+  ipcMain.handle(IPC_CHANNELS.PROTOCOL.DELETE, async (_, sessionId: string, file: FileInfo) => {
     try {
       const { protocol } = getSessionAndProtocol(sessionId)
-      await protocol.delete(sessionId, files)
+      await protocol.delete(sessionId, file)
     } catch (error) {
       const errMsg = toErrorMessage(error)
       logger.error(`Delete failed - ${errMsg}`)
@@ -156,97 +153,6 @@ export function setupProtocolIpcHandlers(): void {
       }
     }
   )
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.UPLOAD_FILE,
-    async (_, sessionId: string, localPath: string, remotePath: string) => {
-      const transferId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      const abortController = new AbortController()
-      transferControllers.set(transferId, abortController)
-
-      try {
-        const { handle, protocol } = getSessionAndProtocol(sessionId)
-        const config = handle.config
-
-        await protocol.uploadFile(
-          sessionId,
-          localPath,
-          remotePath,
-          (percent: number) => {
-            const mainWindow = getMainWindow()
-            if (mainWindow) {
-              mainWindow.webContents.send(IPC_CHANNELS.EVENTS.TRANSFER_PROGRESS, {
-                transferId,
-                connectionUuid: config.connectionUuid,
-                operation: 'upload' as const,
-                path: remotePath,
-                percent,
-              })
-            }
-          },
-          abortController.signal
-        )
-
-        transferControllers.delete(transferId)
-        return { transferId, success: true }
-      } catch (error) {
-        transferControllers.delete(transferId)
-        const errMsg = toErrorMessage(error)
-        logger.error(`Upload failed: ${localPath} -> ${remotePath} - ${errMsg}`)
-        throw error
-      }
-    }
-  )
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.DOWNLOAD_FILE,
-    async (_, sessionId: string, file: FileInfo, localPath: string) => {
-      const transferId = `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      const abortController = new AbortController()
-      transferControllers.set(transferId, abortController)
-
-      try {
-        const { handle, protocol } = getSessionAndProtocol(sessionId)
-        const config = handle.config
-
-        await protocol.downloadFile(
-          sessionId,
-          file,
-          localPath,
-          (percent: number) => {
-            const mainWindow = getMainWindow()
-            if (mainWindow) {
-              mainWindow.webContents.send(IPC_CHANNELS.EVENTS.TRANSFER_PROGRESS, {
-                transferId,
-                connectionUuid: config.connectionUuid,
-                operation: 'download',
-                path: file.absolutePath,
-                percent,
-              })
-            }
-          },
-          abortController.signal
-        )
-
-        transferControllers.delete(transferId)
-        return { transferId, success: true }
-      } catch (error) {
-        transferControllers.delete(transferId)
-        const errMsg = toErrorMessage(error)
-        logger.error(`Download failed: ${file.absolutePath} -> ${localPath} - ${errMsg}`)
-        throw error
-      }
-    }
-  )
-
-  ipcMain.handle(IPC_CHANNELS.PROTOCOL.CANCEL_TRANSFER, (_, transferId: string) => {
-    const controller = transferControllers.get(transferId)
-    if (controller) {
-      controller.abort()
-      transferControllers.delete(transferId)
-      logger.info(`Transfer cancelled: ${transferId}`)
-    }
-  })
 
   ipcMain.handle(
     IPC_CHANNELS.PROTOCOL.SAVE_KNOWN_HOST,

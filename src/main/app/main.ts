@@ -8,6 +8,7 @@
  */
 
 import { app, BrowserWindow, ipcMain } from 'electron'
+import { Mutex } from 'async-mutex'
 import { WindowManager } from './window-factory.js'
 import { logger } from '../utils/index.js'
 import { setupIpcHandlers } from '../ipc/index.js'
@@ -24,6 +25,10 @@ const windowMetaMap = new WeakMap<BrowserWindow, { windowId: string; route: stri
 
 export function registerWindowMeta(win: BrowserWindow, id: string, route: string): void {
   windowMetaMap.set(win, { windowId: id, route })
+}
+
+export function unregisterWindowMeta(win: BrowserWindow): void {
+  windowMetaMap.delete(win)
 }
 
 ipcMain.handle('get-window-meta', event => {
@@ -93,21 +98,22 @@ ipcMain.handle('window-close-by-id', (_event, id: string) => {
   return true
 })
 
+const cleanupMutex = new Mutex()
 let isCleaningUp = false
 
 async function disconnectAllSessions(): Promise<void> {
-  if (isCleaningUp || sessionManager.count === 0) return
-
-  isCleaningUp = true
-  logger.info(`Disconnecting ${sessionManager.count} active sessions...`)
-
+  const release = await cleanupMutex.acquire()
   try {
+    if (isCleaningUp || sessionManager.count === 0) return
+    isCleaningUp = true
+    logger.info(`Disconnecting ${sessionManager.count} active sessions...`)
     await sessionManager.safeUnregisterAll()
   } catch (error: unknown) {
     const errMsg = toErrorMessage(error)
     logger.error(`Error during disconnectAllSessions: ${errMsg}`)
   } finally {
     isCleaningUp = false
+    release()
   }
 }
 

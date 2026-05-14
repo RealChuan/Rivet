@@ -56,7 +56,9 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
     async (files: FileInfo[]) => {
       if (files.length === 0) return
       try {
-        await window.electronAPI.protocol.delete(sessionId, files)
+        for (const file of files) {
+          await window.electronAPI.protocol.delete(sessionId, file)
+        }
         addToast({ type: 'success', message: t('toast.deleteSuccess') })
         await refreshCurrentDirectory(sessionId)
       } catch (error) {

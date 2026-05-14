@@ -2,9 +2,8 @@ import { createClient, type WebDAVClient, type FileStat } from 'webdav'
 import path from 'path'
 import http from 'node:http'
 import https from 'node:https'
-import type * as fs from 'fs'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
-import { generateSessionId } from '@shared/utils/index.js'
+import { generateSessionId } from '@main/utils/index.js'
 import { ProtocolStatus, ProtocolType, FileOperation } from '@shared/constants/index.js'
 import { BaseProtocolImpl, type FileProtocol } from './base.js'
 import { sessionManager } from './session-manager.js'
@@ -124,122 +123,6 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> implements F
     }
   }
 
-  async uploadFile(
-    sessionId: string,
-    localPath: string,
-    remotePath: string,
-    onProgress: (percent: number) => void,
-    signal?: AbortSignal
-  ): Promise<void> {
-    const session = this.getClient(sessionId)
-    const fullPath = this.getFullPath(sessionId, remotePath)
-    const abortState = this.setupAbortHandler(signal)
-
-    let readStream: ReturnType<typeof fs.createReadStream> | null = null
-    const streamAbortHandler = () => readStream?.destroy()
-    signal?.addEventListener('abort', streamAbortHandler)
-
-    try {
-      const fs = await import('fs')
-      const totalSize = (await fs.promises.stat(localPath)).size
-      let transferred = 0
-
-      readStream = fs.createReadStream(localPath)
-
-      await session.client.putFileContents(fullPath, readStream, {
-        onUploadProgress: (progress: { loaded: number }) => {
-          if (abortState.getAborted()) {
-            readStream?.destroy()
-            throw new Error('Upload cancelled')
-          }
-          transferred = progress.loaded ?? 0
-          onProgress(this.calculateProgress(transferred, totalSize))
-        },
-        signal: session.controller.signal,
-      })
-
-      if (abortState.getAborted()) {
-        throw new Error('Upload cancelled')
-      }
-
-      this.logOperation('uploaded', localPath, fullPath)
-    } catch (error) {
-      if (abortState.getAborted()) {
-        this.logCancelled('upload', localPath)
-      } else {
-        this.logOperation('upload failed', localPath, fullPath, error)
-      }
-      throw error
-    } finally {
-      abortState.cleanup()
-      signal?.removeEventListener('abort', streamAbortHandler)
-    }
-  }
-
-  async downloadFile(
-    sessionId: string,
-    file: FileInfo,
-    localPath: string,
-    onProgress: (percent: number) => void,
-    signal?: AbortSignal
-  ): Promise<void> {
-    const session = this.getClient(sessionId)
-    const fullPath = this.getFullPath(sessionId, file.absolutePath)
-    const abortState = this.setupAbortHandler(signal)
-
-    let writeStream: ReturnType<typeof fs.createWriteStream> | null = null
-    const streamAbortHandler = () => writeStream?.destroy()
-    signal?.addEventListener('abort', streamAbortHandler)
-
-    try {
-      const fs = await import('fs')
-      const stat = (await session.client.stat(fullPath, {
-        signal: session.controller.signal,
-      })) as FileStat
-      const totalSize = stat.size || 0
-      let transferred = 0
-
-      writeStream = fs.createWriteStream(localPath)
-      const currentWriteStream = writeStream
-
-      await new Promise<void>((resolve, reject) => {
-        const readStream = session.client.createReadStream(fullPath, {
-          signal: session.controller.signal,
-        })
-
-        readStream
-          .on('data', (chunk: Buffer) => {
-            if (abortState.getAborted()) {
-              currentWriteStream.destroy()
-              reject(new Error('Download cancelled'))
-              return
-            }
-            transferred += chunk.length
-            onProgress(this.calculateProgress(transferred, totalSize))
-          })
-          .pipe(currentWriteStream)
-          .on('finish', resolve)
-          .on('error', reject)
-      })
-
-      if (abortState.getAborted()) {
-        throw new Error('Download cancelled')
-      }
-
-      this.logOperation('downloaded', fullPath, localPath)
-    } catch (error) {
-      if (abortState.getAborted()) {
-        this.logCancelled('download', file.absolutePath)
-      } else {
-        this.logOperation('download failed', fullPath, localPath, error)
-      }
-      throw error
-    } finally {
-      abortState.cleanup()
-      signal?.removeEventListener('abort', streamAbortHandler)
-    }
-  }
-
   async mkdir(sessionId: string, dirPath: string): Promise<void> {
     const session = this.getClient(sessionId)
     const fullPath = this.getFullPath(sessionId, dirPath)
@@ -271,17 +154,15 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> implements F
     }
   }
 
-  async delete(sessionId: string, files: FileInfo[]): Promise<void> {
+  async delete(sessionId: string, file: FileInfo): Promise<void> {
     const session = this.getClient(sessionId)
+    const fullPath = this.getFullPath(sessionId, file.absolutePath)
 
     try {
-      for (const file of files) {
-        const fullPath = this.getFullPath(sessionId, file.absolutePath)
-        await session.client.deleteFile(fullPath, { signal: session.controller.signal })
-        this.logOperation(FileOperation.DELETE, fullPath, '')
-      }
+      await session.client.deleteFile(fullPath, { signal: session.controller.signal })
+      this.logOperation(FileOperation.DELETE, fullPath, '')
     } catch (error) {
-      this.logOperation('delete failed', '', '', error)
+      this.logOperation('delete failed', fullPath, '', error)
       throw error
     }
   }

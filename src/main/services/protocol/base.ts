@@ -13,23 +13,9 @@ export interface FileProtocol {
   connect(config: ConnectionConfig): Promise<OperationResult>
   disconnect(sessionId: string): Promise<void>
   list(sessionId: string, path: string): Promise<FileInfo[]>
-  uploadFile(
-    sessionId: string,
-    localPath: string,
-    remotePath: string,
-    onProgress: (percent: number) => void,
-    signal?: AbortSignal
-  ): Promise<void>
-  downloadFile(
-    sessionId: string,
-    file: FileInfo,
-    localPath: string,
-    onProgress: (percent: number) => void,
-    signal?: AbortSignal
-  ): Promise<void>
   mkdir(sessionId: string, path: string): Promise<void>
   rename(sessionId: string, file: FileInfo, newName: string): Promise<void>
-  delete(sessionId: string, files: FileInfo[]): Promise<void>
+  delete(sessionId: string, file: FileInfo): Promise<void>
   copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void>
   move(sessionId: string, file: FileInfo, targetPath: string): Promise<void>
   ping(sessionId: string): Promise<void>

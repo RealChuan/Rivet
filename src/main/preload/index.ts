@@ -10,6 +10,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { protocolAPI } from './protocol-preload.js'
 import { commonAPI } from './common-preload.js'
+import { listenerManager } from './listener-manager.js'
 
 // ============================================================
 // 窗口控制 API
@@ -36,10 +37,7 @@ const windowControl = {
     const handler = (_: IpcRendererEvent, state: { isMaximized: boolean }) => {
       callback(state)
     }
-    ipcRenderer.on('window-state-changed', handler)
-    return () => {
-      ipcRenderer.removeListener('window-state-changed', handler)
-    }
+    return listenerManager.on('window-state-changed', handler)
   },
 
   // ========== 子窗口管理 ==========

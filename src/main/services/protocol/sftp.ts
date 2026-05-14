@@ -4,7 +4,7 @@ import {
   type FileInfo,
   type SftpConnectDetail,
 } from '@shared/types/index.js'
-import { generateSessionId } from '@shared/utils/index.js'
+import { generateSessionId } from '@main/utils/index.js'
 import {
   type StatusCode,
   ProtocolStatus,
@@ -167,85 +167,6 @@ export class SftpProtocol extends BaseProtocolImpl<Client> implements FileProtoc
     }
   }
 
-  async uploadFile(
-    sessionId: string,
-    localPath: string,
-    remotePath: string,
-    onProgress: (percent: number) => void,
-    signal?: AbortSignal
-  ): Promise<void> {
-    const client = this.getClient(sessionId)
-    const abortState = this.setupAbortHandler(signal)
-
-    try {
-      const fs = await import('fs')
-      const totalSize = (await fs.promises.stat(localPath)).size
-
-      await client.fastPut(localPath, remotePath, {
-        step: (totalTransferred: number) => {
-          if (abortState.getAborted()) {
-            throw new Error('Upload cancelled')
-          }
-          onProgress(this.calculateProgress(totalTransferred, totalSize))
-        },
-      })
-
-      if (abortState.getAborted()) {
-        throw new Error('Upload cancelled')
-      }
-
-      this.logOperation('uploaded', localPath, remotePath)
-    } catch (error) {
-      if (abortState.getAborted()) {
-        this.logCancelled('upload', localPath)
-      } else {
-        this.logOperation('upload failed', localPath, remotePath, error)
-      }
-      throw error
-    } finally {
-      abortState.cleanup()
-    }
-  }
-
-  async downloadFile(
-    sessionId: string,
-    file: FileInfo,
-    localPath: string,
-    onProgress: (percent: number) => void,
-    signal?: AbortSignal
-  ): Promise<void> {
-    const client = this.getClient(sessionId)
-    const abortState = this.setupAbortHandler(signal)
-
-    try {
-      const totalSize = file.size || 0
-
-      await client.fastGet(file.absolutePath, localPath, {
-        step: (totalTransferred: number) => {
-          if (abortState.getAborted()) {
-            throw new Error('Download cancelled')
-          }
-          onProgress(this.calculateProgress(totalTransferred, totalSize))
-        },
-      })
-
-      if (abortState.getAborted()) {
-        throw new Error('Download cancelled')
-      }
-
-      this.logOperation('downloaded', file.absolutePath, localPath)
-    } catch (error) {
-      if (abortState.getAborted()) {
-        this.logCancelled('download', file.absolutePath)
-      } else {
-        this.logOperation('download failed', file.absolutePath, localPath, error)
-      }
-      throw error
-    } finally {
-      abortState.cleanup()
-    }
-  }
-
   async mkdir(sessionId: string, path: string): Promise<void> {
     const client = this.getClient(sessionId)
 
@@ -271,20 +192,18 @@ export class SftpProtocol extends BaseProtocolImpl<Client> implements FileProtoc
     }
   }
 
-  async delete(sessionId: string, files: FileInfo[]): Promise<void> {
+  async delete(sessionId: string, file: FileInfo): Promise<void> {
     const client = this.getClient(sessionId)
 
     try {
-      for (const file of files) {
-        if (file.type === 'directory') {
-          await client.rmdir(file.absolutePath, true)
-        } else {
-          await client.delete(file.absolutePath)
-        }
-        this.logOperation('delete', file.absolutePath, '')
+      if (file.type === 'directory') {
+        await client.rmdir(file.absolutePath, true)
+      } else {
+        await client.delete(file.absolutePath)
       }
+      this.logOperation('delete', file.absolutePath, '')
     } catch (error) {
-      this.logOperation('delete failed', '', '', error)
+      this.logOperation('delete failed', file.absolutePath, '', error)
       throw error
     }
   }
