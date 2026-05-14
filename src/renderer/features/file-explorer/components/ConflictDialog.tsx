@@ -88,8 +88,15 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
     onClose()
   }
 
-  const canOverwrite = (conflict: ConflictItem) => {
-    return conflict.sourceFile.type === conflict.targetFile?.type
+  const canOverwrite = (conflict: ConflictItem): boolean => {
+    const sourceType = conflict.sourceFile.type
+    const targetType = conflict.targetFile?.type
+
+    if (!targetType) return true
+
+    if (sourceType === targetType) return true
+
+    return false
   }
 
   if (!open) return null

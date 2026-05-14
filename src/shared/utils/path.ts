@@ -22,3 +22,8 @@ export const isSubPath = (parent: string, child: string): boolean => {
   if (normalizedParent === normalizedChild) return true
   return normalizedChild.startsWith(normalizedParent + '/')
 }
+
+export const joinPath = (parent: string, child: string): string => {
+  if (parent === '/') return `/${child}`
+  return `${parent}/${child}`
+}
