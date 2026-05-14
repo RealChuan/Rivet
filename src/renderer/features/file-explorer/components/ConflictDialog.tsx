@@ -6,6 +6,7 @@ import Button from '@renderer/components/ui/Button.js'
 import RadioButton from '@renderer/components/ui/RadioButton.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
 import { logger } from '@renderer/utils/index.js'
+import { FileOperation } from '@shared/constants/index.js'
 
 export type ConflictStrategy = 'overwrite' | 'skip' | 'keepBoth'
 
@@ -21,17 +22,19 @@ export interface ConflictResolution {
   strategy: ConflictStrategy
 }
 
+type CopyMoveOperation = typeof FileOperation.COPY | typeof FileOperation.MOVE
+
 interface ConflictDialogProps {
   open: boolean
   onClose: () => void
   onConfirm: (
     resolutions: ConflictResolution[],
-    operation?: 'copy' | 'move',
+    operation?: CopyMoveOperation,
     files?: FileInfo[],
     targetDir?: FileInfo | null
   ) => void | Promise<void>
   conflicts: ConflictItem[]
-  operation?: 'copy' | 'move'
+  operation?: CopyMoveOperation
   files?: FileInfo[]
   targetDir?: FileInfo | null
 }
@@ -168,7 +171,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                     checked={resolution.strategy === 'keepBoth'}
                     onChange={() => handleStrategyChange(index, 'keepBoth')}
                   />
-                  {operation !== 'move' && (
+                  {operation !== FileOperation.MOVE && (
                     <RadioButton
                       label={t('dialog.conflict.overwrite')}
                       labelClassName={`text-[#f14c4c] ${cannotOverwrite ? 'cursor-not-allowed opacity-50' : ''}`}
@@ -180,7 +183,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                   )}
                 </div>
 
-                {cannotOverwrite && operation !== 'move' && (
+                {cannotOverwrite && operation !== FileOperation.MOVE && (
                   <div className="mt-2 text-xs text-danger">
                     {t('dialog.conflict.cannotOverwrite')}
                   </div>
@@ -239,7 +242,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                 setResolutions(resolutions.map(r => ({ ...r, strategy: 'keepBoth' })))
               }}
             />
-            {operation !== 'move' && (
+            {operation !== FileOperation.MOVE && (
               <RadioButton
                 label={t('dialog.conflict.overwrite')}
                 labelClassName="text-[#f14c4c]"

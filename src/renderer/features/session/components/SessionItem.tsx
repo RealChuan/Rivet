@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'
+import { ProtocolType } from '@shared/constants/index.js'
 
 interface SessionItemProps {
   connection: ConnectionConfig
@@ -49,7 +50,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
   }, [showMenu])
 
   const protocolIcon =
-    connection.protocol === 'sftp' ? (
+    connection.protocol === ProtocolType.SFTP ? (
       <svg className="w-3.5 h-3.5 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
         <path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
@@ -101,7 +102,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
             className={`
               text-xs px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-[0.5px]
               ${
-                connection.protocol === 'sftp'
+                connection.protocol === ProtocolType.SFTP
                   ? 'text-accent bg-[rgba(59,130,246,0.1)]'
                   : 'text-[#8b5cf6] bg-[rgba(139,92,246,0.1)]'
               }

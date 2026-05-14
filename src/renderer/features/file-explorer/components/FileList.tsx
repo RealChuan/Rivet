@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/sessionStore.js'
 import { type FileInfo } from '@shared/types/index.js'
+import { ProtocolType, type FileOperation } from '@shared/constants/index.js'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.js'
 import InputDialog from '@renderer/components/common/InputDialog.js'
 import TargetFolderDialog from './TargetFolderDialog.js'
@@ -25,7 +26,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
   const { sessions, connections, updateCurrentPath, refreshCurrentDirectory } = useSessionStore()
   const session = sessions.find(s => s.sessionId === sessionId)
   const connection = connections.find(c => c.connectionUuid === session?.connectionUuid)
-  const isWebdav = connection?.protocol === 'webdav'
+  const isWebdav = connection?.protocol === ProtocolType.WEBDAV
   const containerRef = useRef<HTMLDivElement>(null)
 
   const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null)
@@ -125,19 +126,18 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
   }, [])
 
   useEffect(() => {
-    if (resizingColumn) {
-      const onMouseMove = (e: MouseEvent) => {
-        handleMouseMove(e)
-      }
-      const onMouseUp = () => {
-        handleMouseUp()
-      }
-      document.addEventListener('mousemove', onMouseMove)
-      document.addEventListener('mouseup', onMouseUp)
-      return () => {
-        document.removeEventListener('mousemove', onMouseMove)
-        document.removeEventListener('mouseup', onMouseUp)
-      }
+    if (!resizingColumn) return
+    const onMouseMove = (e: MouseEvent) => {
+      handleMouseMove(e)
+    }
+    const onMouseUp = () => {
+      handleMouseUp()
+    }
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
     }
   }, [resizingColumn, handleMouseMove, handleMouseUp])
 
@@ -654,7 +654,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         }}
         onConfirm={handleConflictResolution}
         conflicts={conflicts}
-        operation={pendingOperation as 'copy' | 'move'}
+        operation={pendingOperation as typeof FileOperation.COPY | typeof FileOperation.MOVE}
         files={pendingFiles}
         targetDir={pendingTargetDir ?? null}
       />

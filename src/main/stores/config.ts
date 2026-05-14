@@ -2,6 +2,7 @@ import Store from 'electron-store'
 import { app } from 'electron'
 import { logger } from '../utils/index.js'
 import type { ConnectionConfig, UiSettings } from '@shared/types/index.js'
+import { ProtocolType } from '@shared/constants/index.js'
 
 type StoredConnection = Omit<ConnectionConfig, 'password'>
 
@@ -49,7 +50,7 @@ function isValidConnection(config: unknown): config is StoredConnection {
   return (
     typeof c.connectionUuid === 'string' &&
     typeof c.name === 'string' &&
-    (c.protocol === 'sftp' || c.protocol === 'webdav') &&
+    (c.protocol === ProtocolType.SFTP || c.protocol === ProtocolType.WEBDAV) &&
     typeof c.host === 'string' &&
     typeof c.port === 'number' &&
     typeof c.username === 'string' &&

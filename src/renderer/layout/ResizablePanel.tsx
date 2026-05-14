@@ -26,13 +26,12 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({ sidebar, content
   }, [])
 
   useEffect(() => {
-    if (isDraggingSidebar) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleMouseUp)
-      }
+    if (!isDraggingSidebar) return
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
     }
   }, [isDraggingSidebar, handleMouseMove, handleMouseUp])
 

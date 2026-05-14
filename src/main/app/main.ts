@@ -12,7 +12,7 @@ import { WindowManager } from './window-factory.js'
 import { logger } from '../utils/index.js'
 import { setupIpcHandlers } from '../ipc/index.js'
 import { loadConfig, saveConfig } from '../stores/index.js'
-import { MAIN_WINDOW_ID } from '@shared/constants/index.js'
+import { MAIN_WINDOW_ID, ProtocolType } from '@shared/constants/index.js'
 import { sessionManager, ProtocolFactory } from '../services/protocol/index.js'
 
 // ============================================================
@@ -108,14 +108,14 @@ async function disconnectAllSessions(): Promise<void> {
   logger.info(`Disconnecting ${sessionManager.count} active sessions...`)
 
   try {
-    const sftpSessions = sessionManager.getByProtocol('sftp')
-    const webdavSessions = sessionManager.getByProtocol('webdav')
+    const sftpSessions = sessionManager.getByProtocol(ProtocolType.SFTP)
+    const webdavSessions = sessionManager.getByProtocol(ProtocolType.WEBDAV)
 
     // 并发发起所有 disconnect，每个独立带 5 秒超时
     const disconnectPromises = [
       ...sftpSessions.map(({ sessionId }) =>
         withTimeout(
-          ProtocolFactory.getProtocol('sftp').disconnect(sessionId),
+          ProtocolFactory.getProtocol(ProtocolType.SFTP).disconnect(sessionId),
           5000,
           `SFTP disconnect ${sessionId}`
         ).catch((err: unknown) => {
@@ -124,7 +124,7 @@ async function disconnectAllSessions(): Promise<void> {
       ),
       ...webdavSessions.map(({ sessionId }) =>
         withTimeout(
-          ProtocolFactory.getProtocol('webdav').disconnect(sessionId),
+          ProtocolFactory.getProtocol(ProtocolType.WEBDAV).disconnect(sessionId),
           5000,
           `WebDAV disconnect ${sessionId}`
         ).catch((err: unknown) => {

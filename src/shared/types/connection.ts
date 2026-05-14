@@ -1,5 +1,7 @@
 export type ProtocolType = 'sftp' | 'webdav'
 
+export { ProtocolType as ProtocolTypeConstant } from '@shared/constants/protocol.js'
+
 export interface ConnectionConfig {
   connectionUuid: string
   name: string

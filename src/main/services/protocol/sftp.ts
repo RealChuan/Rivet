@@ -5,7 +5,13 @@ import {
   type SftpConnectDetail,
 } from '@shared/types/index.js'
 import { generateSessionId } from '@shared/utils/index.js'
-import { type StatusCode, ProtocolStatus, SftpStatus } from '@shared/constants/index.js'
+import {
+  type StatusCode,
+  ProtocolStatus,
+  SftpStatus,
+  ProtocolType,
+  FileOperation,
+} from '@shared/constants/index.js'
 import { BaseProtocolImpl } from './base.js'
 import { sessionManager } from './session-manager.js'
 import { getKnownHost } from '../../stores/index.js'
@@ -51,7 +57,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
 
   override async connect(config: ConnectionConfig) {
     const client = new Client()
-    const sessionId = generateSessionId('sftp')
+    const sessionId = generateSessionId(ProtocolType.SFTP)
     const { verifier, getResult } = this.createHostVerifier(config)
 
     try {
@@ -66,7 +72,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
       })
 
       const { detail, status } = getResult()
-      sessionManager.register(sessionId, client, config, 'sftp')
+      sessionManager.register(sessionId, client, config, ProtocolType.SFTP)
       this.logOperation('connected', `${config.host}:${config.port}`, sessionId)
 
       return {
@@ -255,7 +261,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     try {
       const newPath = file.absolutePath.replace(/\/[^/]+$/, `/${newName}`)
       await client.rename(file.absolutePath, newPath)
-      this.logOperation('rename', file.name, newName)
+      this.logOperation(FileOperation.RENAME, file.name, newName)
     } catch (error) {
       this.logOperation('rename failed', file.name, newName, error)
       throw error
@@ -272,7 +278,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
         } else {
           await client.delete(file.absolutePath)
         }
-        this.logOperation('delete', file.absolutePath, '')
+        this.logOperation(FileOperation.DELETE, file.absolutePath, '')
       }
     } catch (error) {
       this.logOperation('delete failed', '', '', error)

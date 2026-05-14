@@ -4,7 +4,7 @@ import http from 'node:http'
 import https from 'node:https'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
 import { generateSessionId } from '@shared/utils/index.js'
-import { ProtocolStatus } from '@shared/constants/index.js'
+import { ProtocolStatus, ProtocolType, FileOperation } from '@shared/constants/index.js'
 import { BaseProtocolImpl } from './base.js'
 import { sessionManager } from './session-manager.js'
 
@@ -19,7 +19,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
   readonly protocolType = 'webdav' as const
 
   override async connect(config: ConnectionConfig) {
-    const sessionId = generateSessionId('webdav')
+    const sessionId = generateSessionId(ProtocolType.WEBDAV)
     const useScheme = config.scheme ?? 'https'
     const url = `${useScheme}://${config.host}:${config.port}`
 
@@ -58,7 +58,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     }
 
     const session: WebDAVSession = { client, controller, httpAgent, httpsAgent }
-    sessionManager.register(sessionId, session, config, 'webdav')
+    sessionManager.register(sessionId, session, config, ProtocolType.WEBDAV)
     this.logOperation(
       'connected',
       `${config.host}:${config.port} (${sessionId})`,
@@ -264,7 +264,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
 
     try {
       await session.client.moveFile(fullOldPath, fullNewPath, { signal: session.controller.signal })
-      this.logOperation('rename', file.name, newName)
+      this.logOperation(FileOperation.RENAME, file.name, newName)
     } catch (error) {
       this.logOperation('rename failed', file.name, newName, error)
       throw error
@@ -278,7 +278,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
       for (const file of files) {
         const fullPath = this.getFullPath(sessionId, file.absolutePath)
         await session.client.deleteFile(fullPath, { signal: session.controller.signal })
-        this.logOperation('delete', fullPath, '')
+        this.logOperation(FileOperation.DELETE, fullPath, '')
       }
     } catch (error) {
       this.logOperation('delete failed', '', '', error)
