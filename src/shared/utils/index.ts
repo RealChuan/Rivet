@@ -2,6 +2,7 @@ export * from './format.js'
 export * from './path.js'
 export * from './caller.js'
 export * from './session.js'
+export * from './error.js'
 
 export const generateUniqueName = (basename: string, existingNames: Set<string>): string => {
   const extIndex = basename.lastIndexOf('.')

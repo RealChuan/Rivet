@@ -2,49 +2,50 @@ import { createClient, type WebDAVClient, type FileStat } from 'webdav'
 import path from 'path'
 import http from 'node:http'
 import https from 'node:https'
+import type * as fs from 'fs'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
 import { generateSessionId } from '@shared/utils/index.js'
 import { ProtocolStatus, ProtocolType, FileOperation } from '@shared/constants/index.js'
-import { BaseProtocolImpl } from './base.js'
+import { BaseProtocolImpl, type FileProtocol } from './base.js'
 import { sessionManager } from './session-manager.js'
 
 interface WebDAVSession {
   client: WebDAVClient
   controller: AbortController
-  httpAgent?: http.Agent
-  httpsAgent?: https.Agent
+  agent: http.Agent | https.Agent
 }
 
-export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
+export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> implements FileProtocol {
   readonly protocolType = 'webdav' as const
 
-  override async connect(config: ConnectionConfig) {
+  async connect(config: ConnectionConfig) {
     const sessionId = generateSessionId(ProtocolType.WEBDAV)
     const useScheme = config.scheme ?? 'https'
     const url = `${useScheme}://${config.host}:${config.port}`
 
-    const httpAgent = new http.Agent({
-      keepAlive: true,
-      maxSockets: 10,
-      maxFreeSockets: 5,
-      timeout: 30000,
-    })
-
-    const httpsAgent = new https.Agent({
-      keepAlive: true,
-      maxSockets: 10,
-      maxFreeSockets: 5,
-      timeout: 30000,
-      rejectUnauthorized: config.rejectUnauthorized ?? true,
-    })
+    const agent =
+      useScheme === 'http'
+        ? new http.Agent({
+            keepAlive: true,
+            maxSockets: 10,
+            maxFreeSockets: 5,
+            timeout: 30000,
+          })
+        : new https.Agent({
+            keepAlive: true,
+            maxSockets: 10,
+            maxFreeSockets: 5,
+            timeout: 30000,
+            rejectUnauthorized: config.rejectUnauthorized ?? true,
+          })
 
     const controller = new AbortController()
 
     const client = createClient(url, {
       username: config.username,
       password: config.password ?? '',
-      httpAgent: useScheme === 'http' ? httpAgent : undefined,
-      httpsAgent: useScheme === 'https' ? httpsAgent : undefined,
+      httpAgent: useScheme === 'http' ? agent : undefined,
+      httpsAgent: useScheme === 'https' ? agent : undefined,
     })
 
     try {
@@ -52,12 +53,11 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
       await client.getDirectoryContents(testPath, { signal: controller.signal })
     } catch (error) {
       this.logOperation('connection failed', `${config.host}:${config.port}`, '', error)
-      httpAgent.destroy()
-      httpsAgent.destroy()
+      agent.destroy()
       throw error
     }
 
-    const session: WebDAVSession = { client, controller, httpAgent, httpsAgent }
+    const session: WebDAVSession = { client, controller, agent }
     sessionManager.register(sessionId, session, config, ProtocolType.WEBDAV)
     this.logOperation(
       'connected',
@@ -74,14 +74,11 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     }
   }
 
-  override disconnect(sessionId: string): Promise<void> {
+  disconnect(sessionId: string): Promise<void> {
     try {
       const session = this.getClient(sessionId)
-      // 第一步：取消所有进行中的请求
       session.controller.abort()
-      // 第二步：销毁连接池
-      session.httpAgent?.destroy()
-      session.httpsAgent?.destroy()
+      session.agent.destroy()
     } catch {
       // 连接可能已断开，忽略错误
     } finally {
@@ -98,7 +95,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     return path.posix.join(basePath, normalizedRemote)
   }
 
-  override async list(sessionId: string, remotePath: string): Promise<FileInfo[]> {
+  async list(sessionId: string, remotePath: string): Promise<FileInfo[]> {
     const session = this.getClient(sessionId)
     const fullPath = this.getFullPath(sessionId, remotePath)
 
@@ -127,7 +124,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     }
   }
 
-  override async uploadFile(
+  async uploadFile(
     sessionId: string,
     localPath: string,
     remotePath: string,
@@ -138,23 +135,21 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     const fullPath = this.getFullPath(sessionId, remotePath)
     const abortState = this.setupAbortHandler(signal)
 
+    let readStream: ReturnType<typeof fs.createReadStream> | null = null
+    const streamAbortHandler = () => readStream?.destroy()
+    signal?.addEventListener('abort', streamAbortHandler)
+
     try {
       const fs = await import('fs')
       const totalSize = (await fs.promises.stat(localPath)).size
       let transferred = 0
 
-      const readStream = fs.createReadStream(localPath)
-
-      if (signal) {
-        signal.addEventListener('abort', () => {
-          readStream.destroy()
-        })
-      }
+      readStream = fs.createReadStream(localPath)
 
       await session.client.putFileContents(fullPath, readStream, {
         onUploadProgress: (progress: { loaded: number }) => {
-          if (abortState.aborted) {
-            readStream.destroy()
+          if (abortState.getAborted()) {
+            readStream?.destroy()
             throw new Error('Upload cancelled')
           }
           transferred = progress.loaded ?? 0
@@ -163,22 +158,25 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
         signal: session.controller.signal,
       })
 
-      if (abortState.aborted) {
+      if (abortState.getAborted()) {
         throw new Error('Upload cancelled')
       }
 
       this.logOperation('uploaded', localPath, fullPath)
     } catch (error) {
-      if (abortState.aborted) {
+      if (abortState.getAborted()) {
         this.logCancelled('upload', localPath)
       } else {
         this.logOperation('upload failed', localPath, fullPath, error)
       }
       throw error
+    } finally {
+      abortState.cleanup()
+      signal?.removeEventListener('abort', streamAbortHandler)
     }
   }
 
-  override async downloadFile(
+  async downloadFile(
     sessionId: string,
     file: FileInfo,
     localPath: string,
@@ -189,6 +187,10 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     const fullPath = this.getFullPath(sessionId, file.absolutePath)
     const abortState = this.setupAbortHandler(signal)
 
+    let writeStream: ReturnType<typeof fs.createWriteStream> | null = null
+    const streamAbortHandler = () => writeStream?.destroy()
+    signal?.addEventListener('abort', streamAbortHandler)
+
     try {
       const fs = await import('fs')
       const stat = (await session.client.stat(fullPath, {
@@ -197,13 +199,8 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
       const totalSize = stat.size || 0
       let transferred = 0
 
-      const writeStream = fs.createWriteStream(localPath)
-
-      if (signal) {
-        signal.addEventListener('abort', () => {
-          writeStream.destroy()
-        })
-      }
+      writeStream = fs.createWriteStream(localPath)
+      const currentWriteStream = writeStream
 
       await new Promise<void>((resolve, reject) => {
         const readStream = session.client.createReadStream(fullPath, {
@@ -212,35 +209,38 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
 
         readStream
           .on('data', (chunk: Buffer) => {
-            if (abortState.aborted) {
-              writeStream.destroy()
+            if (abortState.getAborted()) {
+              currentWriteStream.destroy()
               reject(new Error('Download cancelled'))
               return
             }
             transferred += chunk.length
             onProgress(this.calculateProgress(transferred, totalSize))
           })
-          .pipe(writeStream)
+          .pipe(currentWriteStream)
           .on('finish', resolve)
           .on('error', reject)
       })
 
-      if (abortState.aborted) {
+      if (abortState.getAborted()) {
         throw new Error('Download cancelled')
       }
 
       this.logOperation('downloaded', fullPath, localPath)
     } catch (error) {
-      if (abortState.aborted) {
+      if (abortState.getAborted()) {
         this.logCancelled('download', file.absolutePath)
       } else {
         this.logOperation('download failed', fullPath, localPath, error)
       }
       throw error
+    } finally {
+      abortState.cleanup()
+      signal?.removeEventListener('abort', streamAbortHandler)
     }
   }
 
-  override async mkdir(sessionId: string, dirPath: string): Promise<void> {
+  async mkdir(sessionId: string, dirPath: string): Promise<void> {
     const session = this.getClient(sessionId)
     const fullPath = this.getFullPath(sessionId, dirPath)
 
@@ -256,7 +256,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     }
   }
 
-  override async rename(sessionId: string, file: FileInfo, newName: string): Promise<void> {
+  async rename(sessionId: string, file: FileInfo, newName: string): Promise<void> {
     const session = this.getClient(sessionId)
     const fullOldPath = this.getFullPath(sessionId, file.absolutePath)
     const newPath = file.absolutePath.replace(/\/[^/]+$/, `/${newName}`)
@@ -271,7 +271,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     }
   }
 
-  override async delete(sessionId: string, files: FileInfo[]): Promise<void> {
+  async delete(sessionId: string, files: FileInfo[]): Promise<void> {
     const session = this.getClient(sessionId)
 
     try {
@@ -286,7 +286,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     }
   }
 
-  override async copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
+  async copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
     const session = this.getClient(sessionId)
     const sourcePath = file.absolutePath
 
@@ -305,7 +305,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     }
   }
 
-  override async move(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
+  async move(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
     const session = this.getClient(sessionId)
     const sourcePath = file.absolutePath
 
@@ -323,7 +323,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> {
     }
   }
 
-  override async ping(sessionId: string): Promise<void> {
+  async ping(sessionId: string): Promise<void> {
     const session = this.getClient(sessionId)
     const config = this.getSessionConfig(sessionId)
     const path = config?.basePath ?? '/'

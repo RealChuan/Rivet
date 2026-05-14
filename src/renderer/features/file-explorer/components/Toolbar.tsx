@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/sessionStore.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import InputDialog from '@renderer/components/common/InputDialog.js'
+import { toErrorMessage } from '@shared/utils/index.js'
 
 interface ToolbarProps {
   sessionId: string
@@ -23,7 +24,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
     } catch (error) {
       addToast({
         type: 'error',
-        message: `Refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Refresh failed: ${toErrorMessage(error) || 'Unknown error'}`,
       })
     }
   }
@@ -40,7 +41,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
     } catch (error) {
       addToast({
         type: 'error',
-        message: `${t('toast.createFolderFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `${t('toast.createFolderFailed')}: ${toErrorMessage(error) || 'Unknown error'}`,
       })
     }
   }

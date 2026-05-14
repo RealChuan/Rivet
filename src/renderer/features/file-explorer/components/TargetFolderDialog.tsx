@@ -8,7 +8,7 @@ import InputDialog from '@renderer/components/common/InputDialog.js'
 import Button from '@renderer/components/ui/Button.js'
 import Breadcrumb from '@renderer/features/file-explorer/components/Breadcrumb.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
-import { getParentPath } from '@shared/utils/index.js'
+import { getParentPath, toErrorMessage } from '@shared/utils/index.js'
 
 interface TargetFolderDialogProps {
   open: boolean
@@ -101,7 +101,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     } catch (error) {
       addToast({
         type: 'error',
-        message: `${t('toast.createFolderFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `${t('toast.createFolderFailed')}: ${toErrorMessage(error) || 'Unknown error'}`,
       })
     } finally {
       setIsLoading(false)

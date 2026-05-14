@@ -12,23 +12,24 @@ import { WindowManager } from './window-factory.js'
 import { logger } from '../utils/index.js'
 import { setupIpcHandlers } from '../ipc/index.js'
 import { loadConfig, saveConfig } from '../stores/index.js'
-import { MAIN_WINDOW_ID, ProtocolType } from '@shared/constants/index.js'
-import { sessionManager, ProtocolFactory } from '../services/protocol/index.js'
+import { MAIN_WINDOW_ID } from '@shared/constants/index.js'
+import { toErrorMessage } from '@shared/utils/index.js'
+import { sessionManager } from '../services/protocol/index.js'
 
 // ============================================================
 // 窗口元数据管理（解决 sandbox 模式下 process.argv 不可用问题）
+// 使用 WeakMap 避免 BrowserWindow.id 重用导致的竞态问题
 // ============================================================
-const windowMetaMap = new Map<number, { windowId: string; route: string }>()
+const windowMetaMap = new WeakMap<BrowserWindow, { windowId: string; route: string }>()
 
 export function registerWindowMeta(win: BrowserWindow, id: string, route: string): void {
-  windowMetaMap.set(win.id, { windowId: id, route })
-  win.on('closed', () => windowMetaMap.delete(win.id))
+  windowMetaMap.set(win, { windowId: id, route })
 }
 
 ipcMain.handle('get-window-meta', event => {
   const win = BrowserWindow.fromWebContents(event.sender)
   if (!win) return { windowId: 'unknown', route: '/' }
-  return windowMetaMap.get(win.id) ?? { windowId: 'unknown', route: '/' }
+  return windowMetaMap.get(win) ?? { windowId: 'unknown', route: '/' }
 })
 
 // ============================================================
@@ -94,13 +95,6 @@ ipcMain.handle('window-close-by-id', (_event, id: string) => {
 
 let isCleaningUp = false
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  const timeout = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
-  })
-  return Promise.race([promise, timeout])
-}
-
 async function disconnectAllSessions(): Promise<void> {
   if (isCleaningUp || sessionManager.count === 0) return
 
@@ -108,41 +102,9 @@ async function disconnectAllSessions(): Promise<void> {
   logger.info(`Disconnecting ${sessionManager.count} active sessions...`)
 
   try {
-    const sftpSessions = sessionManager.getByProtocol(ProtocolType.SFTP)
-    const webdavSessions = sessionManager.getByProtocol(ProtocolType.WEBDAV)
-
-    // 并发发起所有 disconnect，每个独立带 5 秒超时
-    const disconnectPromises = [
-      ...sftpSessions.map(({ sessionId }) =>
-        withTimeout(
-          ProtocolFactory.getProtocol(ProtocolType.SFTP).disconnect(sessionId),
-          5000,
-          `SFTP disconnect ${sessionId}`
-        ).catch((err: unknown) => {
-          logger.error(`Failed to disconnect SFTP session ${sessionId}:`, err)
-        })
-      ),
-      ...webdavSessions.map(({ sessionId }) =>
-        withTimeout(
-          ProtocolFactory.getProtocol(ProtocolType.WEBDAV).disconnect(sessionId),
-          5000,
-          `WebDAV disconnect ${sessionId}`
-        ).catch((err: unknown) => {
-          logger.error(`Failed to disconnect WebDAV session ${sessionId}:`, err)
-        })
-      ),
-    ]
-
-    // 等待所有 disconnect 完成（或超时）
-    const results = await Promise.allSettled(disconnectPromises)
-
-    const succeeded = results.filter(r => r.status === 'fulfilled').length
-    const failed = results.filter(r => r.status === 'rejected').length
-    logger.info(`Disconnect complete: ${succeeded} succeeded, ${failed} failed`)
-
-    sessionManager.clear()
+    await sessionManager.safeUnregisterAll()
   } catch (error: unknown) {
-    const errMsg = error instanceof Error ? error.message : String(error)
+    const errMsg = toErrorMessage(error)
     logger.error(`Error during disconnectAllSessions: ${errMsg}`)
   } finally {
     isCleaningUp = false
@@ -204,7 +166,7 @@ app.on('before-quit', event => {
       await disconnectAllSessions()
       saveConfig()
     } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error)
+      const errMsg = toErrorMessage(error)
       logger.error(`Error during quit cleanup: ${errMsg}`)
     } finally {
       clearTimeout(forceExitTimeout)
@@ -228,7 +190,7 @@ process.on('uncaughtException', (error: Error) => {
 })
 
 process.on('unhandledRejection', (reason: unknown) => {
-  const reasonStr = reason instanceof Error ? reason.message : String(reason)
+  const reasonStr = toErrorMessage(reason)
   logger.error(`Unhandled rejection: ${reasonStr}`)
 })
 
@@ -239,7 +201,7 @@ process.on('SIGTERM', () => {
       await disconnectAllSessions()
       saveConfig()
     } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error)
+      const errMsg = toErrorMessage(error)
       logger.error(`Error during SIGTERM cleanup: ${errMsg}`)
     } finally {
       app.quit()
@@ -254,7 +216,7 @@ process.on('SIGINT', () => {
       await disconnectAllSessions()
       saveConfig()
     } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : String(error)
+      const errMsg = toErrorMessage(error)
       logger.error(`Error during SIGINT cleanup: ${errMsg}`)
     } finally {
       app.quit()

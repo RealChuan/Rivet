@@ -22,6 +22,7 @@ interface Toast {
   type: 'success' | 'error' | 'info'
   message: string
   duration?: number
+  timer?: ReturnType<typeof setTimeout> | undefined
 }
 
 export const useUiStore = create<UiStore>((set, get) => ({
@@ -72,23 +73,32 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
   addToast: toast => {
     const id = `toast_${Date.now()}`
-    const newToast = { ...toast, id }
-    set(state => ({
-      toasts: [...state.toasts, newToast],
-    }))
+    let timer: ReturnType<typeof setTimeout> | undefined
 
     if (toast.duration !== 0) {
       const duration = toast.duration ?? (toast.type === 'error' ? 6000 : 3000)
-      setTimeout(() => {
+      timer = setTimeout(() => {
         get().removeToast(id)
       }, duration)
     }
+
+    const newToast: Toast = { ...toast, id, timer }
+
+    set(state => ({
+      toasts: [...state.toasts, newToast],
+    }))
   },
 
   removeToast: id => {
-    set(state => ({
-      toasts: state.toasts.filter(t => t.id !== id),
-    }))
+    set(state => {
+      const toastToRemove = state.toasts.find(t => t.id === id)
+      if (toastToRemove?.timer) {
+        clearTimeout(toastToRemove.timer)
+      }
+      return {
+        toasts: state.toasts.filter(t => t.id !== id),
+      }
+    })
   },
 }))
 

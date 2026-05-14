@@ -3,6 +3,7 @@ import { app } from 'electron'
 import { logger } from '../utils/index.js'
 import type { ConnectionConfig, UiSettings } from '@shared/types/index.js'
 import { ProtocolType } from '@shared/constants/index.js'
+import { toErrorMessage } from '@shared/utils/index.js'
 
 type StoredConnection = Omit<ConnectionConfig, 'password'>
 
@@ -38,7 +39,7 @@ function detectSystemLanguage(): SupportedLanguage {
       return systemLang as SupportedLanguage
     }
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error)
+    const errMsg = toErrorMessage(error)
     logger.warn(`Failed to detect system language: ${errMsg}`)
   }
   return 'en-US'
@@ -107,7 +108,7 @@ export function loadConfig(): void {
 
     logger.info('Config loaded successfully')
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error)
+    const errMsg = toErrorMessage(error)
     logger.error(`Critical error loading config: ${errMsg}`)
     const systemLang = detectSystemLanguage()
     store.set('ui_settings', { ...defaultUiSettings, language: systemLang })

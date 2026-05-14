@@ -4,11 +4,12 @@ import {
   type ProtocolType,
   type OperationResult,
 } from '@shared/types/index.js'
-import { normalizePath, joinPaths } from '@shared/utils/index.js'
+import { normalizePath, joinPaths, toErrorMessage } from '@shared/utils/index.js'
 import logger from '../../utils/logger.js'
 import { sessionManager } from './session-manager.js'
 
 export interface FileProtocol {
+  readonly protocolType: ProtocolType
   connect(config: ConnectionConfig): Promise<OperationResult>
   disconnect(sessionId: string): Promise<void>
   list(sessionId: string, path: string): Promise<FileInfo[]>
@@ -39,7 +40,7 @@ export interface SessionHandle<T = unknown> {
   config: ConnectionConfig
 }
 
-export abstract class BaseProtocolImpl<T> implements FileProtocol {
+export abstract class BaseProtocolImpl<T> {
   abstract readonly protocolType: ProtocolType
 
   protected getClient(sessionId: string): T {
@@ -62,20 +63,26 @@ export abstract class BaseProtocolImpl<T> implements FileProtocol {
   protected joinPaths = joinPaths
   protected normalizePath = normalizePath
 
-  protected setupAbortHandler(signal?: AbortSignal): { aborted: boolean } {
-    const state = { aborted: false }
-    if (signal) {
-      signal.addEventListener('abort', () => {
-        state.aborted = true
-      })
+  protected setupAbortHandler(signal?: AbortSignal): {
+    getAborted: () => boolean
+    cleanup: () => void
+  } {
+    let aborted = false
+    const handler = () => {
+      aborted = true
     }
-    return state
+    signal?.addEventListener('abort', handler)
+
+    return {
+      getAborted: () => aborted,
+      cleanup: () => signal?.removeEventListener('abort', handler),
+    }
   }
 
   protected logOperation(operation: string, source: string, target: string, error?: unknown): void {
     const prefix = this.protocolType.toUpperCase()
     if (error) {
-      const errorMsg = error instanceof Error ? error.message : JSON.stringify(error)
+      const errorMsg = toErrorMessage(error)
       logger.error(`${prefix} ${operation} failed: ${source} -> ${target} - ${errorMsg}`)
     } else {
       logger.info(`${prefix} ${operation}: ${source} -> ${target}`)
@@ -84,63 +91,6 @@ export abstract class BaseProtocolImpl<T> implements FileProtocol {
 
   protected logCancelled(operation: string, path: string): void {
     logger.info(`${this.protocolType.toUpperCase()} ${operation} cancelled: ${path}`)
-  }
-
-  connect(_config: ConnectionConfig): Promise<OperationResult> {
-    return Promise.reject(new Error('Not implemented'))
-  }
-
-  disconnect(sessionId: string): Promise<void> {
-    sessionManager.unregister(sessionId)
-    return Promise.resolve()
-  }
-
-  list(_sessionId: string, _path: string): Promise<FileInfo[]> {
-    return Promise.reject(new Error('Not implemented'))
-  }
-
-  uploadFile(
-    _sessionId: string,
-    _localPath: string,
-    _remotePath: string,
-    _onProgress: (percent: number) => void,
-    _signal?: AbortSignal
-  ): Promise<void> {
-    return Promise.reject(new Error('Not implemented'))
-  }
-
-  downloadFile(
-    _sessionId: string,
-    _file: FileInfo,
-    _localPath: string,
-    _onProgress: (percent: number) => void,
-    _signal?: AbortSignal
-  ): Promise<void> {
-    return Promise.reject(new Error('Not implemented'))
-  }
-
-  mkdir(_sessionId: string, _path: string): Promise<void> {
-    return Promise.reject(new Error('Not implemented'))
-  }
-
-  rename(_sessionId: string, _file: FileInfo, _newName: string): Promise<void> {
-    return Promise.reject(new Error('Not implemented'))
-  }
-
-  delete(_sessionId: string, _files: FileInfo[]): Promise<void> {
-    return Promise.reject(new Error('Not implemented'))
-  }
-
-  copy(_sessionId: string, _file: FileInfo, _targetPath: string): Promise<void> {
-    return Promise.reject(new Error('Not implemented'))
-  }
-
-  move(_sessionId: string, _file: FileInfo, _targetPath: string): Promise<void> {
-    return Promise.reject(new Error('Not implemented'))
-  }
-
-  ping(_sessionId: string): Promise<void> {
-    return Promise.reject(new Error('Not implemented'))
   }
 }
 

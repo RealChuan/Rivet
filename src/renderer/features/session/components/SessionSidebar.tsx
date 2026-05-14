@@ -7,6 +7,7 @@ import ConnectionDialog from './ConnectionDialog.js'
 import { HostKeyDialog } from '@renderer/features/host-key/index.js'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.js'
 import { type ConnectionConfig } from '@shared/types/index.js'
+import { toErrorMessage } from '@shared/utils/index.js'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
 
 export const SessionSidebar: React.FC = () => {
@@ -122,7 +123,7 @@ export const SessionSidebar: React.FC = () => {
     } catch (error) {
       addToast({
         type: 'error',
-        message: `Delete failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Delete failed: ${toErrorMessage(error) || 'Unknown error'}`,
       })
     } finally {
       setDeleteConfirmOpen(false)

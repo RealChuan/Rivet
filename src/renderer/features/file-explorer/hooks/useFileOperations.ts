@@ -8,7 +8,7 @@ import {
   type ConflictItem,
   type ConflictResolution,
 } from '@renderer/features/file-explorer/components/ConflictDialog.js'
-import { isSubPath, generateUniqueName } from '@shared/utils/index.js'
+import { isSubPath, generateUniqueName, toErrorMessage } from '@shared/utils/index.js'
 import { FileOperation } from '@shared/constants/index.js'
 
 type CopyMoveOperation = typeof FileOperation.COPY | typeof FileOperation.MOVE
@@ -60,7 +60,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
         addToast({ type: 'success', message: t('toast.deleteSuccess') })
         await refreshCurrentDirectory(sessionId)
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+        const errorMsg = toErrorMessage(error) || 'Unknown error'
         addToast({
           type: 'error',
           message: `${t('toast.deleteFailed')}: ${errorMsg}`,
@@ -79,7 +79,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
       } catch (error) {
         addToast({
           type: 'error',
-          message: `${t('toast.renameFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `${t('toast.renameFailed')}: ${toErrorMessage(error) || 'Unknown error'}`,
         })
       }
     },
@@ -97,7 +97,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
       } catch (error) {
         addToast({
           type: 'error',
-          message: `${t('toast.createFolderFailed')}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `${t('toast.createFolderFailed')}: ${toErrorMessage(error) || 'Unknown error'}`,
         })
       }
     },
@@ -230,7 +230,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
           new Map(targetFiles.map(f => [f.name, f.type]))
         )
       } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Unknown error'
+        const msg = toErrorMessage(error) || 'Unknown error'
         if (pendingOperation === FileOperation.COPY) {
           addToast({ type: 'error', message: `${t('toast.copyFailed')}: ${msg}` })
         } else {
@@ -271,7 +271,7 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
         const resolutionsMap = new Map(resolutions.map(r => [r.sourceFile.absolutePath, r]))
         await executeOperation(pendingFilesList, pendingTargetDirValue, resolutionsMap, cache, op)
       } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Unknown error'
+        const msg = toErrorMessage(error) || 'Unknown error'
         if (op === FileOperation.COPY) {
           addToast({ type: 'error', message: `${t('toast.copyFailed')}: ${msg}` })
         } else {

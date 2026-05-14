@@ -1,0 +1,95 @@
+name: Build and Package
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '**/.editorconfig'
+      - '**/.gitignore'
+      - '**/LICENSE*'
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/.editorconfig'
+      - '**/.gitignore'
+      - '**/LICENSE*'
+      - '**/*.md'
+
+jobs:
+  ci-check:
+    name: CI Checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: latest
+          cache: 'npm'
+
+      - name: Install dependencies
+        shell: bash
+        run: npm ci
+
+      - name: Run CI checks
+        shell: bash
+        run: npm run ci
+
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: ci-check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            build-command: npm run package:win
+            artifact-name: windows-build
+            artifact-paths: release/*.7z
+          - os: ubuntu-latest
+            build-command: npm run package:linux
+            artifact-name: linux-build
+            artifact-paths: |
+              release/*.7z
+              release/*.AppImage
+              release/*.deb
+          - os: macos-latest
+            build-command: npm run package:mac
+            artifact-name: macos-build
+            artifact-paths: |
+              release/*.7z
+              release/*.dmg
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: latest
+          cache: 'npm'
+
+      - name: Install dependencies
+        shell: bash
+        run: npm ci
+
+      - name: Build ${{ matrix.os }} package
+        shell: bash
+        run: ${{ matrix.build-command }}
+
+      - name: Upload ${{ matrix.os }} artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: ${{ matrix.artifact-paths }}
+          if-no-files-found: error

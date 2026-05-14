@@ -1,4 +1,5 @@
 export const normalizePath = (path: string): string => {
+  if (typeof path !== 'string') throw new TypeError('path must be a string')
   const parts = path.split('/').filter(Boolean)
   if (parts.length === 0) return '/'
   return '/' + parts.join('/')

@@ -5,11 +5,14 @@ import { ProtocolType } from '@shared/constants/index.js'
 import type { ProtocolType as ProtocolTypeEnum } from '@shared/types/index.js'
 
 export class ProtocolFactory {
+  private static instances = new Map<ProtocolTypeEnum, FileProtocol>()
+
   static getProtocol(protocol: ProtocolTypeEnum): FileProtocol {
-    if (protocol === ProtocolType.SFTP) {
-      return new SftpProtocol()
+    if (!this.instances.has(protocol)) {
+      const instance = protocol === ProtocolType.SFTP ? new SftpProtocol() : new WebdavProtocol()
+      this.instances.set(protocol, instance)
     }
-    return new WebdavProtocol()
+    return this.instances.get(protocol)!
   }
 }
 

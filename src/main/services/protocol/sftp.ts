@@ -10,13 +10,12 @@ import {
   ProtocolStatus,
   SftpStatus,
   ProtocolType,
-  FileOperation,
 } from '@shared/constants/index.js'
-import { BaseProtocolImpl } from './base.js'
+import { BaseProtocolImpl, type FileProtocol } from './base.js'
 import { sessionManager } from './session-manager.js'
 import { getKnownHost } from '../../stores/index.js'
 
-export class SftpProtocol extends BaseProtocolImpl<Client> {
+export class SftpProtocol extends BaseProtocolImpl<Client> implements FileProtocol {
   readonly protocolType = 'sftp' as const
 
   private createHostVerifier(config: ConnectionConfig): {
@@ -55,7 +54,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     }
   }
 
-  override async connect(config: ConnectionConfig) {
+  async connect(config: ConnectionConfig) {
     const client = new Client()
     const sessionId = generateSessionId(ProtocolType.SFTP)
     const { verifier, getResult } = this.createHostVerifier(config)
@@ -103,7 +102,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     }
   }
 
-  override async disconnect(sessionId: string): Promise<void> {
+  async disconnect(sessionId: string): Promise<void> {
     try {
       const client = this.getClient(sessionId)
       await client.end()
@@ -115,7 +114,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     }
   }
 
-  override async list(sessionId: string, remotePath: string): Promise<FileInfo[]> {
+  async list(sessionId: string, remotePath: string): Promise<FileInfo[]> {
     const client = this.getClient(sessionId)
 
     try {
@@ -168,7 +167,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     }
   }
 
-  override async uploadFile(
+  async uploadFile(
     sessionId: string,
     localPath: string,
     remotePath: string,
@@ -184,29 +183,31 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
 
       await client.fastPut(localPath, remotePath, {
         step: (totalTransferred: number) => {
-          if (abortState.aborted) {
+          if (abortState.getAborted()) {
             throw new Error('Upload cancelled')
           }
           onProgress(this.calculateProgress(totalTransferred, totalSize))
         },
       })
 
-      if (abortState.aborted) {
+      if (abortState.getAborted()) {
         throw new Error('Upload cancelled')
       }
 
       this.logOperation('uploaded', localPath, remotePath)
     } catch (error) {
-      if (abortState.aborted) {
+      if (abortState.getAborted()) {
         this.logCancelled('upload', localPath)
       } else {
         this.logOperation('upload failed', localPath, remotePath, error)
       }
       throw error
+    } finally {
+      abortState.cleanup()
     }
   }
 
-  override async downloadFile(
+  async downloadFile(
     sessionId: string,
     file: FileInfo,
     localPath: string,
@@ -221,29 +222,31 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
 
       await client.fastGet(file.absolutePath, localPath, {
         step: (totalTransferred: number) => {
-          if (abortState.aborted) {
+          if (abortState.getAborted()) {
             throw new Error('Download cancelled')
           }
           onProgress(this.calculateProgress(totalTransferred, totalSize))
         },
       })
 
-      if (abortState.aborted) {
+      if (abortState.getAborted()) {
         throw new Error('Download cancelled')
       }
 
       this.logOperation('downloaded', file.absolutePath, localPath)
     } catch (error) {
-      if (abortState.aborted) {
+      if (abortState.getAborted()) {
         this.logCancelled('download', file.absolutePath)
       } else {
         this.logOperation('download failed', file.absolutePath, localPath, error)
       }
       throw error
+    } finally {
+      abortState.cleanup()
     }
   }
 
-  override async mkdir(sessionId: string, path: string): Promise<void> {
+  async mkdir(sessionId: string, path: string): Promise<void> {
     const client = this.getClient(sessionId)
 
     try {
@@ -255,20 +258,20 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     }
   }
 
-  override async rename(sessionId: string, file: FileInfo, newName: string): Promise<void> {
+  async rename(sessionId: string, file: FileInfo, newName: string): Promise<void> {
     const client = this.getClient(sessionId)
 
     try {
       const newPath = file.absolutePath.replace(/\/[^/]+$/, `/${newName}`)
       await client.rename(file.absolutePath, newPath)
-      this.logOperation(FileOperation.RENAME, file.name, newName)
+      this.logOperation('rename', file.name, newName)
     } catch (error) {
       this.logOperation('rename failed', file.name, newName, error)
       throw error
     }
   }
 
-  override async delete(sessionId: string, files: FileInfo[]): Promise<void> {
+  async delete(sessionId: string, files: FileInfo[]): Promise<void> {
     const client = this.getClient(sessionId)
 
     try {
@@ -278,7 +281,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
         } else {
           await client.delete(file.absolutePath)
         }
-        this.logOperation(FileOperation.DELETE, file.absolutePath, '')
+        this.logOperation('delete', file.absolutePath, '')
       }
     } catch (error) {
       this.logOperation('delete failed', '', '', error)
@@ -286,7 +289,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     }
   }
 
-  override async copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
+  async copy(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
     const client = this.getClient(sessionId)
     const sourcePath = file.absolutePath
 
@@ -303,7 +306,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     }
   }
 
-  override async move(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
+  async move(sessionId: string, file: FileInfo, targetPath: string): Promise<void> {
     const client = this.getClient(sessionId)
     const sourcePath = file.absolutePath
 
@@ -349,7 +352,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> {
     }
   }
 
-  override async ping(sessionId: string): Promise<void> {
+  async ping(sessionId: string): Promise<void> {
     const client = this.getClient(sessionId)
     await client.stat('/')
   }
