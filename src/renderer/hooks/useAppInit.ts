@@ -1,12 +1,10 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DEFAULT_THEME } from '@shared/constants/theme.js'
+import { DEFAULT_LANGUAGE } from '@shared/constants/i18n.js'
+import type { UiSettings } from '@shared/types/ui.js'
 import { useUiStore } from '../stores/index.js'
 import { useSessionStore } from '../features/session/stores/sessionStore.js'
-
-interface UiSettingsResult {
-  theme?: 'light' | 'dark' | 'system'
-  language?: 'zh-CN' | 'en-US' | ''
-}
 
 export const useAppInit = () => {
   const { i18n } = useTranslation()
@@ -18,33 +16,17 @@ export const useAppInit = () => {
       try {
         const savedSettings = (await window.electronAPI.common.storeGet(
           'ui_settings'
-        )) as UiSettingsResult | null
+        )) as UiSettings | null
 
-        if (savedSettings) {
-          const theme = savedSettings.theme ?? 'system'
-          const language = savedSettings.language ?? 'en-US'
+        const theme = savedSettings?.theme ?? DEFAULT_THEME
+        const language = savedSettings?.language ?? DEFAULT_LANGUAGE
 
-          initialize({ theme, language })
-          await i18n.changeLanguage(language)
-
-          const resolvedTheme =
-            theme === 'system'
-              ? window.matchMedia('(prefers-color-scheme: dark)').matches
-                ? 'dark'
-                : 'light'
-              : theme
-          document.documentElement.dataset.theme = resolvedTheme
-        } else {
-          const theme = 'system'
-          const language = navigator.language.startsWith('zh') ? 'zh-CN' : 'en-US'
-          initialize({ theme, language })
-          await i18n.changeLanguage(language)
-        }
-      } catch {
-        const theme = 'system'
-        const language = navigator.language.startsWith('zh') ? 'zh-CN' : 'en-US'
         initialize({ theme, language })
-        void i18n.changeLanguage(language)
+        await i18n.changeLanguage(language)
+      } catch (error) {
+        console.error('Failed to load settings:', error)
+        initialize({ theme: DEFAULT_THEME, language: DEFAULT_LANGUAGE })
+        await i18n.changeLanguage(DEFAULT_LANGUAGE)
       }
     }
 

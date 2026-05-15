@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { SupportedLanguageLiteral } from '@shared/constants/i18n.js'
 import { useUiStore } from '../stores/index.js'
 
 export function useI18n() {
@@ -7,7 +8,7 @@ export function useI18n() {
   const { language, setLanguage } = useUiStore()
 
   const changeLanguage = useCallback(
-    (lang: 'zh-CN' | 'en-US') => {
+    (lang: SupportedLanguageLiteral) => {
       void i18n.changeLanguage(lang)
       setLanguage(lang)
     },

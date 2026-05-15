@@ -1,5 +1,7 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { LIGHT, DARK } from '@shared/constants/theme.js'
+import { ZH_CN, EN_US } from '@shared/constants/i18n.js'
 import { useTheme, useI18n } from '../hooks/index.js'
 import { Toast, TitleBar } from '../components/common/index.js'
 import { ResizablePanel } from './ResizablePanel.js'
@@ -15,7 +17,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content }) => {
   const { language, changeLanguage } = useI18n()
 
   const ThemeIcon = () => {
-    if (theme === 'light') {
+    if (theme === LIGHT) {
       return (
         <svg
           width="16"
@@ -36,7 +38,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content }) => {
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
         </svg>
       )
-    } else if (theme === 'dark') {
+    } else if (theme === DARK) {
       return (
         <svg
           width="16"
@@ -74,20 +76,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content }) => {
         centerContent={
           <div className="flex items-center gap-1">
             <button
-              onClick={() => changeLanguage(language === 'en-US' ? 'zh-CN' : 'en-US')}
+              onClick={() => changeLanguage(language === EN_US ? ZH_CN : EN_US)}
               className="px-2 py-1 rounded text-[10px] font-semibold text-text bg-transparent border-none cursor-default hover:bg-hover transition-colors"
-              title={language === 'en-US' ? 'English' : '中文'}
+              title={language === EN_US ? 'English' : '中文'}
             >
-              {language === 'en-US' ? 'EN' : '中文'}
+              {language === EN_US ? 'EN' : '中文'}
             </button>
 
             <button
               onClick={cycleTheme}
               className="p-1 rounded bg-transparent border-none cursor-default flex items-center justify-center hover:bg-hover transition-colors text-text"
               title={
-                theme === 'light'
+                theme === LIGHT
                   ? t('toolbar.lightMode')
-                  : theme === 'dark'
+                  : theme === DARK
                     ? t('toolbar.darkMode')
                     : t('toolbar.system')
               }

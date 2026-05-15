@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { type UiSettings } from '@shared/types/index.js'
+import { DEFAULT_THEME, type Theme } from '@shared/constants/theme.js'
+import { DEFAULT_LANGUAGE, type SupportedLanguageLiteral } from '@shared/constants/i18n.js'
 
 interface UiStore extends UiSettings {
   sidebarWidth: number
@@ -7,8 +9,8 @@ interface UiStore extends UiSettings {
   queueDrawerWidth: number
   initialized: boolean
   toasts: Toast[]
-  setTheme: (theme: 'light' | 'dark' | 'system') => void
-  setLanguage: (language: 'zh-CN' | 'en-US') => void
+  setTheme: (theme: Theme) => void
+  setLanguage: (language: SupportedLanguageLiteral) => void
   setSidebarWidth: (width: number) => void
   setQueueDrawerOpen: (open: boolean) => void
   setQueueDrawerWidth: (width: number) => void
@@ -26,8 +28,8 @@ interface Toast {
 }
 
 export const useUiStore = create<UiStore>((set, get) => ({
-  theme: 'system',
-  language: 'en-US',
+  theme: DEFAULT_THEME,
+  language: DEFAULT_LANGUAGE,
   sidebarWidth: 260,
   queueDrawerOpen: false,
   queueDrawerWidth: 360,

@@ -3,6 +3,8 @@ import { app } from 'electron'
 import { logger } from '../utils/index.js'
 import type { ConnectionConfig, UiSettings } from '@shared/types/index.js'
 import { ProtocolType } from '@shared/constants/index.js'
+import { DEFAULT_THEME, LIGHT, DARK, SYSTEM } from '@shared/constants/theme.js'
+import { ZH_CN, EN_US, detectLanguageWithFallback } from '@shared/constants/i18n.js'
 import { toErrorMessage } from '@shared/utils/index.js'
 
 type StoredConnection = Omit<ConnectionConfig, 'password'>
@@ -12,11 +14,8 @@ interface StoreSchema {
   ui_settings: UiSettings
 }
 
-const SUPPORTED_LANGUAGES = ['zh-CN', 'en-US'] as const
-type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number]
-
 export const defaultUiSettings: UiSettings = {
-  theme: 'system',
+  theme: DEFAULT_THEME,
   language: '',
 }
 
@@ -29,20 +28,8 @@ const store = new Store<StoreSchema>({
   defaults: defaultStore,
 })
 
-function detectSystemLanguage(): SupportedLanguage {
-  try {
-    const systemLang = app.getLocale()
-    if (systemLang.startsWith('zh')) {
-      return 'zh-CN'
-    }
-    if (SUPPORTED_LANGUAGES.includes(systemLang as SupportedLanguage)) {
-      return systemLang as SupportedLanguage
-    }
-  } catch (error) {
-    const errMsg = toErrorMessage(error)
-    logger.warn(`Failed to detect system language: ${errMsg}`)
-  }
-  return 'en-US'
+function detectSystemLanguage(): string {
+  return detectLanguageWithFallback(() => app.getLocale())
 }
 
 function isValidConnection(config: unknown): config is StoredConnection {
@@ -66,8 +53,8 @@ function isValidUiSettings(settings: unknown): settings is UiSettings {
   if (!settings || typeof settings !== 'object') return false
   const s = settings as Record<string, unknown>
   return (
-    (s.theme === 'light' || s.theme === 'dark' || s.theme === 'system') &&
-    (s.language === 'zh-CN' || s.language === 'en-US' || s.language === '')
+    (s.theme === LIGHT || s.theme === DARK || s.theme === SYSTEM) &&
+    (s.language === ZH_CN || s.language === EN_US || s.language === '')
   )
 }
 
@@ -167,6 +154,11 @@ export function setUiSettings(settings: Partial<UiSettings>): void {
   const updates = Object.fromEntries(
     Object.entries(settings).filter(([key]) => allowedKeys.includes(key as keyof UiSettings))
   )
+
+  if (updates.language === '') {
+    updates.language = detectLanguageWithFallback(() => app.getLocale())
+    logger.info(`Language auto-detected on reset: ${updates.language}`)
+  }
 
   if (Object.keys(updates).length === 0) {
     logger.warn('No valid UI settings to update')

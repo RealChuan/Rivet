@@ -1,4 +1,7 @@
+import type { Theme } from '@shared/constants/theme.js'
+import type { SupportedLanguageLiteral } from '@shared/constants/i18n.js'
+
 export interface UiSettings {
-  theme: 'light' | 'dark' | 'system'
-  language: 'zh-CN' | 'en-US' | ''
+  theme: Theme
+  language: SupportedLanguageLiteral | ''
 }

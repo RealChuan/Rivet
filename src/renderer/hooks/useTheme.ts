@@ -1,52 +1,56 @@
 import { useEffect, useCallback, useSyncExternalStore } from 'react'
+import {
+  LIGHT,
+  DARK,
+  SYSTEM,
+  THEME_ORDER,
+  type ResolvedTheme,
+  type Theme,
+} from '@shared/constants/theme.js'
 import { useUiStore } from '../stores/index.js'
 
-// 系统主题监听（稳定引用，避免重复订阅）
 function subscribeSystemTheme(callback: () => void) {
   const media = window.matchMedia('(prefers-color-scheme: dark)')
   media.addEventListener('change', callback)
   return () => media.removeEventListener('change', callback)
 }
 
-function getSystemThemeSnapshot(): 'light' | 'dark' {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+function getSystemThemeSnapshot(): ResolvedTheme {
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? DARK : LIGHT
 }
 
 export function useTheme() {
   const { theme, setTheme } = useUiStore()
 
-  // 实时同步系统主题（无论当前是否 system 模式，都保持最新）
   const systemTheme = useSyncExternalStore(
     subscribeSystemTheme,
     getSystemThemeSnapshot,
-    () => 'light' // SSR fallback
+    () => LIGHT
   )
 
-  // 解析最终主题
-  const resolvedTheme = theme === 'system' ? systemTheme : theme
+  const resolvedTheme = theme === SYSTEM ? systemTheme : theme
 
-  // 应用到 DOM
   useEffect(() => {
     const root = document.documentElement
-    if (resolvedTheme === 'dark') {
+    if (resolvedTheme === DARK) {
       root.classList.add('dark')
     } else {
       root.classList.remove('dark')
     }
-    // 可选：同时设置 data-theme 供 CSS 变量使用
     root.dataset.theme = resolvedTheme
   }, [resolvedTheme])
 
-  // 循环切换
   const cycleTheme = useCallback(() => {
-    const themes: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system']
-    const nextIndex = (themes.indexOf(theme || 'system') + 1) % themes.length
-    setTheme(themes[nextIndex] as 'light' | 'dark' | 'system')
+    const currentTheme: Theme = theme ?? SYSTEM
+    const currentIndex = THEME_ORDER.indexOf(currentTheme)
+    const nextIndex = (currentIndex + 1) % THEME_ORDER.length
+    const nextTheme = THEME_ORDER[nextIndex] ?? SYSTEM
+    setTheme(nextTheme)
   }, [theme, setTheme])
 
   return {
-    theme, // 当前设置：light | dark | system
-    resolvedTheme, // 实际生效：light | dark
+    theme,
+    resolvedTheme,
     setTheme,
     cycleTheme,
   }

@@ -3,7 +3,7 @@ import { SessionSidebar } from './features/session/index.js'
 import { FileAreaContainer } from './features/file-explorer/index.js'
 import { MainLayout } from './layout/MainLayout.js'
 import { useAppInit } from './hooks/useAppInit.js'
-import { useSystemTheme } from './hooks/useSystemTheme.js'
+import { useTheme } from './hooks/useTheme.js'
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts.js'
 import { useUiStore } from './stores/uiStore.js'
 
@@ -11,7 +11,7 @@ const App: React.FC = () => {
   const { initialized } = useUiStore()
 
   useAppInit()
-  useSystemTheme()
+  useTheme()
   useGlobalShortcuts()
 
   if (!initialized) {
