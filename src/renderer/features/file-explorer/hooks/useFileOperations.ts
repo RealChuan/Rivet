@@ -147,12 +147,12 @@ export const useFileOperations = (sessionId: string): UseFileOperationsReturn =>
           if (resolution.strategy === 'skip') {
             shouldProcess = false
           } else if (resolution.strategy === 'keepBoth') {
-            const uniqueName = generateUniqueName(file.name, existingNamesSet)
+            const uniqueName = generateUniqueName(file.name)
             targetPath = getTargetPath(uniqueName, targetDir.absolutePath)
             existingNamesSet.add(uniqueName)
           }
         } else if (existingNamesSet.has(file.name)) {
-          const uniqueName = generateUniqueName(file.name, existingNamesSet)
+          const uniqueName = generateUniqueName(file.name)
           targetPath = getTargetPath(uniqueName, targetDir.absolutePath)
           existingNamesSet.add(uniqueName)
         }

@@ -88,5 +88,9 @@ export function setupCommonIpcHandlers(): void {
     return null
   })
 
+  ipcMain.handle('get-is-packaged', () => {
+    return app.isPackaged
+  })
+
   logger.info('Common IPC handlers registered')
 }

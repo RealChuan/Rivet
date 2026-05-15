@@ -53,6 +53,7 @@ export interface CommonAPI {
   getTempDir: () => Promise<string>
   getDownloadDir: () => Promise<string>
   getLastError: () => Promise<unknown>
+  getIsPackaged: () => Promise<boolean>
   saveKnownHost: (record: {
     connectionUuid: string
     fingerprint: string

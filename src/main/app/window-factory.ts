@@ -5,13 +5,12 @@
  * 自动应用平台适配的无边框配置，复用同一套 Preload 脚本。
  */
 
-import { BrowserWindow, type BrowserWindowConstructorOptions, app } from 'electron'
+import { BrowserWindow, app, type BrowserWindowConstructorOptions } from 'electron'
 import { fileURLToPath, URL } from 'node:url'
 import path from 'node:path'
 import { registerWindowMeta, unregisterWindowMeta } from './main.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const isDev = !app.isPackaged
 
 // ============================================================
 // 类型定义
@@ -105,7 +104,7 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
   // ========== 加载页面 ==========
   const route = options.route ?? '/'
 
-  if (isDev) {
+  if (!app.isPackaged) {
     void win.loadURL(`http://localhost:5173${route ? `#${route}` : ''}`)
   } else {
     void win.loadFile(path.join(__dirname, '../../renderer/index.html'), {

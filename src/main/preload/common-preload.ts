@@ -15,6 +15,7 @@ export const commonAPI = {
   getTempDir: () => ipcRenderer.invoke('get-temp-dir'),
   getDownloadDir: () => ipcRenderer.invoke('get-download-dir'),
   getLastError: () => ipcRenderer.invoke('get-last-error'),
+  getIsPackaged: () => ipcRenderer.invoke('get-is-packaged'),
   saveKnownHost: (record: { connectionUuid: string; fingerprint: string }) =>
     ipcRenderer.invoke('save-known-host', record),
   deleteKnownHost: (connectionUuid: string) =>

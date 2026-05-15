@@ -3,7 +3,7 @@ export * from './path.js'
 export * from './caller.js'
 export * from './error.js'
 
-export const generateUniqueName = (basename: string, existingNames: Set<string>): string => {
+export const generateUniqueName = (basename: string): string => {
   const extIndex = basename.lastIndexOf('.')
   let name: string
   let ext: string
@@ -16,19 +16,8 @@ export const generateUniqueName = (basename: string, existingNames: Set<string>)
   }
 
   const now = new Date()
-  const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`
-  let newName = `${name}_${timestamp}${ext}`
+  const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}_${String(now.getMilliseconds()).padStart(3, '0')}`
+  const newName = `${name}_${timestamp}${ext}`
 
-  if (!existingNames.has(newName)) {
-    return newName
-  }
-
-  for (let i = 1; i <= 10; i++) {
-    newName = `${name}_${timestamp}_${i}${ext}`
-    if (!existingNames.has(newName)) {
-      return newName
-    }
-  }
-
-  return `${name}_${timestamp}_11${ext}`
+  return newName
 }

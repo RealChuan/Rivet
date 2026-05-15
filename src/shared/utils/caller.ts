@@ -1,8 +1,8 @@
-export const getCallerInfo = (): string => {
+export const getCallerInfo = (skipFrames: number = 3): string => {
   const err = new Error()
   const stack = err.stack?.split('\n') ?? []
-  if (stack.length >= 4) {
-    const callerLine = stack[3]?.trim()
+  if (stack.length > skipFrames) {
+    const callerLine = stack[skipFrames]?.trim()
     if (!callerLine) return '[unknown]'
     const match =
       callerLine.match(/at\s+(.+?)\s+\((.+?):(\d+):(\d+)\)/) ??

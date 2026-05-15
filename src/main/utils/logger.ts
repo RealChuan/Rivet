@@ -10,13 +10,15 @@ log.transports.file.resolvePathFn = () => {
 log.transports.file.level = 'info'
 log.transports.console.level = 'info'
 
+const formatMessage = (message: string) => {
+  return !app.isPackaged ? `${getCallerInfo(4)} ${message}` : message
+}
+
 export const logger = {
-  info: (message: string, ...args: unknown[]) => log.info(`${getCallerInfo()} ${message}`, ...args),
-  warn: (message: string, ...args: unknown[]) => log.warn(`${getCallerInfo()} ${message}`, ...args),
-  error: (message: string, ...args: unknown[]) =>
-    log.error(`${getCallerInfo()} ${message}`, ...args),
-  debug: (message: string, ...args: unknown[]) =>
-    log.debug(`${getCallerInfo()} ${message}`, ...args),
+  info: (message: string, ...args: unknown[]) => log.info(formatMessage(message), ...args),
+  warn: (message: string, ...args: unknown[]) => log.warn(formatMessage(message), ...args),
+  error: (message: string, ...args: unknown[]) => log.error(formatMessage(message), ...args),
+  debug: (message: string, ...args: unknown[]) => log.debug(formatMessage(message), ...args),
 }
 
 export default logger
