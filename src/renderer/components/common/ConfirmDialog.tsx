@@ -2,6 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { GlassDialog } from '../ui/index.js'
 import Button from '../../components/ui/Button.js'
+import { fireAndForget } from '@shared/utils/index.js'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -82,7 +83,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   }
 
   return (
-    <GlassDialog open={open} onClose={() => void handleCancel()}>
+    <GlassDialog open={open} onClose={() => fireAndForget(handleCancel(), 'Failed to cancel')}>
       <div className="flex flex-col items-center text-center">
         <div
           className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${config.bgClass}`}
@@ -98,10 +99,16 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         ) : null}
 
         <div className="flex justify-end gap-2.5 w-full">
-          <Button variant="secondary" onClick={() => void handleCancel()}>
+          <Button
+            variant="secondary"
+            onClick={() => fireAndForget(handleCancel(), 'Failed to cancel')}
+          >
             {cancelText ?? t('dialog.cancel')}
           </Button>
-          <Button variant={config.buttonVariant} onClick={() => void handleConfirm()}>
+          <Button
+            variant={config.buttonVariant}
+            onClick={() => fireAndForget(handleConfirm(), 'Failed to confirm')}
+          >
             {confirmText ?? t('dialog.confirm')}
           </Button>
         </div>

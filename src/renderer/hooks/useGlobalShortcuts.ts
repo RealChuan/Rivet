@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useSessionStore } from '../features/session/stores/sessionStore.js'
+import { fireAndForget } from '@shared/utils/index.js'
 
 export const useGlobalShortcuts = () => {
   const { refreshCurrentDirectory, activeSessionId } = useSessionStore()
@@ -9,7 +10,7 @@ export const useGlobalShortcuts = () => {
       if (e.key === 'F5') {
         e.preventDefault()
         if (activeSessionId) {
-          void refreshCurrentDirectory(activeSessionId)
+          fireAndForget(refreshCurrentDirectory(activeSessionId), 'Failed to refresh directory')
         }
       }
     }

@@ -125,7 +125,7 @@ async function disconnectAllSessions(): Promise<void> {
 void app.whenReady().then(() => {
   logger.info('App ready, initializing...')
 
-  void loadConfig()
+  loadConfig()
   setupIpcHandlers()
 
   // 创建主窗口

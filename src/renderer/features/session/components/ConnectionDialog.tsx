@@ -8,6 +8,7 @@ import Select from '@renderer/components/ui/Select.js'
 import Input from '@renderer/components/ui/Input.js'
 import Button from '@renderer/components/ui/Button.js'
 import { ConfirmDialog } from '@renderer/components/common/ConfirmDialog.js'
+import { fireAndForget } from '@shared/utils/index.js'
 
 export interface ConnectionDialogProps {
   open: boolean
@@ -65,7 +66,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             console.error('Failed to load password:', error)
           }
         }
-        void loadPassword()
+        fireAndForget(loadPassword(), 'Failed to load password')
       }
     }
   }, [config, open])
@@ -118,7 +119,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
   const handleCertWarningConfirm = () => {
     setShowCertWarning(false)
-    void doSave()
+    fireAndForget(doSave(), 'Failed to save connection')
   }
 
   const handleCertWarningCancel = () => {
@@ -167,7 +168,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
       <form
         onSubmit={e => {
           e.preventDefault()
-          void handleSubmit()
+          fireAndForget(handleSubmit(), 'Failed to submit connection')
         }}
         className="flex flex-col gap-3.5"
       >

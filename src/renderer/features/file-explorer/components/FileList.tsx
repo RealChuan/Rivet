@@ -14,7 +14,7 @@ import { FileListLoading, FileListError, FileListEmpty } from './FileListStates.
 import ParentDirectoryButton from './ParentDirectoryButton.js'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
 import { useFileOperations } from '@renderer/features/file-explorer/hooks/useFileOperations.js'
-import { getParentPath } from '@shared/utils/index.js'
+import { getParentPath, fireAndForget } from '@shared/utils/index.js'
 
 interface FileListProps {
   sessionId: string
@@ -144,7 +144,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
   const handleDoubleClick = useCallback(
     (file: FileInfo) => {
       if (file.type === 'directory') {
-        void handleNavigate(file.absolutePath)
+        fireAndForget(handleNavigate(file.absolutePath), 'Failed to navigate')
       }
     },
     [handleNavigate]
@@ -195,13 +195,13 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
 
   const handleParentDirectory = useCallback(() => {
     if (currentPath === '/') return
-    void handleNavigate(getParentPath(currentPath))
+    fireAndForget(handleNavigate(getParentPath(currentPath)), 'Failed to navigate to parent')
   }, [currentPath, handleNavigate])
 
   const handleRenameWrapper = useCallback(
     (newName: string) => {
       if (selectedFile) {
-        void handleRename(selectedFile, newName)
+        fireAndForget(handleRename(selectedFile, newName), 'Failed to rename file')
         setSelectedFile(null)
       }
     },
@@ -210,7 +210,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
 
   const handleCreateFolderWrapper = useCallback(
     (folderName: string) => {
-      void handleCreateFolder(currentPath, folderName)
+      fireAndForget(handleCreateFolder(currentPath, folderName), 'Failed to create folder')
     },
     [currentPath, handleCreateFolder]
   )
@@ -479,7 +479,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         isHovered={hoveredFile === file.name}
         onHover={setHoveredFile}
         onClick={e => handleFileClick(file, e)}
-        onDoubleClick={() => void handleDoubleClick(file)}
+        onDoubleClick={() => handleDoubleClick(file)}
         onContextMenu={e => {
           e.stopPropagation()
           handleContextMenu(e, file)
@@ -511,7 +511,9 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
     return (
       <FileListError
         error={session.error}
-        onRetry={() => void refreshCurrentDirectory(sessionId)}
+        onRetry={() =>
+          fireAndForget(refreshCurrentDirectory(sessionId), 'Failed to refresh directory')
+        }
       />
     )
   }
@@ -582,7 +584,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         }}
         onConfirm={() => {
           if (fileToDelete) {
-            void handleDelete(fileToDelete)
+            fireAndForget(handleDelete(fileToDelete), 'Failed to delete file')
             setFileToDelete(null)
           }
         }}
@@ -642,7 +644,9 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
         onClose={() => {
           setTargetFolderDialogOpen(false)
         }}
-        onConfirm={(targetDir: FileInfo) => void handleSelectTargetFolder(targetDir)}
+        onConfirm={(targetDir: FileInfo) =>
+          fireAndForget(handleSelectTargetFolder(targetDir), 'Failed to select target folder')
+        }
         sessionId={sessionId}
       />
 

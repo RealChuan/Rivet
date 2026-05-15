@@ -5,6 +5,7 @@ import { DEFAULT_LANGUAGE } from '@shared/constants/i18n.js'
 import type { UiSettings } from '@shared/types/ui.js'
 import { useUiStore } from '../stores/index.js'
 import { useSessionStore } from '../features/session/stores/sessionStore.js'
+import { fireAndForget } from '@shared/utils/index.js'
 
 export const useAppInit = () => {
   const { i18n } = useTranslation()
@@ -30,12 +31,12 @@ export const useAppInit = () => {
       }
     }
 
-    void initApp()
+    fireAndForget(initApp(), 'Failed to initialize app')
   }, [i18n, initialize])
 
   useEffect(() => {
     if (!initialized) return
-    void loadSavedConnections()
+    fireAndForget(loadSavedConnections(), 'Failed to load saved connections')
   }, [initialized, loadSavedConnections])
 
   return { initialized }

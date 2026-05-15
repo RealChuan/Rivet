@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/sessionStore.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import InputDialog from '@renderer/components/common/InputDialog.js'
-import { toErrorMessage } from '@shared/utils/index.js'
+import { toErrorMessage, fireAndForget } from '@shared/utils/index.js'
 
 interface ToolbarProps {
   sessionId: string
@@ -72,7 +72,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
 
   return (
     <div className="flex items-center gap-0.5 ml-auto">
-      <ToolButton onClick={() => void handleRefresh()} title={`${t('toolbar.refresh')} (F5)`}>
+      <ToolButton
+        onClick={() => fireAndForget(handleRefresh(), 'Failed to refresh directory')}
+        title={`${t('toolbar.refresh')} (F5)`}
+      >
         <svg className="w-4 h-4 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
           <polyline points="23 4 23 10 17 10" />
           <polyline points="1 20 1 14 7 14" />
@@ -91,7 +94,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({ sessionId }) => {
       <InputDialog
         open={newFolderDialogOpen}
         onClose={() => setNewFolderDialogOpen(false)}
-        onSubmit={folderName => void handleNewFolder(folderName)}
+        onSubmit={folderName =>
+          fireAndForget(handleNewFolder(folderName), 'Failed to create folder')
+        }
         title={t('dialog.newFolder.title')}
         placeholder={t('dialog.newFolder.placeholder')}
         submitText={t('dialog.ok')}

@@ -7,3 +7,11 @@ export function toErrorMessage(error: unknown): string {
     return String(error)
   }
 }
+
+export function fireAndForget<T>(promise: Promise<T> | void, errorMessage?: string): void {
+  if (!promise) return
+  promise.catch(error => {
+    const errMsg = toErrorMessage(error)
+    console.error(errorMessage ? `${errorMessage}: ${errMsg}` : `Unhandled error: ${errMsg}`)
+  })
+}

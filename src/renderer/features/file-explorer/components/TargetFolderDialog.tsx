@@ -8,7 +8,7 @@ import InputDialog from '@renderer/components/common/InputDialog.js'
 import Button from '@renderer/components/ui/Button.js'
 import Breadcrumb from '@renderer/features/file-explorer/components/Breadcrumb.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
-import { getParentPath, toErrorMessage } from '@shared/utils/index.js'
+import { getParentPath, toErrorMessage, fireAndForget } from '@shared/utils/index.js'
 
 interface TargetFolderDialogProps {
   open: boolean
@@ -71,7 +71,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
         }
       }
     }
-    void load()
+    fireAndForget(load(), 'Failed to load folder list')
   }, [open, sessionId, currentPath])
 
   const handleNavigate = useCallback((folder: FolderItem) => {
@@ -118,7 +118,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
       owner: '',
       absolutePath: currentPath,
     }
-    void onConfirm(targetDir)
+    onConfirm(targetDir)
     onClose()
   }
 
@@ -319,7 +319,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
       <InputDialog
         open={newFolderDialogOpen}
         onClose={() => setNewFolderDialogOpen(false)}
-        onSubmit={name => void handleNewFolder(name)}
+        onSubmit={name => fireAndForget(handleNewFolder(name), 'Failed to create folder')}
         title={t('dialog.newFolder.title')}
         placeholder={t('dialog.newFolder.placeholder')}
         submitText={t('dialog.ok')}

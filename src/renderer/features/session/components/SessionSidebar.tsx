@@ -7,7 +7,7 @@ import ConnectionDialog from './ConnectionDialog.js'
 import { HostKeyDialog } from '@renderer/features/host-key/index.js'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.js'
 import { type ConnectionConfig } from '@shared/types/index.js'
-import { toErrorMessage } from '@shared/utils/index.js'
+import { toErrorMessage, fireAndForget } from '@shared/utils/index.js'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
 
 export const SessionSidebar: React.FC = () => {
@@ -35,7 +35,7 @@ export const SessionSidebar: React.FC = () => {
   React.useEffect(() => {
     const unsubscribe = window.electronAPI.protocol.onSessionDisconnected(event => {
       // 从 store 中移除会话
-      void removeConnection(event.connectionUuid)
+      fireAndForget(removeConnection(event.connectionUuid), 'Failed to remove connection')
 
       // 显示 Toast 提示
       addToast({
@@ -88,24 +88,29 @@ export const SessionSidebar: React.FC = () => {
   const handleDisconnect = useCallback(
     (connectionUuid: string) => {
       const connection = connections.find(c => c.connectionUuid === connectionUuid)
-      try {
-        void removeConnection(connectionUuid)
-        addToast({
-          type: 'info',
-          message: t('toast.disconnectSuccess', {
-            protocol: connection ? connection.protocol.toUpperCase() : 'Unknown',
-            name: connection?.name ?? 'Unknown',
-          }),
-        })
-      } catch (_error) {
-        addToast({
-          type: 'error',
-          message: t('toast.disconnectFailed', {
-            protocol: connection ? connection.protocol.toUpperCase() : 'Unknown',
-            name: connection?.name ?? 'Unknown',
-          }),
-        })
-      }
+      fireAndForget(
+        (async () => {
+          try {
+            await removeConnection(connectionUuid)
+            addToast({
+              type: 'info',
+              message: t('toast.disconnectSuccess', {
+                protocol: connection ? connection.protocol.toUpperCase() : 'Unknown',
+                name: connection?.name ?? 'Unknown',
+              }),
+            })
+          } catch (_error) {
+            addToast({
+              type: 'error',
+              message: t('toast.disconnectFailed', {
+                protocol: connection ? connection.protocol.toUpperCase() : 'Unknown',
+                name: connection?.name ?? 'Unknown',
+              }),
+            })
+          }
+        })(),
+        'Failed to disconnect'
+      )
     },
     [connections, removeConnection, addToast, t]
   )
@@ -117,18 +122,23 @@ export const SessionSidebar: React.FC = () => {
 
   const handleConfirmDelete = () => {
     if (!connectionToDelete) return
-    try {
-      void deleteConnection(connectionToDelete)
-      addToast({ type: 'info', message: t('toast.deleteConnectionSuccess') })
-    } catch (error) {
-      addToast({
-        type: 'error',
-        message: `Delete failed: ${toErrorMessage(error) || 'Unknown error'}`,
-      })
-    } finally {
-      setDeleteConfirmOpen(false)
-      setConnectionToDelete(null)
-    }
+    fireAndForget(
+      (async () => {
+        try {
+          await deleteConnection(connectionToDelete)
+          addToast({ type: 'info', message: t('toast.deleteConnectionSuccess') })
+        } catch (error) {
+          addToast({
+            type: 'error',
+            message: `Delete failed: ${toErrorMessage(error) || 'Unknown error'}`,
+          })
+        } finally {
+          setDeleteConfirmOpen(false)
+          setConnectionToDelete(null)
+        }
+      })(),
+      'Failed to delete connection'
+    )
   }
 
   const handleReconnect = useCallback(
@@ -184,9 +194,11 @@ export const SessionSidebar: React.FC = () => {
           session={session}
           isActive={session?.sessionId === activeSessionId}
           onSelect={() => session && setActiveSession(session.sessionId)}
-          onDisconnect={() => void handleDisconnect(connection.connectionUuid)}
-          onReconnect={() => void handleReconnect(connection)}
-          onEdit={() => void handleEdit(connection)}
+          onDisconnect={() => handleDisconnect(connection.connectionUuid)}
+          onReconnect={() =>
+            fireAndForget(handleReconnect(connection), 'Failed to reconnect session')
+          }
+          onEdit={() => handleEdit(connection)}
           onDelete={() => handleDelete(connection.connectionUuid)}
           style={style}
         />
@@ -311,7 +323,7 @@ export const SessionSidebar: React.FC = () => {
             setDeleteConfirmOpen(false)
             setConnectionToDelete(null)
           }}
-          onConfirm={() => void handleConfirmDelete()}
+          onConfirm={() => handleConfirmDelete()}
           title={t('dialog.deleteConnectionTitle')}
           message={t('dialog.deleteConnectionMessage')}
           confirmText={t('sidebar.delete')}

@@ -11,6 +11,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
+import { fireAndForget } from '@shared/utils/index.js'
 
 // ============================================================
 // 内联 SVG 图标（零外部依赖）
@@ -143,7 +144,7 @@ export function TitleBar({
       }
     }
 
-    void init()
+    fireAndForget(init(), 'Failed to initialize window state')
     return () => unsubscribe?.()
   }, [])
 

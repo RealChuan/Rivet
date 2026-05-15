@@ -6,6 +6,7 @@ import Button from '@renderer/components/ui/Button.js'
 import RadioButton from '@renderer/components/ui/RadioButton.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
 import { logger } from '@renderer/utils/index.js'
+import { fireAndForget } from '@shared/utils/index.js'
 import { FileOperation } from '@shared/constants/index.js'
 
 export type ConflictStrategy = 'overwrite' | 'skip' | 'keepBoth'
@@ -86,7 +87,10 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
   const handleConfirm = () => {
     logger.info('[Copy] ConflictDialog handleConfirm called')
     if (onConfirm) {
-      void onConfirm(resolutions, operation, files, targetDir)
+      fireAndForget(
+        onConfirm(resolutions, operation, files, targetDir),
+        'Failed to confirm conflict resolution'
+      )
     }
     onClose()
   }

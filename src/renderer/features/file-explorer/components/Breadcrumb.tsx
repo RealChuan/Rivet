@@ -1,5 +1,6 @@
 import React from 'react'
 import { useSessionStore } from '@renderer/features/session/stores/sessionStore.js'
+import { fireAndForget } from '@shared/utils/index.js'
 
 interface BreadcrumbProps {
   path: string
@@ -24,7 +25,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, sessionId, onNavig
   return (
     <nav className="flex items-center gap-1 text-sm overflow-x-auto flex-1">
       <button
-        onClick={() => void handleNavigate('/')}
+        onClick={() => fireAndForget(handleNavigate('/'), 'Failed to navigate')}
         className={`
           flex items-center gap-1 px-2 py-1 rounded text-text
           bg-transparent border-none cursor-pointer whitespace-nowrap font-medium
@@ -50,7 +51,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ path, sessionId, onNavig
               <polyline points="9 18 15 12 9 6" />
             </svg>
             <button
-              onClick={() => void handleNavigate(fullPath)}
+              onClick={() => fireAndForget(handleNavigate(fullPath), 'Failed to navigate')}
               className={`
                 px-2 py-1 rounded bg-transparent border-none cursor-pointer
                 whitespace-nowrap text-text/70 font-normal
