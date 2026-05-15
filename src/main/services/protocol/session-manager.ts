@@ -43,12 +43,8 @@ class SessionManager {
     }
   }
 
-  get<T>(sessionId: string, protocolType: ProtocolType): SessionHandle<T> | undefined {
-    const handle = this.sessions.get(sessionId)
-    if (handle?.protocolType !== protocolType) {
-      return undefined
-    }
-    return handle as SessionHandle<T>
+  get<T>(sessionId: string): SessionHandle<T> | undefined {
+    return this.sessions.get(sessionId) as SessionHandle<T> | undefined
   }
 
   has(sessionId: string): boolean {

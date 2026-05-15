@@ -4,7 +4,7 @@ import { ProtocolFactory } from '../services/protocol/factory.js'
 import { sessionManager, type SessionHandle } from '../services/protocol/session-manager.js'
 import { saveConnection, saveKnownHost, deleteKnownHost } from '../stores/index.js'
 import { logger } from '../utils/index.js'
-import { SERVICE_NAME, ProtocolType, IPC_CHANNELS, SftpStatus } from '@shared/constants/index.js'
+import { SERVICE_NAME, IPC_CHANNELS, SftpStatus } from '@shared/constants/index.js'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
 import { toErrorMessage } from '@shared/utils/index.js'
 import { type FileProtocol } from '../services/protocol/base.js'
@@ -13,9 +13,7 @@ function getSessionAndProtocol(sessionId: string): {
   handle: SessionHandle<unknown>
   protocol: FileProtocol
 } {
-  const handle =
-    sessionManager.get(sessionId, ProtocolType.SFTP) ??
-    sessionManager.get(sessionId, ProtocolType.WEBDAV)
+  const handle = sessionManager.get(sessionId)
   if (!handle) {
     throw new Error(`Connection not found: ${sessionId}`)
   }

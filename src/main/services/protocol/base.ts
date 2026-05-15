@@ -30,7 +30,7 @@ export abstract class BaseProtocolImpl<T> {
   abstract readonly protocolType: ProtocolType
 
   protected getClient(sessionId: string): T {
-    const handle = sessionManager.get<T>(sessionId, this.protocolType)
+    const handle = sessionManager.get<T>(sessionId)
     if (!handle) {
       throw new Error(`Invalid ${this.protocolType} session: ${sessionId}`)
     }
@@ -38,7 +38,7 @@ export abstract class BaseProtocolImpl<T> {
   }
 
   protected getSessionConfig(sessionId: string): ConnectionConfig | undefined {
-    return sessionManager.get(sessionId, this.protocolType)?.config
+    return sessionManager.get(sessionId)?.config
   }
 
   protected calculateProgress(transferred: number, totalSize: number): number {
