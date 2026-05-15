@@ -1,11 +1,8 @@
 import { type ConnectionConfig, type ProtocolType } from '@shared/types/index.js'
+import { TIMEOUTS } from '@shared/constants/timeouts.js'
 import logger from '../../utils/logger.js'
 import { ProtocolFactory } from './factory.js'
 import { Mutex } from 'async-mutex'
-
-const HEARTBEAT_INTERVAL = 30000 // 30 seconds
-const PING_TIMEOUT = 5000 // 5 seconds
-const DISCONNECT_TIMEOUT = 5000 // 5 seconds
 
 export interface SessionHandle<T = unknown> {
   client: T
@@ -102,7 +99,7 @@ class SessionManager {
         await Promise.race([
           protocol.disconnect(sessionId),
           new Promise<void>((_, reject) =>
-            setTimeout(() => reject(new Error('Disconnect timeout')), DISCONNECT_TIMEOUT)
+            setTimeout(() => reject(new Error('Disconnect timeout')), TIMEOUTS.DISCONNECT)
           ),
         ])
       } catch (err) {
@@ -158,7 +155,7 @@ class SessionManager {
       this.checkAllSessions().catch(err => {
         logger.error('Error during heartbeat check', err)
       })
-    }, HEARTBEAT_INTERVAL)
+    }, TIMEOUTS.HEARTBEAT_INTERVAL)
   }
 
   private async checkAllSessions(): Promise<void> {
@@ -183,7 +180,7 @@ class SessionManager {
           await Promise.race([
             protocol.ping(sessionId),
             new Promise<void>((_, reject) =>
-              setTimeout(() => reject(new Error('Ping timeout')), PING_TIMEOUT)
+              setTimeout(() => reject(new Error('Ping timeout')), TIMEOUTS.PING)
             ),
           ])
         } catch (error) {

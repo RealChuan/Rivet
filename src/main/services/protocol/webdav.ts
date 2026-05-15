@@ -5,6 +5,7 @@ import https from 'node:https'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
 import { generateSessionId } from '@main/utils/index.js'
 import { ProtocolStatus, ProtocolType, FileOperation } from '@shared/constants/index.js'
+import { TIMEOUTS } from '@shared/constants/timeouts.js'
 import { BaseProtocolImpl, type FileProtocol } from './base.js'
 import { sessionManager } from './session-manager.js'
 
@@ -28,13 +29,13 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> implements F
             keepAlive: true,
             maxSockets: 10,
             maxFreeSockets: 5,
-            timeout: 30000,
+            timeout: TIMEOUTS.AGENT,
           })
         : new https.Agent({
             keepAlive: true,
             maxSockets: 10,
             maxFreeSockets: 5,
-            timeout: 30000,
+            timeout: TIMEOUTS.AGENT,
             rejectUnauthorized: config.rejectUnauthorized ?? true,
           })
 

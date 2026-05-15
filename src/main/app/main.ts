@@ -14,6 +14,7 @@ import { logger } from '../utils/index.js'
 import { setupIpcHandlers } from '../ipc/index.js'
 import { loadConfig, saveConfig } from '../stores/index.js'
 import { MAIN_WINDOW_ID } from '@shared/constants/index.js'
+import { TIMEOUTS } from '@shared/constants/timeouts.js'
 import { toErrorMessage } from '@shared/utils/index.js'
 import { sessionManager } from '../services/protocol/index.js'
 
@@ -166,7 +167,7 @@ app.on('before-quit', event => {
     const forceExitTimeout = setTimeout(() => {
       logger.warn('Force exiting after timeout - some sessions may not have disconnected properly')
       app.exit(0)
-    }, 10000)
+    }, TIMEOUTS.FORCE_EXIT)
 
     try {
       await disconnectAllSessions()
