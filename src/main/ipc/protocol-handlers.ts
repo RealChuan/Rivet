@@ -2,7 +2,7 @@ import { ipcMain } from 'electron'
 import keytar from 'keytar'
 import { ProtocolFactory } from '../services/protocol/factory.js'
 import { sessionManager, type SessionHandle } from '../services/protocol/session-manager.js'
-import { saveConnection, saveKnownHost, deleteKnownHost } from '../stores/index.js'
+import { saveConnection } from '../stores/index.js'
 import { logger } from '../utils/index.js'
 import { SERVICE_NAME, IPC_CHANNELS, SftpStatus } from '@shared/constants/index.js'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
@@ -145,25 +145,4 @@ export function setupProtocolIpcHandlers(): void {
       }
     )
   )
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.SAVE_KNOWN_HOST,
-    (_, record: { connectionUuid: string; fingerprint: string }) => {
-      const result = saveKnownHost(record)
-      if (!result.success) {
-        throw new Error(`Failed to save known host: ${result.error}`)
-      }
-      logger.info(`Host key saved for connection: ${record.connectionUuid}`)
-      return { success: true }
-    }
-  )
-
-  ipcMain.handle(IPC_CHANNELS.PROTOCOL.DELETE_KNOWN_HOST, (_, connectionUuid: string) => {
-    const result = deleteKnownHost(connectionUuid)
-    if (!result.success) {
-      throw new Error(`Failed to delete known host: ${result.error}`)
-    }
-    logger.info(`Host key deleted for connection: ${connectionUuid}`)
-    return { success: true }
-  })
 }

@@ -52,7 +52,6 @@ export interface CommonAPI {
   getCredential: (connectionUuid: string) => Promise<unknown>
   getTempDir: () => Promise<string>
   getDownloadDir: () => Promise<string>
-  getLastError: () => Promise<unknown>
   getIsPackaged: () => Promise<boolean>
   saveKnownHost: (record: {
     connectionUuid: string

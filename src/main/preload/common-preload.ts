@@ -1,25 +1,27 @@
 import { ipcRenderer } from 'electron'
+import { IPC_CHANNELS } from '@shared/constants/index.js'
 
 export const commonAPI = {
-  storeGet: (key: string) => ipcRenderer.invoke('store-get', key),
-  storeSet: (key: string, value: unknown) => ipcRenderer.invoke('store-set', key, value),
-  storeDelete: (key: string) => ipcRenderer.invoke('store-delete', key),
+  storeGet: (key: string) => ipcRenderer.invoke(IPC_CHANNELS.COMMON.STORE_GET, key),
+  storeSet: (key: string, value: unknown) =>
+    ipcRenderer.invoke(IPC_CHANNELS.COMMON.STORE_SET, key, value),
+  storeDelete: (key: string) => ipcRenderer.invoke(IPC_CHANNELS.COMMON.STORE_DELETE, key),
   showOpenDialog: (options: Electron.OpenDialogOptions) =>
-    ipcRenderer.invoke('show-open-dialog', options),
+    ipcRenderer.invoke(IPC_CHANNELS.COMMON.SHOW_OPEN_DIALOG, options),
   showSaveDialog: (options: Electron.SaveDialogOptions) =>
-    ipcRenderer.invoke('show-save-dialog', options),
-  getSavedConnections: () => ipcRenderer.invoke('get-saved-connections'),
+    ipcRenderer.invoke(IPC_CHANNELS.COMMON.SHOW_SAVE_DIALOG, options),
+  getSavedConnections: () => ipcRenderer.invoke(IPC_CHANNELS.COMMON.GET_SAVED_CONNECTIONS),
   deleteConnection: (connectionUuid: string) =>
-    ipcRenderer.invoke('delete-connection', connectionUuid),
-  getCredential: (connectionUuid: string) => ipcRenderer.invoke('get-credential', connectionUuid),
-  getTempDir: () => ipcRenderer.invoke('get-temp-dir'),
-  getDownloadDir: () => ipcRenderer.invoke('get-download-dir'),
-  getLastError: () => ipcRenderer.invoke('get-last-error'),
-  getIsPackaged: () => ipcRenderer.invoke('get-is-packaged'),
+    ipcRenderer.invoke(IPC_CHANNELS.COMMON.DELETE_CONNECTION, connectionUuid),
+  getCredential: (connectionUuid: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.COMMON.GET_CREDENTIAL, connectionUuid),
+  getTempDir: () => ipcRenderer.invoke(IPC_CHANNELS.COMMON.GET_TEMP_DIR),
+  getDownloadDir: () => ipcRenderer.invoke(IPC_CHANNELS.COMMON.GET_DOWNLOAD_DIR),
+  getIsPackaged: () => ipcRenderer.invoke(IPC_CHANNELS.COMMON.GET_IS_PACKAGED),
   saveKnownHost: (record: { connectionUuid: string; fingerprint: string }) =>
-    ipcRenderer.invoke('save-known-host', record),
+    ipcRenderer.invoke(IPC_CHANNELS.COMMON.SAVE_KNOWN_HOST, record),
   deleteKnownHost: (connectionUuid: string) =>
-    ipcRenderer.invoke('delete-known-host', connectionUuid),
+    ipcRenderer.invoke(IPC_CHANNELS.COMMON.DELETE_KNOWN_HOST, connectionUuid),
 }
 
 export type CommonAPI = typeof commonAPI
