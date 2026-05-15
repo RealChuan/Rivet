@@ -213,8 +213,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   updateConnection: async (connectionUuid, config) => {
     const session = get().sessions.find(s => s.connectionUuid === connectionUuid)
-    if (session?.isConnected && session.sessionId) {
-      await window.electronAPI.protocol.disconnect(session.sessionId)
+    const oldSessionId = session?.sessionId
+    if (oldSessionId) {
+      await window.electronAPI.protocol.disconnect(oldSessionId)
     }
 
     const configWithoutPassword: ConnectionConfigWithoutPassword = {
@@ -255,31 +256,37 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       }
     }
 
-    set(state => ({
-      connections: state.connections.map(c =>
-        c.connectionUuid === connectionUuid ? configWithoutPassword : c
-      ),
-      sessions: state.sessions
-        .filter(s => s.connectionUuid !== connectionUuid)
-        .concat(
-          isConnected && newSessionId
-            ? [
-                {
-                  sessionId: newSessionId,
-                  connectionUuid,
-                  currentPath: '/',
-                  files: [],
-                  isConnected: true,
-                  isLoading: true,
-                  error: null,
-                },
-              ]
-            : []
+    set(state => {
+      const restCounters = oldSessionId
+        ? (({ [oldSessionId]: _, ...rest }) => rest)(state.requestCounters)
+        : state.requestCounters
+      return {
+        connections: state.connections.map(c =>
+          c.connectionUuid === connectionUuid ? configWithoutPassword : c
         ),
-      activeSessionId: isConnected
-        ? (newSessionId ?? state.activeSessionId)
-        : state.activeSessionId,
-    }))
+        sessions: state.sessions
+          .filter(s => s.connectionUuid !== connectionUuid)
+          .concat(
+            isConnected && newSessionId
+              ? [
+                  {
+                    sessionId: newSessionId,
+                    connectionUuid,
+                    currentPath: '/',
+                    files: [],
+                    isConnected: true,
+                    isLoading: true,
+                    error: null,
+                  },
+                ]
+              : []
+          ),
+        requestCounters: restCounters,
+        activeSessionId: isConnected
+          ? (newSessionId ?? state.activeSessionId)
+          : state.activeSessionId,
+      }
+    })
 
     if (shouldRefresh && newSessionId) {
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -289,29 +296,43 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   removeConnection: async connectionUuid => {
     const session = get().sessions.find(s => s.connectionUuid === connectionUuid)
-    if (session?.isConnected && session.sessionId) {
-      await window.electronAPI.protocol.disconnect(session.sessionId)
+    const sessionId = session?.sessionId
+    if (sessionId) {
+      await window.electronAPI.protocol.disconnect(sessionId)
     }
 
-    set(state => ({
-      sessions: state.sessions.filter(s => s.connectionUuid !== connectionUuid),
-      activeSessionId: state.activeSessionId === session?.sessionId ? null : state.activeSessionId,
-    }))
+    set(state => {
+      const restCounters = sessionId
+        ? (({ [sessionId]: _, ...rest }) => rest)(state.requestCounters)
+        : state.requestCounters
+      return {
+        sessions: state.sessions.filter(s => s.connectionUuid !== connectionUuid),
+        requestCounters: restCounters,
+        activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
+      }
+    })
   },
 
   deleteConnection: async connectionUuid => {
     const session = get().sessions.find(s => s.connectionUuid === connectionUuid)
-    if (session?.isConnected && session.sessionId) {
-      await window.electronAPI.protocol.disconnect(session.sessionId)
+    const sessionId = session?.sessionId
+    if (sessionId) {
+      await window.electronAPI.protocol.disconnect(sessionId)
     }
 
     await window.electronAPI.common.deleteConnection(connectionUuid)
 
-    set(state => ({
-      connections: state.connections.filter(c => c.connectionUuid !== connectionUuid),
-      sessions: state.sessions.filter(s => s.connectionUuid !== connectionUuid),
-      activeSessionId: state.activeSessionId === session?.sessionId ? null : state.activeSessionId,
-    }))
+    set(state => {
+      const restCounters = sessionId
+        ? (({ [sessionId]: _, ...rest }) => rest)(state.requestCounters)
+        : state.requestCounters
+      return {
+        connections: state.connections.filter(c => c.connectionUuid !== connectionUuid),
+        sessions: state.sessions.filter(s => s.connectionUuid !== connectionUuid),
+        requestCounters: restCounters,
+        activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
+      }
+    })
   },
 
   setActiveSession: sessionId => {
@@ -400,6 +421,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     const connection = get().connections.find(c => c.connectionUuid === connectionUuid)
     if (!connection) throw new Error('Connection not found')
 
+    const existingSession = get().sessions.find(s => s.connectionUuid === connectionUuid)
+    const existingSessionId = existingSession?.sessionId
+
     const configToConnect = passwordConfig ? { ...connection, ...passwordConfig } : connection
     const { sessionId, shouldProceed } = await handleConnectWithHostKey(configToConnect, set)
 
@@ -416,10 +440,16 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
       isLoading: true,
       error: null,
     }
-    set(state => ({
-      sessions: state.sessions.filter(s => s.connectionUuid !== connectionUuid).concat(session),
-      activeSessionId: sessionId,
-    }))
+    set(state => {
+      const restCounters = existingSessionId
+        ? (({ [existingSessionId]: _, ...rest }) => rest)(state.requestCounters)
+        : state.requestCounters
+      return {
+        sessions: state.sessions.filter(s => s.connectionUuid !== connectionUuid).concat(session),
+        requestCounters: restCounters,
+        activeSessionId: sessionId,
+      }
+    })
 
     if (shouldProceed) {
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -436,7 +466,11 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         return
       }
 
-      set({ connections: savedConnections as ConnectionConfig[], sessions: [] })
+      set({
+        connections: savedConnections as ConnectionConfig[],
+        sessions: [],
+        requestCounters: {},
+      })
     } catch (error) {
       console.error('Failed to load saved connections:', error)
     }
