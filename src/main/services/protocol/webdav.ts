@@ -142,7 +142,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> implements F
   async rename(sessionId: string, file: FileInfo, newName: string): Promise<void> {
     const session = this.getClient(sessionId)
     const fullOldPath = this.getFullPath(sessionId, file.absolutePath)
-    const newPath = file.absolutePath.replace(/\/[^/]+$/, `/${newName}`)
+    const newPath = this.joinPaths(this.getParentPath(file.absolutePath), newName)
     const fullNewPath = this.getFullPath(sessionId, newPath)
 
     try {

@@ -183,7 +183,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> implements FileProtoc
     const client = this.getClient(sessionId)
 
     try {
-      const newPath = file.absolutePath.replace(/\/[^/]+$/, `/${newName}`)
+      const newPath = this.joinPaths(this.getParentPath(file.absolutePath), newName)
       await client.rename(file.absolutePath, newPath)
       this.logOperation('rename', file.name, newName)
     } catch (error) {

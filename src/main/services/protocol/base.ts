@@ -4,7 +4,7 @@ import {
   type ProtocolType,
   type OperationResult,
 } from '@shared/types/index.js'
-import { normalizePath, joinPaths, toErrorMessage } from '@shared/utils/index.js'
+import { normalizePath, joinPaths, getParentPath, toErrorMessage } from '@shared/utils/index.js'
 import logger from '../../utils/logger.js'
 import { sessionManager } from './session-manager.js'
 
@@ -48,6 +48,7 @@ export abstract class BaseProtocolImpl<T> {
 
   protected joinPaths = joinPaths
   protected normalizePath = normalizePath
+  protected getParentPath = getParentPath
 
   protected setupAbortHandler(signal?: AbortSignal): {
     getAborted: () => boolean
