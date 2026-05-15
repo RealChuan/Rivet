@@ -16,7 +16,7 @@ import { loadConfig, saveConfig } from '../stores/index.js'
 import { MAIN_WINDOW_ID } from '@shared/constants/index.js'
 import { TIMEOUTS } from '@shared/constants/timeouts.js'
 import { toErrorMessage } from '@shared/utils/index.js'
-import { sessionManager } from '../services/protocol/index.js'
+import { sessionManager } from '../services/index.js'
 
 // ============================================================
 // 窗口元数据管理（解决 sandbox 模式下 process.argv 不可用问题）

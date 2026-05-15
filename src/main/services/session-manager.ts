@@ -1,7 +1,7 @@
 import { type ConnectionConfig, type ProtocolType } from '@shared/types/index.js'
 import { TIMEOUTS } from '@shared/constants/timeouts.js'
-import logger from '../../utils/logger.js'
-import { ProtocolFactory } from './factory.js'
+import logger from '../utils/logger.js'
+import { ProtocolFactory } from './protocol/factory.js'
 import { Mutex } from 'async-mutex'
 
 export interface SessionHandle<T = unknown> {

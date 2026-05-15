@@ -5,6 +5,8 @@ export const TIMEOUTS = {
   DISCONNECT: 5000,
   SFTP_READY: 20000,
   AGENT: 30000,
+  TOAST_ERROR_DURATION: 6000,
+  TOAST_DEFAULT_DURATION: 3000,
 } as const
 
 export type TimeoutKey = keyof typeof TIMEOUTS

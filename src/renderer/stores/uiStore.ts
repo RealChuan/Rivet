@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { type UiSettings } from '@shared/types/index.js'
 import { DEFAULT_THEME, type Theme } from '@shared/constants/theme.js'
 import { DEFAULT_LANGUAGE, type SupportedLanguageLiteral } from '@shared/constants/i18n.js'
+import { TIMEOUTS } from '@shared/constants/timeouts.js'
 
 interface UiStore extends UiSettings {
   sidebarWidth: number
@@ -78,9 +79,20 @@ export const useUiStore = create<UiStore>((set, get) => ({
     let timer: ReturnType<typeof setTimeout> | undefined
 
     if (toast.duration !== 0) {
-      const duration = toast.duration ?? (toast.type === 'error' ? 6000 : 3000)
+      const duration =
+        toast.duration ??
+        (toast.type === 'error' ? TIMEOUTS.TOAST_ERROR_DURATION : TIMEOUTS.TOAST_DEFAULT_DURATION)
       timer = setTimeout(() => {
-        get().removeToast(id)
+        set(state => {
+          const existingToast = state.toasts.find(t => t.id === id)
+          if (!existingToast) return state
+          if (existingToast.timer) {
+            clearTimeout(existingToast.timer)
+          }
+          return {
+            toasts: state.toasts.filter(t => t.id !== id),
+          }
+        })
       }, duration)
     }
 

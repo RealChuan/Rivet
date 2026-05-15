@@ -50,19 +50,23 @@ const sanitizeFiles = (files: unknown): FileInfo[] => {
     .filter((file): file is FileInfo => {
       if (!file || typeof file !== 'object') return false
       const f = file as Record<string, unknown>
+      const size = typeof f.size === 'number' ? f.size : NaN
       return (
         typeof f.name === 'string' &&
+        f.name.length > 0 &&
         (f.type === 'file' || f.type === 'directory') &&
-        typeof f.size === 'number' &&
-        typeof f.modifyTime === 'number' &&
-        typeof f.absolutePath === 'string'
+        Number.isFinite(size) &&
+        size >= 0 &&
+        Number.isFinite(f.modifyTime) &&
+        typeof f.absolutePath === 'string' &&
+        f.absolutePath.length > 0
       )
     })
     .map(file => ({
-      name: String(file.name),
+      name: String(file.name).replace(/[\\/:*?"<>|]/g, '_'),
       type: file.type === 'directory' ? 'directory' : 'file',
-      size: Number(file.size || 0),
-      modifyTime: Number(file.modifyTime || 0),
+      size: Number(file.size),
+      modifyTime: Number(file.modifyTime),
       permissions: typeof file.permissions === 'string' ? file.permissions : '',
       owner: typeof file.owner === 'string' ? file.owner : '',
       absolutePath: String(file.absolutePath),

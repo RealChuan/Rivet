@@ -7,7 +7,7 @@ import { generateSessionId } from '@main/utils/index.js'
 import { ProtocolStatus, ProtocolType, FileOperation } from '@shared/constants/index.js'
 import { TIMEOUTS } from '@shared/constants/timeouts.js'
 import { BaseProtocolImpl, type FileProtocol } from './base.js'
-import { sessionManager } from './session-manager.js'
+import { sessionManager } from '../session-manager.js'
 
 interface WebDAVSession {
   client: WebDAVClient

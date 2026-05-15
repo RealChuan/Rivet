@@ -13,7 +13,7 @@ import {
 } from '@shared/constants/index.js'
 import { TIMEOUTS } from '@shared/constants/timeouts.js'
 import { BaseProtocolImpl, type FileProtocol } from './base.js'
-import { sessionManager } from './session-manager.js'
+import { sessionManager } from '../session-manager.js'
 import { getKnownHost } from '../../stores/index.js'
 
 export class SftpProtocol extends BaseProtocolImpl<Client> implements FileProtocol {

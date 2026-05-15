@@ -6,7 +6,7 @@ import {
 } from '@shared/types/index.js'
 import { normalizePath, joinPaths, getParentPath, toErrorMessage } from '@shared/utils/index.js'
 import logger from '../../utils/logger.js'
-import { sessionManager } from './session-manager.js'
+import { sessionManager } from '../session-manager.js'
 
 export interface FileProtocol {
   readonly protocolType: ProtocolType
