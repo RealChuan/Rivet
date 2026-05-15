@@ -23,6 +23,21 @@ function getSessionAndProtocol(sessionId: string): {
   return { handle, protocol }
 }
 
+function createProtocolHandler<T extends unknown[]>(
+  operation: string,
+  handler: (...args: T) => Promise<unknown>
+): (...args: T) => Promise<unknown> {
+  return async (...args: T) => {
+    try {
+      return await handler(...args)
+    } catch (error) {
+      const errMsg = toErrorMessage(error)
+      logger.error(`${operation} failed: ${errMsg}`)
+      throw error
+    }
+  }
+}
+
 export function setupProtocolIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.PROTOCOL.CONNECT, async (_, config: ConnectionConfig) => {
     try {
@@ -67,91 +82,70 @@ export function setupProtocolIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle(IPC_CHANNELS.PROTOCOL.DISCONNECT, async (_, sessionId: string) => {
-    try {
+  ipcMain.handle(
+    IPC_CHANNELS.PROTOCOL.DISCONNECT,
+    createProtocolHandler('Disconnect', async (_, sessionId: string) => {
       const { protocol } = getSessionAndProtocol(sessionId)
       await protocol.disconnect(sessionId)
       logger.info(`Disconnected: ${sessionId}`)
-    } catch (error) {
-      const errMsg = toErrorMessage(error)
-      logger.error(`Disconnect failed: ${errMsg}`)
-      throw error
-    }
-  })
+    })
+  )
 
-  ipcMain.handle(IPC_CHANNELS.PROTOCOL.LIST, async (_, sessionId: string, remotePath: string) => {
-    try {
+  ipcMain.handle(
+    IPC_CHANNELS.PROTOCOL.LIST,
+    createProtocolHandler('List directory', async (_, sessionId: string, remotePath: string) => {
       const { protocol } = getSessionAndProtocol(sessionId)
       return await protocol.list(sessionId, remotePath)
-    } catch (error) {
-      const errMsg = toErrorMessage(error)
-      logger.error(`List directory failed: ${remotePath} - ${errMsg}`)
-      throw error
-    }
-  })
+    })
+  )
 
-  ipcMain.handle(IPC_CHANNELS.PROTOCOL.MKDIR, async (_, sessionId: string, remotePath: string) => {
-    try {
+  ipcMain.handle(
+    IPC_CHANNELS.PROTOCOL.MKDIR,
+    createProtocolHandler('Create directory', async (_, sessionId: string, remotePath: string) => {
       const { protocol } = getSessionAndProtocol(sessionId)
       await protocol.mkdir(sessionId, remotePath)
-    } catch (error) {
-      const errMsg = toErrorMessage(error)
-      logger.error(`Create directory failed: ${remotePath} - ${errMsg}`)
-      throw error
-    }
-  })
+    })
+  )
 
   ipcMain.handle(
     IPC_CHANNELS.PROTOCOL.RENAME,
-    async (_, sessionId: string, file: FileInfo, newName: string) => {
-      try {
+    createProtocolHandler(
+      'Rename',
+      async (_, sessionId: string, file: FileInfo, newName: string) => {
         const { protocol } = getSessionAndProtocol(sessionId)
         await protocol.rename(sessionId, file, newName)
-      } catch (error) {
-        const errMsg = toErrorMessage(error)
-        logger.error(`Rename failed: ${file.name} -> ${newName} - ${errMsg}`)
-        throw error
       }
-    }
+    )
   )
 
-  ipcMain.handle(IPC_CHANNELS.PROTOCOL.DELETE, async (_, sessionId: string, file: FileInfo) => {
-    try {
+  ipcMain.handle(
+    IPC_CHANNELS.PROTOCOL.DELETE,
+    createProtocolHandler('Delete', async (_, sessionId: string, file: FileInfo) => {
       const { protocol } = getSessionAndProtocol(sessionId)
       await protocol.delete(sessionId, file)
-    } catch (error) {
-      const errMsg = toErrorMessage(error)
-      logger.error(`Delete failed - ${errMsg}`)
-      throw error
-    }
-  })
+    })
+  )
 
   ipcMain.handle(
     IPC_CHANNELS.PROTOCOL.COPY,
-    async (_, sessionId: string, file: FileInfo, targetPath: string) => {
-      try {
+    createProtocolHandler(
+      'Copy',
+      async (_, sessionId: string, file: FileInfo, targetPath: string) => {
         const { protocol } = getSessionAndProtocol(sessionId)
         await protocol.copy(sessionId, file, targetPath)
-      } catch (error) {
-        const errMsg = toErrorMessage(error)
-        logger.error(`Copy failed: ${file.absolutePath} -> ${targetPath} - ${errMsg}`)
-        throw error
       }
-    }
+    )
   )
 
   ipcMain.handle(
     IPC_CHANNELS.PROTOCOL.MOVE,
-    async (_, sessionId: string, file: FileInfo, targetPath: string) => {
-      try {
+    createProtocolHandler(
+      'Move',
+      async (_, sessionId: string, file: FileInfo, targetPath: string) => {
         const { protocol } = getSessionAndProtocol(sessionId)
         await protocol.move(sessionId, file, targetPath)
-      } catch (error) {
-        const errMsg = toErrorMessage(error)
-        logger.error(`Move failed: ${file.absolutePath} -> ${targetPath} - ${errMsg}`)
-        throw error
       }
-    }
+    )
   )
 
   ipcMain.handle(
