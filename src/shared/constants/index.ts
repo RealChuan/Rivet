@@ -1,5 +1,5 @@
 export * from './app.js'
 export * from './ipc-channels.js'
 export * from './protocol-status.js'
-export * from './protocol.js'
 export * from './operation.js'
+export * from './protocol.js'

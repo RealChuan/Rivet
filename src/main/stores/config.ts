@@ -2,7 +2,7 @@ import Store from 'electron-store'
 import { app } from 'electron'
 import { logger } from '../utils/index.js'
 import type { ConnectionConfig, UiSettings } from '@shared/types/index.js'
-import { ProtocolType } from '@shared/constants/index.js'
+import { Protocol_SFTP, Protocol_WEBDAV } from '@shared/constants/index.js'
 import { DEFAULT_THEME, LIGHT, DARK, SYSTEM } from '@shared/constants/theme.js'
 import { ZH_CN, EN_US, detectLanguageWithFallback } from '@shared/constants/i18n.js'
 import { toErrorMessage } from '@shared/utils/index.js'
@@ -38,7 +38,7 @@ function isValidConnection(config: unknown): config is StoredConnection {
   return (
     typeof c.connectionUuid === 'string' &&
     typeof c.name === 'string' &&
-    (c.protocol === ProtocolType.SFTP || c.protocol === ProtocolType.WEBDAV) &&
+    (c.protocol === Protocol_SFTP || c.protocol === Protocol_WEBDAV) &&
     typeof c.host === 'string' &&
     typeof c.port === 'number' &&
     typeof c.username === 'string' &&

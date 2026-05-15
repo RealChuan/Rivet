@@ -3,8 +3,8 @@ import path from 'path'
 import http from 'node:http'
 import https from 'node:https'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
+import { Protocol_WEBDAV, ProtocolStatus, FileOperation } from '@shared/constants/index.js'
 import { generateSessionId } from '@main/utils/index.js'
-import { ProtocolStatus, ProtocolType, FileOperation } from '@shared/constants/index.js'
 import { TIMEOUTS } from '@shared/constants/timeouts.js'
 import { BaseProtocolImpl, type FileProtocol } from './base.js'
 import { sessionManager } from '../session-manager.js'
@@ -19,7 +19,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> implements F
   readonly protocolType = 'webdav' as const
 
   async connect(config: ConnectionConfig) {
-    const sessionId = generateSessionId(ProtocolType.WEBDAV)
+    const sessionId = generateSessionId(Protocol_WEBDAV)
     const useScheme = config.scheme ?? 'https'
     const url = `${useScheme}://${config.host}:${config.port}`
 
@@ -58,7 +58,7 @@ export class WebdavProtocol extends BaseProtocolImpl<WebDAVSession> implements F
     }
 
     const session: WebDAVSession = { client, controller, agent }
-    sessionManager.register(sessionId, session, config, ProtocolType.WEBDAV)
+    sessionManager.register(sessionId, session, config, Protocol_WEBDAV)
     this.logOperation(
       'connected',
       `${config.host}:${config.port} (${sessionId})`,

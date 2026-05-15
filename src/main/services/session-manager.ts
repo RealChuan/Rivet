@@ -1,4 +1,5 @@
-import { type ConnectionConfig, type ProtocolType } from '@shared/types/index.js'
+import { type ConnectionConfig } from '@shared/types/index.js'
+import type { ProtocolType } from '@shared/constants/index.js'
 import { TIMEOUTS } from '@shared/constants/timeouts.js'
 import logger from '../utils/logger.js'
 import { ProtocolFactory } from './protocol/factory.js'

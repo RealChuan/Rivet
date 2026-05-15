@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/sessionStore.js'
 import { type FileInfo } from '@shared/types/index.js'
-import { ProtocolType, type FileOperation } from '@shared/constants/index.js'
+import { Protocol_WEBDAV, type FileOperation } from '@shared/constants/index.js'
 import ConfirmDialog from '@renderer/components/common/ConfirmDialog.js'
 import InputDialog from '@renderer/components/common/InputDialog.js'
 import TargetFolderDialog from './TargetFolderDialog.js'
@@ -26,7 +26,7 @@ export const FileList: React.FC<FileListProps> = ({ sessionId, currentPath }) =>
   const { sessions, connections, updateCurrentPath, refreshCurrentDirectory } = useSessionStore()
   const session = sessions.find(s => s.sessionId === sessionId)
   const connection = connections.find(c => c.connectionUuid === session?.connectionUuid)
-  const isWebdav = connection?.protocol === ProtocolType.WEBDAV
+  const isWebdav = connection?.protocol === Protocol_WEBDAV
   const containerRef = useRef<HTMLDivElement>(null)
 
   const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null)

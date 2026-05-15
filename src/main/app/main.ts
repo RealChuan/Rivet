@@ -156,6 +156,30 @@ app.on('window-all-closed', () => {
   }
 })
 
+async function cleanupAndExit(
+  signalName: string,
+  shouldSaveConfig: boolean,
+  exitCode: number
+): Promise<void> {
+  logger.info(`${signalName} received, cleaning up...`)
+
+  try {
+    await disconnectAllSessions()
+    if (shouldSaveConfig) {
+      saveConfig()
+    }
+  } catch (error: unknown) {
+    const errMsg = toErrorMessage(error)
+    logger.error(`Error during ${signalName} cleanup: ${errMsg}`)
+  } finally {
+    if (exitCode === 0) {
+      app.quit()
+    } else {
+      process.exit(exitCode)
+    }
+  }
+}
+
 app.on('before-quit', event => {
   if (isCleaningUp) return
 
@@ -163,7 +187,6 @@ app.on('before-quit', event => {
   logger.info('App quitting, cleaning up sessions...')
 
   void (async () => {
-    // 总超时 10 秒，无论 cleanup 是否完成都强制退出
     const forceExitTimeout = setTimeout(() => {
       logger.warn('Force exiting after timeout - some sessions may not have disconnected properly')
       app.exit(0)
@@ -184,16 +207,7 @@ app.on('before-quit', event => {
 
 process.on('uncaughtException', (error: Error) => {
   logger.error(`Uncaught exception: ${error.message || 'Unknown error'}`)
-  void (async () => {
-    try {
-      await disconnectAllSessions()
-    } catch (cleanupError: unknown) {
-      const errMsg = cleanupError instanceof Error ? cleanupError.message : String(cleanupError)
-      logger.error(`Failed to cleanup during uncaughtException: ${errMsg}`)
-    } finally {
-      process.exit(1)
-    }
-  })()
+  void cleanupAndExit('uncaughtException', false, 1)
 })
 
 process.on('unhandledRejection', (reason: unknown) => {
@@ -202,31 +216,9 @@ process.on('unhandledRejection', (reason: unknown) => {
 })
 
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM received')
-  void (async () => {
-    try {
-      await disconnectAllSessions()
-      saveConfig()
-    } catch (error: unknown) {
-      const errMsg = toErrorMessage(error)
-      logger.error(`Error during SIGTERM cleanup: ${errMsg}`)
-    } finally {
-      app.quit()
-    }
-  })()
+  void cleanupAndExit('SIGTERM', true, 0)
 })
 
 process.on('SIGINT', () => {
-  logger.info('SIGINT received')
-  void (async () => {
-    try {
-      await disconnectAllSessions()
-      saveConfig()
-    } catch (error: unknown) {
-      const errMsg = toErrorMessage(error)
-      logger.error(`Error during SIGINT cleanup: ${errMsg}`)
-    } finally {
-      app.quit()
-    }
-  })()
+  void cleanupAndExit('SIGINT', true, 0)
 })

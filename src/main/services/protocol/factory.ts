@@ -1,8 +1,7 @@
 import { type FileProtocol } from './base.js'
 import { SftpProtocol } from './sftp.js'
 import { WebdavProtocol } from './webdav.js'
-import { ProtocolType } from '@shared/constants/index.js'
-import type { ProtocolType as ProtocolTypeEnum } from '@shared/types/index.js'
+import { type ProtocolType, Protocol_SFTP } from '@shared/constants/index.js'
 
 /**
  * ProtocolFactory - 协议实例工厂（单例模式）
@@ -16,11 +15,11 @@ import type { ProtocolType as ProtocolTypeEnum } from '@shared/types/index.js'
  * 注意：如果未来扩展到 Worker 线程或多进程模式，需要重新评估此设计
  */
 export class ProtocolFactory {
-  private static instances = new Map<ProtocolTypeEnum, FileProtocol>()
+  private static instances = new Map<ProtocolType, FileProtocol>()
 
-  static getProtocol(protocol: ProtocolTypeEnum): FileProtocol {
+  static getProtocol(protocol: ProtocolType): FileProtocol {
     if (!this.instances.has(protocol)) {
-      const instance = protocol === ProtocolType.SFTP ? new SftpProtocol() : new WebdavProtocol()
+      const instance = protocol === Protocol_SFTP ? new SftpProtocol() : new WebdavProtocol()
       this.instances.set(protocol, instance)
     }
     return this.instances.get(protocol)!

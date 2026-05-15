@@ -1,5 +1,5 @@
 export { FileProtocol, BaseProtocolImpl } from './base.js'
-export { type ProtocolType } from '@shared/types/index.js'
+export type { ProtocolType } from '@shared/constants/index.js'
 export { sessionManager, type SessionHandle } from '../session-manager.js'
 export { SftpProtocol } from './sftp.js'
 export { WebdavProtocol } from './webdav.js'

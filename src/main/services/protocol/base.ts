@@ -1,9 +1,5 @@
-import {
-  type FileInfo,
-  type ConnectionConfig,
-  type ProtocolType,
-  type OperationResult,
-} from '@shared/types/index.js'
+import { type FileInfo, type ConnectionConfig, type OperationResult } from '@shared/types/index.js'
+import type { ProtocolType } from '@shared/constants/index.js'
 import { normalizePath, joinPaths, getParentPath, toErrorMessage } from '@shared/utils/index.js'
 import logger from '../../utils/logger.js'
 import { sessionManager } from '../session-manager.js'

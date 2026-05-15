@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type ConnectionConfig } from '@shared/types/index.js'
-import { ProtocolType } from '@shared/constants/index.js'
+import { type ProtocolType, Protocol_SFTP, Protocol_WEBDAV } from '@shared/constants/index.js'
 import GlassDialog from '@renderer/components/ui/GlassDialog.js'
 import PasswordInput from '@renderer/components/ui/PasswordInput.js'
 import Select from '@renderer/components/ui/Select.js'
@@ -25,9 +25,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 }) => {
   const { t } = useTranslation()
   const [name, setName] = useState(config?.name ?? '')
-  const [protocol, setProtocol] = useState<(typeof ProtocolType)[keyof typeof ProtocolType]>(
-    config?.protocol ?? ProtocolType.SFTP
-  )
+  const [protocol, setProtocol] = useState<ProtocolType>(config?.protocol ?? Protocol_SFTP)
   const [host, setHost] = useState(config?.host ?? '')
   const [port, setPort] = useState(config?.port?.toString() ?? '22')
   const [username, setUsername] = useState(config?.username ?? '')
@@ -84,7 +82,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
       return
     }
 
-    if (protocol === ProtocolType.WEBDAV && scheme === 'https' && !rejectUnauthorized) {
+    if (protocol === Protocol_WEBDAV && scheme === 'https' && !rejectUnauthorized) {
       setShowCertWarning(true)
       return
     }
@@ -105,9 +103,9 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         username: username.trim(),
         password: password || '',
         savePassword,
-        basePath: protocol === ProtocolType.WEBDAV ? basePath.trim() : '',
-        scheme: protocol === ProtocolType.WEBDAV ? scheme : 'http',
-        rejectUnauthorized: protocol === ProtocolType.WEBDAV ? rejectUnauthorized : false,
+        basePath: protocol === Protocol_WEBDAV ? basePath.trim() : '',
+        scheme: protocol === Protocol_WEBDAV ? scheme : 'http',
+        rejectUnauthorized: protocol === Protocol_WEBDAV ? rejectUnauthorized : false,
       })
       onClose()
     } catch (err) {
@@ -128,8 +126,8 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   }
 
   const handleProtocolChange = (value: string) => {
-    setProtocol(value as (typeof ProtocolType)[keyof typeof ProtocolType])
-    setPort(value === ProtocolType.WEBDAV ? '443' : '22')
+    setProtocol(value as ProtocolType)
+    setPort(value === Protocol_WEBDAV ? '443' : '22')
   }
 
   const isEditMode = !!config
@@ -192,8 +190,8 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
             value={protocol}
             onChange={handleProtocolChange}
             options={[
-              { value: ProtocolType.SFTP, label: 'SFTP' },
-              { value: ProtocolType.WEBDAV, label: 'WebDAV' },
+              { value: Protocol_SFTP, label: 'SFTP' },
+              { value: Protocol_WEBDAV, label: 'WebDAV' },
             ]}
           />
         </div>
@@ -218,12 +216,12 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
               type="number"
               value={port}
               onChange={e => setPort(e.target.value)}
-              placeholder={protocol === ProtocolType.SFTP ? '22' : '443'}
+              placeholder={protocol === Protocol_SFTP ? '22' : '443'}
             />
           </div>
         </div>
 
-        {protocol === ProtocolType.WEBDAV && (
+        {protocol === Protocol_WEBDAV && (
           <>
             <div>
               <label className="block text-xs font-medium text-text mb-1.5">

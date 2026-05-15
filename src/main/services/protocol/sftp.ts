@@ -9,7 +9,7 @@ import {
   type StatusCode,
   ProtocolStatus,
   SftpStatus,
-  ProtocolType,
+  Protocol_SFTP,
 } from '@shared/constants/index.js'
 import { TIMEOUTS } from '@shared/constants/timeouts.js'
 import { BaseProtocolImpl, type FileProtocol } from './base.js'
@@ -57,7 +57,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> implements FileProtoc
 
   async connect(config: ConnectionConfig) {
     const client = new Client()
-    const sessionId = generateSessionId(ProtocolType.SFTP)
+    const sessionId = generateSessionId(Protocol_SFTP)
     const { verifier, getResult } = this.createHostVerifier(config)
 
     try {
@@ -72,7 +72,7 @@ export class SftpProtocol extends BaseProtocolImpl<Client> implements FileProtoc
       })
 
       const { detail, status } = getResult()
-      sessionManager.register(sessionId, client, config, ProtocolType.SFTP)
+      sessionManager.register(sessionId, client, config, Protocol_SFTP)
       this.logOperation('connected', `${config.host}:${config.port}`, sessionId)
 
       return {
