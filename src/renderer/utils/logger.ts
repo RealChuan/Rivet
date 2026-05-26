@@ -1,36 +1,28 @@
-import { getCallerInfo } from '@shared/utils/index.js'
+import log from 'electron-log/renderer'
+import { formatMessage, getCallerInfo } from '@shared/utils/index.js'
 
-let isPackaged: boolean | undefined
+const isPackaged = import.meta.env.PROD // 生产构建为 true
 
-const getIsPackaged = (): boolean => {
-  if (isPackaged === undefined) {
-    void window.electronAPI.common.getIsPackaged().then(value => {
-      isPackaged = value
-    })
-    return false
+const createLogFn = (level: 'info' | 'warn' | 'error' | 'debug') => {
+  return (msg: string, ...args: unknown[]) => {
+    log[level](formatMessage(msg, !isPackaged, getCallerInfo(3)), ...args)
   }
-  return isPackaged
+}
+
+function catchLog(error: unknown, context?: Record<string, unknown>) {
+  const callerInfo = getCallerInfo(4)
+  const errorObj = error instanceof Error ? error : new Error(String(error))
+  const contextStr = context ? ` | Context: ${JSON.stringify(context)}` : ''
+  const logMessage = `[${callerInfo}] ${errorObj.message}${contextStr}\nStack: ${errorObj.stack ?? ''}`
+  log.error(logMessage)
 }
 
 const logger = {
-  info: (message: string, ...args: unknown[]): void => {
-    const callerInfo = getIsPackaged() ? '' : `${getCallerInfo()} `
-    /* eslint-disable-next-line no-console */
-    console.info(`[INFO] ${callerInfo}${message}`, ...args)
-  },
-  warn: (message: string, ...args: unknown[]): void => {
-    const callerInfo = getIsPackaged() ? '' : `${getCallerInfo()} `
-    console.warn(`[WARN] ${callerInfo}${message}`, ...args)
-  },
-  error: (message: string, ...args: unknown[]): void => {
-    const callerInfo = getIsPackaged() ? '' : `${getCallerInfo()} `
-    console.error(`[ERROR] ${callerInfo}${message}`, ...args)
-  },
-  debug: (message: string, ...args: unknown[]): void => {
-    const callerInfo = getIsPackaged() ? '' : `${getCallerInfo()} `
-    /* eslint-disable-next-line no-console */
-    console.debug(`[DEBUG] ${callerInfo}${message}`, ...args)
-  },
+  info: createLogFn('info'),
+  warn: createLogFn('warn'),
+  error: createLogFn('error'),
+  debug: createLogFn('debug'),
+  catch: catchLog,
 }
 
 export default logger

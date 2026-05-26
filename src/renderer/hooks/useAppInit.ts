@@ -1,42 +1,45 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DEFAULT_THEME } from '@shared/constants/theme.js'
+import { DEFAULT_THEME_VALUE } from '@shared/constants/theme.js'
 import { DEFAULT_LANGUAGE } from '@shared/constants/i18n.js'
+import { STORE_KEYS } from '@shared/constants/config.js'
 import type { UiSettings } from '@shared/types/ui.js'
 import { useUiStore } from '../stores/index.js'
-import { useSessionStore } from '../features/session/stores/sessionStore.js'
-import { fireAndForget } from '@shared/utils/index.js'
+import { useConnectionStore } from '../features/session/stores/connection.js'
+import { isErr } from '@shared/types/result.js'
+import logger from '../utils/logger.js'
 
-export const useAppInit = () => {
+export const useApplicationInitialization = () => {
   const { i18n } = useTranslation()
-  const { initialize, initialized } = useUiStore()
-  const { loadSavedConnections } = useSessionStore()
+  const initialize = useUiStore(state => state.initialize)
+  const initialized = useUiStore(state => state.initialized)
+  const loadSavedConnections = useConnectionStore(state => state.loadSavedConnections)
 
   useEffect(() => {
     const initApp = async () => {
-      try {
-        const savedSettings = (await window.electronAPI.common.storeGet(
-          'ui_settings'
-        )) as UiSettings | null
+      const result = await window.electronAPI.config.get(STORE_KEYS.UI_SETTINGS)
 
-        const theme = savedSettings?.theme ?? DEFAULT_THEME
-        const language = savedSettings?.language ?? DEFAULT_LANGUAGE
-
-        initialize({ theme, language })
-        await i18n.changeLanguage(language)
-      } catch (error) {
-        console.error('Failed to load settings:', error)
-        initialize({ theme: DEFAULT_THEME, language: DEFAULT_LANGUAGE })
+      if (isErr(result)) {
+        logger.catch(result.error, { action: 'load-settings' })
+        initialize({ appearance: DEFAULT_THEME_VALUE, locale: DEFAULT_LANGUAGE })
         await i18n.changeLanguage(DEFAULT_LANGUAGE)
+        return
       }
+
+      const savedSettings = result.value as UiSettings | null
+      const appearance = savedSettings?.appearance ?? DEFAULT_THEME_VALUE
+      const locale = savedSettings?.locale ?? DEFAULT_LANGUAGE
+
+      initialize({ appearance, locale })
+      await i18n.changeLanguage(locale)
     }
 
-    fireAndForget(initApp(), 'Failed to initialize app')
+    void initApp()
   }, [i18n, initialize])
 
   useEffect(() => {
     if (!initialized) return
-    fireAndForget(loadSavedConnections(), 'Failed to load saved connections')
+    void loadSavedConnections()
   }, [initialized, loadSavedConnections])
 
   return { initialized }

@@ -1,28 +1,30 @@
 import React from 'react'
-import { SessionSidebar } from './features/session/index.js'
-import { FileAreaContainer } from './features/file-explorer/index.js'
+import { useTranslation } from 'react-i18next'
+import { ConnectionSidebar } from './features/session/index.js'
+import { FileExplorerContainer } from './features/file-explorer/index.js'
 import { MainLayout } from './layout/MainLayout.js'
-import { useAppInit } from './hooks/useAppInit.js'
-import { useTheme } from './hooks/useTheme.js'
+import { useApplicationInitialization } from './hooks/useAppInit.js'
+import { useApplicationTheme } from './hooks/useTheme.js'
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts.js'
-import { useUiStore } from './stores/uiStore.js'
+import { useUiStore } from './stores/ui.js'
 
 const App: React.FC = () => {
-  const { initialized } = useUiStore()
+  const { t } = useTranslation()
+  const initialized = useUiStore(state => state.initialized)
 
-  useAppInit()
-  useTheme()
+  useApplicationInitialization()
+  useApplicationTheme()
   useGlobalShortcuts()
 
   if (!initialized) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-bg">
-        <div className="text-text-muted text-sm">Loading...</div>
+        <div className="text-text-muted text-sm">{t('fileExplorerList.loading')}</div>
       </div>
     )
   }
 
-  return <MainLayout sidebar={<SessionSidebar />} content={<FileAreaContainer />} />
+  return <MainLayout sidebar={<ConnectionSidebar />} content={<FileExplorerContainer />} />
 }
 
 export default App

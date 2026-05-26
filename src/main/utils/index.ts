@@ -1,2 +1,6 @@
 export { logger } from './logger.js'
-export { generateSessionId } from './session.js'
+export { generateSessionId } from './generate-session-id.js'
+export { encryptPassword, decryptPassword } from './encryption.js'
+export { getTempDir, getDownloadDir } from './system.js'
+export { showSaveDialog, showOpenDialog } from './dialog.js'
+export { registerWindowMeta, unregisterWindowMeta, getWindowMeta } from './window-meta.js'

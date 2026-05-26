@@ -1,17 +1,11 @@
-export function toErrorMessage(error: unknown): string {
+export function formatErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
   if (typeof error === 'string') return error
   try {
-    return JSON.stringify(error)
+    const result = JSON.stringify(error)
+    if (result === undefined) return String(error)
+    return result
   } catch {
     return String(error)
   }
-}
-
-export function fireAndForget<T>(promise: Promise<T> | void, errorMessage?: string): void {
-  if (!promise) return
-  promise.catch(error => {
-    const errMsg = toErrorMessage(error)
-    console.error(errorMessage ? `${errorMessage}: ${errMsg}` : `Unhandled error: ${errMsg}`)
-  })
 }

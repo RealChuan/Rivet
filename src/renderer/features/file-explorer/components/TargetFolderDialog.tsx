@@ -1,19 +1,21 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { type FileInfo } from '@shared/types/index.js'
+import { type FileInfo, isProtocolResponseErr } from '@shared/types/index.js'
 import GlassDialog from '@renderer/components/ui/GlassDialog.js'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
 import { useUiStore } from '@renderer/stores/index.js'
-import InputDialog from '@renderer/components/common/InputDialog.js'
+import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
 import Button from '@renderer/components/ui/Button.js'
-import Breadcrumb from '@renderer/features/file-explorer/components/Breadcrumb.js'
+import FileExplorerBreadcrumb from '@renderer/features/file-explorer/components/FileExplorerBreadcrumb.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
-import { getParentPath, toErrorMessage, fireAndForget } from '@shared/utils/index.js'
+import { getParentPath, formatErrorMessage } from '@shared/utils/index.js'
+import { TOAST_TYPE } from '@shared/constants/index.js'
+import logger from '@renderer/utils/logger.js'
 
 interface TargetFolderDialogProps {
   open: boolean
   onClose: () => void
-  onConfirm: (targetDir: FileInfo) => void
+  onConfirm: (targetDir: FileInfo) => void | Promise<void>
   sessionId: string
 }
 
@@ -28,13 +30,71 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
   sessionId,
 }) => {
   const { t } = useTranslation()
-  const { addToast } = useUiStore()
+  const addToast = useUiStore(state => state.addToast)
   const [currentPath, setCurrentPath] = useState('/')
   const [folders, setFolders] = useState<FolderItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [selectedFolder, setSelectedFolder] = useState<FolderItem | null>(null)
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
-  const requestCounter = useRef(0)
+  const currentRequestIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    const oldRequestId = currentRequestIdRef.current
+    if (oldRequestId) {
+      void window.electronAPI.protocol.cancel(oldRequestId)
+    }
+
+    const requestId = window.electronAPI.utils.generateUuid()
+    currentRequestIdRef.current = requestId
+
+    setIsLoading(true)
+
+    const load = async () => {
+      try {
+        const result = await window.electronAPI.protocol.list(sessionId, currentPath, requestId)
+
+        if (requestId !== currentRequestIdRef.current) {
+          return
+        }
+
+        if (isProtocolResponseErr(result)) {
+          logger.catch(result.error, { action: 'load-folders' })
+          return
+        }
+
+        const files = result.value
+        const dirs = files
+          .filter((f: FileInfo) => f.type === 'directory')
+          .map((f: FileInfo) => ({ ...f })) as FolderItem[]
+        dirs.sort((a, b) => a.name.localeCompare(b.name))
+        setFolders(dirs)
+      } catch (error) {
+        if (requestId !== currentRequestIdRef.current) {
+          return
+        }
+        if (error instanceof Error && error.name !== 'AbortError') {
+          logger.catch(error, { action: 'load-folders' })
+        }
+      } finally {
+        if (requestId === currentRequestIdRef.current) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void load()
+  }, [open, sessionId, currentPath])
+
+  useEffect(() => {
+    return () => {
+      const requestId = currentRequestIdRef.current
+      if (requestId) {
+        void window.electronAPI.protocol.cancel(requestId)
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (open) {
@@ -43,66 +103,66 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     }
   }, [open])
 
-  useEffect(() => {
-    if (!open) return
-    setIsLoading(true)
-    const currentRequestCount = ++requestCounter.current
-    const load = async () => {
-      try {
-        const result = (await window.electronAPI.protocol.list(
-          sessionId,
-          currentPath
-        )) as FileInfo[]
-
-        if (requestCounter.current !== currentRequestCount) {
-          return
-        }
-
-        const dirs = result
-          .filter((f: FileInfo) => f.type === 'directory')
-          .map((f: FileInfo) => ({ ...f })) as FolderItem[]
-        dirs.sort((a, b) => a.name.localeCompare(b.name))
-        setFolders(dirs)
-      } catch (error) {
-        console.error('Failed to load folders:', error)
-      } finally {
-        if (requestCounter.current === currentRequestCount) {
-          setIsLoading(false)
-        }
-      }
-    }
-    fireAndForget(load(), 'Failed to load folder list')
-  }, [open, sessionId, currentPath])
-
-  const handleNavigate = useCallback((folder: FolderItem) => {
+  const handleNavigate = (folder: FolderItem) => {
     setCurrentPath(folder.absolutePath)
     setSelectedFolder(null)
-  }, [])
+  }
 
-  const handleParentDirectory = useCallback(() => {
+  const handleParentDirectory = () => {
     if (currentPath === '/') return
     setCurrentPath(getParentPath(currentPath))
     setSelectedFolder(null)
-  }, [currentPath])
+  }
 
   const handleNewFolder = async (folderName: string) => {
     const newFolderPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`
 
+    const mkdirResult = await window.electronAPI.protocol.mkdir(sessionId, newFolderPath)
+    if (isProtocolResponseErr(mkdirResult)) {
+      addToast({
+        type: TOAST_TYPE.ERROR,
+        message: `${t('toast.createFolderFailed')}: ${formatErrorMessage(mkdirResult.error) || t('error.unknown')}`,
+      })
+      return
+    }
+
+    addToast({ type: TOAST_TYPE.SUCCESS, message: t('toast.createFolderSuccess') })
+
+    const oldRequestId = currentRequestIdRef.current
+    if (oldRequestId) {
+      void window.electronAPI.protocol.cancel(oldRequestId)
+    }
+
+    const requestId = window.electronAPI.utils.generateUuid()
+    currentRequestIdRef.current = requestId
+
+    setIsLoading(true)
+
     try {
-      await window.electronAPI.protocol.mkdir(sessionId, newFolderPath)
-      addToast({ type: 'success', message: t('toast.createFolderSuccess') })
-      setIsLoading(true)
-      const result = (await window.electronAPI.protocol.list(sessionId, currentPath)) as FileInfo[]
-      const dirs = result
+      const listResult = await window.electronAPI.protocol.list(sessionId, currentPath, requestId)
+
+      if (requestId !== currentRequestIdRef.current) {
+        return
+      }
+
+      if (isProtocolResponseErr(listResult)) {
+        setIsLoading(false)
+        return
+      }
+
+      const files = listResult.value
+      const dirs = files
         .filter((f: FileInfo) => f.type === 'directory')
         .map((f: FileInfo) => ({ ...f })) as FolderItem[]
       dirs.sort((a, b) => a.name.localeCompare(b.name))
       setFolders(dirs)
     } catch (error) {
-      addToast({
-        type: 'error',
-        message: `${t('toast.createFolderFailed')}: ${toErrorMessage(error) || 'Unknown error'}`,
-      })
+      if (requestId !== currentRequestIdRef.current) {
+        return
+      }
+      if (error instanceof Error && error.name !== 'AbortError') {
+        logger.catch(error, { action: 'load-folders-after-create' })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -118,60 +178,56 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
       owner: '',
       absolutePath: currentPath,
     }
-    onConfirm(targetDir)
-    onClose()
+    void onConfirm(targetDir)
   }
 
-  const renderFolderItem = useCallback(
-    (item: FolderItem, _index: number, style: React.CSSProperties) => {
-      if (item.isParent || item.name === '..') {
-        return (
-          <button
-            onClick={handleParentDirectory}
-            className={`
-              flex items-center gap-2 h-10 px-3 cursor-pointer
-              border-none rounded transition-all duration-100
-              bg-transparent text-text hover:bg-hover
-            `}
-            style={{ ...style, width: '100%' }}
-            title={t('fileList.parentDirectory')}
-          >
-            <svg className="w-4 h-4 stroke-text-muted stroke-2" viewBox="0 0 24 24" fill="none">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            <span className="text-sm">{t('fileList.parentDirectory')}</span>
-          </button>
-        )
-      }
-      const isSelected = selectedFolder?.name === item.name
+  const renderFolderItem = (item: FolderItem, _index: number, style: React.CSSProperties) => {
+    if (item.isParent || item.name === '..') {
       return (
         <button
-          onClick={() => setSelectedFolder(item)}
-          onDoubleClick={() => handleNavigate(item)}
+          onClick={handleParentDirectory}
           className={`
             flex items-center gap-2 h-10 px-3 cursor-pointer
             border-none rounded transition-all duration-100
-            ${isSelected ? 'bg-selected text-accent' : 'bg-transparent text-text hover:bg-hover'}
+            bg-transparent text-text hover:bg-hover
           `}
           style={{ ...style, width: '100%' }}
-          title={item.name}
+          title={t('fileExplorerList.parentDirectory')}
         >
-          <FileIcon type="directory" />
-          <span className="flex-1 text-sm text-left overflow-hidden text-ellipsis whitespace-nowrap">
-            {item.name}
-          </span>
-          <svg
-            className={`w-4 h-4 stroke-1.5 transition-colors ${isSelected ? 'stroke-accent' : 'stroke-text-muted'}`}
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <polyline points="9 18 15 12 9 6" />
+          <svg className="w-4 h-4 stroke-text-muted stroke-2" viewBox="0 0 24 24" fill="none">
+            <polyline points="15 18 9 12 15 6" />
           </svg>
+          <span className="text-sm">{t('fileExplorerList.parentDirectory')}</span>
         </button>
       )
-    },
-    [selectedFolder, handleParentDirectory, handleNavigate, t]
-  )
+    }
+    const isSelected = selectedFolder?.name === item.name
+    return (
+      <button
+        onClick={() => setSelectedFolder(item)}
+        onDoubleClick={() => handleNavigate(item)}
+        className={`
+          flex items-center gap-2 h-10 px-3 cursor-pointer
+          border-none rounded transition-all duration-100
+          ${isSelected ? 'bg-selected text-accent' : 'bg-transparent text-text hover:bg-hover'}
+        `}
+        style={{ ...style, width: '100%' }}
+        title={item.name}
+      >
+        <FileIcon type="directory" />
+        <span className="flex-1 text-sm text-left overflow-hidden text-ellipsis whitespace-nowrap">
+          {item.name}
+        </span>
+        <svg
+          className={`w-4 h-4 stroke-1.5 transition-colors ${isSelected ? 'stroke-accent' : 'stroke-text-muted'}`}
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+    )
+  }
 
   if (!open) return null
 
@@ -210,7 +266,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
             }}
           >
             <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>
-              {t('dialog.selectTargetFolder.title')}
+              {t('targetFolderDialog.title')}
             </h2>
             <button
               onClick={onClose}
@@ -238,17 +294,21 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
           </div>
 
           <div className="pb-3 border-b border-border mb-3 shrink-0">
-            <Breadcrumb path={currentPath} sessionId={sessionId} onNavigate={setCurrentPath} />
+            <FileExplorerBreadcrumb
+              path={currentPath}
+              sessionId={sessionId}
+              onNavigate={setCurrentPath}
+            />
           </div>
 
-          <div className="flex-1 overflow-y-auto min-h-10">
+          <div className="flex-1 min-h-10">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
-                <div className="text-xs text-text-muted">{t('fileList.loading')}</div>
+                <div className="text-xs text-text-muted">{t('fileExplorerList.loading')}</div>
               </div>
             ) : folders.length === 0 && currentPath === '/' ? (
               <div className="flex items-center justify-center h-full">
-                <div className="text-xs text-text-muted">{t('fileList.empty')}</div>
+                <div className="text-xs text-text-muted">{t('fileExplorerList.empty')}</div>
               </div>
             ) : (
               <VirtualList
@@ -274,7 +334,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 onClick={() => setNewFolderDialogOpen(true)}
-                title={t('toolbar.newFolder')}
+                title={t('file.action.newFolder')}
                 className={`
                   p-1.5 rounded flex items-center justify-center
                   border-none cursor-pointer transition-all duration-150
@@ -306,23 +366,23 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
             </div>
             <div className="flex gap-2.5">
               <Button variant="secondary" onClick={onClose}>
-                {t('dialog.cancel')}
+                {t('action.cancel')}
               </Button>
               <Button variant="primary" onClick={handleConfirm}>
-                {t('dialog.confirm')}
+                {t('action.confirm')}
               </Button>
             </div>
           </div>
         </div>
       </GlassDialog>
 
-      <InputDialog
+      <TextInputDialog
         open={newFolderDialogOpen}
         onClose={() => setNewFolderDialogOpen(false)}
-        onSubmit={name => fireAndForget(handleNewFolder(name), 'Failed to create folder')}
-        title={t('dialog.newFolder.title')}
-        placeholder={t('dialog.newFolder.placeholder')}
-        submitText={t('dialog.ok')}
+        onSubmit={name => void handleNewFolder(name)}
+        title={t('file.action.newFolder')}
+        placeholder={t('textInputDialog.newFolderPlaceholder')}
+        submitText={t('action.confirm')}
       />
     </>
   )

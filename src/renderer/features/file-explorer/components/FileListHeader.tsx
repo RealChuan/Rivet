@@ -1,5 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { type FileExplorerSortField, type SortOrderWithDirection } from '@shared/constants/index.js'
 
 interface ColumnWidths {
   name: number
@@ -11,9 +12,9 @@ interface ColumnWidths {
 
 interface FileListHeaderProps {
   columnWidths: ColumnWidths
-  sortBy: 'name' | 'permissions' | 'owner' | 'size' | 'modifyTime'
-  sortOrder: 'asc' | 'desc'
-  onSort: (column: 'name' | 'permissions' | 'owner' | 'size' | 'modifyTime') => void
+  sortBy: FileExplorerSortField
+  sortOrder: SortOrderWithDirection
+  onSort: (column: FileExplorerSortField) => void
   onResizeStart: (column: string, x: number, width: number) => void
   isWebdav?: boolean
 }
@@ -33,7 +34,7 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
     return (
       <svg
         className={`
-          w-2.5 h-2.5 stroke-accent stroke-2
+          w-4 h-4 stroke-accent stroke-2
           ${sortOrder === 'desc' ? 'rotate-180' : ''}
         `}
         viewBox="0 0 24 24"
@@ -59,68 +60,55 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
     </div>
   )
 
-  const HeaderButton = ({
-    children,
-    onClick,
-    className = '',
+  const RESIZER_GAP = 10
+
+  const ColumnHeader = ({
+    column,
+    label,
+    isFirst = false,
+    isLast = false,
   }: {
-    children: React.ReactNode
-    onClick: () => void
-    className?: string
-  }) => (
-    <button
-      onClick={onClick}
-      className={`
-        flex items-center gap-1 text-xs font-semibold text-text-muted
-        uppercase tracking-[0.5px] bg-transparent border-none cursor-pointer
-        hover:text-text transition-colors
-        ${className}
-      `}
-    >
-      {children}
-    </button>
-  )
+    column: FileExplorerSortField
+    label: string
+    isFirst?: boolean
+    isLast?: boolean
+  }) => {
+    return (
+      <>
+        <div style={{ width: columnWidths[column] }}>
+          <button
+            onClick={() => onSort(column)}
+            className={`
+              flex items-center gap-2 h-full text-xs font-semibold text-text-muted
+              uppercase tracking-[0.5px] bg-transparent border-none cursor-pointer
+              hover:text-text transition-colors justify-start
+              ${isFirst ? 'px-2.5' : 'pl-2.5'}
+            `}
+            style={{ width: isLast ? columnWidths[column] : columnWidths[column] - RESIZER_GAP }}
+          >
+            {label}
+            <SortIcon column={column} />
+          </button>
+        </div>
+        {!isLast && <ColumnResizer column={column} />}
+      </>
+    )
+  }
 
   return (
-    <div className="flex items-center py-2 border-b border-border bg-hover shrink-0 select-none">
-      <div className="flex items-center" style={{ width: columnWidths.name }}>
-        <HeaderButton onClick={() => onSort('name')} className="px-2.5">
-          {t('fileList.name')}
-          <SortIcon column="name" />
-        </HeaderButton>
-      </div>
-      <ColumnResizer column="name" />
+    <div
+      data-file-list-header
+      className="flex items-center h-8 border-b border-border bg-hover shrink-0 select-none"
+    >
+      <ColumnHeader column="name" label={t('fileExplorerList.name')} isFirst />
       {!isWebdav && (
         <>
-          <div className="pl-2.5" style={{ width: columnWidths.permissions }}>
-            <HeaderButton onClick={() => onSort('permissions')}>
-              {t('fileList.permissions')}
-              <SortIcon column="permissions" />
-            </HeaderButton>
-          </div>
-          <ColumnResizer column="permissions" />
-          <div className="pl-2.5" style={{ width: columnWidths.owner }}>
-            <HeaderButton onClick={() => onSort('owner')}>
-              {t('fileList.owner')}
-              <SortIcon column="owner" />
-            </HeaderButton>
-          </div>
-          <ColumnResizer column="owner" />
+          <ColumnHeader column="permissions" label={t('fileExplorerList.permissions')} />
+          <ColumnHeader column="owner" label={t('fileExplorerList.owner')} />
         </>
       )}
-      <div className="pl-2.5" style={{ width: columnWidths.size }}>
-        <HeaderButton onClick={() => onSort('size')}>
-          {t('fileList.size')}
-          <SortIcon column="size" />
-        </HeaderButton>
-      </div>
-      <ColumnResizer column="size" />
-      <div className="pl-2.5" style={{ width: columnWidths.modifyTime }}>
-        <HeaderButton onClick={() => onSort('modifyTime')}>
-          {t('fileList.dateModified')}
-          <SortIcon column="modifyTime" />
-        </HeaderButton>
-      </div>
+      <ColumnHeader column="size" label={t('fileExplorerList.size')} />
+      <ColumnHeader column="modifyTime" label={t('fileExplorerList.dateModified')} isLast />
     </div>
   )
 }

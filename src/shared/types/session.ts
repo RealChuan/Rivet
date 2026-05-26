@@ -8,7 +8,7 @@ export interface Session {
   /** 协议层返回的会话 ID（由主进程生成） */
   sessionId: string
   /** 关联的连接配置 ID */
-  connectionUuid: string
+  connectionId: string
   /** 当前所在远程路径 */
   currentPath: string
   /** 当前目录下的文件列表 */

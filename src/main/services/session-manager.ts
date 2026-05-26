@@ -1,9 +1,14 @@
-import { type ConnectionConfig } from '@shared/types/index.js'
-import type { ProtocolType } from '@shared/constants/index.js'
-import { TIMEOUTS } from '@shared/constants/timeouts.js'
-import logger from '../utils/logger.js'
-import { ProtocolFactory } from './protocol/factory.js'
-import { Mutex } from 'async-mutex'
+import {
+  type ConnectionConfig,
+  type Result,
+  ok,
+  err,
+  type ErrorInfo,
+  createErrorInfo,
+} from '@shared/types/index.js'
+import { type ProtocolType, TIMEOUTS } from '@shared/constants/index.js'
+import { logger } from '../utils/logger.js'
+import { protocolService } from './protocol/protocol-service.js'
 
 export interface SessionHandle<T = unknown> {
   client: T
@@ -14,16 +19,8 @@ export interface SessionHandle<T = unknown> {
 
 class SessionManager {
   private sessions = new Map<string, SessionHandle<unknown>>()
-  private sessionMutexes = new Map<string, Mutex>()
   private heartbeatInterval: NodeJS.Timeout | null = null
   private isShuttingDown = false
-
-  private getSessionMutex(sessionId: string): Mutex {
-    if (!this.sessionMutexes.has(sessionId)) {
-      this.sessionMutexes.set(sessionId, new Mutex())
-    }
-    return this.sessionMutexes.get(sessionId)!
-  }
 
   register<T>(
     sessionId: string,
@@ -37,7 +34,6 @@ class SessionManager {
 
   unregister(sessionId: string): void {
     this.sessions.delete(sessionId)
-    this.sessionMutexes.delete(sessionId)
     if (this.sessions.size === 0 && this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval)
       this.heartbeatInterval = null
@@ -74,75 +70,75 @@ class SessionManager {
 
   clear(): void {
     this.sessions.clear()
-    this.sessionMutexes.clear()
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval)
       this.heartbeatInterval = null
     }
   }
 
-  async safeUnregister(sessionId: string): Promise<void> {
-    const mutex = this.getSessionMutex(sessionId)
-    const release = await mutex.acquire()
-
-    try {
-      const handle = this.sessions.get(sessionId)
-      if (!handle) return
-
+  setClosing(sessionId: string): void {
+    const handle = this.sessions.get(sessionId)
+    if (handle) {
       handle._closing = true
-
-      const protocol = ProtocolFactory.getProtocol(handle.protocolType)
-      try {
-        await Promise.race([
-          protocol.disconnect(sessionId),
-          new Promise<void>((_, reject) =>
-            setTimeout(() => reject(new Error('Disconnect timeout')), TIMEOUTS.DISCONNECT)
-          ),
-        ])
-      } catch (err) {
-        logger.warn(`Disconnect failed for ${sessionId}, forcing cleanup`, err)
-      }
-
-      this.sessions.delete(sessionId)
-    } catch (err) {
-      logger.error(`Failed to safely unregister session ${sessionId}:`, err)
-      this.sessions.delete(sessionId)
-    } finally {
-      release()
-      this.sessionMutexes.delete(sessionId)
     }
   }
 
-  async safeUnregisterAll(): Promise<{ succeeded: string[]; failed: string[] }> {
+  async safeUnregister(sessionId: string): Promise<Result<void, ErrorInfo>> {
+    const handle = this.sessions.get(sessionId)
+    if (!handle) return ok(undefined)
+
+    if (handle._closing) return ok(undefined)
+    handle._closing = true
+
+    try {
+      await Promise.race([
+        protocolService.disconnect(sessionId),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('Disconnect timeout')), TIMEOUTS.DISCONNECT)
+        ),
+      ])
+    } catch (e) {
+      const error = e as Error
+      this.sessions.delete(sessionId)
+      return err(createErrorInfo('DISCONNECT_ERROR', 'Disconnect failed', error.message))
+    }
+
+    this.sessions.delete(sessionId)
+    return ok(undefined)
+  }
+
+  async safeUnregisterAll(): Promise<Result<boolean, ErrorInfo>> {
     this.isShuttingDown = true
     const sessionIds = Array.from(this.sessions.keys())
-    const succeeded: string[] = []
-    const failed: string[] = []
 
     if (sessionIds.length === 0) {
-      return { succeeded, failed }
+      return ok(true)
     }
 
     logger.info(`Starting cleanup for ${sessionIds.length} sessions...`)
 
-    await Promise.allSettled(
-      sessionIds.map(async sessionId => {
-        try {
-          await this.safeUnregister(sessionId)
-          succeeded.push(sessionId)
-        } catch (err) {
-          logger.error(`Failed to cleanup session ${sessionId}:`, err)
-          failed.push(sessionId)
-          this.sessions.delete(sessionId)
-          this.sessionMutexes.delete(sessionId)
-        }
-      })
-    )
+    let allSucceeded = true
 
-    this.destroy()
+    try {
+      await Promise.allSettled(
+        sessionIds.map(async sessionId => {
+          const result = await this.safeUnregister(sessionId)
+          if (!result.success) {
+            logger.error(`Failed to cleanup session ${sessionId}:`, result.error)
+            allSucceeded = false
+          }
+        })
+      )
 
-    logger.info(`Cleanup completed: ${succeeded.length} succeeded, ${failed.length} failed`)
-    return { succeeded, failed }
+      this.destroy()
+
+      const status = allSucceeded ? 'completed successfully' : 'completed with failures'
+      logger.info(`Cleanup ${status} for ${sessionIds.length} sessions`)
+      return ok(allSucceeded)
+    } catch (error) {
+      logger.catch(error, { action: 'safe-unregister-all' })
+      return err(createErrorInfo('CLEANUP_ERROR', 'Cleanup failed', String(error)))
+    }
   }
 
   private startHeartbeat(): void {
@@ -150,7 +146,7 @@ class SessionManager {
     logger.info('Starting session heartbeat...')
     this.heartbeatInterval = setInterval(() => {
       this.checkAllSessions().catch(err => {
-        logger.error('Error during heartbeat check', err)
+        logger.catch(err, { action: 'heartbeat-check' })
       })
     }, TIMEOUTS.HEARTBEAT_INTERVAL)
   }
@@ -161,32 +157,18 @@ class SessionManager {
     const sessionsToCheck = Array.from(this.sessions.entries())
 
     await Promise.allSettled(
-      sessionsToCheck.map(async ([sessionId, originalHandle]) => {
-        if (originalHandle._closing) return
-
-        const mutex = this.getSessionMutex(sessionId)
-        const release = await mutex.acquire()
+      sessionsToCheck.map(async ([sessionId, handle]) => {
+        if (handle._closing) return
 
         try {
-          if (!this.sessions.has(sessionId)) return
-          const handle = this.sessions.get(sessionId)
-          if (!handle) return
-          if (handle._closing) return
-
-          const protocol = ProtocolFactory.getProtocol(handle.protocolType)
           await Promise.race([
-            protocol.ping(sessionId),
+            protocolService.ping(sessionId),
             new Promise<void>((_, reject) =>
               setTimeout(() => reject(new Error('Ping timeout')), TIMEOUTS.PING)
             ),
           ])
-        } catch (error) {
-          logger.warn(`Session ${sessionId} ping failed, scheduling disconnect...`, error)
-          this.safeUnregister(sessionId).catch(err =>
-            logger.error(`Auto-disconnect failed for ${sessionId}:`, err)
-          )
-        } finally {
-          release()
+        } catch (_error) {
+          this.safeUnregister(sessionId).catch(() => {})
         }
       })
     )

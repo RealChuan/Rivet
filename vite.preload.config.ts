@@ -3,10 +3,10 @@ import path from 'node:path'
 
 export default defineConfig({
   build: {
-    outDir: './dist/main/preload',
+    outDir: './dist/preload',
     emptyOutDir: false,
     lib: {
-      entry: 'src/main/preload/index.ts',
+      entry: 'src/preload/index.ts',
       formats: ['cjs'],
       fileName: () => 'index.cjs',
     },

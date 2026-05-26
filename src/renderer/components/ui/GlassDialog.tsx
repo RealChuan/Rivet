@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 interface GlassDialogProps {
   open: boolean
@@ -36,36 +36,33 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [open, onClose])
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (target.closest('button, input, textarea, select')) return
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    if (target.closest('button, input, textarea, select')) return
 
-      setIsDragging(true)
-      let currentDialogX: number
-      let currentDialogY: number
+    setIsDragging(true)
+    let currentDialogX: number
+    let currentDialogY: number
 
-      if (customPosition) {
-        currentDialogX = customPosition.x
-        currentDialogY = customPosition.y
-      } else if (dialogRef.current) {
-        const rect = dialogRef.current.getBoundingClientRect()
-        currentDialogX = rect.left
-        currentDialogY = rect.top
-      } else {
-        currentDialogX = (window.innerWidth - width) / 2
-        currentDialogY = (window.innerHeight - height) / 2
-      }
+    if (customPosition) {
+      currentDialogX = customPosition.x
+      currentDialogY = customPosition.y
+    } else if (dialogRef.current) {
+      const rect = dialogRef.current.getBoundingClientRect()
+      currentDialogX = rect.left
+      currentDialogY = rect.top
+    } else {
+      currentDialogX = (window.innerWidth - width) / 2
+      currentDialogY = (window.innerHeight - height) / 2
+    }
 
-      setStartPos({
-        mouseX: e.clientX,
-        mouseY: e.clientY,
-        dialogX: currentDialogX,
-        dialogY: currentDialogY,
-      })
-    },
-    [customPosition, height, width]
-  )
+    setStartPos({
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      dialogX: currentDialogX,
+      dialogY: currentDialogY,
+    })
+  }
 
   useEffect(() => {
     if (!isDragging) return
@@ -103,10 +100,8 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
         className={`
           backdrop-blur-2xl rounded-xl p-6 max-w-full max-h-[calc(100vh-96px)]
           relative box-border overflow-y-auto overflow-x-hidden
-          bg-white/70 border border-white/60
+          bg-glass-bg border border-glass-border
           shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25),0_8px_32px_rgba(0,0,0,0.1),0_0_0_1px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,0.3)]
-          dark:bg-[rgba(30,30,30,0.75)] dark:border-white/20
-          dark:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4),0_8px_32px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.1),inset_0_1px_0_rgba(255,255,255,0.1)]
         `}
         onMouseDown={handleMouseDown}
         style={{

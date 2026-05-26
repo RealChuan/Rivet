@@ -13,11 +13,6 @@ export const APP_NAME = 'Rivet'
 export const APP_VERSION = '0.0.1'
 
 /**
- * 系统凭据管理器中的服务名称（用于 keytar 存储密码）
- */
-export const SERVICE_NAME = 'RivetCredentials'
-
-/**
  * 主窗口唯一标识
  */
 export const MAIN_WINDOW_ID = 'main'

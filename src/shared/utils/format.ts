@@ -1,13 +1,20 @@
-export const formatFileSize = (bytes: number): string => {
+export const formatFileSize = (bytes: number, lng: string = 'en-US'): string => {
   if (!Number.isFinite(bytes) || bytes < 0) return '-'
   if (bytes === 0) return '-'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB']
   const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1)
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  const value = bytes / Math.pow(k, i)
+  const formattedValue = new Intl.NumberFormat(lng, {
+    maximumFractionDigits: 2,
+  }).format(parseFloat(value.toFixed(2)))
+  return `${formattedValue} ${sizes[i]}`
 }
 
-export const formatDate = (timestamp: number): string => {
+export const formatDate = (timestamp: number, lng: string = 'en-US'): string => {
   if (!timestamp) return '-'
-  return new Date(timestamp).toLocaleString()
+  return new Intl.DateTimeFormat(lng, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(timestamp))
 }

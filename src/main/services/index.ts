@@ -1,9 +1,2 @@
-export { sessionManager, type SessionHandle } from './session-manager.js'
-export {
-  FileProtocol,
-  BaseProtocolImpl,
-  ProtocolFactory,
-  ProtocolService,
-  SftpProtocol,
-  WebdavProtocol,
-} from './protocol/index.js'
+export * from './protocol/index.js'
+export * from './session-manager.js'

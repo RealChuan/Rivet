@@ -1,14 +1,15 @@
 import React from 'react'
-import { useUiStore } from '../../stores/uiStore.js'
+import { useUiStore } from '../../stores/ui.js'
 
 export const Toast: React.FC = () => {
-  const { toasts, removeToast } = useUiStore()
+  const toasts = useUiStore(state => state.toasts)
+  const removeToast = useUiStore(state => state.removeToast)
 
   if (toasts.length === 0) return null
 
   const toastConfig = {
     success: {
-      bgClass: 'bg-[rgba(78,201,176,0.95)]',
+      bgClass: 'bg-toast-success',
       icon: (
         <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
           <polyline points="20 6 9 17 4 12" />
@@ -16,7 +17,7 @@ export const Toast: React.FC = () => {
       ),
     },
     error: {
-      bgClass: 'bg-[rgba(241,76,76,0.95)]',
+      bgClass: 'bg-toast-error',
       icon: (
         <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10" />
@@ -26,12 +27,22 @@ export const Toast: React.FC = () => {
       ),
     },
     info: {
-      bgClass: 'bg-[rgba(59,130,246,0.95)]',
+      bgClass: 'bg-toast-info',
       icon: (
         <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
           <circle cx="12" cy="12" r="10" />
           <line x1="12" y1="16" x2="12" y2="12" />
           <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+      ),
+    },
+    warning: {
+      bgClass: 'bg-warning text-white border-none',
+      icon: (
+        <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
         </svg>
       ),
     },

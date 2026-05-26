@@ -1,2 +1,4 @@
-export { HostKeyDialog } from './components/HostKeyDialog.js'
-export { HostKeyMessage } from './components/HostKeyMessage.js'
+export { HostKeyVerificationDialog } from './components/HostKeyVerificationDialog.js'
+export { HostKeyNotification } from './components/HostKeyNotification.js'
+
+export { useHostKeyStore } from './stores/host-key.js'

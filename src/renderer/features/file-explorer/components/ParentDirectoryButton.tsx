@@ -29,7 +29,7 @@ export const ParentDirectoryButton: React.FC<ParentDirectoryButtonProps> = ({
         <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
           <polyline points="15 18 9 12 15 6" />
         </svg>
-        {t('fileList.parentDirectory')}
+        {t('fileExplorerList.parentDirectory')}
       </button>
     </div>
   )

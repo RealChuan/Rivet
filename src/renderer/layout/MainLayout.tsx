@@ -1,8 +1,8 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { LIGHT, DARK } from '@shared/constants/theme.js'
+import { THEME_LIGHT, THEME_DARK } from '@shared/constants/theme.js'
 import { ZH_CN, EN_US } from '@shared/constants/i18n.js'
-import { useTheme, useI18n } from '../hooks/index.js'
+import { useApplicationTheme, useInternationalization } from '../hooks/index.js'
 import { Toast, TitleBar } from '../components/common/index.js'
 import { ResizablePanel } from './ResizablePanel.js'
 
@@ -13,11 +13,11 @@ interface MainLayoutProps {
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content }) => {
   const { t } = useTranslation()
-  const { theme, cycleTheme } = useTheme()
-  const { language, changeLanguage } = useI18n()
+  const { theme, cycleTheme } = useApplicationTheme()
+  const { language, changeLanguage } = useInternationalization()
 
   const ThemeIcon = () => {
-    if (theme === LIGHT) {
+    if (theme === THEME_LIGHT) {
       return (
         <svg
           width="16"
@@ -38,7 +38,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content }) => {
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
         </svg>
       )
-    } else if (theme === DARK) {
+    } else if (theme === THEME_DARK) {
       return (
         <svg
           width="16"
@@ -72,7 +72,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content }) => {
     <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden">
       <TitleBar
         childMode={false}
-        title="Rivet"
+        title={t('app.name')}
         centerContent={
           <div className="flex items-center gap-1">
             <button
@@ -87,11 +87,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content }) => {
               onClick={cycleTheme}
               className="p-1 rounded bg-transparent border-none cursor-default flex items-center justify-center hover:bg-hover transition-colors text-text"
               title={
-                theme === LIGHT
-                  ? t('toolbar.lightMode')
-                  : theme === DARK
-                    ? t('toolbar.darkMode')
-                    : t('toolbar.system')
+                theme === THEME_LIGHT
+                  ? t('mainLayout.lightMode')
+                  : theme === THEME_DARK
+                    ? t('mainLayout.darkMode')
+                    : t('mainLayout.system')
               }
             >
               <ThemeIcon />

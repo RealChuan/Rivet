@@ -1,17 +1,43 @@
 {
   "translation": {
-    "common": {
-      "close": "关闭"
+    "action": {
+      "cancel": "取消",
+      "close": "关闭",
+      "confirm": "确认",
+      "create": "创建",
+      "delete": "删除",
+      "refresh": "刷新"
+    },
+    "app": {
+      "name": "Rivet",
+      "subtitle": "SFTP / WebDAV"
+    },
+    "confirmationDialog": {
+      "confirmDeleteMessage": "确定要删除此项吗？",
+      "confirmDeleteMultipleMessage": "确定要删除 {{count}} 项？",
+      "confirmDeleteMultipleTitle": "删除项目",
+      "confirmDeleteTitle": "删除项目",
+      "deleteConnectionMessage": "确定要删除此连接吗？",
+      "deleteConnectionTitle": "删除连接"
     },
     "connection": {
-      "basePath": "访问路径",
-      "cancel": "取消",
-      "certWarningMessage": "关闭证书验证会使您的连接变得不安全，可能遭受中间人攻击。确定要继续吗？",
-      "certWarningTitle": "安全警告",
+      "connect": "连接",
+      "connections": "连接列表",
+      "disconnect": "断开连接",
+      "edit": "编辑",
+      "newConnection": "新建连接",
+      "newConnectionHint": "创建您的第一个连接",
+      "noConnections": "暂无连接"
+    },
+    "connectionDialog": {
+      "basePath": "基础路径",
+      "certWarningMessage": "您正在连接到一个证书无效的服务器。请自行承担风险继续。",
+      "certWarningTitle": "证书警告",
+      "connectFailed": "连接失败",
       "connecting": "连接中...",
       "continue": "继续",
       "editTitle": "编辑连接",
-      "fillRequired": "请填写必填字段",
+      "fillRequired": "请填写所有必填字段",
       "host": "主机",
       "invalidPort": "无效端口号",
       "name": "名称",
@@ -20,18 +46,27 @@
       "passwordPlaceholder": "输入密码",
       "port": "端口",
       "protocol": "协议",
-      "rejectUnauthorized": "验证服务器证书",
+      "rejectUnauthorized": "拒绝未授权证书",
       "save": "保存",
-      "savePassword": "保存密码以便下次快速连接",
-      "scheme": "连接协议",
-      "subtitle": "管理您的连接",
-      "title": "新建连接",
+      "savePassword": "保存密码",
+      "scheme": "协议类型",
+      "subtitle": "创建新连接",
       "username": "用户名",
       "usernamePlaceholder": "输入用户名"
     },
-    "dialog": {
-      "cancel": "取消",
-      "confirm": "确认",
+    "error": {
+      "noOperationPending": "没有待处理的操作",
+      "unknown": "未知错误",
+      "unknownName": "未知",
+      "unknownProtocol": "未知协议"
+    },
+    "file": {
+      "action": {
+        "copy": "复制",
+        "move": "移动",
+        "newFolder": "新建文件夹",
+        "rename": "重命名"
+      },
       "conflict": {
         "applyToAll": "应用到所有",
         "cannotOverwrite": "无法将文件覆盖到同名文件夹，或反之",
@@ -42,34 +77,15 @@
         "source": "源文件",
         "target": "目标位置",
         "title": "文件冲突"
-      },
-      "delete": {
-        "message": "确定要删除此项目吗？",
-        "messageMultiple": "确定要删除这 {{count}} 个项目吗？",
-        "title": "确认删除"
-      },
-      "deleteConnectionMessage": "确定要删除此连接吗？此操作无法撤销。",
-      "deleteConnectionTitle": "删除连接",
-      "newFolder": {
-        "placeholder": "输入文件夹名称",
-        "title": "新建文件夹"
-      },
-      "ok": "确定",
-      "rename": {
-        "placeholder": "输入新名称",
-        "title": "重命名"
-      },
-      "selectTargetFolder": {
-        "title": "选择目标文件夹"
       }
     },
-    "fileList": {
+    "fileExplorerList": {
       "dateModified": "修改日期",
       "disconnected": "已断开连接",
       "empty": "空目录",
+      "error": "加载失败",
       "loading": "加载中...",
       "name": "名称",
-      "newFolder": "新建文件夹",
       "owner": "所有者",
       "parentDirectory": "上级目录",
       "permissions": "权限",
@@ -78,27 +94,44 @@
       "size": "大小"
     },
     "hostKey": {
-      "currentFingerprint": "当前密钥",
+      "currentHash": "主机密钥指纹",
       "disconnect": "断开连接",
-      "firstConnectTitle": "首次连接到此服务器",
-      "firstConnectWarning": "这是您第一次连接到此服务器。点击\"信任并保存\"将保存此服务器的指纹，以便未来自动验证。",
-      "mismatchTitle": "主机密钥发生改变",
-      "mismatchWarning": "远程服务器的主机密钥与已保存的记录不匹配。这可能表示有人正在拦截您的连接。",
-      "previousFingerprint": "原密钥",
-      "trustAndSave": "信任并保存",
-      "trustNew": "信任新密钥并重新连接"
+      "firstConnectTitle": "验证主机密钥",
+      "firstConnectWarning": "您正在首次连接到此服务器。请验证下方的主机密钥指纹是否与服务器管理员提供的一致。",
+      "mismatchTitle": "主机密钥不匹配",
+      "mismatchWarning": "主机密钥指纹已更改。这可能表示存在中间人攻击。请在继续前与服务器管理员核实。",
+      "previousHash": "先前指纹",
+      "trustAndSave": "信任并连接",
+      "trustNew": "信任新密钥"
     },
-    "sidebar": {
-      "connect": "连接",
-      "connections": "连接",
-      "delete": "删除",
-      "disconnect": "断开连接",
-      "edit": "编辑",
-      "newConnection": "新建连接",
-      "newConnectionHint": "创建您的第一个连接",
-      "noConnections": "暂无连接"
+    "mainLayout": {
+      "darkMode": "深色模式",
+      "lightMode": "浅色模式",
+      "system": "系统"
+    },
+    "sortButton": {
+      "sortConnections": "排序连接"
+    },
+    "targetFolderDialog": {
+      "title": "选择目标文件夹"
+    },
+    "test": {
+      "key": "测试"
+    },
+    "textInputDialog": {
+      "folderNamePlaceholder": "文件夹名称",
+      "newFolderPlaceholder": "输入文件夹名称",
+      "newNamePlaceholder": "新名称"
+    },
+    "titleBar": {
+      "close": "关闭",
+      "dragToMove": "拖拽移动窗口，双击最大化",
+      "maximize": "最大化",
+      "minimize": "最小化",
+      "restore": "还原"
     },
     "toast": {
+      "cannotCopyToSelf": "无法将文件夹复制到自身或其子文件夹中",
       "cannotMoveToSelf": "无法将文件夹移动到自身或其子文件夹中",
       "connectionFailed": "{{protocol}} 连接 \"{{name}}\" 失败",
       "connectionLost": "{{protocol}} 连接 \"{{name}}\" 已断开",
@@ -114,19 +147,9 @@
       "disconnectSuccess": "已断开 {{protocol}} 连接 \"{{name}}\"",
       "moveFailed": "移动失败",
       "moveSuccess": "移动成功",
+      "refreshFailed": "刷新失败",
       "renameFailed": "重命名失败",
       "renameSuccess": "重命名成功"
-    },
-    "toolbar": {
-      "copy": "复制",
-      "darkMode": "深色模式",
-      "delete": "删除",
-      "lightMode": "浅色模式",
-      "move": "移动",
-      "newFolder": "新建文件夹",
-      "refresh": "刷新",
-      "rename": "重命名",
-      "system": "系统"
     }
   }
 }

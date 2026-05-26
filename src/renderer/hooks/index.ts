@@ -1,4 +1,4 @@
-export { useAppInit } from './useAppInit.js'
+export { useApplicationInitialization } from './useAppInit.js'
 export { useGlobalShortcuts } from './useGlobalShortcuts.js'
-export { useI18n } from './useI18n.js'
-export { useTheme } from './useTheme.js'
+export { useInternationalization } from './useI18n.js'
+export { useApplicationTheme } from './useTheme.js'

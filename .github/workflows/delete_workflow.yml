@@ -3,48 +3,48 @@ on:
   workflow_dispatch:
     inputs:
       days:
-        description: "Days to retain runs"
+        description: 'Days to retain runs'
         required: true
-        default: "30"
+        default: '30'
       minimum_runs:
-        description: "Minimum runs to keep"
+        description: 'Minimum runs to keep'
         required: true
-        default: "6"
+        default: '6'
       delete_workflow_pattern:
         description: "Workflow name or filename (omit for all). Use `|` to separate multiple filters (e.g. 'build|deploy')."
         required: false
       delete_workflow_by_state_pattern:
-        description: "Workflow state: active, deleted, disabled_fork, disabled_inactivity, disabled_manually"
+        description: 'Workflow state: active, deleted, disabled_fork, disabled_inactivity, disabled_manually'
         required: false
-        default: "ALL"
+        default: 'ALL'
         type: choice
         options:
-          - "ALL"
+          - 'ALL'
           - active
           - deleted
           - disabled_inactivity
           - disabled_manually
       delete_run_by_conclusion_pattern:
-        description: "Run conclusion: action_required, cancelled, failure, skipped, success"
+        description: 'Run conclusion: action_required, cancelled, failure, skipped, success'
         required: false
-        default: "Unsuccessful: action_required,cancelled,failure,skipped"
+        default: 'Unsuccessful: action_required,cancelled,failure,skipped'
         type: choice
         options:
-          - "ALL"
-          - "Unsuccessful: action_required,cancelled,failure,skipped"
+          - 'ALL'
+          - 'Unsuccessful: action_required,cancelled,failure,skipped'
           - action_required
           - cancelled
           - failure
           - skipped
           - success
       dry_run:
-        description: "Simulate deletions"
+        description: 'Simulate deletions'
         required: false
-        default: "false"
+        default: 'false'
         type: choice
         options:
-          - "false"
-          - "true"
+          - 'false'
+          - 'true'
 jobs:
   delete-runs:
     runs-on: ubuntu-latest

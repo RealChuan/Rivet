@@ -1,4 +1,4 @@
-import React, { useMemo, type ReactElement } from 'react'
+import React, { type ReactElement } from 'react'
 import { List, type RowComponentProps, type ListImperativeAPI } from 'react-window'
 import { AutoSizer, type SizeProps } from 'react-virtualized-auto-sizer'
 
@@ -6,14 +6,21 @@ interface VirtualListProps<T> {
   items: T[] | undefined | null
   itemHeight: number
   width: string | number
-  renderItem: (item: T, index: number, style: React.CSSProperties) => React.ReactNode
+  renderItem: (
+    item: T,
+    index: number,
+    style: React.CSSProperties,
+    containerWidth?: number
+  ) => React.ReactNode
   listRef?: React.Ref<ListImperativeAPI>
   overscanCount?: number
+  overflowStyle?: React.CSSProperties
 }
 
 interface RowProps<T> {
   items: T[]
   renderItem: VirtualListProps<T>['renderItem']
+  containerWidth: number
 }
 
 function Row<T>({
@@ -21,10 +28,11 @@ function Row<T>({
   style,
   items,
   renderItem,
+  containerWidth,
 }: RowComponentProps<RowProps<T>>): ReactElement | null {
   const item = items[index]
   if (!item) return null
-  const element = renderItem(item, index, style)
+  const element = renderItem(item, index, style, containerWidth)
   if (!element) return null
   return (<>{element}</>) as ReactElement
 }
@@ -44,15 +52,17 @@ export function VirtualList<T>({
   renderItem,
   listRef,
   overscanCount = 5,
+  overflowStyle,
 }: VirtualListProps<T>) {
-  const items = useMemo(() => rawItems ?? [], [rawItems])
-
-  const rowProps = useMemo<object>(() => ({ items, renderItem }), [items, renderItem])
+  const items = rawItems ?? []
 
   const renderList = ({ height, width: containerWidth }: SizeProps) => {
     if (height === undefined || containerWidth === undefined) {
       return null
     }
+
+    const rowProps = { items, renderItem, containerWidth }
+
     return (
       <List
         listRef={listRef ?? null}
@@ -61,9 +71,9 @@ export function VirtualList<T>({
         rowHeight={itemHeight}
         rowProps={rowProps}
         style={{
-          width: typeof width === 'number' ? width : containerWidth,
+          width: typeof width === 'number' ? Math.max(width, containerWidth) : containerWidth,
           height,
-          overflowX: 'visible',
+          ...overflowStyle,
         }}
         overscanCount={overscanCount}
       />

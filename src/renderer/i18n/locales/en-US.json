@@ -1,17 +1,44 @@
 {
   "translation": {
-    "common": {
-      "close": "Close"
+    "action": {
+      "cancel": "Cancel",
+      "close": "Close",
+      "confirm": "Confirm",
+      "create": "Create",
+      "delete": "Delete",
+      "refresh": "Refresh"
+    },
+    "app": {
+      "name": "Rivet",
+      "subtitle": "SFTP / WebDAV"
+    },
+    "confirmationDialog": {
+      "confirmDeleteMessage": "Are you sure you want to delete this item?",
+      "confirmDeleteMultipleMessage_one": "Are you sure you want to delete {{count}} item?",
+      "confirmDeleteMultipleMessage_other": "Are you sure you want to delete {{count}} items?",
+      "confirmDeleteMultipleTitle": "Delete Items",
+      "confirmDeleteTitle": "Delete Item",
+      "deleteConnectionMessage": "Are you sure you want to delete this connection?",
+      "deleteConnectionTitle": "Delete Connection"
     },
     "connection": {
-      "basePath": "Access Path",
-      "cancel": "Cancel",
-      "certWarningMessage": "Disabling certificate verification makes your connection insecure and vulnerable to man-in-the-middle attacks. Are you sure you want to continue?",
-      "certWarningTitle": "Security Warning",
+      "connect": "Connect",
+      "connections": "Connections",
+      "disconnect": "Disconnect",
+      "edit": "Edit",
+      "newConnection": "New Connection",
+      "newConnectionHint": "Create your first connection",
+      "noConnections": "No connections"
+    },
+    "connectionDialog": {
+      "basePath": "Base Path",
+      "certWarningMessage": "You are connecting to a server with an invalid certificate. Proceed at your own risk.",
+      "certWarningTitle": "Certificate Warning",
+      "connectFailed": "Connection failed",
       "connecting": "Connecting...",
       "continue": "Continue",
       "editTitle": "Edit Connection",
-      "fillRequired": "Please fill in required fields",
+      "fillRequired": "Please fill in all required fields",
       "host": "Host",
       "invalidPort": "Invalid port number",
       "name": "Name",
@@ -20,57 +47,46 @@
       "passwordPlaceholder": "Enter password",
       "port": "Port",
       "protocol": "Protocol",
-      "rejectUnauthorized": "Verify server certificate",
+      "rejectUnauthorized": "Reject unauthorized certificates",
       "save": "Save",
-      "savePassword": "Save password for quick reconnect",
+      "savePassword": "Save password",
       "scheme": "Scheme",
-      "subtitle": "Manage your connections",
-      "title": "New Connection",
+      "subtitle": "Create a new connection",
       "username": "Username",
       "usernamePlaceholder": "Enter username"
     },
-    "dialog": {
-      "cancel": "Cancel",
-      "confirm": "Confirm",
+    "error": {
+      "noOperationPending": "No operation pending",
+      "unknown": "Unknown error",
+      "unknownName": "Unknown",
+      "unknownProtocol": "Unknown"
+    },
+    "file": {
+      "action": {
+        "copy": "Copy",
+        "move": "Move",
+        "newFolder": "New Folder",
+        "rename": "Rename"
+      },
       "conflict": {
-        "applyToAll": "Apply to all",
-        "cannotOverwrite": "Cannot overwrite file with folder or vice versa",
-        "globalAction": "Global action",
+        "applyToAll": "Apply to All",
+        "cannotOverwrite": "Cannot overwrite file to folder with same name, or vice versa",
+        "globalAction": "Global Action",
         "keepBoth": "Keep Both",
         "overwrite": "Overwrite",
         "skip": "Skip",
         "source": "Source",
         "target": "Target",
         "title": "File Conflict"
-      },
-      "delete": {
-        "message": "Are you sure you want to delete this?",
-        "messageMultiple_one": "Are you sure you want to delete these {{count}} items?",
-        "messageMultiple_other": "Are you sure you want to delete these {{count}} items?",
-        "title": "Confirm Delete"
-      },
-      "deleteConnectionMessage": "Are you sure you want to delete this connection? This action cannot be undone.",
-      "deleteConnectionTitle": "Delete Connection",
-      "newFolder": {
-        "placeholder": "Enter folder name",
-        "title": "New Folder"
-      },
-      "ok": "OK",
-      "rename": {
-        "placeholder": "Enter new name",
-        "title": "Rename"
-      },
-      "selectTargetFolder": {
-        "title": "Select Target Folder"
       }
     },
-    "fileList": {
+    "fileExplorerList": {
       "dateModified": "Date Modified",
       "disconnected": "Disconnected",
       "empty": "Empty directory",
+      "error": "Error",
       "loading": "Loading...",
       "name": "Name",
-      "newFolder": "New Folder",
       "owner": "Owner",
       "parentDirectory": "Parent Directory",
       "permissions": "Permissions",
@@ -79,27 +95,44 @@
       "size": "Size"
     },
     "hostKey": {
-      "currentFingerprint": "Current Key",
+      "currentHash": "Host Key Fingerprint",
       "disconnect": "Disconnect",
-      "firstConnectTitle": "First Connection to Server",
-      "firstConnectWarning": "This is your first connection to this server. Click 'Trust and Save' to save the server fingerprint for future automatic verification.",
-      "mismatchTitle": "Host Key Changed",
-      "mismatchWarning": "The remote server's host key does not match the saved record. This could indicate someone is intercepting your connection.",
-      "previousFingerprint": "Previous Key",
-      "trustAndSave": "Trust and Save",
-      "trustNew": "Trust New Key and Reconnect"
+      "firstConnectTitle": "Verify Host Key",
+      "firstConnectWarning": "You are connecting to this server for the first time. Verify the host key fingerprint below matches the one provided by your server administrator.",
+      "mismatchTitle": "Host Key Mismatch",
+      "mismatchWarning": "The host key fingerprint has changed. This could indicate a man-in-the-middle attack. Verify with your server administrator before proceeding.",
+      "previousHash": "Previous Fingerprint",
+      "trustAndSave": "Trust and Connect",
+      "trustNew": "Trust New Key"
     },
-    "sidebar": {
-      "connect": "Connect",
-      "connections": "Connections",
-      "delete": "Delete",
-      "disconnect": "Disconnect",
-      "edit": "Edit",
-      "newConnection": "New Connection",
-      "newConnectionHint": "Create your first connection",
-      "noConnections": "No connections"
+    "mainLayout": {
+      "darkMode": "Dark Mode",
+      "lightMode": "Light Mode",
+      "system": "System"
+    },
+    "sortButton": {
+      "sortConnections": "Sort Connections"
+    },
+    "targetFolderDialog": {
+      "title": "Select Target Folder"
+    },
+    "test": {
+      "key": "Test"
+    },
+    "textInputDialog": {
+      "folderNamePlaceholder": "Folder name",
+      "newFolderPlaceholder": "Enter folder name",
+      "newNamePlaceholder": "New name"
+    },
+    "titleBar": {
+      "close": "Close",
+      "dragToMove": "Drag to move window. Double-click to maximize.",
+      "maximize": "Maximize",
+      "minimize": "Minimize",
+      "restore": "Restore"
     },
     "toast": {
+      "cannotCopyToSelf": "Cannot copy folder to itself or its subfolder",
       "cannotMoveToSelf": "Cannot move folder to itself or its subfolder",
       "connectionFailed": "{{protocol}} connection \"{{name}}\" failed",
       "connectionLost": "{{protocol}} connection \"{{name}}\" lost",
@@ -115,19 +148,9 @@
       "disconnectSuccess": "{{protocol}} connection \"{{name}}\" disconnected",
       "moveFailed": "Move failed",
       "moveSuccess": "Moved successfully",
+      "refreshFailed": "Refresh failed",
       "renameFailed": "Rename failed",
       "renameSuccess": "Renamed successfully"
-    },
-    "toolbar": {
-      "copy": "Copy",
-      "darkMode": "Dark Mode",
-      "delete": "Delete",
-      "lightMode": "Light Mode",
-      "move": "Move",
-      "newFolder": "New Folder",
-      "refresh": "Refresh",
-      "rename": "Rename",
-      "system": "System"
     }
   }
 }

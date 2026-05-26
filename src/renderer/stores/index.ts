@@ -1,1 +1,1 @@
-export { useUiStore } from './uiStore.js'
+export { useUiStore } from './ui.js'

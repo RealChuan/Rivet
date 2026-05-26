@@ -23,23 +23,23 @@ export const Button: React.FC<ButtonProps> = ({
   const variantClasses = {
     primary: `
       bg-accent text-white border-none
-      hover:bg-accent/90
-      disabled:bg-text-muted disabled:cursor-not-allowed
+      hover:bg-accent-hover
+      disabled:bg-disabled disabled:cursor-not-allowed
     `,
     secondary: `
-      bg-transparent text-text border border-[#a0a0a0]
-      hover:bg-hover hover:border-[#888888]
+      bg-transparent text-text border border-border
+      hover:bg-hover hover:border-text-muted
       dark:border-border dark:hover:border-text-muted
     `,
     danger: `
-      bg-[#f14c4c] text-white border-none
-      hover:bg-[#dc4444]
-      disabled:bg-text-muted disabled:cursor-not-allowed
+      bg-danger text-white border-none
+      hover:bg-danger/90
+      disabled:bg-disabled disabled:cursor-not-allowed
     `,
     warning: `
-      bg-[#dcbb14] text-white border-none
-      hover:bg-[#c4a612]
-      disabled:bg-text-muted disabled:cursor-not-allowed
+      bg-warning text-white border-none
+      hover:bg-warning/90
+      disabled:bg-disabled disabled:cursor-not-allowed
     `,
   }
 

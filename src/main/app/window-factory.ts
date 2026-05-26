@@ -8,7 +8,8 @@
 import { BrowserWindow, app, type BrowserWindowConstructorOptions } from 'electron'
 import { fileURLToPath, URL } from 'node:url'
 import path from 'node:path'
-import { registerWindowMeta, unregisterWindowMeta } from './main.js'
+import { registerWindowMeta, unregisterWindowMeta } from '../utils/window-meta.js'
+import { IPC_CHANNELS } from '@shared/constants/index.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
@@ -61,7 +62,7 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
     title: options.title ?? 'Rivet',
 
     // ========== 无边框核心配置 ==========
-    titleBarStyle: isMac ? 'hidden' : 'default',
+    titleBarStyle: 'hidden',
     frame: isMac,
     ...(isMac ? { trafficLightPosition: { x: 16, y: 14 } } : {}),
 
@@ -73,7 +74,7 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
     modal: options.modal ?? false,
 
     webPreferences: {
-      preload: path.join(__dirname, '../preload/index.cjs'),
+      preload: path.join(__dirname, '../../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -85,7 +86,7 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
   // ========== 窗口状态事件转发（带窗口ID）==========
   win.on('maximize', () => {
     if (!win.isDestroyed()) {
-      win.webContents.send('window-state-changed', {
+      win.webContents.send(IPC_CHANNELS.WINDOW.STATE_CHANGED, {
         windowId: options.id,
         isMaximized: true,
       })
@@ -94,7 +95,7 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
 
   win.on('unmaximize', () => {
     if (!win.isDestroyed()) {
-      win.webContents.send('window-state-changed', {
+      win.webContents.send(IPC_CHANNELS.WINDOW.STATE_CHANGED, {
         windowId: options.id,
         isMaximized: false,
       })
@@ -111,6 +112,15 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
       hash: route,
     })
   }
+
+  // ========== 安全：阻止导航和打开新窗口 ==========
+  win.webContents.on('will-navigate', event => {
+    event.preventDefault()
+  })
+
+  win.webContents.setWindowOpenHandler(() => ({
+    action: 'deny',
+  }))
 
   // 防止闪烁：等页面 ready 后再显示
   win.once('ready-to-show', () => {
@@ -180,7 +190,7 @@ export const WindowManager = {
   /**
    * 向所有存活窗口广播 IPC 消息
    */
-  broadcast(channel: string, ...args: unknown[]): void {
+  broadcast(channel: keyof typeof IPC_CHANNELS.EVENTS, ...args: unknown[]): void {
     windowMap.forEach(win => {
       if (!win.isDestroyed()) {
         win.webContents.send(channel, ...(args as Parameters<typeof win.webContents.send>))

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useUiStore } from '../stores/index.js'
 import { Resizer } from '../components/ui/index.js'
 
@@ -8,32 +8,28 @@ interface ResizablePanelProps {
 }
 
 export const ResizablePanel: React.FC<ResizablePanelProps> = ({ sidebar, content }) => {
-  const { sidebarWidth, setSidebarWidth } = useUiStore()
+  const sidebarWidth = useUiStore(state => state.sidebarWidth)
+  const setSidebarWidth = useUiStore(state => state.setSidebarWidth)
   const [isDraggingSidebar, setIsDraggingSidebar] = useState(false)
-
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (isDraggingSidebar) {
-        const newWidth = Math.max(180, Math.min(400, e.clientX))
-        setSidebarWidth(newWidth)
-      }
-    },
-    [isDraggingSidebar, setSidebarWidth]
-  )
-
-  const handleMouseUp = useCallback(() => {
-    setIsDraggingSidebar(false)
-  }, [])
 
   useEffect(() => {
     if (!isDraggingSidebar) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.max(180, Math.min(400, e.clientX))
+      setSidebarWidth(newWidth)
+    }
+    const handleMouseUp = () => {
+      setIsDraggingSidebar(false)
+    }
+
     document.addEventListener('mousemove', handleMouseMove)
     document.addEventListener('mouseup', handleMouseUp)
     return () => {
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [isDraggingSidebar, handleMouseMove, handleMouseUp])
+  }, [isDraggingSidebar, setSidebarWidth])
 
   return (
     <div className="flex-1 flex overflow-hidden">

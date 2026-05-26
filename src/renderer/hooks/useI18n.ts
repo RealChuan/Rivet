@@ -1,32 +1,26 @@
-import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SupportedLanguageLiteral } from '@shared/constants/i18n.js'
 import { useUiStore } from '../stores/index.js'
 
-export function useI18n() {
+export function useInternationalization() {
   const { i18n } = useTranslation()
-  const { language, setLanguage } = useUiStore()
+  const locale = useUiStore(state => state.locale)
+  const setLocale = useUiStore(state => state.setLocale)
 
-  const changeLanguage = useCallback(
-    (lang: SupportedLanguageLiteral) => {
-      void i18n.changeLanguage(lang)
-      setLanguage(lang)
-    },
-    [i18n, setLanguage]
-  )
+  const changeLanguage = (lang: SupportedLanguageLiteral) => {
+    void i18n.changeLanguage(lang)
+    setLocale(lang)
+  }
 
-  const t = useCallback(
-    (key: string, options?: Record<string, unknown>) => {
-      return i18n.t(key, options ?? {})
-    },
-    [i18n]
-  )
+  const t = (key: string, options?: Record<string, unknown>) => {
+    return i18n.t(key, options ?? {})
+  }
 
   return {
-    language,
+    language: locale,
     changeLanguage,
     t,
   }
 }
 
-export default useI18n
+export default useInternationalization

@@ -1,5 +1,6 @@
 import type { Theme } from '@shared/constants/theme.js'
 import type { SupportedLanguageLiteral } from '@shared/constants/i18n.js'
+import type { SortOrder } from '@shared/constants/sort.js'
 
 /**
  * UI 设置接口
@@ -7,12 +8,12 @@ import type { SupportedLanguageLiteral } from '@shared/constants/i18n.js'
  */
 export interface UiSettings {
   /**
-   * 主题模式
+   * 外观主题
    * - light: 亮色主题
    * - dark: 暗色主题
    * - system: 跟随系统主题
    */
-  theme: Theme
+  appearance: Theme
 
   /**
    * 语言设置
@@ -20,5 +21,13 @@ export interface UiSettings {
    * - 'en-US': 英文
    * - '': 跟随系统语言
    */
-  language: SupportedLanguageLiteral | ''
+  locale: SupportedLanguageLiteral | ''
+
+  /**
+   * 连接列表排序状态
+   * - 'none': 不排序（按拖拽顺序）
+   * - 'asc': 按名称升序
+   * - 'desc': 按名称降序
+   */
+  connectionSortOrder: SortOrder
 }

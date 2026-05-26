@@ -6,10 +6,10 @@ import type { StatusCode } from '../constants/protocol-status.js'
  */
 export interface SftpConnectDetail {
   /** 当前连接的主机密钥指纹（SHA256 哈希） */
-  fingerprint: string
+  hash: string
 
   /** 之前保存的主机密钥指纹（用于检测密钥变更） */
-  previousFingerprint?: string
+  previousHash?: string
 }
 
 /**

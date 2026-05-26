@@ -1,9 +1,10 @@
 export * from './format.js'
 export * from './path.js'
-export * from './caller.js'
+export * from './logger-formatter.js'
 export * from './error.js'
+export * from './ipc-result.js'
 
-export const generateUniqueName = (basename: string): string => {
+export const generateUniqueFilename = (basename: string): string => {
   const extIndex = basename.lastIndexOf('.')
   let name: string
   let ext: string

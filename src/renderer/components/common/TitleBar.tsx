@@ -10,8 +10,9 @@
  * - 支持主题切换（通过 CSS 变量）
  */
 
-import { useState, useEffect, useCallback } from 'react'
-import { fireAndForget } from '@shared/utils/index.js'
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import logger from '@renderer/utils/logger.js'
 
 // ============================================================
 // 内联 SVG 图标（零外部依赖）
@@ -102,7 +103,7 @@ export interface TitleBarProps {
    */
   leftContent?: React.ReactNode
   /**
-   * 自定义标题文字（默认 'Rivet'）
+   * 自定义标题文字
    */
   title?: string
 }
@@ -111,12 +112,8 @@ export interface TitleBarProps {
 // 组件实现
 // ============================================================
 
-export function TitleBar({
-  childMode = false,
-  centerContent,
-  leftContent,
-  title = 'Rivet',
-}: TitleBarProps) {
+export function TitleBar({ childMode = false, centerContent, leftContent, title }: TitleBarProps) {
+  const { t } = useTranslation()
   const [isMaximized, setIsMaximized] = useState(false)
   const [platform, setPlatform] = useState<string>('win32')
 
@@ -126,7 +123,7 @@ export function TitleBar({
 
     const init = async () => {
       try {
-        const state = await window.electronAPI.windowControl.getState()
+        const state = await window.electronAPI.window.getState()
         if (state) {
           const isMaximized = typeof state.isMaximized === 'boolean' ? state.isMaximized : false
           const platform = typeof state.platform === 'string' ? state.platform : 'win32'
@@ -134,31 +131,31 @@ export function TitleBar({
           setPlatform(platform)
         }
 
-        unsubscribe = window.electronAPI.windowControl.onStateChange(
+        unsubscribe = window.electronAPI.window.onStateChange(
           (newState: { isMaximized: boolean }) => {
             setIsMaximized(newState.isMaximized)
           }
         )
       } catch (err) {
-        console.error('[TitleBar] Failed to initialize window state:', err)
+        logger.catch(err, { action: 'initialize-window-state' })
       }
     }
 
-    fireAndForget(init(), 'Failed to initialize window state')
+    void init()
     return () => unsubscribe?.()
   }, [])
 
-  const handleMinimize = useCallback(() => {
-    window.electronAPI.windowControl.minimize()
-  }, [])
+  const handleMinimize = () => {
+    window.electronAPI.window.minimize()
+  }
 
-  const handleMaximize = useCallback(() => {
-    window.electronAPI.windowControl.maximize()
-  }, [])
+  const handleMaximize = () => {
+    window.electronAPI.window.maximize()
+  }
 
-  const handleClose = useCallback(() => {
-    window.electronAPI.windowControl.close()
-  }, [])
+  const handleClose = () => {
+    window.electronAPI.window.close()
+  }
 
   const isMac = platform === 'darwin'
 
@@ -207,14 +204,14 @@ export function TitleBar({
         className="flex-1 flex items-center h-full px-3 draggable titlebar-text"
         onDoubleClick={childMode ? undefined : handleMaximize}
         role="button"
-        aria-label="Drag to move window. Double-click to maximize."
+        aria-label={t('titleBar.dragToMove')}
       >
         <div className="flex items-center gap-2 no-drag">
           {/* 应用 Logo */}
           <AppLogo />
           <div className="flex items-center gap-3">
-            <span className="text-sm text-text font-semibold">{title}</span>
-            <span className="text-xs text-text-muted">SFTP / WebDAV</span>
+            <span className="text-sm text-text font-semibold">{t('app.name')}</span>
+            <span className="text-xs text-text-muted">{t('app.subtitle')}</span>
           </div>
           {leftContent}
         </div>
@@ -233,7 +230,7 @@ export function TitleBar({
             <button
               onClick={handleMinimize}
               className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus:outline-none cursor-default"
-              aria-label="Minimize"
+              aria-label={t('titleBar.minimize')}
               type="button"
             >
               <IconMinus />
@@ -242,7 +239,7 @@ export function TitleBar({
             <button
               onClick={handleMaximize}
               className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus:outline-none cursor-default"
-              aria-label={isMaximized ? 'Restore' : 'Maximize'}
+              aria-label={isMaximized ? t('titleBar.restore') : t('titleBar.maximize')}
               type="button"
             >
               {isMaximized ? <IconMaximize2 /> : <IconSquare />}
@@ -253,7 +250,7 @@ export function TitleBar({
         <button
           onClick={handleClose}
           className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-danger hover:text-white transition-colors duration-150 focus:outline-none cursor-default"
-          aria-label="Close"
+          aria-label={t('titleBar.close')}
           type="button"
         >
           <IconX />

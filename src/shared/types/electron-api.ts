@@ -1,8 +1,11 @@
 import type { FileInfo } from './file.js'
 import type { ConnectionConfig } from './connection.js'
 import type { OperationResult } from './operation-result.js'
+import type { Result, ErrorInfo } from './result.js'
+import type { ProtocolResponse } from './protocol-request.js'
+import type { StoreKey } from '@shared/constants/config.js'
 
-export interface WindowControlAPI {
+export interface WindowAPI {
   minimize: () => void
   maximize: () => void
   close: () => void
@@ -16,55 +19,89 @@ export interface WindowControlAPI {
     title?: string
   }) => Promise<string>
   closeChild: (id: string) => Promise<boolean>
+  getMeta: () => { windowId: string; route: string }
+  refreshMeta: () => Promise<{ windowId: string; route: string }>
 }
 
 export interface ProtocolAPI {
-  connect: (config: ConnectionConfig) => Promise<OperationResult>
-  disconnect: (sessionId: string) => Promise<void>
-  list: (sessionId: string, path: string) => Promise<unknown>
+  connect: (config: ConnectionConfig) => Promise<ProtocolResponse<OperationResult>>
+  disconnect: (sessionId: string, requestId?: string) => Promise<ProtocolResponse<void>>
+  list: (
+    sessionId: string,
+    path: string,
+    requestId?: string
+  ) => Promise<ProtocolResponse<FileInfo[]>>
   onSessionDisconnected: (
     callback: (event: {
       sessionId: string
-      connectionUuid: string
+      connectionId: string
       protocol: string
       name: string
     }) => void
   ) => () => void
-  delete: (sessionId: string, file: FileInfo) => Promise<void>
-  rename: (sessionId: string, file: FileInfo, newName: string) => Promise<void>
-  mkdir: (sessionId: string, path: string) => Promise<void>
-  copy: (sessionId: string, file: FileInfo, targetPath: string) => Promise<void>
-  move: (sessionId: string, file: FileInfo, targetPath: string) => Promise<void>
+  delete: (sessionId: string, file: FileInfo, requestId?: string) => Promise<ProtocolResponse<void>>
+  rename: (
+    sessionId: string,
+    file: FileInfo,
+    newName: string,
+    requestId?: string
+  ) => Promise<ProtocolResponse<void>>
+  mkdir: (sessionId: string, path: string, requestId?: string) => Promise<ProtocolResponse<void>>
+  copy: (
+    sessionId: string,
+    file: FileInfo,
+    targetPath: string,
+    requestId?: string
+  ) => Promise<ProtocolResponse<void>>
+  move: (
+    sessionId: string,
+    file: FileInfo,
+    targetPath: string,
+    requestId?: string
+  ) => Promise<ProtocolResponse<void>>
+  cancel: (requestId: string) => Promise<void>
 }
 
-export interface CommonAPI {
-  storeGet: (key: string) => Promise<unknown>
-  storeSet: (key: string, value: unknown) => Promise<void>
-  storeDelete: (key: string) => Promise<void>
+export interface ConfigAPI {
+  get: (key: StoreKey) => Promise<Result<unknown, ErrorInfo>>
+  set: (key: StoreKey, value: unknown) => Promise<Result<void, ErrorInfo>>
+}
+
+export interface DialogAPI {
   showOpenDialog: (options: {
     properties: string[]
-  }) => Promise<{ canceled: boolean; filePaths: string[] } | undefined>
+  }) => Promise<Result<{ canceled: boolean; filePaths: string[] } | undefined, ErrorInfo>>
   showSaveDialog: (
     options: unknown
-  ) => Promise<{ canceled: boolean; filePath?: string } | undefined>
-  getSavedConnections: () => Promise<unknown>
-  deleteConnection: (connectionUuid: string) => Promise<void>
-  getCredential: (connectionUuid: string) => Promise<unknown>
-  getTempDir: () => Promise<string>
-  getDownloadDir: () => Promise<string>
-  getIsPackaged: () => Promise<boolean>
-  saveKnownHost: (record: {
-    connectionUuid: string
-    fingerprint: string
-  }) => Promise<{ success: boolean }>
-  deleteKnownHost: (connectionUuid: string) => Promise<{ success: boolean }>
+  ) => Promise<Result<{ canceled: boolean; filePath?: string } | undefined, ErrorInfo>>
+}
+
+export interface HostKeyAPI {
+  save: (record: { connectionId: string; hash: string }) => Promise<Result<void, ErrorInfo>>
+  delete: (connectionId: string) => Promise<Result<void, ErrorInfo>>
+}
+
+export interface SystemAPI {
+  getTempDir: () => Promise<Result<string, ErrorInfo>>
+  getDownloadDir: () => Promise<Result<string, ErrorInfo>>
+}
+
+export interface UtilsAPI {
+  generateUuid: () => string
+  encryptPassword: (password: string) => Promise<Result<string, ErrorInfo>>
+  decryptPassword: (encrypted: string) => Promise<Result<string, ErrorInfo>>
 }
 
 export interface ElectronAPI {
-  windowControl: WindowControlAPI
-  windowMeta: { windowId: string; route: string }
+  window: WindowAPI
   protocol: ProtocolAPI
-  common: CommonAPI
+  config: ConfigAPI
+  dialog: DialogAPI
+  hostKey: HostKeyAPI
+  system: SystemAPI
+  utils: UtilsAPI
+  windowMeta: { windowId: string; route: string }
+  refreshWindowMeta: () => Promise<{ windowId: string; route: string }>
 }
 
 declare global {

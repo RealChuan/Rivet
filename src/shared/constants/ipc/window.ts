@@ -1,0 +1,11 @@
+export const WINDOW_CHANNELS = {
+  GET_APP_VERSION: 'window:get-app-version',
+  MINIMIZE: 'window:minimize',
+  MAXIMIZE: 'window:maximize',
+  CLOSE: 'window:close',
+  GET_STATE: 'window:get-state',
+  STATE_CHANGED: 'window:state-changed',
+  CREATE_CHILD: 'window:create-child',
+  CLOSE_CHILD: 'window:close-child',
+  GET_META: 'window:get-meta',
+} as const

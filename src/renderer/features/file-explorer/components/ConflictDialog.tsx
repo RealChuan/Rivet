@@ -6,8 +6,7 @@ import Button from '@renderer/components/ui/Button.js'
 import RadioButton from '@renderer/components/ui/RadioButton.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
 import { logger } from '@renderer/utils/index.js'
-import { fireAndForget } from '@shared/utils/index.js'
-import { FileOperation } from '@shared/constants/index.js'
+import { FILE_OPERATIONS } from '@shared/constants/index.js'
 
 export type ConflictStrategy = 'overwrite' | 'skip' | 'keepBoth'
 
@@ -23,7 +22,7 @@ export interface ConflictResolution {
   strategy: ConflictStrategy
 }
 
-type CopyMoveOperation = typeof FileOperation.COPY | typeof FileOperation.MOVE
+type CopyMoveOperation = typeof FILE_OPERATIONS.COPY | typeof FILE_OPERATIONS.MOVE
 
 interface ConflictDialogProps {
   open: boolean
@@ -87,10 +86,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
   const handleConfirm = () => {
     logger.info('[Copy] ConflictDialog handleConfirm called')
     if (onConfirm) {
-      fireAndForget(
-        onConfirm(resolutions, operation, files, targetDir),
-        'Failed to confirm conflict resolution'
-      )
+      void onConfirm(resolutions, operation, files, targetDir)
     }
     onClose()
   }
@@ -112,7 +108,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
     <GlassDialog open={open} onClose={onClose} width={700} height={550}>
       <div className="flex flex-col h-125.5 w-full overflow-hidden">
         <div className="flex items-center mb-4">
-          <h2 className="text-base font-semibold text-text">{t('dialog.conflict.title')}</h2>
+          <h2 className="text-base font-semibold text-text">{t('file.conflict.title')}</h2>
         </div>
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-background rounded-md border border-border min-h-10">
@@ -135,7 +131,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                       </span>
                     </div>
                     <div className="text-xs text-text-muted">
-                      {t('dialog.conflict.source')}: {conflict.sourceFile.absolutePath}
+                      {t('file.conflict.source')}: {conflict.sourceFile.absolutePath}
                     </div>
                   </div>
 
@@ -155,7 +151,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                       </span>
                     </div>
                     <div className="text-xs text-text-muted">
-                      {t('dialog.conflict.target')}:{' '}
+                      {t('file.conflict.target')}:{' '}
                       {conflict.targetFile?.absolutePath ?? conflict.sourceFile.absolutePath}
                     </div>
                   </div>
@@ -163,22 +159,22 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
 
                 <div className="flex gap-4 justify-end">
                   <RadioButton
-                    label={t('dialog.conflict.skip')}
+                    label={t('file.conflict.skip')}
                     name={`strategy-${index}`}
                     checked={resolution.strategy === 'skip'}
                     onChange={() => handleStrategyChange(index, 'skip')}
                   />
                   <RadioButton
-                    label={t('dialog.conflict.keepBoth')}
+                    label={t('file.conflict.keepBoth')}
                     labelClassName="text-accent"
                     name={`strategy-${index}`}
                     checked={resolution.strategy === 'keepBoth'}
                     onChange={() => handleStrategyChange(index, 'keepBoth')}
                   />
-                  {operation !== FileOperation.MOVE && (
+                  {operation !== FILE_OPERATIONS.MOVE && (
                     <RadioButton
-                      label={t('dialog.conflict.overwrite')}
-                      labelClassName={`text-[#f14c4c] ${cannotOverwrite ? 'cursor-not-allowed opacity-50' : ''}`}
+                      label={t('file.conflict.overwrite')}
+                      labelClassName={`text-danger ${cannotOverwrite ? 'cursor-not-allowed opacity-50' : ''}`}
                       name={`strategy-${index}`}
                       checked={resolution.strategy === 'overwrite'}
                       onChange={() => !cannotOverwrite && handleStrategyChange(index, 'overwrite')}
@@ -187,9 +183,9 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                   )}
                 </div>
 
-                {cannotOverwrite && operation !== FileOperation.MOVE && (
+                {cannotOverwrite && operation !== FILE_OPERATIONS.MOVE && (
                   <div className="mt-2 text-xs text-danger">
-                    {t('dialog.conflict.cannotOverwrite')}
+                    {t('file.conflict.cannotOverwrite')}
                   </div>
                 )}
               </div>
@@ -205,7 +201,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
               onChange={e => setApplyToAll(e.target.checked)}
               className="w-3.5 h-3.5"
             />
-            {t('dialog.conflict.applyToAll')}
+            {t('file.conflict.applyToAll')}
           </label>
 
           <div className="flex gap-2.5">
@@ -216,19 +212,19 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                 onClose()
               }}
             >
-              {t('dialog.cancel')}
+              {t('action.cancel')}
             </Button>
             <Button variant="primary" onClick={handleConfirm}>
-              {t('dialog.confirm')}
+              {t('action.confirm')}
             </Button>
           </div>
         </div>
 
         {applyToAll && (
           <div className="mt-2 p-2 bg-hover rounded flex items-center gap-4 shrink-0">
-            <span className="text-xs text-text-muted">{t('dialog.conflict.globalAction')}:</span>
+            <span className="text-xs text-text-muted">{t('file.conflict.globalAction')}:</span>
             <RadioButton
-              label={t('dialog.conflict.skip')}
+              label={t('file.conflict.skip')}
               name="global-strategy"
               checked={globalStrategy === 'skip'}
               onChange={() => {
@@ -237,7 +233,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
               }}
             />
             <RadioButton
-              label={t('dialog.conflict.keepBoth')}
+              label={t('file.conflict.keepBoth')}
               labelClassName="text-accent"
               name="global-strategy"
               checked={globalStrategy === 'keepBoth'}
@@ -246,10 +242,10 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                 setResolutions(resolutions.map(r => ({ ...r, strategy: 'keepBoth' })))
               }}
             />
-            {operation !== FileOperation.MOVE && (
+            {operation !== FILE_OPERATIONS.MOVE && (
               <RadioButton
-                label={t('dialog.conflict.overwrite')}
-                labelClassName="text-[#f14c4c]"
+                label={t('file.conflict.overwrite')}
+                labelClassName="text-danger"
                 name="global-strategy"
                 checked={globalStrategy === 'overwrite'}
                 onChange={() => {

@@ -1,8 +1,8 @@
-export interface HostKeyDialogState {
+export interface HostKeyVerificationDialogState {
   open: boolean
   type: 'first-connect' | 'mismatch'
-  fingerprint: string
-  previousFingerprint: string | undefined
+  hash: string
+  previousHash: string | undefined
   sessionId: string
-  connectionUuid: string
+  connectionId: string
 }

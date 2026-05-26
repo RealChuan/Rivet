@@ -1,19 +1,27 @@
 import React, { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type ConnectionConfig } from '@shared/types/index.js'
-import { type ProtocolType, Protocol_SFTP, Protocol_WEBDAV } from '@shared/constants/index.js'
+import {
+  type ProtocolType,
+  PROTOCOL_SFTP,
+  PROTOCOL_WEBDAV,
+  PORT_SFTP,
+  PORT_WEBDAV_HTTPS,
+  SCHEME_HTTP,
+  SCHEME_HTTPS,
+} from '@shared/constants/index.js'
 import GlassDialog from '@renderer/components/ui/GlassDialog.js'
-import PasswordInput from '@renderer/components/ui/PasswordInput.js'
-import Select from '@renderer/components/ui/Select.js'
-import Input from '@renderer/components/ui/Input.js'
 import Button from '@renderer/components/ui/Button.js'
-import { ConfirmDialog } from '@renderer/components/common/ConfirmDialog.js'
-import { fireAndForget } from '@shared/utils/index.js'
+import { ConfirmationDialog } from '@renderer/components/common/ConfirmationDialog.js'
+import { ConnectionFormFields } from './ConnectionFormFields.js'
+
+import { isErr } from '@shared/types/result.js'
+import logger from '@renderer/utils/logger.js'
 
 export interface ConnectionDialogProps {
   open: boolean
   onClose: () => void
-  onSave: (config: Omit<ConnectionConfig, 'connectionUuid'>) => Promise<void>
+  onSave: (config: Omit<ConnectionConfig, 'id'> & { password?: string }) => Promise<void>
   config?: ConnectionConfig | undefined
 }
 
@@ -25,64 +33,81 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 }) => {
   const { t } = useTranslation()
   const [name, setName] = useState(config?.name ?? '')
-  const [protocol, setProtocol] = useState<ProtocolType>(config?.protocol ?? Protocol_SFTP)
+  const [protocol, setProtocol] = useState<ProtocolType>(config?.protocol ?? PROTOCOL_SFTP)
   const [host, setHost] = useState(config?.host ?? '')
-  const [port, setPort] = useState(config?.port?.toString() ?? '22')
+  const [port, setPort] = useState(config?.port?.toString() ?? String(PORT_SFTP))
   const [username, setUsername] = useState(config?.username ?? '')
   const [password, setPassword] = useState('')
   const [savePassword, setSavePassword] = useState(config?.savePassword ?? false)
   const [basePath, setBasePath] = useState(config?.basePath ?? '')
-  const [scheme, setScheme] = useState<'http' | 'https'>(config?.scheme ?? 'https')
+  const [scheme, setScheme] = useState<'http' | 'https'>(config?.scheme ?? SCHEME_HTTPS)
   const [rejectUnauthorized, setRejectUnauthorized] = useState(config?.rejectUnauthorized !== false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showCertWarning, setShowCertWarning] = useState(false)
 
   useEffect(() => {
-    if (config) {
-      setName(config.name)
-      setProtocol(config.protocol)
-      setHost(config.host)
-      setPort(config.port?.toString() ?? '22')
-      setUsername(config.username)
-      setBasePath(config.basePath ?? '')
-      setScheme(config.scheme ?? 'https')
-      setRejectUnauthorized(config.rejectUnauthorized !== false)
-      setSavePassword(config.savePassword ?? false)
-      setPassword('')
+    if (open) {
+      setError('')
+      setIsLoading(false)
+      setShowCertWarning(false)
+      if (config) {
+        setName(config.name)
+        setProtocol(config.protocol)
+        setHost(config.host)
+        setPort(config.port?.toString() ?? String(PORT_SFTP))
+        setUsername(config.username)
+        setBasePath(config.basePath ?? '')
+        setScheme(config.scheme ?? SCHEME_HTTPS)
+        setRejectUnauthorized(config.rejectUnauthorized !== false)
+        setSavePassword(config.savePassword ?? false)
+        setPassword('')
 
-      if (open && config.savePassword && config.connectionUuid) {
-        const loadPassword = async () => {
-          try {
-            const savedPassword = await window.electronAPI.common.getCredential(
-              config.connectionUuid
-            )
-            if (typeof savedPassword === 'string') {
-              setPassword(savedPassword)
+        if (config.savePassword && config.password) {
+          const loadPassword = async () => {
+            try {
+              const encryptedPassword = config.password
+              if (encryptedPassword) {
+                const result = await window.electronAPI.utils.decryptPassword(encryptedPassword)
+                if (!isErr(result)) {
+                  setPassword(result.value)
+                }
+              }
+            } catch (error) {
+              logger.catch(error, { action: 'load-password', configId: config.id })
             }
-          } catch (error) {
-            console.error('Failed to load password:', error)
           }
+          void loadPassword()
         }
-        fireAndForget(loadPassword(), 'Failed to load password')
+      } else {
+        setName('')
+        setProtocol(PROTOCOL_SFTP)
+        setHost('')
+        setPort(String(PORT_SFTP))
+        setUsername('')
+        setPassword('')
+        setSavePassword(false)
+        setBasePath('')
+        setScheme(SCHEME_HTTPS)
+        setRejectUnauthorized(true)
       }
     }
-  }, [config, open])
+  }, [open, config])
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
     if (!name.trim() || !host.trim() || !username.trim()) {
-      setError(t('connection.fillRequired'))
+      setError(t('connectionDialog.fillRequired'))
       return
     }
 
     const portNum = parseInt(port, 10)
     if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      setError(t('connection.invalidPort'))
+      setError(t('connectionDialog.invalidPort'))
       return
     }
 
-    if (protocol === Protocol_WEBDAV && scheme === 'https' && !rejectUnauthorized) {
+    if (protocol === PROTOCOL_WEBDAV && scheme === SCHEME_HTTPS && !rejectUnauthorized) {
       setShowCertWarning(true)
       return
     }
@@ -103,13 +128,15 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         username: username.trim(),
         password: password || '',
         savePassword,
-        basePath: protocol === Protocol_WEBDAV ? basePath.trim() : '',
-        scheme: protocol === Protocol_WEBDAV ? scheme : 'http',
-        rejectUnauthorized: protocol === Protocol_WEBDAV ? rejectUnauthorized : false,
+        basePath: protocol === PROTOCOL_WEBDAV ? basePath.trim() : '',
+        scheme: protocol === PROTOCOL_WEBDAV ? scheme : SCHEME_HTTP,
+        rejectUnauthorized: protocol === PROTOCOL_WEBDAV ? rejectUnauthorized : false,
       })
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      logger.catch(err, { action: 'submit-connection' })
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -117,7 +144,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
   const handleCertWarningConfirm = () => {
     setShowCertWarning(false)
-    fireAndForget(doSave(), 'Failed to save connection')
+    void doSave()
   }
 
   const handleCertWarningCancel = () => {
@@ -127,7 +154,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
   const handleProtocolChange = (value: string) => {
     setProtocol(value as ProtocolType)
-    setPort(value === Protocol_WEBDAV ? '443' : '22')
+    setPort(value === PROTOCOL_WEBDAV ? String(PORT_WEBDAV_HTTPS) : String(PORT_SFTP))
   }
 
   const isEditMode = !!config
@@ -137,11 +164,15 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
       <div className="flex items-center gap-3 mb-5">
         <div
           className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-            isEditMode ? 'bg-[rgba(78,201,176,0.1)]' : 'bg-[rgba(59,130,246,0.1)]'
+            isEditMode ? 'bg-success-light' : 'bg-accent-light'
           }`}
         >
           {isEditMode ? (
-            <svg className="w-4.5 h-4.5 stroke-[#4ec9b0] stroke-2" viewBox="0 0 24 24" fill="none">
+            <svg
+              className="w-4.5 h-4.5 stroke-status-connected stroke-2"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
               <circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 00-3-3.87" />
@@ -157,167 +188,46 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         </div>
         <div>
           <h2 className="text-base font-semibold text-text">
-            {isEditMode ? t('connection.editTitle') : t('connection.title')}
+            {isEditMode ? t('connectionDialog.editTitle') : t('connection.newConnection')}
           </h2>
-          <p className="text-xs text-text-muted">{isEditMode ? host : t('connection.subtitle')}</p>
+          <p className="text-xs text-text-muted">
+            {isEditMode ? host : t('connectionDialog.subtitle')}
+          </p>
         </div>
       </div>
 
       <form
         onSubmit={e => {
           e.preventDefault()
-          fireAndForget(handleSubmit(), 'Failed to submit connection')
+          void handleSubmit()
         }}
         className="flex flex-col gap-3.5"
       >
-        <div>
-          <label className="block text-xs font-medium text-text mb-1.5">
-            {t('connection.name')}
-          </label>
-          <Input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder={t('connection.namePlaceholder')}
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-text mb-1.5">
-            {t('connection.protocol')}
-          </label>
-          <Select
-            value={protocol}
-            onChange={handleProtocolChange}
-            options={[
-              { value: Protocol_SFTP, label: 'SFTP' },
-              { value: Protocol_WEBDAV, label: 'WebDAV' },
-            ]}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium text-text mb-1.5">
-              {t('connection.host')}
-            </label>
-            <Input
-              type="text"
-              value={host}
-              onChange={e => setHost(e.target.value)}
-              placeholder="192.168.1.100"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-text mb-1.5">
-              {t('connection.port')}
-            </label>
-            <Input
-              type="number"
-              value={port}
-              onChange={e => setPort(e.target.value)}
-              placeholder={protocol === Protocol_SFTP ? '22' : '443'}
-            />
-          </div>
-        </div>
-
-        {protocol === Protocol_WEBDAV && (
-          <>
-            <div>
-              <label className="block text-xs font-medium text-text mb-1.5">
-                {t('connection.scheme')}
-              </label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setScheme('http')}
-                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 ${
-                    scheme === 'http'
-                      ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
-                      : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
-                  }`}
-                >
-                  HTTP
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScheme('https')}
-                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 ${
-                    scheme === 'https'
-                      ? 'border border-accent bg-[rgba(59,130,246,0.1)] text-accent'
-                      : 'border border-[#c0c0c0] bg-transparent text-text hover:border-[#a0a0a0] hover:bg-[rgba(0,0,0,0.03)]'
-                  }`}
-                >
-                  HTTPS
-                </button>
-              </div>
-            </div>
-            {scheme === 'https' && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="rejectUnauthorized"
-                  checked={rejectUnauthorized}
-                  onChange={e => setRejectUnauthorized(e.target.checked)}
-                  className="w-4 h-4 rounded border-[#c0c0c0] text-accent focus:ring-accent focus:ring-offset-0"
-                />
-                <label htmlFor="rejectUnauthorized" className="text-sm text-text cursor-pointer">
-                  {t('connection.rejectUnauthorized')}
-                </label>
-              </div>
-            )}
-            <div>
-              <label className="block text-xs font-medium text-text mb-1.5">
-                {t('connection.basePath')}
-              </label>
-              <Input
-                type="text"
-                value={basePath}
-                onChange={e => setBasePath(e.target.value)}
-                placeholder="/dav/files"
-              />
-            </div>
-          </>
-        )}
-
-        <div>
-          <label className="block text-xs font-medium text-text mb-1.5">
-            {t('connection.username')}
-          </label>
-          <Input
-            type="text"
-            value={username}
-            onChange={e => setUsername(e.target.value)}
-            placeholder={t('connection.usernamePlaceholder')}
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-text mb-1.5">
-            {t('connection.password')}
-          </label>
-          <PasswordInput
-            value={password}
-            onChange={setPassword}
-            placeholder={t('connection.passwordPlaceholder')}
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="savePassword"
-            checked={savePassword}
-            onChange={e => setSavePassword(e.target.checked)}
-            className="w-4 h-4 rounded border-[#c0c0c0] text-accent focus:ring-accent focus:ring-offset-0"
-          />
-          <label htmlFor="savePassword" className="text-sm text-text cursor-pointer">
-            {t('connection.savePassword')}
-          </label>
-        </div>
+        <ConnectionFormFields
+          name={name}
+          onNameChange={setName}
+          protocol={protocol}
+          onProtocolChange={handleProtocolChange}
+          host={host}
+          onHostChange={setHost}
+          port={port}
+          onPortChange={setPort}
+          scheme={scheme}
+          onSchemeChange={setScheme}
+          rejectUnauthorized={rejectUnauthorized}
+          onRejectUnauthorizedChange={setRejectUnauthorized}
+          basePath={basePath}
+          onBasePathChange={setBasePath}
+          username={username}
+          onUsernameChange={setUsername}
+          password={password}
+          onPasswordChange={setPassword}
+          savePassword={savePassword}
+          onSavePasswordChange={setSavePassword}
+        />
 
         {error && (
-          <div className="flex items-center gap-1.5 px-3 py-2 bg-[rgba(241,76,76,0.1)] rounded-md text-danger text-xs">
+          <div className="flex items-center gap-1.5 px-3 py-2 bg-danger-light rounded-md text-danger text-xs">
             <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
@@ -329,24 +239,24 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
         <div className="flex justify-end gap-2.5 mt-1">
           <Button type="button" variant="secondary" onClick={onClose}>
-            {t('connection.cancel')}
+            {t('action.cancel')}
           </Button>
           <Button type="submit" variant="primary" isLoading={isLoading}>
-            {isLoading ? t('connection.connecting') : t('connection.save')}
+            {isLoading ? t('connectionDialog.connecting') : t('connectionDialog.save')}
           </Button>
         </div>
       </form>
 
-      <ConfirmDialog
+      <ConfirmationDialog
         open={showCertWarning}
         onClose={() => setShowCertWarning(false)}
         onConfirm={handleCertWarningConfirm}
         onCancel={handleCertWarningCancel}
-        title={t('connection.certWarningTitle')}
-        message={t('connection.certWarningMessage')}
+        title={t('connectionDialog.certWarningTitle')}
+        message={t('connectionDialog.certWarningMessage')}
         type="warning"
-        confirmText={t('connection.continue')}
-        cancelText={t('connection.cancel')}
+        confirmText={t('connectionDialog.continue')}
+        cancelText={t('action.cancel')}
       />
     </GlassDialog>
   )
