@@ -10,7 +10,7 @@ export const FileIcon: React.FC<FileIconProps> = ({ type, className = '' }) => {
 
   if (type === 'directory') {
     return (
-      <svg className={baseClasses} viewBox="0 0 24 24" stroke="none" fill="var(--warning, #FFB600)">
+      <svg className={baseClasses} viewBox="0 0 24 24" stroke="none" fill="var(--color-warning)">
         <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
       </svg>
     )
@@ -20,8 +20,8 @@ export const FileIcon: React.FC<FileIconProps> = ({ type, className = '' }) => {
     <svg
       className={baseClasses}
       viewBox="0 0 24 24"
-      fill="rgba(100, 149, 237, 0.85)"
-      stroke="rgba(64, 115, 195, 0.75)"
+      fill="var(--color-accent-light)"
+      stroke="var(--color-accent)"
       strokeWidth="1.5"
     >
       <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />

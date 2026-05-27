@@ -19,10 +19,19 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
   const [isDragging, setIsDragging] = useState(false)
   const [startPos, setStartPos] = useState({ mouseX: 0, mouseY: 0, dialogX: 0, dialogY: 0 })
   const [customPosition, setCustomPosition] = useState<{ x: number; y: number } | null>(null)
+  const [shouldRender, setShouldRender] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
     if (open) {
       setCustomPosition(null)
+      setShouldRender(true)
+      requestAnimationFrame(() => {
+        setIsVisible(true)
+      })
+    } else {
+      setIsVisible(false)
+      setShouldRender(false)
     }
   }, [open])
 
@@ -91,17 +100,25 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
     }
   }, [height, isDragging, startPos, width])
 
-  if (!open) return null
+  if (!shouldRender) return null
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 p-12">
+    <div
+      className={`fixed inset-0 flex items-center justify-center bg-black/30 z-50 p-12 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      onClick={e => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
       <div
         ref={dialogRef}
         className={`
           backdrop-blur-2xl rounded-xl p-6 max-w-full max-h-[calc(100vh-96px)]
           relative box-border overflow-y-auto overflow-x-hidden
-          bg-glass-bg border border-glass-border
-          shadow-[0_25px_50px_-12px_rgba(0,0,0,0.25),0_8px_32px_rgba(0,0,0,0.1),0_0_0_1px_rgba(255,255,255,0.2),inset_0_1px_0_rgba(255,255,255,0.3)]
+          bg-white/70 dark:bg-[#2a2a2b]/80
+          shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_4px_6px_-1px_rgba(0,0,0,0.05),0_10px_30px_-5px_rgba(0,0,0,0.12)]
+          dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_6px_-1px_rgba(0,0,0,0.3),0_10px_30px_-5px_rgba(0,0,0,0.5)]
+          transition-all duration-200 ease-out
+          ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'}
         `}
         onMouseDown={handleMouseDown}
         style={{

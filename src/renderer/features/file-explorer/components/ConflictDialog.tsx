@@ -4,6 +4,7 @@ import { type FileInfo } from '@shared/types/index.js'
 import GlassDialog from '@renderer/components/ui/GlassDialog.js'
 import Button from '@renderer/components/ui/Button.js'
 import RadioButton from '@renderer/components/ui/RadioButton.js'
+import { Checkbox } from '@renderer/components/ui/Checkbox.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
 import { logger } from '@renderer/utils/index.js'
 import { FILE_OPERATIONS } from '@shared/constants/index.js'
@@ -194,15 +195,11 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
         </div>
 
         <div className="flex justify-between items-center mt-4 pt-3 border-t border-border shrink-0">
-          <label className="flex items-center gap-2 text-xs text-text cursor-pointer">
-            <input
-              type="checkbox"
-              checked={applyToAll}
-              onChange={e => setApplyToAll(e.target.checked)}
-              className="w-3.5 h-3.5"
-            />
-            {t('file.conflict.applyToAll')}
-          </label>
+          <Checkbox
+            checked={applyToAll}
+            onChange={e => setApplyToAll(e.target.checked)}
+            label={t('file.conflict.applyToAll')}
+          />
 
           <div className="flex gap-2.5">
             <Button

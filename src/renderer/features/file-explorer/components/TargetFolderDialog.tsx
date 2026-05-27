@@ -247,37 +247,12 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
   return (
     <>
       <GlassDialog open={open} onClose={onClose} width={550} height={500}>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            height: '452px',
-            width: '100%',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '16px',
-              flexShrink: 0,
-            }}
-          >
-            <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>
-              {t('targetFolderDialog.title')}
-            </h2>
+        <div className="flex flex-col h-113 w-full overflow-hidden">
+          <div className="flex items-center justify-between mb-4 shrink-0">
+            <h2 className="text-base font-semibold text-text">{t('targetFolderDialog.title')}</h2>
             <button
               onClick={onClose}
-              style={{
-                padding: '4px',
-                borderRadius: '4px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-              }}
+              className="p-1 rounded bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors"
             >
               <svg
                 width="16"
@@ -320,18 +295,8 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
             )}
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: '12px',
-              paddingTop: '12px',
-              borderTop: '1px solid var(--border)',
-              flexShrink: 0,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border shrink-0">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setNewFolderDialogOpen(true)}
                 title={t('file.action.newFolder')}
@@ -348,17 +313,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
                 </svg>
               </button>
               <div
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--text-muted)',
-                  padding: '8px 12px',
-                  backgroundColor: 'var(--hover)',
-                  borderRadius: '4px',
-                  maxWidth: '250px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
+                className="text-xs text-text-muted px-3 py-2 bg-hover rounded max-w-60 overflow-hidden text-ellipsis whitespace-nowrap"
                 title={currentPath}
               >
                 {currentPath ?? '/'}

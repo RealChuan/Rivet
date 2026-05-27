@@ -148,11 +148,13 @@ export const useConnectionActions = () => {
           })
           if (success) {
             showConnectionToast('success', connection)
+            return
           }
-          return
+          // 连接失败，打开重连对话框让用户重新输入密码
         }
+        // 解密失败（HMAC 不匹配等），打开重连对话框
       } catch {
-        /* empty */
+        // 解密异常，打开重连对话框
       }
     }
     setReconnectConfig(connection)
@@ -183,6 +185,14 @@ export const useConnectionActions = () => {
 
       const success = await reconnectSession(reconnectConfig.id, passwordConfig)
       if (success) {
+        // 连接成功后更新连接配置并持久化到磁盘
+        const updatedConfig: ConnectionConfig = {
+          ...reconnectConfig,
+          savePassword: config.savePassword ?? false,
+          password: encryptedPassword ?? '',
+        }
+        updateConnection(updatedConfig)
+        await saveConnectionConfigs()
         showConnectionToast('success', reconnectConfig)
       }
     } catch (error) {

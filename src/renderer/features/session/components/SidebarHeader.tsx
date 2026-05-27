@@ -13,7 +13,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ onNewConnection })
       <div className="flex items-center gap-2.5 mb-3.5">
         <div
           className="w-7 h-7 rounded-md flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}
         >
           <svg
             width="14"

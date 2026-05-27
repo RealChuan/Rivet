@@ -68,12 +68,21 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
         onClick={onSelect}
         className={`
           mx-2 my-1 px-3 py-2.5 rounded-md cursor-pointer flex items-center gap-2.5
-          border border-border transition-all
-          ${isActive ? 'bg-selected' : 'bg-transparent hover:bg-hover'}
+          border border-input-border transition-all duration-150
+          ${
+            isActive
+              ? 'bg-selected border-l-2 border-l-accent shadow-[0_1px_3px_rgba(0,0,0,0.04)]'
+              : 'bg-transparent hover:bg-hover border-l border-l-input-border hover:shadow-[0_1px_3px_rgba(0,0,0,0.04)]'
+          }
         `}
       >
         <div className="flex items-center gap-2 shrink-0">
-          <div className={isConnected ? 'text-status-connected' : 'text-status-disconnected'}>
+          <div
+            className={`relative ${isConnected ? 'text-status-connected' : 'text-status-disconnected'}`}
+          >
+            {isConnected && (
+              <span className="absolute -inset-0.5 rounded-full bg-status-connected/20 animate-status-pulse" />
+            )}
             {isLoading ? (
               <svg
                 className="w-3.5 h-3.5 animate-spin stroke-current stroke-2"
@@ -140,7 +149,7 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
             <div className="fixed inset-0 z-50" onClick={() => setShowMenu(false)} />
             <div
               ref={menuRef}
-              className="fixed z-50 bg-bg border border-border rounded-md p-1 min-w-30 shadow-lg animate-fadeIn"
+              className="fixed z-50 bg-bg border border-border rounded-md p-1 min-w-30 shadow-[0_4px_12px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.03)] animate-menu-in"
               style={{
                 top: menuPosition.top,
                 right: menuPosition.right,

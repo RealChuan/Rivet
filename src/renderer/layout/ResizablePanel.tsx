@@ -33,7 +33,7 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({ sidebar, content
 
   return (
     <div className="flex-1 flex overflow-hidden">
-      <div className="shrink-0" style={{ width: sidebarWidth }}>
+      <div className="shrink-0 bg-sidebar-bg" style={{ width: sidebarWidth }}>
         {sidebar}
       </div>
 

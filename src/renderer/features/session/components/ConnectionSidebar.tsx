@@ -89,7 +89,7 @@ export const ConnectionSidebar: React.FC = () => {
   return (
     <>
       <div
-        className="h-full flex flex-col border-r border-border"
+        className="h-full flex flex-col"
         style={{ width: sidebarWidth, backgroundColor: 'var(--sidebar-bg)' }}
       >
         <SidebarHeader onNewConnection={handleNewConnection} />

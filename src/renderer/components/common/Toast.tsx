@@ -1,9 +1,27 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useUiStore } from '../../stores/ui.js'
 
 export const Toast: React.FC = () => {
   const toasts = useUiStore(state => state.toasts)
   const removeToast = useUiStore(state => state.removeToast)
+  const [visibleToasts, setVisibleToasts] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    const currentIds = new Set(toasts.map(t => t.id))
+    requestAnimationFrame(() => {
+      setVisibleToasts(prev => {
+        const next = new Set(prev)
+        let changed = false
+        for (const id of currentIds) {
+          if (!next.has(id)) {
+            next.add(id)
+            changed = true
+          }
+        }
+        return changed ? next : prev
+      })
+    })
+  }, [toasts])
 
   if (toasts.length === 0) return null
 
@@ -52,14 +70,17 @@ export const Toast: React.FC = () => {
     <div className="fixed bottom-5 right-5 z-100 flex flex-col gap-2">
       {toasts.map(toast => {
         const config = toastConfig[toast.type] || toastConfig.info
+        const isVisible = visibleToasts.has(toast.id)
         return (
           <div
             key={toast.id}
             className={`
               px-4 py-3 rounded-lg flex items-center gap-2.5
-              min-w-70 animate-fadeIn ${config.bgClass}
-              shadow-lg dark:shadow-xl
-              dark:shadow-black/30
+              min-w-70 ${config.bgClass}
+              shadow-[0_8px_24px_-4px_rgba(0,0,0,0.15)]
+              dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.4)]
+              transition-all duration-150 ease-out
+              ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-[0.96]'}
             `}
           >
             {config.icon}
@@ -68,7 +89,7 @@ export const Toast: React.FC = () => {
               onClick={() => removeToast(toast.id)}
               className={`
                 p-0.5 rounded bg-transparent border-none cursor-pointer
-                text-white/80 hover:text-white transition-colors
+                text-white/70 hover:text-white transition-colors
                 hover:bg-white/10
               `}
             >

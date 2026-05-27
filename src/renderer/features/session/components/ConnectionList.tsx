@@ -69,10 +69,10 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
 
   if (connections.length === 0) {
     return (
-      <div className="px-4 py-6 text-center h-full flex flex-col items-center justify-center">
-        <div className="w-12 h-12 mb-3 rounded-full bg-hover flex items-center justify-center">
+      <div className="px-4 py-6 text-center h-full flex flex-col items-center justify-center gap-2">
+        <div className="w-10 h-10 rounded-lg bg-hover flex items-center justify-center">
           <svg
-            className="w-5 h-5 stroke-text-muted"
+            className="w-4 h-4 stroke-text-muted/60"
             viewBox="0 0 24 24"
             fill="none"
             strokeWidth="1.5"
@@ -80,8 +80,10 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
             <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
         </div>
-        <p className="text-xs text-text-muted mb-1">{t('connection.noConnections')}</p>
-        <p className="text-xs text-text-muted">{t('connection.newConnectionHint')}</p>
+        <div>
+          <p className="text-xs text-text-muted">{t('connection.noConnections')}</p>
+          <p className="text-xs text-text-muted opacity-70">{t('connection.newConnectionHint')}</p>
+        </div>
       </div>
     )
   }

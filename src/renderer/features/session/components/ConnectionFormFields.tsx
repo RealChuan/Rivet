@@ -12,6 +12,7 @@ import {
 import PasswordInput from '@renderer/components/ui/PasswordInput.js'
 import Select from '@renderer/components/ui/Select.js'
 import Input from '@renderer/components/ui/Input.js'
+import { Checkbox } from '@renderer/components/ui/Checkbox.js'
 
 export interface ConnectionFormFieldsProps {
   name: string
@@ -146,12 +147,10 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
           </div>
           {scheme === SCHEME_HTTPS && (
             <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 id="rejectUnauthorized"
                 checked={rejectUnauthorized}
                 onChange={e => onRejectUnauthorizedChange(e.target.checked)}
-                className="w-4 h-4 rounded border-input-border text-accent focus:ring-accent focus:ring-offset-0"
               />
               <label htmlFor="rejectUnauthorized" className="text-sm text-text cursor-pointer">
                 {t('connectionDialog.rejectUnauthorized')}
@@ -196,12 +195,10 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
       </div>
 
       <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
+        <Checkbox
           id="savePassword"
           checked={savePassword}
           onChange={e => onSavePasswordChange(e.target.checked)}
-          className="w-4 h-4 rounded border-input-border text-accent focus:ring-accent focus:ring-offset-0"
         />
         <label htmlFor="savePassword" className="text-sm text-text cursor-pointer">
           {t('connectionDialog.savePassword')}

@@ -175,11 +175,13 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
 
   if (!session) return null
 
-  if (session.isLoading) {
+  // 首次加载（无旧数据）→ 骨架屏
+  if (session.isLoading && files.length === 0) {
     return <FileExplorerListLoading />
   }
 
-  if (session.error) {
+  // 有错误且无旧数据 → 错误状态
+  if (session.error && files.length === 0) {
     return (
       <FileExplorerListError
         error={session.error}
@@ -204,6 +206,12 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
 
   return (
     <div className="flex flex-col h-full" style={{ width: '100%' }}>
+      {/* 加载进度条 — 刷新/切换目录时保留旧数据，顶部显示进度条 */}
+      {session.isLoading && files.length > 0 && (
+        <div className="h-0.5 bg-accent/10 shrink-0 overflow-hidden">
+          <div className="h-full bg-accent animate-[loading-bar_1.5s_ease-in-out_infinite]" />
+        </div>
+      )}
       <div
         ref={containerRef}
         className="flex-1 min-h-10 relative overflow-auto"

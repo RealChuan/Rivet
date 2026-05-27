@@ -155,8 +155,8 @@ describe('FileExplorerList', () => {
 
   it('should show loading state', () => {
     mockSessionStore.sessions = [makeSession({ isLoading: true })]
-    render(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
-    expect(screen.getByText('fileExplorerList.loading')).not.toBeNull()
+    const { container } = render(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
+    expect(container.querySelectorAll('.animate-skeleton-shimmer').length).toBe(8)
   })
 
   it('should show error state', () => {

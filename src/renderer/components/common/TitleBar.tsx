@@ -174,7 +174,7 @@ export function TitleBar({ childMode = false, centerContent, leftContent, title 
   const AppLogo = () => (
     <div
       className="w-5 h-5 rounded-md flex items-center justify-center"
-      style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)' }}
+      style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}
     >
       <svg
         width="10"
@@ -231,6 +231,7 @@ export function TitleBar({ childMode = false, centerContent, leftContent, title 
               onClick={handleMinimize}
               className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus:outline-none cursor-default"
               aria-label={t('titleBar.minimize')}
+              title={t('titleBar.minimize')}
               type="button"
             >
               <IconMinus />
@@ -240,6 +241,7 @@ export function TitleBar({ childMode = false, centerContent, leftContent, title 
               onClick={handleMaximize}
               className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus:outline-none cursor-default"
               aria-label={isMaximized ? t('titleBar.restore') : t('titleBar.maximize')}
+              title={isMaximized ? t('titleBar.restore') : t('titleBar.maximize')}
               type="button"
             >
               {isMaximized ? <IconMaximize2 /> : <IconSquare />}
@@ -251,6 +253,7 @@ export function TitleBar({ childMode = false, centerContent, leftContent, title 
           onClick={handleClose}
           className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-danger hover:text-white transition-colors duration-150 focus:outline-none cursor-default"
           aria-label={t('titleBar.close')}
+          title={t('titleBar.close')}
           type="button"
         >
           <IconX />

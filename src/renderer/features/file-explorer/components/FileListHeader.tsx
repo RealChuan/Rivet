@@ -98,7 +98,7 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
   return (
     <div
       data-file-list-header
-      className="flex items-center h-8 border-b border-border bg-hover shrink-0 select-none"
+      className="flex items-center h-8 border-b border-border bg-sidebar-bg shrink-0 select-none"
     >
       <ColumnHeader column="name" label={t('fileExplorerList.name')} isFirst />
       {!isWebdav && (

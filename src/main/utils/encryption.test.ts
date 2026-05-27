@@ -16,11 +16,11 @@ describe('encryption utilities', () => {
   })
 
   describe('encryptPassword', () => {
-    it('should return null when safeStorage is unavailable', () => {
+    it('should return error when safeStorage is unavailable', () => {
       vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(false)
       const result = encryptPassword('test-password')
-      expect(result.success).toBe(true)
-      expect(result.value).toBeNull()
+      expect(result.success).toBe(false)
+      expect(result.error?.code).toBe('ENCRYPT_UNAVAILABLE')
     })
 
     it('should encrypt password with safe: prefix when safeStorage is available', () => {
@@ -45,41 +45,38 @@ describe('encryption utilities', () => {
   })
 
   describe('decryptPassword', () => {
-    it('should return null for non-safe: prefix data (old format)', () => {
+    it('should return error for non-safe: prefix data (old format)', () => {
       const result = decryptPassword('fallback:someolddata')
-      expect(result.success).toBe(true)
-      expect(result.value).toBeNull()
+      expect(result.success).toBe(false)
+      expect(result.error?.code).toBe('DECRYPT_FORMAT_ERROR')
     })
 
-    it('should return null for bare base64 data (legacy format)', () => {
+    it('should return error for bare base64 data (legacy format)', () => {
       const result = decryptPassword('c29tZWJhc2U2NGRhdGE=')
-      expect(result.success).toBe(true)
-      expect(result.value).toBeNull()
+      expect(result.success).toBe(false)
+      expect(result.error?.code).toBe('DECRYPT_FORMAT_ERROR')
     })
 
-    it('should return null when safeStorage is unavailable for safe: prefix data', () => {
+    it('should return error when safeStorage is unavailable for safe: prefix data', () => {
       vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(false)
       const result = decryptPassword('safe:test-data')
-      expect(result.success).toBe(true)
-      expect(result.value).toBeNull()
+      expect(result.success).toBe(false)
+      expect(result.error?.code).toBe('DECRYPT_UNAVAILABLE')
     })
 
-    it('should return null when HMAC verification fails (tampered data)', () => {
+    it('should return error when HMAC verification fails (tampered data)', () => {
       vi.mocked(safeStorage.isEncryptionAvailable).mockReturnValue(true)
       vi.mocked(safeStorage.encryptString).mockReturnValue(Buffer.from('encrypted-data'))
 
       const encrypted = encryptPassword('test-password')
       expect(encrypted.success).toBe(true)
-      const encryptedValue = encrypted.value
-      if (encryptedValue === null) {
-        throw new Error('Expected encrypted value to be non-null')
-      }
+      if (encrypted.value === null) throw new Error('Expected encrypted value to be non-null')
 
       // Tamper with the HMAC by flipping a character
-      const tampered = encryptedValue.slice(0, 10) + 'x' + encryptedValue.slice(11)
+      const tampered = encrypted.value.slice(0, 10) + 'x' + encrypted.value.slice(11)
       const result = decryptPassword(tampered)
-      expect(result.success).toBe(true)
-      expect(result.value).toBeNull()
+      expect(result.success).toBe(false)
+      expect(result.error?.code).toBe('HMAC_MISMATCH')
     })
 
     it('should decrypt password encrypted with safeStorage', () => {
@@ -89,12 +86,9 @@ describe('encryption utilities', () => {
 
       const encrypted = encryptPassword('test-password')
       expect(encrypted.success).toBe(true)
-      const encryptedValue = encrypted.value
-      if (encryptedValue === null) {
-        throw new Error('Expected encrypted value to be non-null')
-      }
+      if (encrypted.value === null) throw new Error('Expected encrypted value to be non-null')
 
-      const decrypted = decryptPassword(encryptedValue)
+      const decrypted = decryptPassword(encrypted.value)
       expect(decrypted.success).toBe(true)
       expect(decrypted.value).toBe('test-password')
     })

@@ -59,9 +59,9 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
   const modifyTimeContent = formatDate(file.modifyTime ?? 0, lng)
 
   const getBgColor = () => {
-    if (isSelected || isPending) return 'bg-selected'
-    if (isHovered) return 'bg-hover'
-    return 'bg-transparent'
+    if (isSelected || isPending) return 'bg-selected border-l border-l-accent'
+    if (isHovered) return 'bg-hover border-l border-l-border'
+    return 'bg-transparent border-l border-l-border'
   }
 
   const getTextColor = () => {
@@ -75,7 +75,7 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
       className={`
         flex items-center h-10 cursor-pointer
         border-b border-border min-w-full box-border
-        relative select-none transition-all duration-100
+        relative select-none transition-all duration-150
         ${getBgColor()} ${getTextColor()}
       `}
       style={{ ...style, minWidth: totalWidth }}

@@ -92,7 +92,7 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
           ref={listRef}
           className={`
             absolute top-full left-0 right-0 z-100 bg-bg border border-border
-            rounded-md shadow-lg list-none max-h-50 overflow-y-auto p-1 box-border mt-1
+            rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.03)] list-none max-h-50 overflow-y-auto p-1 box-border mt-1
           `}
         >
           {options.map((option, index) => (

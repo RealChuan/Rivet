@@ -44,6 +44,7 @@ export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
       </button>
       {pathParts.map((part, index) => {
         const fullPath = '/' + pathParts.slice(0, index + 1).join('/')
+        const isLast = index === pathParts.length - 1
 
         return (
           <React.Fragment key={fullPath}>
@@ -58,8 +59,12 @@ export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
               onClick={() => void handleNavigate(fullPath)}
               className={`
                 px-2 py-1 rounded bg-transparent border-none cursor-pointer
-                whitespace-nowrap text-text/70 font-normal
-                hover:bg-hover hover:text-text transition-colors
+                whitespace-nowrap transition-colors
+                ${
+                  isLast
+                    ? 'text-text font-medium'
+                    : 'text-text-muted font-normal hover:bg-hover hover:text-text'
+                }
               `}
             >
               <span className="max-w-40 overflow-hidden text-ellipsis">{part}</span>
