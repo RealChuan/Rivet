@@ -1,8 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { PROTOCOL } from '@shared/constants/index.js'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'
-import { PROTOCOL_SFTP } from '@shared/constants/index.js'
 
 interface ConnectionItemProps {
   connection: ConnectionConfig
@@ -50,7 +50,7 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
   }, [showMenu])
 
   const protocolIcon =
-    connection.protocol === PROTOCOL_SFTP ? (
+    connection.protocol === PROTOCOL.SFTP ? (
       <svg className="w-3.5 h-3.5 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
         <path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
@@ -111,7 +111,7 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
             className={`
               text-xs px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-[0.5px]
               ${
-                connection.protocol === PROTOCOL_SFTP
+                connection.protocol === PROTOCOL.SFTP
                   ? 'text-accent bg-accent-light'
                   : 'text-protocol-webdav bg-protocol-webdav-light'
               }
@@ -122,7 +122,7 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
         </div>
         <div className="flex-1 min-w-0">
           <div className={`text-sm font-medium truncate ${isActive ? 'text-accent' : 'text-text'}`}>
-            {connection.name || connection.host}
+            {connection.name ?? connection.host}
           </div>
           <div className="text-xs text-text-muted truncate">{connection.host}</div>
         </div>

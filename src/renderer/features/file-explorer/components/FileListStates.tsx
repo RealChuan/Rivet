@@ -1,5 +1,7 @@
-import React from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
+
+const SKELETON_WIDTHS = [92, 88, 95, 85, 90, 87, 93, 86]
 
 export const FileExplorerListLoading: React.FC = () => {
   return (
@@ -9,7 +11,7 @@ export const FileExplorerListLoading: React.FC = () => {
           key={i}
           className="h-8 rounded-md animate-skeleton-shimmer"
           style={{
-            width: `${85 + Math.random() * 15}%`,
+            width: `${SKELETON_WIDTHS[i]}%`,
             background: `linear-gradient(90deg, var(--color-hover) 25%, var(--color-subtle-hover) 37%, var(--color-hover) 63%)`,
             backgroundSize: '200% 100%',
           }}

@@ -1,5 +1,6 @@
 import React from 'react'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
+import { ROOT_PATH } from '@shared/constants/index.js'
 
 interface FileExplorerBreadcrumbProps {
   path: string
@@ -29,7 +30,7 @@ export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
   return (
     <nav className="flex items-center gap-1 text-sm overflow-x-auto flex-1">
       <button
-        onClick={() => void handleNavigate('/')}
+        onClick={() => void handleNavigate(ROOT_PATH)}
         className={`
           flex items-center gap-1 px-2 py-1 rounded text-text
           bg-transparent border-none cursor-pointer whitespace-nowrap font-medium

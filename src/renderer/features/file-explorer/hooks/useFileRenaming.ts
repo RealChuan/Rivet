@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { useUiStore } from '@renderer/stores/index.js'
+import { TOAST_TYPE } from '@shared/constants/index.js'
 import { type FileInfo, isProtocolResponseErr } from '@shared/types/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
-import { TOAST_TYPE } from '@shared/constants/index.js'
 
 interface UseFileRenamingReturn {
   handleRename: (file: FileInfo, newName: string) => Promise<void>

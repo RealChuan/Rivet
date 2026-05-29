@@ -1,18 +1,17 @@
-import React from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  type ProtocolType,
-  PROTOCOL_SFTP,
-  PROTOCOL_WEBDAV,
-  PORT_SFTP,
-  PORT_WEBDAV_HTTPS,
-  SCHEME_HTTP,
-  SCHEME_HTTPS,
-} from '@shared/constants/index.js'
+import { Checkbox } from '@renderer/components/ui/Checkbox.js'
+import Input from '@renderer/components/ui/Input.js'
 import PasswordInput from '@renderer/components/ui/PasswordInput.js'
 import Select from '@renderer/components/ui/Select.js'
-import Input from '@renderer/components/ui/Input.js'
-import { Checkbox } from '@renderer/components/ui/Checkbox.js'
+import {
+  PORT_SFTP,
+  PORT_WEBDAV_HTTPS,
+  PROTOCOL,
+  type ProtocolType,
+  SCHEME,
+  type SchemeType,
+} from '@shared/constants/index.js'
 
 export interface ConnectionFormFieldsProps {
   name: string
@@ -23,8 +22,8 @@ export interface ConnectionFormFieldsProps {
   onHostChange: (value: string) => void
   port: string
   onPortChange: (value: string) => void
-  scheme: 'http' | 'https'
-  onSchemeChange: (value: 'http' | 'https') => void
+  scheme: SchemeType
+  onSchemeChange: (value: SchemeType) => void
   rejectUnauthorized: boolean
   onRejectUnauthorizedChange: (value: boolean) => void
   basePath: string
@@ -83,8 +82,8 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
           value={protocol}
           onChange={onProtocolChange}
           options={[
-            { value: PROTOCOL_SFTP, label: 'SFTP' },
-            { value: PROTOCOL_WEBDAV, label: 'WebDAV' },
+            { value: PROTOCOL.SFTP, label: 'SFTP' },
+            { value: PROTOCOL.WEBDAV, label: 'WebDAV' },
           ]}
         />
       </div>
@@ -109,12 +108,12 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
             type="number"
             value={port}
             onChange={e => onPortChange(e.target.value)}
-            placeholder={protocol === PROTOCOL_SFTP ? String(PORT_SFTP) : String(PORT_WEBDAV_HTTPS)}
+            placeholder={protocol === PROTOCOL.SFTP ? String(PORT_SFTP) : String(PORT_WEBDAV_HTTPS)}
           />
         </div>
       </div>
 
-      {protocol === PROTOCOL_WEBDAV && (
+      {protocol === PROTOCOL.WEBDAV && (
         <>
           <div>
             <label className="block text-xs font-medium text-text mb-1.5">
@@ -123,9 +122,9 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => onSchemeChange(SCHEME_HTTP)}
+                onClick={() => onSchemeChange(SCHEME.HTTP)}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 ${
-                  scheme === SCHEME_HTTP
+                  scheme === SCHEME.HTTP
                     ? 'border border-accent bg-accent-light text-accent'
                     : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg'
                 }`}
@@ -134,9 +133,9 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => onSchemeChange(SCHEME_HTTPS)}
+                onClick={() => onSchemeChange(SCHEME.HTTPS)}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 ${
-                  scheme === SCHEME_HTTPS
+                  scheme === SCHEME.HTTPS
                     ? 'border border-accent bg-accent-light text-accent'
                     : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg'
                 }`}
@@ -145,7 +144,7 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
               </button>
             </div>
           </div>
-          {scheme === SCHEME_HTTPS && (
+          {scheme === SCHEME.HTTPS && (
             <div className="flex items-center gap-2">
               <Checkbox
                 id="rejectUnauthorized"

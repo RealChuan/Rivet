@@ -1,7 +1,8 @@
-import React from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
-import { useHostKeyStore } from '../stores/host-key.js'
 import { ConfirmationDialog } from '@renderer/components/common/ConfirmationDialog.js'
+import { HOST_KEY_DIALOG_TYPE } from '@shared/constants/index.js'
+import { useHostKeyStore } from '../stores/host-key.js'
 import { HostKeyNotification } from './HostKeyNotification.js'
 
 export const HostKeyVerificationDialog: React.FC = () => {
@@ -25,7 +26,7 @@ export const HostKeyVerificationDialog: React.FC = () => {
 
   if (!hostKeyDialog.open) return null
 
-  const isMismatch = hostKeyDialog.type === 'mismatch'
+  const isMismatch = hostKeyDialog.type === HOST_KEY_DIALOG_TYPE.MISMATCH
 
   return (
     <ConfirmationDialog

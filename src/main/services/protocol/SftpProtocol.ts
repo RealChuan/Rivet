@@ -1,85 +1,69 @@
 import Client from 'ssh2-sftp-client'
-import {
-  type ConnectionConfig,
-  type FileInfo,
-  type SftpConnectDetail,
-  type OperationResult,
-} from '@shared/types/index.js'
 import { generateSessionId, logger } from '@main/utils/index.js'
 import {
-  type StatusCode,
+  ERROR_CODE,
+  FILE_TYPE,
+  PROTOCOL,
   ProtocolStatus,
   SftpStatus,
-  PROTOCOL_SFTP,
+  type StatusCode,
+  TIMEOUTS,
 } from '@shared/constants/index.js'
-import { TIMEOUTS } from '@shared/constants/timeouts.js'
-import { AbstractProtocol, type SessionInfo } from './abstract-protocol.js'
-import { sessionManager } from '../session-manager.js'
-import { getHostKeyRecord } from '../../stores/index.js'
-import { type Result, ok, err, type ErrorInfo, createErrorInfo } from '@shared/types/result.js'
-import { joinPaths, formatErrorMessage } from '@shared/utils/index.js'
+import {
+  type ConnectionConfig,
+  createErrorInfo,
+  err,
+  type ErrorInfo,
+  type FileInfo,
+  ok,
+  type OperationResult,
+  type Result,
+  type SftpConnectDetail,
+} from '@shared/types/index.js'
+import { formatErrorMessage, joinPaths } from '@shared/utils/index.js'
+import { sessionRegistry } from '../session-registry.js'
+import { AbstractProtocol, type HostVerifier, type SessionInfo } from './abstract-protocol.js'
 
 export class SftpProtocol extends AbstractProtocol<Client> {
-  readonly protocolType = 'sftp' as const
+  readonly protocolType = PROTOCOL.SFTP
 
   protected getSessionInfo(sessionId: string): SessionInfo | null {
-    const handle = sessionManager.get<Client>(sessionId)
+    const handle = sessionRegistry.get<Client>(sessionId)
     if (!handle) return null
     return {
       client: handle.client,
       basePath: handle.config.basePath ?? '',
-      isClosing: handle._closing ?? false,
+      isClosing: handle.isClosing ?? false,
     }
   }
 
   protected setSessionClosing(sessionId: string): void {
-    sessionManager.setClosing(sessionId)
+    sessionRegistry.setClosing(sessionId)
   }
 
-  private createHostVerifier(config: ConnectionConfig): {
-    verifier: (hashedKey: string) => boolean
-    getResult: () => { detail: SftpConnectDetail | null; status: StatusCode | null }
-  } {
+  async connect(
+    config: ConnectionConfig,
+    password: string,
+    hostVerifier?: HostVerifier
+  ): Promise<Result<OperationResult, ErrorInfo>> {
+    const client = new Client()
+    const sessionId = generateSessionId(PROTOCOL.SFTP)
+
     let capturedDetail: SftpConnectDetail | null = null
     let capturedStatus: StatusCode | null = null
 
     const verifier = (hashedKey: string): boolean => {
-      const hostKeyResult = getHostKeyRecord(config.id)
-      const hostKey = hostKeyResult.success ? hostKeyResult.value : undefined
-
-      if (!hostKey) {
-        capturedDetail = { hash: hashedKey }
-        capturedStatus = ProtocolStatus.FIRST_CONNECT
-        return true
-      }
-
-      if (hostKey.hash === hashedKey) {
+      if (!hostVerifier) {
         capturedDetail = { hash: hashedKey }
         capturedStatus = ProtocolStatus.OK
         return true
       }
 
-      capturedDetail = {
-        hash: hashedKey,
-        previousHash: hostKey.hash,
-      }
-      capturedStatus = SftpStatus.HOST_KEY_MISMATCH
-      return false
+      const result = hostVerifier(hashedKey)
+      capturedDetail = result.detail
+      capturedStatus = result.status
+      return result.status !== SftpStatus.HOST_KEY_MISMATCH
     }
-
-    return {
-      verifier,
-      getResult: () => ({ detail: capturedDetail, status: capturedStatus }),
-    }
-  }
-
-  async connect(
-    config: ConnectionConfig,
-    password: string
-  ): Promise<Result<OperationResult, ErrorInfo>> {
-    const client = new Client()
-    const sessionId = generateSessionId(PROTOCOL_SFTP)
-    const { verifier, getResult } = this.createHostVerifier(config)
 
     try {
       await client.connect({
@@ -92,23 +76,20 @@ export class SftpProtocol extends AbstractProtocol<Client> {
         hostVerifier: verifier,
       })
 
-      const { detail, status } = getResult()
-      const connectDetail: SftpConnectDetail = detail ?? { hash: '' }
-      sessionManager.register(sessionId, client, config, PROTOCOL_SFTP)
+      const connectDetail: SftpConnectDetail = capturedDetail ?? { hash: '' }
+      sessionRegistry.register(sessionId, client, config, PROTOCOL.SFTP)
 
       return ok({
         sessionId,
-        statusCode: status ?? ProtocolStatus.OK,
+        statusCode: capturedStatus ?? ProtocolStatus.OK,
         detail: connectDetail,
       })
     } catch (e) {
-      const { detail, status } = getResult()
-
-      if (status === SftpStatus.HOST_KEY_MISMATCH && detail) {
+      if (capturedStatus === SftpStatus.HOST_KEY_MISMATCH && capturedDetail) {
         return ok({
           sessionId: '',
-          statusCode: status,
-          detail,
+          statusCode: capturedStatus,
+          detail: capturedDetail,
         })
       }
 
@@ -119,7 +100,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       }
 
       logger.catch(e, { configId: config.id })
-      return err(createErrorInfo('CONN_FAILED', formatErrorMessage(e)))
+      return err(createErrorInfo(ERROR_CODE.CONN_FAILED, formatErrorMessage(e)))
     }
   }
 
@@ -134,7 +115,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     } catch (e) {
       logger.catch(e, { sessionId, action: 'disconnect' })
     } finally {
-      sessionManager.unregister(sessionId)
+      sessionRegistry.unregister(sessionId)
     }
 
     return ok(undefined)
@@ -178,7 +159,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
 
         const itemName = typeof item.name === 'string' ? item.name : ''
         const absolutePath = joinPaths(path, itemName)
-        const fileType: 'directory' | 'file' = item.type === 'd' ? 'directory' : 'file'
+        const fileType = item.type === 'd' ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE
         return {
           name: itemName,
           type: fileType,
@@ -192,7 +173,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
 
       return ok(result)
     } catch (e) {
-      return err(createErrorInfo('LIST_ERROR', formatErrorMessage(e)))
+      return err(createErrorInfo(ERROR_CODE.LIST_ERROR, formatErrorMessage(e)))
     }
   }
 
@@ -205,7 +186,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       await client.mkdir(path, true)
       return ok(undefined)
     } catch (e) {
-      return err(createErrorInfo('MKDIR_ERROR', formatErrorMessage(e)))
+      return err(createErrorInfo(ERROR_CODE.MKDIR_ERROR, formatErrorMessage(e)))
     }
   }
 
@@ -219,7 +200,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       await client.rename(oldPath, newPath)
       return ok(undefined)
     } catch (e) {
-      return err(createErrorInfo('RENAME_ERROR', formatErrorMessage(e)))
+      return err(createErrorInfo(ERROR_CODE.RENAME_ERROR, formatErrorMessage(e)))
     }
   }
 
@@ -237,7 +218,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       }
       return ok(undefined)
     } catch (e) {
-      return err(createErrorInfo('DELETE_ERROR', formatErrorMessage(e)))
+      return err(createErrorInfo(ERROR_CODE.DELETE_ERROR, formatErrorMessage(e)))
     }
   }
 
@@ -256,7 +237,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       }
       return ok(undefined)
     } catch (e) {
-      return err(createErrorInfo('COPY_ERROR', formatErrorMessage(e)))
+      return err(createErrorInfo(ERROR_CODE.COPY_ERROR, formatErrorMessage(e)))
     }
   }
 
@@ -299,7 +280,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       await client.rename(sourcePath, targetPath)
       return ok(undefined)
     } catch (e) {
-      return err(createErrorInfo('MOVE_ERROR', formatErrorMessage(e)))
+      return err(createErrorInfo(ERROR_CODE.MOVE_ERROR, formatErrorMessage(e)))
     }
   }
 
@@ -308,7 +289,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       await client.stat('/')
       return ok(undefined)
     } catch (e) {
-      return err(createErrorInfo('PING_ERROR', formatErrorMessage(e)))
+      return err(createErrorInfo(ERROR_CODE.PING_ERROR, formatErrorMessage(e)))
     }
   }
 }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method -- vitest expect() 需要分离方法引用 */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { safeStorage } from 'electron'
-import { encryptPassword, decryptPassword } from './encryption.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { decryptPassword, encryptPassword } from './encryption.js'
 
 vi.mock('./index', () => ({
   logger: {

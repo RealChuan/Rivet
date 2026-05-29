@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
-import { saveHostKeyRecord, removeHostKeyRecord } from '../stores/known-hosts.js'
+import { removeHostKeyRecord, saveHostKeyRecord } from '../stores/known-hosts.js'
 
 export function setupHostKeyIpcHandlers(): void {
   ipcMain.handle(

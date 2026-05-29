@@ -1,7 +1,6 @@
 import { ipcRenderer } from 'electron'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
-import type { Result, ErrorInfo } from '@shared/types/result.js'
-import type { StoreKey } from '@shared/constants/config.js'
+import type { ErrorInfo, Result } from '@shared/types/index.js'
+import { IPC_CHANNELS, type StoreKey } from '@shared/constants/index.js'
 
 export const configAPI = {
   get: (key: StoreKey) =>

@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron'
+import type { ErrorInfo, Result } from '@shared/types/index.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
-import type { Result, ErrorInfo } from '@shared/types/result.js'
 
 export const dialogAPI = {
   showOpenDialog: (options: { properties: string[] }) =>

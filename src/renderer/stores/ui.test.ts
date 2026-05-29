@@ -1,11 +1,15 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  DEFAULT_LANGUAGE,
+  DEFAULT_THEME_VALUE,
+  SORT_ORDER,
+  STORE_KEY,
+  SUPPORTED_LANGUAGE,
+  THEME,
+  TIMEOUTS,
+  TOAST_TYPE,
+} from '@shared/constants/index.js'
 import { useUiStore } from './ui.js'
-import { TOAST_TYPE } from '@shared/constants/toast-types.js'
-import { SORT_ORDER_NONE } from '@shared/constants/sort.js'
-import { STORE_KEYS } from '@shared/constants/config.js'
-import { TIMEOUTS } from '@shared/constants/timeouts.js'
-import { DEFAULT_THEME_VALUE } from '@shared/constants/theme.js'
-import { DEFAULT_LANGUAGE } from '@shared/constants/i18n.js'
 
 const mockConfigSet = vi.fn()
 
@@ -25,7 +29,7 @@ describe('useUiStore', () => {
     useUiStore.setState({
       appearance: DEFAULT_THEME_VALUE,
       locale: DEFAULT_LANGUAGE,
-      connectionSortOrder: SORT_ORDER_NONE,
+      connectionSortOrder: SORT_ORDER.NONE,
       sidebarWidth: 260,
       queueDrawerOpen: false,
       queueDrawerWidth: 360,
@@ -48,7 +52,7 @@ describe('useUiStore', () => {
     })
 
     it('should have default connectionSortOrder', () => {
-      expect(useUiStore.getState().connectionSortOrder).toBe(SORT_ORDER_NONE)
+      expect(useUiStore.getState().connectionSortOrder).toBe(SORT_ORDER.NONE)
     })
 
     it('should have default sidebarWidth of 260', () => {
@@ -74,58 +78,58 @@ describe('useUiStore', () => {
 
   describe('setAppearance', () => {
     it('should update appearance in state', () => {
-      useUiStore.getState().setAppearance('dark')
+      useUiStore.getState().setAppearance(THEME.DARK)
 
-      expect(useUiStore.getState().appearance).toBe('dark')
+      expect(useUiStore.getState().appearance).toBe(THEME.DARK)
     })
 
     it('should persist appearance via config.set', () => {
-      useUiStore.getState().setAppearance('light')
+      useUiStore.getState().setAppearance(THEME.LIGHT)
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEYS.UI_SETTINGS, {
-        appearance: 'light',
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
+        appearance: THEME.LIGHT,
         locale: DEFAULT_LANGUAGE,
-        connectionSortOrder: SORT_ORDER_NONE,
+        connectionSortOrder: SORT_ORDER.NONE,
       })
     })
 
     it('should include current locale and connectionSortOrder when persisting', () => {
-      useUiStore.setState({ locale: 'zh-CN', connectionSortOrder: 'asc' })
-      useUiStore.getState().setAppearance('dark')
+      useUiStore.setState({ locale: SUPPORTED_LANGUAGE.ZH_CN, connectionSortOrder: SORT_ORDER.ASC })
+      useUiStore.getState().setAppearance(THEME.DARK)
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEYS.UI_SETTINGS, {
-        appearance: 'dark',
-        locale: 'zh-CN',
-        connectionSortOrder: 'asc',
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
+        appearance: THEME.DARK,
+        locale: SUPPORTED_LANGUAGE.ZH_CN,
+        connectionSortOrder: SORT_ORDER.ASC,
       })
     })
   })
 
   describe('setLocale', () => {
     it('should update locale in state', () => {
-      useUiStore.getState().setLocale('zh-CN')
+      useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN)
 
-      expect(useUiStore.getState().locale).toBe('zh-CN')
+      expect(useUiStore.getState().locale).toBe(SUPPORTED_LANGUAGE.ZH_CN)
     })
 
     it('should persist locale via config.set', () => {
-      useUiStore.getState().setLocale('zh-CN')
+      useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN)
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEYS.UI_SETTINGS, {
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
         appearance: DEFAULT_THEME_VALUE,
-        locale: 'zh-CN',
-        connectionSortOrder: SORT_ORDER_NONE,
+        locale: SUPPORTED_LANGUAGE.ZH_CN,
+        connectionSortOrder: SORT_ORDER.NONE,
       })
     })
 
     it('should include current appearance and connectionSortOrder when persisting', () => {
-      useUiStore.setState({ appearance: 'dark', connectionSortOrder: 'desc' })
-      useUiStore.getState().setLocale('zh-CN')
+      useUiStore.setState({ appearance: THEME.DARK, connectionSortOrder: SORT_ORDER.DESC })
+      useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN)
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEYS.UI_SETTINGS, {
-        appearance: 'dark',
-        locale: 'zh-CN',
-        connectionSortOrder: 'desc',
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
+        appearance: THEME.DARK,
+        locale: SUPPORTED_LANGUAGE.ZH_CN,
+        connectionSortOrder: SORT_ORDER.DESC,
       })
     })
   })
@@ -144,52 +148,17 @@ describe('useUiStore', () => {
     })
   })
 
-  describe('setQueueDrawerOpen', () => {
-    it('should update queueDrawerOpen to true', () => {
-      useUiStore.getState().setQueueDrawerOpen(true)
-
-      expect(useUiStore.getState().queueDrawerOpen).toBe(true)
-    })
-
-    it('should update queueDrawerOpen to false', () => {
-      useUiStore.setState({ queueDrawerOpen: true })
-      useUiStore.getState().setQueueDrawerOpen(false)
-
-      expect(useUiStore.getState().queueDrawerOpen).toBe(false)
-    })
-
-    it('should not persist via config.set', () => {
-      useUiStore.getState().setQueueDrawerOpen(true)
-
-      expect(mockConfigSet).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('setQueueDrawerWidth', () => {
-    it('should update queueDrawerWidth in state', () => {
-      useUiStore.getState().setQueueDrawerWidth(400)
-
-      expect(useUiStore.getState().queueDrawerWidth).toBe(400)
-    })
-
-    it('should not persist via config.set', () => {
-      useUiStore.getState().setQueueDrawerWidth(400)
-
-      expect(mockConfigSet).not.toHaveBeenCalled()
-    })
-  })
-
   describe('initialize', () => {
     it('should merge provided settings into state', () => {
       useUiStore.getState().initialize({
-        appearance: 'dark',
-        locale: 'zh-CN',
-        connectionSortOrder: 'asc',
+        appearance: THEME.DARK,
+        locale: SUPPORTED_LANGUAGE.ZH_CN,
+        connectionSortOrder: SORT_ORDER.ASC,
       })
 
-      expect(useUiStore.getState().appearance).toBe('dark')
-      expect(useUiStore.getState().locale).toBe('zh-CN')
-      expect(useUiStore.getState().connectionSortOrder).toBe('asc')
+      expect(useUiStore.getState().appearance).toBe(THEME.DARK)
+      expect(useUiStore.getState().locale).toBe(SUPPORTED_LANGUAGE.ZH_CN)
+      expect(useUiStore.getState().connectionSortOrder).toBe(SORT_ORDER.ASC)
     })
 
     it('should set initialized to true', () => {
@@ -200,9 +169,9 @@ describe('useUiStore', () => {
 
     it('should merge partial settings without overriding unspecified fields', () => {
       useUiStore.setState({ sidebarWidth: 300 })
-      useUiStore.getState().initialize({ appearance: 'light' })
+      useUiStore.getState().initialize({ appearance: THEME.LIGHT })
 
-      expect(useUiStore.getState().appearance).toBe('light')
+      expect(useUiStore.getState().appearance).toBe(THEME.LIGHT)
       expect(useUiStore.getState().sidebarWidth).toBe(300)
     })
 

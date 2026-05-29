@@ -1,7 +1,7 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { type Result, ok, err, createErrorInfo, type ErrorInfo } from '@shared/types/result.js'
-import type { OperationResult, FileInfo } from '@shared/types/index.js'
-import { SftpStatus } from '@shared/constants/index.js'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FileInfo, OperationResult } from '@shared/types/index.js'
+import { ERROR_CODE, SftpStatus } from '@shared/constants/index.js'
+import { createErrorInfo, err, type ErrorInfo, ok, type Result } from '@shared/types/result.js'
 
 // --- Mock protocol instance methods ---
 const mockConnect = vi.fn()
@@ -43,14 +43,19 @@ vi.mock('./WebdavProtocol.js', () => ({
 }))
 
 const mockSessionGet = vi.fn()
-vi.mock('../session-manager.js', () => ({
-  sessionManager: { get: mockSessionGet },
+vi.mock('../session-registry.js', () => ({
+  sessionRegistry: { get: mockSessionGet },
 }))
 
 const mockDecryptPassword = vi.fn()
 vi.mock('../../utils/index.js', () => ({
   logger: { info: vi.fn(), catch: vi.fn() },
   decryptPassword: mockDecryptPassword,
+}))
+
+const mockGetHostKeyRecord = vi.fn()
+vi.mock('../../stores/index.js', () => ({
+  getHostKeyRecord: mockGetHostKeyRecord,
 }))
 
 let uuidCounter = 0
@@ -126,6 +131,7 @@ describe('ProtocolService', () => {
 
     it('successful connection with decrypted password', async () => {
       mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
+      mockGetHostKeyRecord.mockReturnValue(ok(undefined))
       const operationResult: OperationResult = {
         sessionId: 'session-1',
         statusCode: 2000,
@@ -137,7 +143,7 @@ describe('ProtocolService', () => {
 
       expect(result.success).toBe(true)
       expect(result.value?.sessionId).toBe('session-1')
-      expect(mockConnect).toHaveBeenCalledWith(baseConfig, 'decrypted-pwd')
+      expect(mockConnect).toHaveBeenCalledWith(baseConfig, 'decrypted-pwd', expect.any(Function))
     })
 
     it('password decryption fails returns AUTH_ERROR', async () => {
@@ -159,7 +165,10 @@ describe('ProtocolService', () => {
 
     it('protocol connect fails returns CONN_FAILED', async () => {
       mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
-      mockConnect.mockResolvedValue(err(createErrorInfo('CONN_FAILED', 'Connection refused')))
+      mockGetHostKeyRecord.mockReturnValue(ok(undefined))
+      mockConnect.mockResolvedValue(
+        err(createErrorInfo(ERROR_CODE.CONN_FAILED, 'Connection refused'))
+      )
 
       const result = await service.connect(baseConfig)
 
@@ -169,6 +178,9 @@ describe('ProtocolService', () => {
 
     it('HOST_KEY_MISMATCH returns success with statusCode', async () => {
       mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
+      mockGetHostKeyRecord.mockReturnValue(
+        ok({ connectionId: 'conn-1', hash: 'old-hash', createdAt: Date.now() })
+      )
       const operationResult: OperationResult = {
         sessionId: '',
         statusCode: SftpStatus.HOST_KEY_MISMATCH,
@@ -184,6 +196,7 @@ describe('ProtocolService', () => {
 
     it('no sessionId returned returns CONN_FAILED', async () => {
       mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
+      mockGetHostKeyRecord.mockReturnValue(ok(undefined))
       const operationResult: OperationResult = {
         sessionId: '',
         statusCode: 2000,
@@ -199,12 +212,101 @@ describe('ProtocolService', () => {
 
     it('exception caught returns CONN_FAILED', async () => {
       mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
+      mockGetHostKeyRecord.mockReturnValue(ok(undefined))
       mockConnect.mockRejectedValue(new Error('Network error'))
 
       const result = await service.connect(baseConfig)
 
       expect(result.success).toBe(false)
       expect(result.error?.code).toBe('CONN_FAILED')
+    })
+
+    it('constructs hostVerifier callback for SFTP protocol', async () => {
+      mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
+      mockGetHostKeyRecord.mockReturnValue(
+        ok({ connectionId: 'conn-1', hash: 'known-hash', createdAt: Date.now() })
+      )
+      const operationResult: OperationResult = {
+        sessionId: 'session-1',
+        statusCode: 2000,
+        detail: { hash: 'abc123' },
+      }
+      mockConnect.mockResolvedValue(ok(operationResult))
+
+      await service.connect(baseConfig)
+
+      expect(mockConnect).toHaveBeenCalledWith(baseConfig, 'decrypted-pwd', expect.any(Function))
+      const callArgs = mockConnect.mock.calls[0]
+      if (!callArgs) return
+      const hostVerifier = callArgs[2] as (hashedKey: string) => {
+        detail: unknown
+        status: number
+      }
+
+      const result = hostVerifier('known-hash')
+      expect(result.status).toBe(2000)
+    })
+
+    it('hostVerifier returns FIRST_CONNECT when no host key record', async () => {
+      const { ProtocolStatus } = await import('@shared/constants/index.js')
+      mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
+      mockGetHostKeyRecord.mockReturnValue(ok(undefined))
+      const operationResult: OperationResult = {
+        sessionId: 'session-1',
+        statusCode: 2000,
+        detail: { hash: 'abc123' },
+      }
+      mockConnect.mockResolvedValue(ok(operationResult))
+
+      await service.connect(baseConfig)
+
+      const callArgs = mockConnect.mock.calls[0]
+      if (!callArgs) return
+      const hostVerifier = callArgs[2] as (hashedKey: string) => {
+        detail: unknown
+        status: number
+      }
+      const result = hostVerifier('new-hash')
+      expect(result.status).toBe(ProtocolStatus.FIRST_CONNECT)
+    })
+
+    it('hostVerifier returns HOST_KEY_MISMATCH when hash differs', async () => {
+      mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
+      mockGetHostKeyRecord.mockReturnValue(
+        ok({ connectionId: 'conn-1', hash: 'old-hash', createdAt: Date.now() })
+      )
+      const operationResult: OperationResult = {
+        sessionId: 'session-1',
+        statusCode: 2000,
+        detail: { hash: 'abc123' },
+      }
+      mockConnect.mockResolvedValue(ok(operationResult))
+
+      await service.connect(baseConfig)
+
+      const callArgs = mockConnect.mock.calls[0]
+      if (!callArgs) return
+      const hostVerifier = callArgs[2] as (hashedKey: string) => {
+        detail: unknown
+        status: number
+      }
+      const result = hostVerifier('different-hash')
+      expect(result.status).toBe(SftpStatus.HOST_KEY_MISMATCH)
+    })
+
+    it('does not pass hostVerifier for WebDAV protocol', async () => {
+      mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
+      const webdavConfig = { ...baseConfig, protocol: 'webdav' as const }
+      const operationResult: OperationResult = {
+        sessionId: 'session-1',
+        statusCode: 2000,
+        detail: { hash: '' },
+      }
+      mockConnect.mockResolvedValue(ok(operationResult))
+
+      await service.connect(webdavConfig)
+
+      expect(mockConnect).toHaveBeenCalledWith(webdavConfig, 'decrypted-pwd', undefined)
     })
   })
 

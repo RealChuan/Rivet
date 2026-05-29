@@ -1,24 +1,24 @@
-import React from 'react'
-import { useTranslation } from 'react-i18next'
+import type React from 'react'
 import {
-  DndContext,
   closestCenter,
+  DndContext,
+  type DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { useTranslation } from 'react-i18next'
+import { type SortOrder } from '@shared/constants/index.js'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'
-import { type SortOrder } from '@shared/constants/sort.js'
-import SortButton from './SortButton.js'
-import SortableConnectionItem from './SortableConnectionItem.js'
 import DragOverlayContent from './DragOverlayContent.js'
+import SortableConnectionItem from './SortableConnectionItem.js'
+import SortButton from './SortButton.js'
 
 interface ConnectionListProps {
   connections: ConnectionConfig[]

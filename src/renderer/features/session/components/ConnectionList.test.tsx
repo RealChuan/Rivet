@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { ConnectionList } from './ConnectionList.js'
+import { describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig, Session } from '@shared/types/index.js'
+import { ConnectionList } from './ConnectionList.js'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

@@ -1,8 +1,8 @@
-import React from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import FileExplorerList from './FileExplorerList.js'
 import FileExplorerBreadcrumb from './FileExplorerBreadcrumb.js'
+import FileExplorerList from './FileExplorerList.js'
 import FileExplorerToolbar from './FileExplorerToolbar.js'
 
 interface FileExplorerAreaProps {

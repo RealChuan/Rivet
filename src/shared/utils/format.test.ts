@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { formatFileSize, formatDate } from './format.js'
+import { describe, expect, it } from 'vitest'
+import { formatDate, formatFileSize } from './format.js'
 
 describe('format utilities', () => {
   describe('formatFileSize', () => {

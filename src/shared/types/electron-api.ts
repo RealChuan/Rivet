@@ -1,9 +1,9 @@
-import type { FileInfo } from './file.js'
+import type { StoreKey } from '@shared/constants/index.js'
 import type { ConnectionConfig } from './connection.js'
+import type { FileInfo } from './file.js'
 import type { OperationResult } from './operation-result.js'
-import type { Result, ErrorInfo } from './result.js'
 import type { ProtocolResponse } from './protocol-request.js'
-import type { StoreKey } from '@shared/constants/config.js'
+import type { ErrorInfo, Result } from './result.js'
 
 export interface WindowAPI {
   minimize: () => void
@@ -86,8 +86,7 @@ export interface SystemAPI {
   getDownloadDir: () => Promise<Result<string, ErrorInfo>>
 }
 
-export interface UtilsAPI {
-  generateUuid: () => string
+export interface CryptoAPI {
   encryptPassword: (password: string) => Promise<Result<string, ErrorInfo>>
   decryptPassword: (encrypted: string) => Promise<Result<string, ErrorInfo>>
 }
@@ -99,9 +98,9 @@ export interface ElectronAPI {
   dialog: DialogAPI
   hostKey: HostKeyAPI
   system: SystemAPI
-  utils: UtilsAPI
+  crypto: CryptoAPI
+  generateUuid: () => string
   windowMeta: { windowId: string; route: string }
-  refreshWindowMeta: () => Promise<{ windowId: string; route: string }>
 }
 
 declare global {

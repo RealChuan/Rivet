@@ -1,21 +1,14 @@
+import { app } from 'electron'
 import type { ConnectionConfig, UiSettings } from '@shared/types/index.js'
 import {
-  PROTOCOL_SFTP,
-  PROTOCOL_WEBDAV,
-  SCHEME_HTTP,
-  SCHEME_HTTPS,
-  SORT_ORDER_NONE,
-  SORT_ORDER_ASC,
-  SORT_ORDER_DESC,
-} from '@shared/constants/index.js'
-import {
-  ZH_CN,
-  EN_US,
-  detectLanguageWithFallback,
+  PROTOCOL,
+  SCHEME,
+  SORT_ORDER,
+  SUPPORTED_LANGUAGE,
   type SupportedLanguageLiteral,
-} from '@shared/constants/i18n.js'
-import { THEME_LIGHT, THEME_DARK, THEME_SYSTEM } from '@shared/constants/theme.js'
-import { app } from 'electron'
+  THEME,
+} from '@shared/constants/index.js'
+import { detectLanguageWithFallback } from '@shared/utils/i18n.js'
 
 export function detectSystemLanguage(): SupportedLanguageLiteral {
   return detectLanguageWithFallback(() => app.getLocale())
@@ -27,14 +20,14 @@ export function isValidConnection(config: unknown): config is ConnectionConfig {
   return (
     typeof c.id === 'string' &&
     typeof c.name === 'string' &&
-    (c.protocol === PROTOCOL_SFTP || c.protocol === PROTOCOL_WEBDAV) &&
+    (c.protocol === PROTOCOL.SFTP || c.protocol === PROTOCOL.WEBDAV) &&
     typeof c.host === 'string' &&
     typeof c.port === 'number' &&
     typeof c.username === 'string' &&
     typeof c.savePassword === 'boolean' &&
     (c.password === undefined || typeof c.password === 'string') &&
     (c.basePath === undefined || typeof c.basePath === 'string') &&
-    (c.scheme === undefined || c.scheme === SCHEME_HTTP || c.scheme === SCHEME_HTTPS) &&
+    (c.scheme === undefined || c.scheme === SCHEME.HTTP || c.scheme === SCHEME.HTTPS) &&
     (c.rejectUnauthorized === undefined || typeof c.rejectUnauthorized === 'boolean')
   )
 }
@@ -43,13 +36,15 @@ export function isValidUiSettings(settings: unknown): settings is UiSettings {
   if (!settings || typeof settings !== 'object') return false
   const s = settings as Record<string, unknown>
   return (
-    (s.appearance === THEME_LIGHT ||
-      s.appearance === THEME_DARK ||
-      s.appearance === THEME_SYSTEM) &&
-    (s.locale === ZH_CN || s.locale === EN_US || s.locale === '') &&
-    (s.connectionSortOrder === SORT_ORDER_NONE ||
-      s.connectionSortOrder === SORT_ORDER_ASC ||
-      s.connectionSortOrder === SORT_ORDER_DESC ||
+    (s.appearance === THEME.LIGHT ||
+      s.appearance === THEME.DARK ||
+      s.appearance === THEME.SYSTEM) &&
+    (s.locale === SUPPORTED_LANGUAGE.ZH_CN ||
+      s.locale === SUPPORTED_LANGUAGE.EN_US ||
+      s.locale === '') &&
+    (s.connectionSortOrder === SORT_ORDER.NONE ||
+      s.connectionSortOrder === SORT_ORDER.ASC ||
+      s.connectionSortOrder === SORT_ORDER.DESC ||
       s.connectionSortOrder === undefined)
   )
 }

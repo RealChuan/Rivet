@@ -1,21 +1,21 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
-  ok,
+  andThen,
+  andThenAsync,
+  createErrorInfo,
   err,
-  isOk,
+  type ErrorInfo,
   isErr,
+  isOk,
+  map,
+  mapErr,
+  ok,
+  type Result,
+  tryCatch,
+  tryCatchAsync,
   unwrap,
   unwrapOr,
   unwrapOrElse,
-  map,
-  mapErr,
-  andThen,
-  andThenAsync,
-  tryCatch,
-  tryCatchAsync,
-  createErrorInfo,
-  type Result,
-  type ErrorInfo,
 } from './result.js'
 
 describe('Result Type', () => {

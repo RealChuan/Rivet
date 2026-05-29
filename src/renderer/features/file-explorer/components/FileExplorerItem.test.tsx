@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { FileExplorerItem } from './FileExplorerItem.js'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import type { FileInfo } from '@shared/types/index.js'
+import { FileExplorerItem } from './FileExplorerItem.js'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

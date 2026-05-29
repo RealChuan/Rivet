@@ -1,17 +1,15 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
-  ZH_CN,
-  EN_US,
-  SUPPORTED_LANGUAGES,
   DEFAULT_LANGUAGE,
-  matchSupportedLanguage,
-  detectLanguageWithFallback,
-} from './i18n.js'
+  SUPPORTED_LANGUAGE,
+  SUPPORTED_LANGUAGES,
+} from '@shared/constants/i18n.js'
+import { detectLanguageWithFallback, matchSupportedLanguage } from './i18n.js'
 
 describe('i18n constants', () => {
   it('should export correct language constants', () => {
-    expect(ZH_CN).toBe('zh-CN')
-    expect(EN_US).toBe('en-US')
+    expect(SUPPORTED_LANGUAGE.ZH_CN).toBe('zh-CN')
+    expect(SUPPORTED_LANGUAGE.EN_US).toBe('en-US')
   })
 
   it('should have correct supported languages list', () => {

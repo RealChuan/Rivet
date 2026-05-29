@@ -1,5 +1,6 @@
 import { dialog, type OpenDialogOptions, type SaveDialogOptions } from 'electron'
-import { type Result, ok, err, type ErrorInfo, createErrorInfo } from '@shared/types/result.js'
+import { ERROR_CODE } from '@shared/constants/index.js'
+import { createErrorInfo, err, type ErrorInfo, ok, type Result } from '@shared/types/index.js'
 import { logger } from './index.js'
 
 export async function showSaveDialog(
@@ -10,7 +11,9 @@ export async function showSaveDialog(
     return ok(result)
   } catch (error) {
     logger.catch(error, { action: 'show-save-dialog' })
-    return err(createErrorInfo('DIALOG_ERROR', 'Failed to show save dialog', String(error)))
+    return err(
+      createErrorInfo(ERROR_CODE.DIALOG_ERROR, 'Failed to show save dialog', String(error))
+    )
   }
 }
 
@@ -22,6 +25,8 @@ export async function showOpenDialog(
     return ok(result)
   } catch (error) {
     logger.catch(error, { action: 'show-open-dialog' })
-    return err(createErrorInfo('DIALOG_ERROR', 'Failed to show open dialog', String(error)))
+    return err(
+      createErrorInfo(ERROR_CODE.DIALOG_ERROR, 'Failed to show open dialog', String(error))
+    )
   }
 }

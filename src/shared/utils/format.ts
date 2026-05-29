@@ -1,3 +1,5 @@
+import { SUPPORTED_LANGUAGE } from '@shared/constants/i18n.js'
+
 export const formatFileSize = (bytes: number, lng: string = 'en-US'): string => {
   if (!Number.isFinite(bytes) || bytes < 0) return '-'
   if (bytes === 0) return '-'
@@ -11,7 +13,7 @@ export const formatFileSize = (bytes: number, lng: string = 'en-US'): string => 
   return `${formattedValue} ${sizes[i]}`
 }
 
-export const formatDate = (timestamp: number, lng: string = 'en-US'): string => {
+export const formatDate = (timestamp: number, lng: string = SUPPORTED_LANGUAGE.EN_US): string => {
   if (!timestamp) return '-'
   return new Intl.DateTimeFormat(lng, {
     dateStyle: 'medium',

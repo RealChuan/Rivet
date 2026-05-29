@@ -1,46 +1,70 @@
 import js from '@eslint/js'
-import tseslint from '@typescript-eslint/eslint-plugin'
-import tsparser from '@typescript-eslint/parser'
+import ts from 'typescript-eslint'
+import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
-import { fileURLToPath } from 'url'
-import { dirname } from 'path'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+import reactCompiler from 'eslint-plugin-react-compiler'
+import perfectionist from 'eslint-plugin-perfectionist'
+import globals from 'globals'
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'release/**'],
+    ignores: ['dist/**', 'node_modules/**', 'release/**', 'out/**', 'coverage/**', '.trae/**'],
   },
+
+  js.configs.recommended,
+
+  ...ts.configs.recommendedTypeChecked,
+
+  react.configs.flat['jsx-runtime'],
+
   {
     files: ['**/*.{ts,tsx}'],
     plugins: {
-      '@typescript-eslint': tseslint,
       'react-hooks': reactHooks,
+      'react-compiler': reactCompiler,
+      perfectionist,
     },
     languageOptions: {
-      parser: tsparser,
       parserOptions: {
-        ecmaVersion: 2022,
+        ecmaVersion: 2025,
         sourceType: 'module',
         ecmaFeatures: { jsx: true },
         project: ['tsconfig.json', 'tsconfig.main.json'],
-        tsconfigRootDir: __dirname,
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2025,
       },
     },
     rules: {
-      // ESLint 推荐规则
-      ...js.configs.recommended.rules,
+      ...reactHooks.configs.recommended.rules,
+      'react-compiler/react-compiler': 'error',
 
-      // TypeScript 严格规则（使用 type-aware 规则）
-      ...tseslint.configs.recommended.rules,
-      ...tseslint.configs['recommended-type-checked'].rules,
+      'perfectionist/sort-imports': [
+        'error',
+        {
+          type: 'natural',
+          order: 'asc',
+          groups: [
+            'type-import',
+            ['value-builtin', 'value-external'],
+            'type-internal',
+            'value-internal',
+            ['type-parent', 'type-sibling', 'type-index'],
+            ['value-parent', 'value-sibling', 'value-index'],
+            'side-effect',
+            'side-effect-style',
+            'style',
+            'unknown',
+          ],
+          newlinesBetween: 'ignore',
+          internalPattern: ['^@shared/', '^@renderer/', '^@main/'],
+        },
+      ],
+      'perfectionist/sort-exports': ['error', { type: 'natural', order: 'asc' }],
 
-      // React Hooks
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'error',
-
-      // TypeScript 严格检查
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -62,24 +86,23 @@ export default [
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
 
-      // 代码质量
       'no-console': ['warn', { allow: ['error', 'warn'] }],
       eqeqeq: ['error', 'always'],
       'no-var': 'error',
       'prefer-const': 'error',
-      'no-duplicate-imports': 'error',
 
-      // 关闭与 TS 重叠或冲突的规则
       'no-undef': 'off',
       'no-unused-vars': 'off',
+      'no-duplicate-imports': 'off',
     },
   },
+
   {
-    // main 进程专用规则（可放宽部分 React 相关规则）
     files: ['src/main/**/*.{ts,tsx}'],
     rules: {
       'react-hooks/rules-of-hooks': 'off',
       'react-hooks/exhaustive-deps': 'off',
+      'react-compiler/react-compiler': 'off',
     },
   },
 ]

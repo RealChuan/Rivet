@@ -1,14 +1,36 @@
-import React, { useState } from 'react'
+import type React from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { useUiStore } from '@renderer/stores/index.js'
-import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
+import { ROOT_PATH, TOAST_TYPE } from '@shared/constants/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
-import { TOAST_TYPE } from '@shared/constants/index.js'
 
 interface FileExplorerToolbarProps {
   sessionId: string
 }
+
+interface ToolButtonProps {
+  onClick: () => void
+  title: string
+  isActive?: boolean
+  children: React.ReactNode
+}
+
+const ToolButton = ({ onClick, title, isActive = false, children }: ToolButtonProps) => (
+  <button
+    onClick={onClick}
+    title={title}
+    className={`
+      p-1.5 rounded flex items-center justify-center
+      border-none cursor-pointer transition-all duration-150
+      ${isActive ? 'text-accent bg-hover' : 'text-text hover:bg-hover'}
+    `}
+  >
+    {children}
+  </button>
+)
 
 export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessionId }) => {
   const { t } = useTranslation()
@@ -34,7 +56,7 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
   const handleNewFolder = async (folderName: string) => {
     if (!session) return
     const newFolderPath =
-      session.currentPath === '/' ? `/${folderName}` : `${session.currentPath}/${folderName}`
+      session.currentPath === ROOT_PATH ? `/${folderName}` : `${session.currentPath}/${folderName}`
 
     try {
       await window.electronAPI.protocol.mkdir(sessionId, newFolderPath)
@@ -47,30 +69,6 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
       })
     }
   }
-
-  const ToolButton = ({
-    onClick,
-    title,
-    isActive = false,
-    children,
-  }: {
-    onClick: () => void
-    title: string
-    isActive?: boolean
-    children: React.ReactNode
-  }) => (
-    <button
-      onClick={onClick}
-      title={title}
-      className={`
-        p-1.5 rounded flex items-center justify-center
-        border-none cursor-pointer transition-all duration-150
-        ${isActive ? 'text-accent bg-hover' : 'text-text hover:bg-hover'}
-      `}
-    >
-      {children}
-    </button>
-  )
 
   return (
     <div className="flex items-center gap-0.5 ml-auto">

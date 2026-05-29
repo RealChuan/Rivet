@@ -1,8 +1,9 @@
-import React from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
-import { type FileInfo } from '@shared/types/index.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
-import { formatFileSize, formatDate } from '@shared/utils/index.js'
+import { FILE_TYPE } from '@shared/constants/index.js'
+import { type FileInfo } from '@shared/types/index.js'
+import { formatDate, formatFileSize } from '@shared/utils/index.js'
 
 interface ColumnWidths {
   name: number
@@ -55,7 +56,7 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
   const nameContent = file.name
   const permissionsContent = file.permissions ?? '-'
   const ownerContent = file.owner ?? '-'
-  const sizeContent = file.type === 'file' ? formatFileSize(file.size ?? 0, lng) : '-'
+  const sizeContent = file.type === FILE_TYPE.FILE ? formatFileSize(file.size ?? 0, lng) : '-'
   const modifyTimeContent = formatDate(file.modifyTime ?? 0, lng)
 
   const getBgColor = () => {
@@ -121,7 +122,7 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
         style={{ width: columnWidths.size }}
         title={sizeContent}
       >
-        {file.type === 'file' ? formatFileSize(file.size || 0, lng) : '-'}
+        {file.type === FILE_TYPE.FILE ? formatFileSize(file.size || 0, lng) : '-'}
       </div>
       <div className="w-1.5" />
       <div

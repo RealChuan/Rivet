@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import type React from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { GlassDialog } from '../ui/index.js'
 import Button from '../../components/ui/Button.js'
+import { GlassDialog } from '../ui/index.js'
 
 interface TextInputDialogProps {
   open: boolean
@@ -24,12 +25,11 @@ export const TextInputDialog: React.FC<TextInputDialogProps> = ({
 }) => {
   const { t } = useTranslation()
   const [value, setValue] = useState(defaultValue)
-
-  React.useEffect(() => {
-    if (open) {
-      setValue(defaultValue)
-    }
-  }, [open, defaultValue])
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open && open !== prevOpen) {
+    setValue(defaultValue)
+    setPrevOpen(open)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

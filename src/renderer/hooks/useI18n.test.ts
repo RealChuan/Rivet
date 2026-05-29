@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { useInternationalization } from './useI18n.js'
-import { useUiStore } from '../stores/index.js'
 import { useTranslation } from 'react-i18next'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { useUiStore } from '../stores/index.js'
+import { useInternationalization } from './useI18n.js'
 
 vi.mock('../stores/index.js', () => ({
   useUiStore: vi.fn(),

@@ -28,13 +28,6 @@ export default defineConfig({
       },
     },
     clearMocks: true,
-    environmentMatchGlobs: [
-      ['src/main/**/*.test.ts', 'node'],
-      ['src/preload/**/*.test.ts', 'node'],
-      ['src/shared/**/*.test.ts', 'node'],
-      ['src/renderer/**/*.test.ts', 'jsdom'],
-      ['src/renderer/**/*.test.tsx', 'jsdom'],
-    ],
   },
   resolve: {
     alias: {

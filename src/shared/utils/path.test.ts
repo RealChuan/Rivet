@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { normalizePath, joinPaths, getParentPath, isSubPath, sanitizePath } from './path.js'
+import { describe, expect, it } from 'vitest'
+import { getParentPath, isSubPath, joinPaths, normalizePath, sanitizePath } from './path.js'
 
 describe('path utilities', () => {
   describe('normalizePath', () => {

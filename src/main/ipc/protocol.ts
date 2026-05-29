@@ -1,7 +1,7 @@
 import { ipcMain } from 'electron'
-import { protocolService } from '../services/protocol/protocol-service.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
 import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
+import { protocolService } from '../services/protocol/protocol-service.js'
 
 export function setupProtocolIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.PROTOCOL.CONNECT, async (_, config: ConnectionConfig) => {

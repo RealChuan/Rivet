@@ -1,16 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { AbstractProtocol } from './abstract-protocol.js'
-import { PROTOCOL_SFTP, TIMEOUTS } from '@shared/constants/index.js'
-import { ok, err, type Result, type ErrorInfo } from '@shared/types/result.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FileInfo } from '@shared/types/index.js'
+import { PROTOCOL, TIMEOUTS } from '@shared/constants/index.js'
+import { err, type ErrorInfo, ok, type Result } from '@shared/types/result.js'
 import type { SessionInfo } from './protocol-types.js'
+import { AbstractProtocol } from './abstract-protocol.js'
 
 vi.mock('@main/utils/index.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), catch: vi.fn() },
 }))
 
 class TestableProtocol extends AbstractProtocol<{ id: string }> {
-  readonly protocolType = PROTOCOL_SFTP
+  readonly protocolType = PROTOCOL.SFTP
   private sessions = new Map<string, SessionInfo>()
 
   connect = vi.fn()

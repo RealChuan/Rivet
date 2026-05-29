@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '../stores/session.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import { TOAST_TYPE } from '@shared/constants/index.js'
+import { useSessionStore } from '../stores/session.js'
 
 export const useSessionDisconnect = () => {
   const { t } = useTranslation()

@@ -1,2 +1,2 @@
-export { useSessionStore, type SessionStore } from './session.js'
-export { useConnectionStore, type ConnectionStore } from './connection.js'
+export { type ConnectionStore, useConnectionStore } from './connection.js'
+export { type SessionStore, useSessionStore } from './session.js'

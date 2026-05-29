@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method -- vitest expect() 需要分离方法引用 */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import log from 'electron-log/renderer'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@shared/utils/index.js', () => ({
   formatMessage: vi.fn((msg: string) => `[formatted] ${msg}`),

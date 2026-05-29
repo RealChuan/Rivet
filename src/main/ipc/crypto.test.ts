@@ -2,14 +2,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment -- 从 vi.fn() mock 提取 handler 时类型为 any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument -- 调用从 mock 提取的 handler 时参数为 any */
 /* eslint-disable @typescript-eslint/no-explicit-any -- mock.calls 元素类型为 any[] */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ipcMain } from 'electron'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@shared/constants/index.js', () => ({
   IPC_CHANNELS: {
-    UTILS: {
-      ENCRYPT_PASSWORD: 'utils:encrypt-password',
-      DECRYPT_PASSWORD: 'utils:decrypt-password',
+    CRYPTO: {
+      ENCRYPT_PASSWORD: 'crypto:encrypt-password',
+      DECRYPT_PASSWORD: 'crypto:decrypt-password',
     },
   },
 }))
@@ -19,45 +19,45 @@ vi.mock('../utils/encryption.js', () => ({
   decryptPassword: vi.fn((encrypted: string) => encrypted.replace('encrypted:', '')),
 }))
 
-describe('IPC utils handlers', () => {
+describe('IPC crypto handlers', () => {
   beforeEach(() => {
     vi.mocked(ipcMain.handle).mockClear()
   })
 
-  describe('setupUtilsIpcHandlers', () => {
+  describe('setupCryptoIpcHandlers', () => {
     it('should register encrypt password handler', async () => {
-      const { setupUtilsIpcHandlers } = await import('./utils.js')
+      const { setupCryptoIpcHandlers } = await import('./crypto.js')
       const { IPC_CHANNELS } = await import('@shared/constants/index.js')
 
-      setupUtilsIpcHandlers()
+      setupCryptoIpcHandlers()
 
       expect(ipcMain.handle).toHaveBeenCalledWith(
-        IPC_CHANNELS.UTILS.ENCRYPT_PASSWORD,
+        IPC_CHANNELS.CRYPTO.ENCRYPT_PASSWORD,
         expect.any(Function)
       )
     })
 
     it('should register decrypt password handler', async () => {
-      const { setupUtilsIpcHandlers } = await import('./utils.js')
+      const { setupCryptoIpcHandlers } = await import('./crypto.js')
       const { IPC_CHANNELS } = await import('@shared/constants/index.js')
 
-      setupUtilsIpcHandlers()
+      setupCryptoIpcHandlers()
 
       expect(ipcMain.handle).toHaveBeenCalledWith(
-        IPC_CHANNELS.UTILS.DECRYPT_PASSWORD,
+        IPC_CHANNELS.CRYPTO.DECRYPT_PASSWORD,
         expect.any(Function)
       )
     })
 
     it('should call encryptPassword when encrypt handler is invoked', async () => {
-      const { setupUtilsIpcHandlers } = await import('./utils.js')
+      const { setupCryptoIpcHandlers } = await import('./crypto.js')
       const { encryptPassword } = await import('../utils/encryption.js')
 
-      setupUtilsIpcHandlers()
+      setupCryptoIpcHandlers()
 
       const encryptHandler = vi
         .mocked(ipcMain.handle)
-        .mock.calls.find((call: any[]) => call[0] === 'utils:encrypt-password')?.[1]
+        .mock.calls.find((call: any[]) => call[0] === 'crypto:encrypt-password')?.[1]
 
       if (encryptHandler) {
         const result = await encryptHandler(undefined as any, 'my-password')
@@ -68,14 +68,14 @@ describe('IPC utils handlers', () => {
     })
 
     it('should call decryptPassword when decrypt handler is invoked', async () => {
-      const { setupUtilsIpcHandlers } = await import('./utils.js')
+      const { setupCryptoIpcHandlers } = await import('./crypto.js')
       const { decryptPassword } = await import('../utils/encryption.js')
 
-      setupUtilsIpcHandlers()
+      setupCryptoIpcHandlers()
 
       const decryptHandler = vi
         .mocked(ipcMain.handle)
-        .mock.calls.find((call: any[]) => call[0] === 'utils:decrypt-password')?.[1]
+        .mock.calls.find((call: any[]) => call[0] === 'crypto:decrypt-password')?.[1]
 
       if (decryptHandler) {
         const result = await decryptHandler(undefined as any, 'encrypted:my-password')
@@ -86,9 +86,9 @@ describe('IPC utils handlers', () => {
     })
 
     it('should register exactly two handlers', async () => {
-      const { setupUtilsIpcHandlers } = await import('./utils.js')
+      const { setupCryptoIpcHandlers } = await import('./crypto.js')
 
-      setupUtilsIpcHandlers()
+      setupCryptoIpcHandlers()
 
       expect(ipcMain.handle).toHaveBeenCalledTimes(2)
     })

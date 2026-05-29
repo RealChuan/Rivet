@@ -1,35 +1,33 @@
-export const SORT_ORDER_NONE = 'none' as const
-export const SORT_ORDER_ASC = 'asc' as const
-export const SORT_ORDER_DESC = 'desc' as const
+export const SORT_ORDER = {
+  NONE: 'none',
+  ASC: 'asc',
+  DESC: 'desc',
+} as const
 
-export type SortOrder = typeof SORT_ORDER_NONE | typeof SORT_ORDER_ASC | typeof SORT_ORDER_DESC
+export type SortOrder = (typeof SORT_ORDER)[keyof typeof SORT_ORDER]
+export type SortOrderWithDirection = typeof SORT_ORDER.ASC | typeof SORT_ORDER.DESC
 
-export type SortOrderWithDirection = typeof SORT_ORDER_ASC | typeof SORT_ORDER_DESC
+export const SORT_ORDERS: SortOrder[] = [SORT_ORDER.NONE, SORT_ORDER.ASC, SORT_ORDER.DESC]
 
-export const SORT_ORDERS: SortOrder[] = [SORT_ORDER_NONE, SORT_ORDER_ASC, SORT_ORDER_DESC]
+export const SORT_FIELD = {
+  NAME: 'name',
+  PERMISSIONS: 'permissions',
+  OWNER: 'owner',
+  SIZE: 'size',
+  MODIFY_TIME: 'modifyTime',
+} as const
 
-export const SORT_FIELD_NAME = 'name' as const
-export const SORT_FIELD_PERMISSIONS = 'permissions' as const
-export const SORT_FIELD_OWNER = 'owner' as const
-export const SORT_FIELD_SIZE = 'size' as const
-export const SORT_FIELD_MODIFY_TIME = 'modifyTime' as const
-
-export type FileExplorerSortField =
-  | typeof SORT_FIELD_NAME
-  | typeof SORT_FIELD_PERMISSIONS
-  | typeof SORT_FIELD_OWNER
-  | typeof SORT_FIELD_SIZE
-  | typeof SORT_FIELD_MODIFY_TIME
+export type FileExplorerSortField = (typeof SORT_FIELD)[keyof typeof SORT_FIELD]
 
 export type FileExplorerSortFieldBasic =
-  | typeof SORT_FIELD_NAME
-  | typeof SORT_FIELD_SIZE
-  | typeof SORT_FIELD_MODIFY_TIME
+  | typeof SORT_FIELD.NAME
+  | typeof SORT_FIELD.SIZE
+  | typeof SORT_FIELD.MODIFY_TIME
 
 export const FILE_EXPLORER_SORT_FIELDS: FileExplorerSortField[] = [
-  SORT_FIELD_NAME,
-  SORT_FIELD_PERMISSIONS,
-  SORT_FIELD_OWNER,
-  SORT_FIELD_SIZE,
-  SORT_FIELD_MODIFY_TIME,
+  SORT_FIELD.NAME,
+  SORT_FIELD.PERMISSIONS,
+  SORT_FIELD.OWNER,
+  SORT_FIELD.SIZE,
+  SORT_FIELD.MODIFY_TIME,
 ]

@@ -1,12 +1,9 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DEFAULT_THEME_VALUE } from '@shared/constants/theme.js'
-import { DEFAULT_LANGUAGE } from '@shared/constants/i18n.js'
-import { STORE_KEYS } from '@shared/constants/config.js'
-import type { UiSettings } from '@shared/types/ui.js'
-import { useUiStore } from '../stores/index.js'
+import { DEFAULT_LANGUAGE, DEFAULT_THEME_VALUE, STORE_KEY } from '@shared/constants/index.js'
+import { isErr, type UiSettings } from '@shared/types/index.js'
 import { useConnectionStore } from '../features/session/stores/connection.js'
-import { isErr } from '@shared/types/result.js'
+import { useUiStore } from '../stores/index.js'
 import logger from '../utils/logger.js'
 
 export const useApplicationInitialization = () => {
@@ -17,7 +14,7 @@ export const useApplicationInitialization = () => {
 
   useEffect(() => {
     const initApp = async () => {
-      const result = await window.electronAPI.config.get(STORE_KEYS.UI_SETTINGS)
+      const result = await window.electronAPI.config.get(STORE_KEY.UI_SETTINGS)
 
       if (isErr(result)) {
         logger.catch(result.error, { action: 'load-settings' })

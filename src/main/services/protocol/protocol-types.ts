@@ -1,6 +1,12 @@
-import type { FileInfo, ConnectionConfig, OperationResult } from '@shared/types/index.js'
-import type { ProtocolType } from '@shared/constants/index.js'
-import type { Result, ErrorInfo } from '@shared/types/result.js'
+import type { ProtocolType, StatusCode } from '@shared/constants/index.js'
+import type {
+  ConnectionConfig,
+  ErrorInfo,
+  FileInfo,
+  OperationResult,
+  Result,
+  SftpConnectDetail,
+} from '@shared/types/index.js'
 
 export interface SessionInfo {
   client: unknown
@@ -8,9 +14,20 @@ export interface SessionInfo {
   isClosing: boolean
 }
 
+export interface HostVerifierResult {
+  detail: SftpConnectDetail | null
+  status: StatusCode | null
+}
+
+export type HostVerifier = (hashedKey: string) => HostVerifierResult
+
 export interface FileProtocol {
   readonly protocolType: ProtocolType
-  connect(config: ConnectionConfig, password: string): Promise<Result<OperationResult, ErrorInfo>>
+  connect(
+    config: ConnectionConfig,
+    password: string,
+    hostVerifier?: HostVerifier
+  ): Promise<Result<OperationResult, ErrorInfo>>
   disconnect(sessionId: string): Promise<Result<void, ErrorInfo>>
   list(
     sessionId: string,

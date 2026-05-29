@@ -1,6 +1,6 @@
 import { ipcRenderer, type IpcRendererEvent } from 'electron'
+import { DEFAULT_ROUTE, IPC_CHANNELS, MAIN_WINDOW_ID } from '@shared/constants/index.js'
 import { listenerManager } from './listener-manager.js'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
 
 export const windowAPI = {
   minimize: (): void => {
@@ -43,8 +43,8 @@ export const windowAPI = {
   getMeta: (): { windowId: string; route: string } => {
     const hash = window.location.hash.replace('#', '')
     return {
-      windowId: 'main',
-      route: hash || '/',
+      windowId: MAIN_WINDOW_ID,
+      route: hash || DEFAULT_ROUTE,
     }
   },
 
@@ -57,8 +57,8 @@ export const windowAPI = {
     } catch {
       const hash = window.location.hash.replace('#', '')
       return {
-        windowId: 'main',
-        route: hash || '/',
+        windowId: MAIN_WINDOW_ID,
+        route: hash || DEFAULT_ROUTE,
       }
     }
   },

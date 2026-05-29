@@ -1,14 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { PROTOCOL, SCHEME, SORT_ORDER, SUPPORTED_LANGUAGE, THEME } from '@shared/constants/index.js'
 import { isValidConnection, isValidUiSettings } from './validation.js'
-import {
-  PROTOCOL_SFTP,
-  PROTOCOL_WEBDAV,
-  SCHEME_HTTP,
-  SCHEME_HTTPS,
-} from '@shared/constants/index.js'
-import { THEME_LIGHT, THEME_DARK, THEME_SYSTEM } from '@shared/constants/theme.js'
-import { ZH_CN, EN_US } from '@shared/constants/i18n.js'
-import { SORT_ORDER_NONE, SORT_ORDER_ASC, SORT_ORDER_DESC } from '@shared/constants/sort.js'
 
 describe('validation utilities', () => {
   describe('isValidConnection', () => {
@@ -16,7 +8,7 @@ describe('validation utilities', () => {
       const config = {
         id: 'test-id',
         name: 'Test Connection',
-        protocol: PROTOCOL_SFTP,
+        protocol: PROTOCOL.SFTP,
         host: 'localhost',
         port: 22,
         username: 'user',
@@ -29,13 +21,13 @@ describe('validation utilities', () => {
       const config = {
         id: 'test-id',
         name: 'Test WebDAV',
-        protocol: PROTOCOL_WEBDAV,
+        protocol: PROTOCOL.WEBDAV,
         host: 'localhost',
         port: 8080,
         username: 'user',
         savePassword: true,
         password: 'secret',
-        scheme: SCHEME_HTTP,
+        scheme: SCHEME.HTTP,
         basePath: '/webdav',
         rejectUnauthorized: false,
       }
@@ -66,7 +58,7 @@ describe('validation utilities', () => {
       const config = {
         id: 'test-id',
         name: 'Test',
-        protocol: PROTOCOL_SFTP,
+        protocol: PROTOCOL.SFTP,
         host: 'localhost',
         port: '22',
         username: 'user',
@@ -79,7 +71,7 @@ describe('validation utilities', () => {
       const config = {
         id: 'test-id',
         name: 'Test',
-        protocol: PROTOCOL_WEBDAV,
+        protocol: PROTOCOL.WEBDAV,
         host: 'localhost',
         port: 8080,
         username: 'user',
@@ -93,12 +85,12 @@ describe('validation utilities', () => {
       const config = {
         id: 'test-id',
         name: 'Test',
-        protocol: PROTOCOL_WEBDAV,
+        protocol: PROTOCOL.WEBDAV,
         host: 'localhost',
         port: 443,
         username: 'user',
         savePassword: false,
-        scheme: SCHEME_HTTPS,
+        scheme: SCHEME.HTTPS,
       }
       expect(isValidConnection(config)).toBe(true)
     })
@@ -107,27 +99,27 @@ describe('validation utilities', () => {
   describe('isValidUiSettings', () => {
     it('should return true for valid settings', () => {
       const settings = {
-        appearance: THEME_DARK,
-        locale: ZH_CN,
-        connectionSortOrder: SORT_ORDER_ASC,
+        appearance: THEME.DARK,
+        locale: SUPPORTED_LANGUAGE.ZH_CN,
+        connectionSortOrder: SORT_ORDER.ASC,
       }
       expect(isValidUiSettings(settings)).toBe(true)
     })
 
     it('should return true for system theme', () => {
       const settings = {
-        appearance: THEME_SYSTEM,
-        locale: EN_US,
-        connectionSortOrder: SORT_ORDER_NONE,
+        appearance: THEME.SYSTEM,
+        locale: SUPPORTED_LANGUAGE.EN_US,
+        connectionSortOrder: SORT_ORDER.NONE,
       }
       expect(isValidUiSettings(settings)).toBe(true)
     })
 
     it('should return true for light theme', () => {
       const settings = {
-        appearance: THEME_LIGHT,
+        appearance: THEME.LIGHT,
         locale: '',
-        connectionSortOrder: SORT_ORDER_DESC,
+        connectionSortOrder: SORT_ORDER.DESC,
       }
       expect(isValidUiSettings(settings)).toBe(true)
     })
@@ -141,25 +133,25 @@ describe('validation utilities', () => {
     it('should return false for invalid appearance', () => {
       const settings = {
         appearance: 'invalid',
-        locale: EN_US,
-        connectionSortOrder: SORT_ORDER_ASC,
+        locale: SUPPORTED_LANGUAGE.EN_US,
+        connectionSortOrder: SORT_ORDER.ASC,
       }
       expect(isValidUiSettings(settings as never)).toBe(false)
     })
 
     it('should return false for invalid locale', () => {
       const settings = {
-        appearance: THEME_DARK,
+        appearance: THEME.DARK,
         locale: 'fr-FR',
-        connectionSortOrder: SORT_ORDER_ASC,
+        connectionSortOrder: SORT_ORDER.ASC,
       }
       expect(isValidUiSettings(settings as never)).toBe(false)
     })
 
     it('should return false for invalid sort order', () => {
       const settings = {
-        appearance: THEME_DARK,
-        locale: EN_US,
+        appearance: THEME.DARK,
+        locale: SUPPORTED_LANGUAGE.EN_US,
         connectionSortOrder: 'invalid',
       }
       expect(isValidUiSettings(settings as never)).toBe(false)
@@ -167,8 +159,8 @@ describe('validation utilities', () => {
 
     it('should return true when connectionSortOrder is undefined', () => {
       const settings = {
-        appearance: THEME_DARK,
-        locale: EN_US,
+        appearance: THEME.DARK,
+        locale: SUPPORTED_LANGUAGE.EN_US,
       }
       expect(isValidUiSettings(settings)).toBe(true)
     })

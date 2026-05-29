@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { registerWindowMeta, unregisterWindowMeta, getWindowMeta } from './window-meta.js'
+import { describe, expect, it } from 'vitest'
+import { getWindowMeta, registerWindowMeta, unregisterWindowMeta } from './window-meta.js'
 
 describe('window-meta utilities', () => {
   it('should register window metadata', () => {

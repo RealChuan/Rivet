@@ -1,8 +1,9 @@
-import { safeStorage } from 'electron'
-import { logger } from './index.js'
-import { formatErrorMessage } from '@shared/utils/index.js'
-import { type Result, ok, err, type ErrorInfo, createErrorInfo } from '@shared/types/result.js'
 import crypto from 'crypto'
+import { safeStorage } from 'electron'
+import { ERROR_CODE } from '@shared/constants/index.js'
+import { createErrorInfo, err, type ErrorInfo, ok, type Result } from '@shared/types/index.js'
+import { formatErrorMessage } from '@shared/utils/index.js'
+import { logger } from './index.js'
 
 const SAFE_PREFIX = 'safe:'
 const HMAC_KEY_ENV = 'RIVET_HMAC_KEY'
@@ -35,7 +36,9 @@ export function encryptPassword(password: string): Result<string, ErrorInfo> {
   try {
     if (!safeStorage.isEncryptionAvailable()) {
       logger.warn('safeStorage encryption not available, password will not be persisted')
-      return err(createErrorInfo('ENCRYPT_UNAVAILABLE', 'safeStorage encryption not available'))
+      return err(
+        createErrorInfo(ERROR_CODE.ENCRYPT_UNAVAILABLE, 'safeStorage encryption not available')
+      )
     }
 
     const encrypted = safeStorage.encryptString(password).toString('base64')
@@ -45,7 +48,11 @@ export function encryptPassword(password: string): Result<string, ErrorInfo> {
   } catch (error) {
     logger.catch(error, { action: 'encrypt-password' })
     return err(
-      createErrorInfo('ENCRYPTION_ERROR', 'Failed to encrypt password', formatErrorMessage(error))
+      createErrorInfo(
+        ERROR_CODE.ENCRYPTION_ERROR,
+        'Failed to encrypt password',
+        formatErrorMessage(error)
+      )
     )
   }
 }
@@ -54,12 +61,14 @@ export function decryptPassword(encrypted: string): Result<string, ErrorInfo> {
   try {
     if (!encrypted.startsWith(SAFE_PREFIX)) {
       logger.warn('Unsupported password format, password needs to be re-entered')
-      return err(createErrorInfo('DECRYPT_FORMAT_ERROR', 'Unsupported password format'))
+      return err(createErrorInfo(ERROR_CODE.DECRYPT_FORMAT_ERROR, 'Unsupported password format'))
     }
 
     if (!safeStorage.isEncryptionAvailable()) {
       logger.warn('safeStorage decryption not available')
-      return err(createErrorInfo('DECRYPT_UNAVAILABLE', 'safeStorage decryption not available'))
+      return err(
+        createErrorInfo(ERROR_CODE.DECRYPT_UNAVAILABLE, 'safeStorage decryption not available')
+      )
     }
 
     const hmacKey = getHmacKey()
@@ -69,14 +78,18 @@ export function decryptPassword(encrypted: string): Result<string, ErrorInfo> {
     const computedHmac = computeHmac(actualData, hmacKey)
     if (hmac !== computedHmac) {
       logger.warn('HMAC verification failed, password needs to be re-entered')
-      return err(createErrorInfo('HMAC_MISMATCH', 'HMAC verification failed'))
+      return err(createErrorInfo(ERROR_CODE.HMAC_MISMATCH, 'HMAC verification failed'))
     }
     const buffer = Buffer.from(actualData, 'base64')
     return ok(safeStorage.decryptString(buffer))
   } catch (error) {
     logger.catch(error, { action: 'decrypt-password' })
     return err(
-      createErrorInfo('DECRYPTION_ERROR', 'Failed to decrypt password', formatErrorMessage(error))
+      createErrorInfo(
+        ERROR_CODE.DECRYPTION_ERROR,
+        'Failed to decrypt password',
+        formatErrorMessage(error)
+      )
     )
   }
 }

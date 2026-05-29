@@ -1,16 +1,15 @@
-import React from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
-import { useUiStore } from '@renderer/stores/index.js'
-import { type FileInfo } from '@shared/types/index.js'
-import { isOk } from '@shared/types/result.js'
-import { TOAST_TYPE } from '@shared/constants/index.js'
 import ConfirmationDialog from '@renderer/components/common/ConfirmationDialog.js'
 import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
-import TargetFolderDialog from './TargetFolderDialog.js'
+import { type UseFileCopyMoveReturn } from '@renderer/features/file-explorer/hooks/useFileCopyMove.js'
+import { type ContextMenuState } from '@renderer/features/file-explorer/hooks/useFileListState.js'
+import { useUiStore } from '@renderer/stores/index.js'
+import { TOAST_TYPE } from '@shared/constants/index.js'
+import { type FileInfo, isOk } from '@shared/types/index.js'
 import ConflictDialog from './ConflictDialog.js'
 import FileExplorerContextMenu from './FileExplorerContextMenu.js'
-import { type ContextMenuState } from '@renderer/features/file-explorer/hooks/useFileListState.js'
-import { type UseFileCopyMoveReturn } from '@renderer/features/file-explorer/hooks/useFileCopyMove.js'
+import TargetFolderDialog from './TargetFolderDialog.js'
 
 interface FileExplorerDialogsProps {
   sessionId: string

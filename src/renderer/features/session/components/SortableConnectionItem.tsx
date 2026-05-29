@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'

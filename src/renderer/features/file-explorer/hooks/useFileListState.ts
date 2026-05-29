@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { type FileInfo } from '@shared/types/index.js'
 
 export interface ContextMenuState {

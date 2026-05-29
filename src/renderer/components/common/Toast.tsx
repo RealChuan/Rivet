@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import type React from 'react'
+import { useEffect, useState } from 'react'
 import { useUiStore } from '../../stores/ui.js'
 
 export const Toast: React.FC = () => {

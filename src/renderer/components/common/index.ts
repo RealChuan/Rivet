@@ -1,5 +1,5 @@
+export { ConfirmationDialog } from './ConfirmationDialog.js'
+export { FileIcon } from './FileIcon.js'
+export { TextInputDialog } from './TextInputDialog.js'
 export { TitleBar } from './TitleBar.js'
 export { Toast } from './Toast.js'
-export { FileIcon } from './FileIcon.js'
-export { ConfirmationDialog } from './ConfirmationDialog.js'
-export { TextInputDialog } from './TextInputDialog.js'

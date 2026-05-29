@@ -1,18 +1,17 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { v4 as uuidv4 } from 'uuid'
-import { useSessionStore } from '../stores/session.js'
-import { useConnectionStore } from '../stores/connection.js'
 import { useUiStore } from '@renderer/stores/index.js'
-import { type ConnectionConfig } from '@shared/types/index.js'
-import { TOAST_TYPE } from '@shared/constants/index.js'
-import { isOk } from '@shared/types/result.js'
 import { logger } from '@renderer/utils/index.js'
+import { SCHEME, TOAST_TYPE } from '@shared/constants/index.js'
+import { type ConnectionConfig, isOk } from '@shared/types/index.js'
+import { useConnectionStore } from '../stores/connection.js'
+import { useSessionStore } from '../stores/session.js'
+import { useSessionConnect } from './use-session-connect.js'
 
 export const useConnectionActions = () => {
   const { t } = useTranslation()
-  const reconnectSession = useSessionStore(state => state.reconnectSession)
-  const connectSession = useSessionStore(state => state.connectSession)
+  const { connectSession, reconnectSession } = useSessionConnect()
   const removeSession = useSessionStore(state => state.removeSession)
   const getSessionByConnectionId = useSessionStore(state => state.getSessionByConnectionId)
   const connections = useConnectionStore(state => state.connections)
@@ -46,7 +45,7 @@ export const useConnectionActions = () => {
   ) => {
     let encryptedPassword: string | undefined
     if (config.password && config.savePassword) {
-      const encryptResult = await window.electronAPI.utils.encryptPassword(config.password)
+      const encryptResult = await window.electronAPI.crypto.encryptPassword(config.password)
       if (isOk(encryptResult)) {
         encryptedPassword = encryptResult.value
       }
@@ -63,14 +62,14 @@ export const useConnectionActions = () => {
       savePassword: config.savePassword ?? false,
       basePath: config.basePath ?? '',
       password: encryptedPassword ?? '',
-      scheme: config.scheme ?? 'https',
+      scheme: config.scheme ?? SCHEME.HTTPS,
       rejectUnauthorized: config.rejectUnauthorized ?? true,
     }
 
     const success = await connectSession(fullConfig)
 
     if (!success) {
-      showConnectionToast('error', config)
+      showConnectionToast(TOAST_TYPE.ERROR, config)
       throw new Error(t('connectionDialog.connectFailed'))
     }
 
@@ -80,7 +79,7 @@ export const useConnectionActions = () => {
       addConnection(fullConfig)
     }
     await saveConnectionConfigs()
-    showConnectionToast('success', config)
+    showConnectionToast(TOAST_TYPE.SUCCESS, config)
     onSuccess?.()
     setEditConfig(null)
   }
@@ -141,13 +140,13 @@ export const useConnectionActions = () => {
   const handleReconnect = async (connection: ConnectionConfig, onOpenDialog?: () => void) => {
     if (connection.password) {
       try {
-        const result = await window.electronAPI.utils.decryptPassword(connection.password)
+        const result = await window.electronAPI.crypto.decryptPassword(connection.password)
         if (isOk(result)) {
           const success = await reconnectSession(connection.id, {
             password: connection.password,
           })
           if (success) {
-            showConnectionToast('success', connection)
+            showConnectionToast(TOAST_TYPE.SUCCESS, connection)
             return
           }
           // 连接失败，打开重连对话框让用户重新输入密码
@@ -169,7 +168,7 @@ export const useConnectionActions = () => {
       let encryptedPassword: string | undefined
 
       if (config.password && config.savePassword) {
-        const result = await window.electronAPI.utils.encryptPassword(config.password)
+        const result = await window.electronAPI.crypto.encryptPassword(config.password)
         if (isOk(result)) {
           encryptedPassword = result.value
         }
@@ -193,11 +192,11 @@ export const useConnectionActions = () => {
         }
         updateConnection(updatedConfig)
         await saveConnectionConfigs()
-        showConnectionToast('success', reconnectConfig)
+        showConnectionToast(TOAST_TYPE.SUCCESS, reconnectConfig)
       }
     } catch (error) {
       logger.catch(error, { connectionId: reconnectConfig?.id, action: 'reconnect' })
-      showConnectionToast('error', reconnectConfig)
+      showConnectionToast(TOAST_TYPE.ERROR, reconnectConfig)
       throw error
     }
   }

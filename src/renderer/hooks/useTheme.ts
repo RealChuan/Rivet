@@ -1,12 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react'
-import {
-  THEME_LIGHT,
-  THEME_DARK,
-  THEME_SYSTEM,
-  THEME_VALUES,
-  type ResolvedTheme,
-  type Theme,
-} from '@shared/constants/theme.js'
+import { type ResolvedTheme, THEME, type Theme, THEME_VALUES } from '@shared/constants/index.js'
 import { useUiStore } from '../stores/index.js'
 
 function subscribeSystemTheme(callback: () => void) {
@@ -16,7 +9,7 @@ function subscribeSystemTheme(callback: () => void) {
 }
 
 function getSystemThemeSnapshot(): ResolvedTheme {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? THEME_DARK : THEME_LIGHT
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? THEME.DARK : THEME.LIGHT
 }
 
 export function useApplicationTheme() {
@@ -26,26 +19,26 @@ export function useApplicationTheme() {
   const systemTheme = useSyncExternalStore(
     subscribeSystemTheme,
     getSystemThemeSnapshot,
-    () => THEME_LIGHT
+    () => THEME.LIGHT
   )
 
-  const resolvedTheme = appearance === THEME_SYSTEM ? systemTheme : appearance
+  const resolvedTheme = appearance === THEME.SYSTEM ? systemTheme : appearance
 
   useEffect(() => {
     const root = document.documentElement
-    if (resolvedTheme === THEME_DARK) {
-      root.classList.add('dark')
+    if (resolvedTheme === THEME.DARK) {
+      root.classList.add(THEME.DARK)
     } else {
-      root.classList.remove('dark')
+      root.classList.remove(THEME.DARK)
     }
     root.dataset.theme = resolvedTheme
   }, [resolvedTheme])
 
   const cycleTheme = () => {
-    const currentTheme: Theme = appearance ?? THEME_SYSTEM
+    const currentTheme: Theme = appearance ?? THEME.SYSTEM
     const currentIndex = THEME_VALUES.indexOf(currentTheme)
     const nextIndex = (currentIndex + 1) % THEME_VALUES.length
-    const nextTheme = THEME_VALUES[nextIndex] ?? THEME_SYSTEM
+    const nextTheme = THEME_VALUES[nextIndex] ?? THEME.SYSTEM
     setAppearance(nextTheme)
   }
 

@@ -1,3 +1,4 @@
+import { FILE_TYPE, ROOT_PATH } from '@shared/constants/index.js'
 import { type FileInfo } from '@shared/types/index.js'
 import { getParentPath } from '@shared/utils/index.js'
 
@@ -15,13 +16,13 @@ export const useDirectoryNavigation = (
   }
 
   const handleDoubleClick = (file: FileInfo) => {
-    if (file.type === 'directory') {
+    if (file.type === FILE_TYPE.DIRECTORY) {
       void handleNavigate(file.absolutePath)
     }
   }
 
   const handleParentDirectory = () => {
-    if (currentPath === '/') return
+    if (currentPath === ROOT_PATH) return
     void handleNavigate(getParentPath(currentPath))
   }
 

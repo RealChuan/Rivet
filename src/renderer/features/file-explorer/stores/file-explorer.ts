@@ -1,20 +1,24 @@
 import { create } from 'zustand'
 import {
   type FileExplorerSortFieldBasic,
+  SORT_FIELD,
+  SORT_ORDER,
   type SortOrderWithDirection,
+  VIEW_MODE,
+  type ViewMode,
 } from '@shared/constants/index.js'
 
 export interface FileExplorerState {
   sortField: FileExplorerSortFieldBasic
   sortOrder: SortOrderWithDirection
-  viewMode: 'list' | 'grid'
+  viewMode: ViewMode
   showHiddenFiles: boolean
   selectedFiles: Set<string>
 
   setSortField: (field: FileExplorerSortFieldBasic) => void
   setSortOrder: (order: SortOrderWithDirection) => void
   toggleSortOrder: () => void
-  setViewMode: (mode: 'list' | 'grid') => void
+  setViewMode: (mode: ViewMode) => void
   setShowHiddenFiles: (show: boolean) => void
   toggleShowHiddenFiles: () => void
   setSelectedFiles: (files: Set<string>) => void
@@ -25,23 +29,23 @@ export interface FileExplorerState {
 }
 
 export const useFileExplorerStore = create<FileExplorerState>(set => ({
-  sortField: 'name',
-  sortOrder: 'asc',
-  viewMode: 'list',
+  sortField: SORT_FIELD.NAME,
+  sortOrder: SORT_ORDER.ASC,
+  viewMode: VIEW_MODE.LIST,
   showHiddenFiles: false,
   selectedFiles: new Set(),
 
   setSortField: field =>
     set(state => ({
       sortField: field,
-      sortOrder: field === state.sortField ? state.sortOrder : 'asc',
+      sortOrder: field === state.sortField ? state.sortOrder : SORT_ORDER.ASC,
     })),
 
   setSortOrder: order => set({ sortOrder: order }),
 
   toggleSortOrder: () =>
     set(state => ({
-      sortOrder: state.sortOrder === 'asc' ? 'desc' : 'asc',
+      sortOrder: state.sortOrder === SORT_ORDER.ASC ? SORT_ORDER.DESC : SORT_ORDER.ASC,
     })),
 
   setViewMode: mode => set({ viewMode: mode }),

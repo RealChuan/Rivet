@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import type { SupportedLanguageLiteral } from '@shared/constants/i18n.js'
+import type { SupportedLanguageLiteral } from '@shared/constants/index.js'
 import { useUiStore } from '../stores/index.js'
 
 export function useInternationalization() {

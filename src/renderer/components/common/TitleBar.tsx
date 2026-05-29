@@ -10,7 +10,7 @@
  * - 支持主题切换（通过 CSS 变量）
  */
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import logger from '@renderer/utils/logger.js'
 
@@ -112,6 +112,28 @@ export interface TitleBarProps {
 // 组件实现
 // ============================================================
 
+const AppLogo = () => (
+  <div
+    className="w-5 h-5 rounded-md flex items-center justify-center"
+    style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}
+  >
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  </div>
+)
+
 export function TitleBar({ childMode = false, centerContent, leftContent, title }: TitleBarProps) {
   const { t } = useTranslation()
   const [isMaximized, setIsMaximized] = useState(false)
@@ -170,28 +192,6 @@ export function TitleBar({ childMode = false, centerContent, leftContent, title 
       </header>
     )
   }
-
-  const AppLogo = () => (
-    <div
-      className="w-5 h-5 rounded-md flex items-center justify-center"
-      style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}
-    >
-      <svg
-        width="10"
-        height="10"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="white"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="17 8 12 3 7 8" />
-        <line x1="12" y1="3" x2="12" y2="15" />
-      </svg>
-    </div>
-  )
 
   // ==================== Windows / Linux 标题栏 ====================
   return (

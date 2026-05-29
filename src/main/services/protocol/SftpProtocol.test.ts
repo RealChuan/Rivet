@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { SftpProtocol } from './SftpProtocol.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PROTOCOL, SftpStatus } from '@shared/constants/index.js'
 import { type ConnectionConfig } from '@shared/types/index.js'
-import { PROTOCOL_SFTP, SftpStatus } from '@shared/constants/index.js'
+import { SftpProtocol } from './SftpProtocol.js'
 
 // 使用 vi.hoisted 确保 mock 对象在 vi.mock 提升前可用
-const { mockClient, mockSessionManager, mockSftpConstructor } = vi.hoisted(() => {
+const { mockClient, mockSessionRegistry, mockSftpConstructor } = vi.hoisted(() => {
   const mockClient = {
     connect: vi.fn(),
     end: vi.fn(),
@@ -19,13 +19,13 @@ const { mockClient, mockSessionManager, mockSftpConstructor } = vi.hoisted(() =>
   const mockSftpConstructor = vi.fn().mockImplementation(function () {
     return mockClient
   })
-  const mockSessionManager = {
+  const mockSessionRegistry = {
     register: vi.fn(),
     unregister: vi.fn(),
     get: vi.fn().mockReturnValue(null),
     setClosing: vi.fn(),
   }
-  return { mockClient, mockSessionManager, mockSftpConstructor }
+  return { mockClient, mockSessionRegistry, mockSftpConstructor }
 })
 
 vi.mock('ssh2-sftp-client', () => {
@@ -34,12 +34,8 @@ vi.mock('ssh2-sftp-client', () => {
   }
 })
 
-vi.mock('../session-manager', () => ({
-  sessionManager: mockSessionManager,
-}))
-
-vi.mock('../../stores/index', () => ({
-  getHostKeyRecord: vi.fn().mockReturnValue({ success: false }),
+vi.mock('../session-registry', () => ({
+  sessionRegistry: mockSessionRegistry,
 }))
 
 vi.mock('@main/utils/index.js', () => ({
@@ -72,7 +68,7 @@ vi.mock('@main/utils/window-meta.js', () => ({
 const baseConfig: ConnectionConfig = {
   id: 'test-conn-id',
   name: 'Test SFTP',
-  protocol: PROTOCOL_SFTP,
+  protocol: PROTOCOL.SFTP,
   host: 'sftp.example.com',
   port: 22,
   username: 'testuser',
@@ -101,10 +97,10 @@ describe('SftpProtocol', () => {
 
   /** 注册一个模拟会话，使公共方法（list/mkdir/...）可通过 sessionId 获取 mockClient */
   function setupSession() {
-    mockSessionManager.get.mockReturnValue({
+    mockSessionRegistry.get.mockReturnValue({
       client: mockClient,
       config: baseConfig,
-      protocolType: PROTOCOL_SFTP,
+      protocolType: PROTOCOL.SFTP,
     })
   }
 
@@ -154,13 +150,10 @@ describe('SftpProtocol', () => {
     })
 
     it('should handle host key mismatch', async () => {
-      const { getHostKeyRecord } = await import('../../stores/index.js')
-      vi.mocked(getHostKeyRecord).mockReturnValue({
-        success: true,
-        value: { connectionId: 'test-conn-id', hash: 'old-hash', createdAt: Date.now() },
-        error: null,
+      const hostVerifier = vi.fn().mockReturnValue({
+        detail: { hash: 'new-hash', previousHash: 'old-hash' },
+        status: SftpStatus.HOST_KEY_MISMATCH,
       })
-      // Mock connect to call hostVerifier with a different hash, then reject
       mockClient.connect.mockImplementation((options: Record<string, unknown>) => {
         const verifier = options.hostVerifier as ((hash: string) => boolean) | undefined
         if (verifier) {
@@ -169,10 +162,51 @@ describe('SftpProtocol', () => {
         throw new Error('Host key verification failed')
       })
 
-      const result = await sftp.connect(baseConfig, 'testpass')
+      const result = await sftp.connect(baseConfig, 'testpass', hostVerifier)
       expect(result.success).toBe(true)
       if (!result.success) return
       expect(result.value.statusCode).toBe(SftpStatus.HOST_KEY_MISMATCH)
+      expect(hostVerifier).toHaveBeenCalledWith('new-hash')
+    })
+
+    it('should return FIRST_CONNECT when hostVerifier reports first connection', async () => {
+      const { ProtocolStatus } = await import('@shared/constants/index.js')
+      const hostVerifier = vi.fn().mockReturnValue({
+        detail: { hash: 'new-hash' },
+        status: ProtocolStatus.FIRST_CONNECT,
+      })
+      mockClient.connect.mockImplementation((options: Record<string, unknown>) => {
+        const verifier = options.hostVerifier as ((hash: string) => boolean) | undefined
+        if (verifier) {
+          verifier('new-hash')
+        }
+        return Promise.resolve(undefined)
+      })
+
+      const result = await sftp.connect(baseConfig, 'testpass', hostVerifier)
+      expect(result.success).toBe(true)
+      if (!result.success) return
+      expect(result.value.statusCode).toBe(ProtocolStatus.FIRST_CONNECT)
+    })
+
+    it('should return OK when hostVerifier confirms matching key', async () => {
+      const { ProtocolStatus } = await import('@shared/constants/index.js')
+      const hostVerifier = vi.fn().mockReturnValue({
+        detail: { hash: 'known-hash' },
+        status: ProtocolStatus.OK,
+      })
+      mockClient.connect.mockImplementation((options: Record<string, unknown>) => {
+        const verifier = options.hostVerifier as ((hash: string) => boolean) | undefined
+        if (verifier) {
+          verifier('known-hash')
+        }
+        return Promise.resolve(undefined)
+      })
+
+      const result = await sftp.connect(baseConfig, 'testpass', hostVerifier)
+      expect(result.success).toBe(true)
+      if (!result.success) return
+      expect(result.value.statusCode).toBe(ProtocolStatus.OK)
     })
 
     it('should close client on connection failure', async () => {
@@ -195,11 +229,11 @@ describe('SftpProtocol', () => {
 
       const result = await sftp.disconnect('sftp_test_session')
       expect(result.success).toBe(true)
-      expect(mockSessionManager.unregister).toHaveBeenCalledWith('sftp_test_session')
+      expect(mockSessionRegistry.unregister).toHaveBeenCalledWith('sftp_test_session')
     })
 
     it('should handle disconnect when session not found', async () => {
-      mockSessionManager.get.mockReturnValue(null)
+      mockSessionRegistry.get.mockReturnValue(null)
       const result = await sftp.disconnect('nonexistent')
       expect(result.success).toBe(false)
       if (result.success) return
@@ -211,7 +245,7 @@ describe('SftpProtocol', () => {
       mockClient.end.mockRejectedValue(new Error('Connection already closed'))
 
       const result = await sftp.disconnect('sftp_test_session')
-      expect(mockSessionManager.unregister).toHaveBeenCalledWith('sftp_test_session')
+      expect(mockSessionRegistry.unregister).toHaveBeenCalledWith('sftp_test_session')
       expect(result.success).toBe(true)
     })
 
@@ -220,7 +254,7 @@ describe('SftpProtocol', () => {
       mockClient.end.mockRejectedValue(new Error('Force close error'))
 
       await sftp.disconnect('sftp_test_session')
-      expect(mockSessionManager.unregister).toHaveBeenCalledWith('sftp_test_session')
+      expect(mockSessionRegistry.unregister).toHaveBeenCalledWith('sftp_test_session')
     })
   })
 

@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { useUiStore } from '../stores/index.js'
+import type React from 'react'
+import { useEffect, useState } from 'react'
+import { MAX_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH } from '@shared/constants/index.js'
 import { Resizer } from '../components/ui/index.js'
+import { useUiStore } from '../stores/index.js'
 
 interface ResizablePanelProps {
   sidebar: React.ReactNode
@@ -16,7 +18,7 @@ export const ResizablePanel: React.FC<ResizablePanelProps> = ({ sidebar, content
     if (!isDraggingSidebar) return
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = Math.max(180, Math.min(400, e.clientX))
+      const newWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, e.clientX))
       setSidebarWidth(newWidth)
     }
     const handleMouseUp = () => {

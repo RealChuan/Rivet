@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 
 interface RadioButtonProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string

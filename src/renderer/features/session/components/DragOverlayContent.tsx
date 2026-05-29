@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import { DragOverlay, useDndContext } from '@dnd-kit/core'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'
 import ConnectionItem from './ConnectionItem.js'

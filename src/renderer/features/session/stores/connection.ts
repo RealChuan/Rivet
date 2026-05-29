@@ -1,15 +1,16 @@
 import { create } from 'zustand'
-import { type ConnectionConfig } from '@shared/types/index.js'
-import { type UiSettings } from '@shared/types/ui.js'
-import { isOk } from '@shared/types/result.js'
-import { SORT_ORDER_NONE, SORT_ORDER_ASC } from '@shared/constants/sort.js'
-import type { SortOrder, SortOrderWithDirection } from '@shared/constants/sort.js' // eslint-disable-line no-duplicate-imports
-import { STORE_KEYS } from '@shared/constants/config.js'
+import {
+  SORT_ORDER,
+  type SortOrder,
+  type SortOrderWithDirection,
+  STORE_KEY,
+} from '@shared/constants/index.js'
+import { type ConnectionConfig, isOk, type UiSettings } from '@shared/types/index.js'
 
 const saveSortOrderToSettings = async (order: SortOrder) => {
-  const currentSettings = await window.electronAPI.config.get(STORE_KEYS.UI_SETTINGS)
+  const currentSettings = await window.electronAPI.config.get(STORE_KEY.UI_SETTINGS)
   if (isOk(currentSettings)) {
-    await window.electronAPI.config.set(STORE_KEYS.UI_SETTINGS, {
+    await window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
       ...(currentSettings.value as UiSettings),
       connectionSortOrder: order,
     })
@@ -42,7 +43,7 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
   pendingConnectionConfig: null,
   pendingIsEditing: false,
   closeConnectionDialog: false,
-  sortOrder: SORT_ORDER_NONE,
+  sortOrder: SORT_ORDER.NONE,
 
   getConnectionById: connectionId => {
     return get().connections.find(c => c.id === connectionId)
@@ -66,26 +67,26 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
     const updatedConnections = get().connections.filter(c => c.id !== connectionId)
     set({ connections: updatedConnections })
 
-    await window.electronAPI.config.set(STORE_KEYS.SAVED_CONNECTIONS, updatedConnections)
+    await window.electronAPI.config.set(STORE_KEY.SAVED_CONNECTIONS, updatedConnections)
     await window.electronAPI.hostKey.delete(connectionId)
   },
 
   loadSavedConnections: async () => {
-    const result = await window.electronAPI.config.get(STORE_KEYS.SAVED_CONNECTIONS)
+    const result = await window.electronAPI.config.get(STORE_KEY.SAVED_CONNECTIONS)
     if (isOk(result) && Array.isArray(result.value)) {
       set({ connections: result.value as ConnectionConfig[] })
     }
 
-    const uiSettingsResult = await window.electronAPI.config.get(STORE_KEYS.UI_SETTINGS)
+    const uiSettingsResult = await window.electronAPI.config.get(STORE_KEY.UI_SETTINGS)
     if (isOk(uiSettingsResult)) {
       set({
-        sortOrder: (uiSettingsResult.value as UiSettings).connectionSortOrder || SORT_ORDER_NONE,
+        sortOrder: (uiSettingsResult.value as UiSettings).connectionSortOrder || SORT_ORDER.NONE,
       })
     }
   },
 
   saveConnectionConfigs: async () => {
-    await window.electronAPI.config.set(STORE_KEYS.SAVED_CONNECTIONS, get().connections)
+    await window.electronAPI.config.set(STORE_KEY.SAVED_CONNECTIONS, get().connections)
   },
 
   setPendingConnectionConfig: (config, isEditing) => {
@@ -111,16 +112,16 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
       if (removed) {
         connections.splice(newIndex, 0, removed)
       }
-      set({ connections, sortOrder: SORT_ORDER_NONE })
+      set({ connections, sortOrder: SORT_ORDER.NONE })
       await get().saveConnectionConfigs()
-      await saveSortOrderToSettings(SORT_ORDER_NONE)
+      await saveSortOrderToSettings(SORT_ORDER.NONE)
     }
   },
 
   sortConnections: async order => {
     const connections = [...get().connections].sort((a, b) => {
       const comparison = a.name.localeCompare(b.name)
-      return order === SORT_ORDER_ASC ? comparison : -comparison
+      return order === SORT_ORDER.ASC ? comparison : -comparison
     })
     set({ connections, sortOrder: order })
     await get().saveConnectionConfigs()

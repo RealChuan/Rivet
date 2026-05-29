@@ -1,20 +1,20 @@
-import { WINDOW_CHANNELS } from './window.js'
-import { PROTOCOL_CHANNELS } from './protocol.js'
 import { CONFIG_CHANNELS } from './config.js'
+import { CRYPTO_CHANNELS } from './crypto.js'
 import { DIALOG_CHANNELS } from './dialog.js'
-import { HOST_KEY_CHANNELS } from './host-key.js'
-import { SYSTEM_CHANNELS } from './system.js'
-import { UTILS_CHANNELS } from './utils.js'
 import { EVENTS_CHANNELS } from './events.js'
+import { HOST_KEY_CHANNELS } from './host-key.js'
+import { PROTOCOL_CHANNELS } from './protocol.js'
+import { SYSTEM_CHANNELS } from './system.js'
+import { WINDOW_CHANNELS } from './window.js'
 
-export { WINDOW_CHANNELS } from './window.js'
-export { PROTOCOL_CHANNELS } from './protocol.js'
 export { CONFIG_CHANNELS } from './config.js'
+export { CRYPTO_CHANNELS } from './crypto.js'
 export { DIALOG_CHANNELS } from './dialog.js'
-export { HOST_KEY_CHANNELS } from './host-key.js'
-export { SYSTEM_CHANNELS } from './system.js'
-export { UTILS_CHANNELS } from './utils.js'
 export { EVENTS_CHANNELS } from './events.js'
+export { HOST_KEY_CHANNELS } from './host-key.js'
+export { PROTOCOL_CHANNELS } from './protocol.js'
+export { SYSTEM_CHANNELS } from './system.js'
+export { WINDOW_CHANNELS } from './window.js'
 
 export const IPC_CHANNELS = {
   WINDOW: WINDOW_CHANNELS,
@@ -23,7 +23,7 @@ export const IPC_CHANNELS = {
   DIALOG: DIALOG_CHANNELS,
   HOST_KEY: HOST_KEY_CHANNELS,
   SYSTEM: SYSTEM_CHANNELS,
-  UTILS: UTILS_CHANNELS,
+  CRYPTO: CRYPTO_CHANNELS,
   EVENTS: EVENTS_CHANNELS,
 } as const
 

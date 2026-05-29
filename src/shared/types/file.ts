@@ -2,12 +2,11 @@
  * 文件信息接口
  * 表示远程服务器上的文件或目录的元数据
  */
-export interface FileInfo {
-  /** 文件名（不含路径） */
-  name: string
+import type { FileType } from '@shared/constants/ui.js'
 
-  /** 文件类型：file（文件）或 directory（目录） */
-  type: 'file' | 'directory'
+export interface FileInfo {
+  name: string
+  type: FileType
 
   /** 文件大小（字节） */
   size: number

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-import { useApplicationTheme } from './useTheme.js'
+import { act, renderHook } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useUiStore } from '../stores/index.js'
+import { useApplicationTheme } from './useTheme.js'
 
 vi.mock('../stores/index.js', () => ({
   useUiStore: vi.fn(),

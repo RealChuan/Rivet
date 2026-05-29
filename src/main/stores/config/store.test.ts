@@ -1,14 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import {
   defaultStore,
+  getFromMemory,
+  getInMemoryConfig,
+  hasConfigChanged,
   markConfigChanged,
   resetConfigChanged,
-  hasConfigChanged,
-  getFromMemory,
-  setToMemory,
-  getInMemoryConfig,
-  setInMemoryConfig,
   setDefaultUiSettings,
+  setInMemoryConfig,
+  setToMemory,
 } from './store.js'
 
 describe('config store', () => {

@@ -1,9 +1,16 @@
 import { create } from 'zustand'
+import {
+  DEFAULT_LANGUAGE,
+  DEFAULT_THEME_VALUE,
+  SORT_ORDER,
+  STORE_KEY,
+  type SupportedLanguageLiteral,
+  type Theme,
+  TIMEOUTS,
+  TOAST_TYPE,
+  type ToastType,
+} from '@shared/constants/index.js'
 import { type UiSettings } from '@shared/types/index.js'
-import { DEFAULT_THEME_VALUE, type Theme } from '@shared/constants/theme.js'
-import { DEFAULT_LANGUAGE, type SupportedLanguageLiteral } from '@shared/constants/i18n.js'
-import { TIMEOUTS } from '@shared/constants/timeouts.js'
-import { TOAST_TYPE, type ToastType, SORT_ORDER_NONE, STORE_KEYS } from '@shared/constants/index.js'
 
 interface UiStore extends UiSettings {
   sidebarWidth: number
@@ -14,8 +21,6 @@ interface UiStore extends UiSettings {
   setAppearance: (appearance: Theme) => void
   setLocale: (locale: SupportedLanguageLiteral) => void
   setSidebarWidth: (width: number) => void
-  setQueueDrawerOpen: (open: boolean) => void
-  setQueueDrawerWidth: (width: number) => void
   initialize: (settings: Partial<UiSettings>) => void
   addToast: (toast: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
@@ -32,7 +37,7 @@ interface Toast {
 export const useUiStore = create<UiStore>((set, get) => ({
   appearance: DEFAULT_THEME_VALUE,
   locale: DEFAULT_LANGUAGE,
-  connectionSortOrder: SORT_ORDER_NONE,
+  connectionSortOrder: SORT_ORDER.NONE,
   sidebarWidth: 260,
   queueDrawerOpen: false,
   queueDrawerWidth: 360,
@@ -42,7 +47,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
   setAppearance: appearance => {
     set({ appearance })
     const { locale, connectionSortOrder } = get()
-    void window.electronAPI.config.set(STORE_KEYS.UI_SETTINGS, {
+    void window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
       appearance,
       locale,
       connectionSortOrder,
@@ -52,7 +57,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
   setLocale: locale => {
     set({ locale })
     const { appearance, connectionSortOrder } = get()
-    void window.electronAPI.config.set(STORE_KEYS.UI_SETTINGS, {
+    void window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
       appearance,
       locale,
       connectionSortOrder,
@@ -61,14 +66,6 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
   setSidebarWidth: sidebarWidth => {
     set({ sidebarWidth })
-  },
-
-  setQueueDrawerOpen: queueDrawerOpen => {
-    set({ queueDrawerOpen })
-  },
-
-  setQueueDrawerWidth: queueDrawerWidth => {
-    set({ queueDrawerWidth })
   },
 
   initialize: settings => {

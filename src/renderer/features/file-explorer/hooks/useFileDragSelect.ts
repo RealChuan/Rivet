@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FileInfo } from '@shared/types/index.js'
 
 interface Point {
@@ -33,19 +33,22 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
   const [dragSelection, setDragSelection] = useState<Set<string>>(new Set())
 
   const isDraggingRef = useRef(isDragging)
-  isDraggingRef.current = isDragging
-
   const hasStartedDragRef = useRef(hasStartedDrag)
-  hasStartedDragRef.current = hasStartedDrag
-
   const dragStartRef = useRef(dragStart)
-  dragStartRef.current = dragStart
-
   const dragEndRef = useRef(dragEnd)
-  dragEndRef.current = dragEnd
-
   const itemsRef = useRef(items)
-  itemsRef.current = items
+  const onDragStartRef = useRef(onDragStart)
+  const onDragSelectRef = useRef(onDragSelect)
+
+  useEffect(() => {
+    isDraggingRef.current = isDragging
+    hasStartedDragRef.current = hasStartedDrag
+    dragStartRef.current = dragStart
+    dragEndRef.current = dragEnd
+    itemsRef.current = items
+    onDragStartRef.current = onDragStart
+    onDragSelectRef.current = onDragSelect
+  })
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return
@@ -58,7 +61,6 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
     const x = e.clientX - rect.left
     const y = e.clientY - rect.top
 
-    // 不允许在 header 区域开始框选
     if (y < headerHeight) return
 
     setIsDragging(true)
@@ -66,7 +68,11 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
     setDragStart({ x, y })
     setDragEnd({ x, y })
     setDragSelection(new Set())
-    onDragStart?.()
+
+    isDraggingRef.current = true
+    hasStartedDragRef.current = false
+    dragStartRef.current = { x, y }
+    dragEndRef.current = { x, y }
   }
 
   const getDragStyle = (): React.CSSProperties => {
@@ -111,6 +117,8 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
 
       if (!currentHasStartedDrag) {
         setHasStartedDrag(true)
+        hasStartedDragRef.current = true
+        onDragStartRef.current?.()
       }
 
       const currentItems = itemsRef.current
@@ -139,6 +147,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
 
       if (!currentHasStartedDrag) {
         setIsDragging(false)
+        isDraggingRef.current = false
         return
       }
 
@@ -159,11 +168,14 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
         }
       }
 
-      onDragSelect?.(selectedInBox)
+      onDragSelectRef.current?.(selectedInBox)
 
       setDragSelection(new Set())
       setIsDragging(false)
       setHasStartedDrag(false)
+
+      isDraggingRef.current = false
+      hasStartedDragRef.current = false
     }
 
     document.addEventListener('mousemove', handleMouseMove)
@@ -173,7 +185,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [itemHeight, headerHeight, containerRef, onDragSelect])
+  }, [itemHeight, headerHeight, containerRef])
 
   return {
     isDragging,

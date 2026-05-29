@@ -1,20 +1,28 @@
 import { app, BrowserWindow } from 'electron'
-import { logger } from '../utils/index.js'
-import { saveConfig, stopAutoSave } from '../stores/index.js'
-import { MAIN_WINDOW_ID } from '@shared/constants/index.js'
-import { TIMEOUTS } from '@shared/constants/timeouts.js'
+import {
+  APP_NAME,
+  DEFAULT_MAIN_WINDOW_HEIGHT,
+  DEFAULT_MAIN_WINDOW_WIDTH,
+  DEFAULT_ROUTE,
+  MAIN_WINDOW_ID,
+  MIN_MAIN_WINDOW_HEIGHT,
+  MIN_MAIN_WINDOW_WIDTH,
+  TIMEOUTS,
+} from '@shared/constants/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
-import { sessionManager } from '../services/index.js'
+import { sessionManager, sessionRegistry } from '../services/index.js'
+import { saveConfig, stopAutoSave } from '../stores/index.js'
+import { logger } from '../utils/index.js'
 import { WindowManager } from './window-factory.js'
 
 let isCleaningUp = false
 
 export async function disconnectAllSessions(): Promise<void> {
-  if (isCleaningUp || sessionManager.count === 0) return
+  if (isCleaningUp || sessionRegistry.count === 0) return
   isCleaningUp = true
 
   try {
-    logger.info(`Disconnecting ${sessionManager.count} active sessions...`)
+    logger.info(`Disconnecting ${sessionRegistry.count} active sessions...`)
     const result = await sessionManager.safeUnregisterAll()
     if (!result.success) {
       logger.catch(result.error, { action: 'disconnect-all-sessions' })
@@ -108,20 +116,20 @@ export function setupAppLifecycle(): void {
 export function createMainWindow(): void {
   void WindowManager.create({
     id: MAIN_WINDOW_ID,
-    route: '/',
-    width: 1000,
-    height: 700,
-    minWidth: 800,
-    minHeight: 600,
-    title: 'Rivet',
+    route: DEFAULT_ROUTE,
+    width: DEFAULT_MAIN_WINDOW_WIDTH,
+    height: DEFAULT_MAIN_WINDOW_HEIGHT,
+    minWidth: MIN_MAIN_WINDOW_WIDTH,
+    minHeight: MIN_MAIN_WINDOW_HEIGHT,
+    title: APP_NAME,
   })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       void WindowManager.create({
         id: MAIN_WINDOW_ID,
-        route: '/',
-        title: 'Rivet',
+        route: DEFAULT_ROUTE,
+        title: APP_NAME,
       })
     }
   })

@@ -1,13 +1,13 @@
 import Store from 'electron-store'
+import { SORT_ORDER, THEME } from '@shared/constants/index.js'
 import type { StoreSchema } from './types.js'
-import { THEME_SYSTEM, SORT_ORDER_NONE } from '@shared/constants/index.js'
 
 export const defaultStore: StoreSchema = {
   savedConnections: [],
   uiSettings: {
-    appearance: THEME_SYSTEM,
+    appearance: THEME.SYSTEM,
     locale: '',
-    connectionSortOrder: SORT_ORDER_NONE,
+    connectionSortOrder: SORT_ORDER.NONE,
   },
 }
 
@@ -18,9 +18,9 @@ export const store = new Store<StoreSchema>({
 let inMemoryConfig: StoreSchema = {
   savedConnections: [],
   uiSettings: {
-    appearance: THEME_SYSTEM,
+    appearance: THEME.SYSTEM,
     locale: '',
-    connectionSortOrder: SORT_ORDER_NONE,
+    connectionSortOrder: SORT_ORDER.NONE,
   },
 }
 

@@ -1,12 +1,12 @@
 import { ipcRenderer } from 'electron'
-import { listenerManager } from './listener-manager.js'
 import type {
-  FileInfo,
   ConnectionConfig,
+  FileInfo,
   OperationResult,
   ProtocolResponse,
 } from '@shared/types/index.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
+import { listenerManager } from './listener-manager.js'
 
 export const protocolAPI = {
   connect: (config: ConnectionConfig) =>

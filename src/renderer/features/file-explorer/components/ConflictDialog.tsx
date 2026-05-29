@@ -1,15 +1,22 @@
-import React, { useState } from 'react'
+import type React from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { type FileInfo } from '@shared/types/index.js'
-import GlassDialog from '@renderer/components/ui/GlassDialog.js'
-import Button from '@renderer/components/ui/Button.js'
-import RadioButton from '@renderer/components/ui/RadioButton.js'
-import { Checkbox } from '@renderer/components/ui/Checkbox.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
+import Button from '@renderer/components/ui/Button.js'
+import { Checkbox } from '@renderer/components/ui/Checkbox.js'
+import GlassDialog from '@renderer/components/ui/GlassDialog.js'
+import RadioButton from '@renderer/components/ui/RadioButton.js'
 import { logger } from '@renderer/utils/index.js'
-import { FILE_OPERATIONS } from '@shared/constants/index.js'
+import { FILE_OPERATION } from '@shared/constants/index.js'
+import { type FileInfo } from '@shared/types/index.js'
 
-export type ConflictStrategy = 'overwrite' | 'skip' | 'keepBoth'
+export const CONFLICT_STRATEGY = {
+  OVERWRITE: 'overwrite',
+  SKIP: 'skip',
+  KEEP_BOTH: 'keepBoth',
+} as const
+
+export type ConflictStrategy = (typeof CONFLICT_STRATEGY)[keyof typeof CONFLICT_STRATEGY]
 
 export interface ConflictItem {
   sourceFile: FileInfo
@@ -23,7 +30,7 @@ export interface ConflictResolution {
   strategy: ConflictStrategy
 }
 
-type CopyMoveOperation = typeof FILE_OPERATIONS.COPY | typeof FILE_OPERATIONS.MOVE
+type CopyMoveOperation = typeof FILE_OPERATION.COPY | typeof FILE_OPERATION.MOVE
 
 interface ConflictDialogProps {
   open: boolean
@@ -50,24 +57,32 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
   targetDir,
 }) => {
   const { t } = useTranslation()
-  const [resolutions, setResolutions] = useState<ConflictResolution[]>([])
+  const [resolutions, setResolutions] = useState<ConflictResolution[]>(() =>
+    open
+      ? conflicts.map(c => ({
+          sourceFile: c.sourceFile,
+          targetFile: c.targetFile ?? c.sourceFile,
+          strategy: CONFLICT_STRATEGY.KEEP_BOTH,
+        }))
+      : []
+  )
   const [applyToAll, setApplyToAll] = useState(false)
-  const [globalStrategy, setGlobalStrategy] = useState<ConflictStrategy>('keepBoth')
+  const [globalStrategy, setGlobalStrategy] = useState<ConflictStrategy>(
+    CONFLICT_STRATEGY.KEEP_BOTH
+  )
 
-  React.useEffect(() => {}, [])
-
-  React.useEffect(() => {
-    if (open && conflicts.length > 0) {
-      const defaultStrategy: ConflictStrategy = 'keepBoth'
-      const initialResolutions: ConflictResolution[] = conflicts.map(c => ({
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open && open !== prevOpen) {
+    setResolutions(
+      conflicts.map(c => ({
         sourceFile: c.sourceFile,
         targetFile: c.targetFile ?? c.sourceFile,
-        strategy: defaultStrategy,
+        strategy: CONFLICT_STRATEGY.KEEP_BOTH,
       }))
-      setResolutions(initialResolutions)
-      setApplyToAll(false)
-    }
-  }, [open, conflicts, operation])
+    )
+    setApplyToAll(false)
+    setPrevOpen(open)
+  }
 
   const handleStrategyChange = (index: number, strategy: ConflictStrategy) => {
     if (applyToAll) {
@@ -117,7 +132,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
             const resolution = resolutions[index] ?? {
               sourceFile: conflict.sourceFile,
               targetFile: conflict.targetFile ?? conflict.sourceFile,
-              strategy: 'overwrite' as const,
+              strategy: CONFLICT_STRATEGY.OVERWRITE,
             }
             const cannotOverwrite = !canOverwrite(conflict)
 
@@ -162,29 +177,31 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
                   <RadioButton
                     label={t('file.conflict.skip')}
                     name={`strategy-${index}`}
-                    checked={resolution.strategy === 'skip'}
-                    onChange={() => handleStrategyChange(index, 'skip')}
+                    checked={resolution.strategy === CONFLICT_STRATEGY.SKIP}
+                    onChange={() => handleStrategyChange(index, CONFLICT_STRATEGY.SKIP)}
                   />
                   <RadioButton
                     label={t('file.conflict.keepBoth')}
                     labelClassName="text-accent"
                     name={`strategy-${index}`}
-                    checked={resolution.strategy === 'keepBoth'}
-                    onChange={() => handleStrategyChange(index, 'keepBoth')}
+                    checked={resolution.strategy === CONFLICT_STRATEGY.KEEP_BOTH}
+                    onChange={() => handleStrategyChange(index, CONFLICT_STRATEGY.KEEP_BOTH)}
                   />
-                  {operation !== FILE_OPERATIONS.MOVE && (
+                  {operation !== FILE_OPERATION.MOVE && (
                     <RadioButton
                       label={t('file.conflict.overwrite')}
                       labelClassName={`text-danger ${cannotOverwrite ? 'cursor-not-allowed opacity-50' : ''}`}
                       name={`strategy-${index}`}
-                      checked={resolution.strategy === 'overwrite'}
-                      onChange={() => !cannotOverwrite && handleStrategyChange(index, 'overwrite')}
+                      checked={resolution.strategy === CONFLICT_STRATEGY.OVERWRITE}
+                      onChange={() =>
+                        !cannotOverwrite && handleStrategyChange(index, CONFLICT_STRATEGY.OVERWRITE)
+                      }
                       disabled={cannotOverwrite}
                     />
                   )}
                 </div>
 
-                {cannotOverwrite && operation !== FILE_OPERATIONS.MOVE && (
+                {cannotOverwrite && operation !== FILE_OPERATION.MOVE && (
                   <div className="mt-2 text-xs text-danger">
                     {t('file.conflict.cannotOverwrite')}
                   </div>
@@ -223,31 +240,35 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
             <RadioButton
               label={t('file.conflict.skip')}
               name="global-strategy"
-              checked={globalStrategy === 'skip'}
+              checked={globalStrategy === CONFLICT_STRATEGY.SKIP}
               onChange={() => {
-                setGlobalStrategy('skip')
-                setResolutions(resolutions.map(r => ({ ...r, strategy: 'skip' })))
+                setGlobalStrategy(CONFLICT_STRATEGY.SKIP)
+                setResolutions(resolutions.map(r => ({ ...r, strategy: CONFLICT_STRATEGY.SKIP })))
               }}
             />
             <RadioButton
               label={t('file.conflict.keepBoth')}
               labelClassName="text-accent"
               name="global-strategy"
-              checked={globalStrategy === 'keepBoth'}
+              checked={globalStrategy === CONFLICT_STRATEGY.KEEP_BOTH}
               onChange={() => {
-                setGlobalStrategy('keepBoth')
-                setResolutions(resolutions.map(r => ({ ...r, strategy: 'keepBoth' })))
+                setGlobalStrategy(CONFLICT_STRATEGY.KEEP_BOTH)
+                setResolutions(
+                  resolutions.map(r => ({ ...r, strategy: CONFLICT_STRATEGY.KEEP_BOTH }))
+                )
               }}
             />
-            {operation !== FILE_OPERATIONS.MOVE && (
+            {operation !== FILE_OPERATION.MOVE && (
               <RadioButton
                 label={t('file.conflict.overwrite')}
                 labelClassName="text-danger"
                 name="global-strategy"
-                checked={globalStrategy === 'overwrite'}
+                checked={globalStrategy === CONFLICT_STRATEGY.OVERWRITE}
                 onChange={() => {
-                  setGlobalStrategy('overwrite')
-                  setResolutions(resolutions.map(r => ({ ...r, strategy: 'overwrite' })))
+                  setGlobalStrategy(CONFLICT_STRATEGY.OVERWRITE)
+                  setResolutions(
+                    resolutions.map(r => ({ ...r, strategy: CONFLICT_STRATEGY.OVERWRITE }))
+                  )
                 }}
               />
             )}

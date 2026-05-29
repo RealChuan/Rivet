@@ -1,25 +1,28 @@
-import type { FileInfo, ConnectionConfig, OperationResult } from '@shared/types/index.js'
-import { normalizePath, joinPaths, getParentPath, sanitizePath } from '@shared/utils/index.js'
-import { type ProtocolType, TIMEOUTS } from '@shared/constants/index.js'
 import { logger } from '@main/utils/index.js'
+import { ERROR_CODE, type ProtocolType, TIMEOUTS } from '@shared/constants/index.js'
 import {
-  type Result,
-  ok,
-  err,
-  isErr,
-  type ErrorInfo,
+  type ConnectionConfig,
   createErrorInfo,
-} from '@shared/types/result.js'
-import type { FileProtocol, SessionInfo } from './protocol-types.js'
+  err,
+  type ErrorInfo,
+  type FileInfo,
+  isErr,
+  ok,
+  type OperationResult,
+  type Result,
+} from '@shared/types/index.js'
+import { getParentPath, joinPaths, normalizePath, sanitizePath } from '@shared/utils/index.js'
+import type { FileProtocol, HostVerifier, SessionInfo } from './protocol-types.js'
 
-export type { FileProtocol, SessionInfo } from './protocol-types.js'
+export type { FileProtocol, HostVerifier, SessionInfo } from './protocol-types.js'
 
 export abstract class AbstractProtocol<T> implements FileProtocol {
   abstract readonly protocolType: ProtocolType
 
   abstract connect(
     config: ConnectionConfig,
-    password: string
+    password: string,
+    hostVerifier?: HostVerifier
   ): Promise<Result<OperationResult, ErrorInfo>>
   abstract disconnect(sessionId: string): Promise<Result<void, ErrorInfo>>
 
@@ -63,11 +66,11 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
   protected getClient(sessionId: string): Result<T, ErrorInfo> {
     const info = this.getSessionInfo(sessionId)
     if (!info) {
-      return err(createErrorInfo('SESSION_NOT_FOUND', `Session not found: ${sessionId}`))
+      return err(createErrorInfo(ERROR_CODE.SESSION_NOT_FOUND, `Session not found: ${sessionId}`))
     }
 
     if (info.isClosing) {
-      return err(createErrorInfo('SESSION_CLOSING', `Session is closing: ${sessionId}`))
+      return err(createErrorInfo(ERROR_CODE.SESSION_CLOSING, `Session is closing: ${sessionId}`))
     }
 
     // 类型安全：info.client 由具体子类的 getSessionInfo 保证类型正确
@@ -132,7 +135,9 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     try {
       sanitizedPath = sanitizePath(path)
     } catch (e) {
-      return err(createErrorInfo('PATH_TRAVERSAL', e instanceof Error ? e.message : String(e)))
+      return err(
+        createErrorInfo(ERROR_CODE.PATH_TRAVERSAL, e instanceof Error ? e.message : String(e))
+      )
     }
     const basePath = normalizePath(this.getBasePath(sessionId))
 
@@ -140,8 +145,8 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       signal,
       () => this.listImpl(clientResult.value, sanitizedPath, basePath),
       TIMEOUTS.LIST,
-      'LIST_TIMEOUT',
-      'LIST_ABORTED'
+      ERROR_CODE.LIST_TIMEOUT,
+      ERROR_CODE.LIST_ABORTED
     )
 
     if (isErr(result)) {
@@ -170,7 +175,9 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     try {
       sanitizedPath = sanitizePath(path)
     } catch (e) {
-      return err(createErrorInfo('PATH_TRAVERSAL', e instanceof Error ? e.message : String(e)))
+      return err(
+        createErrorInfo(ERROR_CODE.PATH_TRAVERSAL, e instanceof Error ? e.message : String(e))
+      )
     }
     const basePath = normalizePath(this.getBasePath(sessionId))
 
@@ -178,8 +185,8 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       signal,
       () => this.mkdirImpl(clientResult.value, sanitizedPath, basePath),
       TIMEOUTS.MKDIR,
-      'MKDIR_TIMEOUT',
-      'MKDIR_ABORTED'
+      ERROR_CODE.MKDIR_TIMEOUT,
+      ERROR_CODE.MKDIR_ABORTED
     )
 
     if (isErr(result)) {
@@ -212,7 +219,9 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       const parentPath = getParentPath(sanitizedCurrentPath)
       sanitizedNewPath = sanitizePath(joinPaths(parentPath, newName))
     } catch (e) {
-      return err(createErrorInfo('PATH_TRAVERSAL', e instanceof Error ? e.message : String(e)))
+      return err(
+        createErrorInfo(ERROR_CODE.PATH_TRAVERSAL, e instanceof Error ? e.message : String(e))
+      )
     }
     const basePath = normalizePath(this.getBasePath(sessionId))
 
@@ -220,8 +229,8 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       signal,
       () => this.renameImpl(clientResult.value, sanitizedCurrentPath, sanitizedNewPath, basePath),
       TIMEOUTS.RENAME,
-      'RENAME_TIMEOUT',
-      'RENAME_ABORTED'
+      ERROR_CODE.RENAME_TIMEOUT,
+      ERROR_CODE.RENAME_ABORTED
     )
 
     if (isErr(result)) {
@@ -251,7 +260,9 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     try {
       sanitizedPath = sanitizePath(file.absolutePath)
     } catch (e) {
-      return err(createErrorInfo('PATH_TRAVERSAL', e instanceof Error ? e.message : String(e)))
+      return err(
+        createErrorInfo(ERROR_CODE.PATH_TRAVERSAL, e instanceof Error ? e.message : String(e))
+      )
     }
     const basePath = normalizePath(this.getBasePath(sessionId))
 
@@ -259,8 +270,8 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       signal,
       () => this.deleteImpl(clientResult.value, sanitizedPath, basePath),
       TIMEOUTS.DELETE,
-      'DELETE_TIMEOUT',
-      'DELETE_ABORTED'
+      ERROR_CODE.DELETE_TIMEOUT,
+      ERROR_CODE.DELETE_ABORTED
     )
 
     if (isErr(result)) {
@@ -292,7 +303,9 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       sanitizedSourcePath = sanitizePath(file.absolutePath)
       sanitizedTargetPath = sanitizePath(targetPath)
     } catch (e) {
-      return err(createErrorInfo('PATH_TRAVERSAL', e instanceof Error ? e.message : String(e)))
+      return err(
+        createErrorInfo(ERROR_CODE.PATH_TRAVERSAL, e instanceof Error ? e.message : String(e))
+      )
     }
     const basePath = normalizePath(this.getBasePath(sessionId))
 
@@ -300,8 +313,8 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       signal,
       () => this.copyImpl(clientResult.value, sanitizedSourcePath, sanitizedTargetPath, basePath),
       TIMEOUTS.COPY,
-      'COPY_TIMEOUT',
-      'COPY_ABORTED'
+      ERROR_CODE.COPY_TIMEOUT,
+      ERROR_CODE.COPY_ABORTED
     )
 
     if (isErr(result)) {
@@ -334,7 +347,9 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       sanitizedSourcePath = sanitizePath(file.absolutePath)
       sanitizedTargetPath = sanitizePath(targetPath)
     } catch (e) {
-      return err(createErrorInfo('PATH_TRAVERSAL', e instanceof Error ? e.message : String(e)))
+      return err(
+        createErrorInfo(ERROR_CODE.PATH_TRAVERSAL, e instanceof Error ? e.message : String(e))
+      )
     }
     const basePath = normalizePath(this.getBasePath(sessionId))
 
@@ -342,8 +357,8 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       signal,
       () => this.moveImpl(clientResult.value, sanitizedSourcePath, sanitizedTargetPath, basePath),
       TIMEOUTS.MOVE,
-      'MOVE_TIMEOUT',
-      'MOVE_ABORTED'
+      ERROR_CODE.MOVE_TIMEOUT,
+      ERROR_CODE.MOVE_ABORTED
     )
 
     if (isErr(result)) {

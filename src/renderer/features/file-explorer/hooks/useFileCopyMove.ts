@@ -1,18 +1,32 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useUiStore } from '@renderer/stores/index.js'
-import { logger } from '@renderer/utils/index.js'
-import { type FileInfo, isProtocolResponseErr } from '@shared/types/index.js'
-import { type Result, ok, err, type ErrorInfo, createErrorInfo } from '@shared/types/result.js'
 import {
   type ConflictItem,
   type ConflictResolution,
 } from '@renderer/features/file-explorer/components/ConflictDialog.js'
-import { isSubPath, generateUniqueFilename, formatErrorMessage } from '@shared/utils/index.js'
-import { FILE_OPERATIONS, TOAST_TYPE } from '@shared/constants/index.js'
+import { useSessionStore } from '@renderer/features/session/stores/session.js'
+import { useUiStore } from '@renderer/stores/index.js'
+import { logger } from '@renderer/utils/index.js'
+import {
+  ERROR_CODE,
+  FILE_OPERATION,
+  FILE_TYPE,
+  type FileType,
+  ROOT_PATH,
+  TOAST_TYPE,
+} from '@shared/constants/index.js'
+import {
+  createErrorInfo,
+  err,
+  type ErrorInfo,
+  type FileInfo,
+  isProtocolResponseErr,
+  ok,
+  type Result,
+} from '@shared/types/index.js'
+import { formatErrorMessage, generateUniqueFilename, isSubPath } from '@shared/utils/index.js'
 
-type CopyMoveOperation = typeof FILE_OPERATIONS.COPY | typeof FILE_OPERATIONS.MOVE
+type CopyMoveOperation = typeof FILE_OPERATION.COPY | typeof FILE_OPERATION.MOVE
 
 export interface UseFileCopyMoveReturn {
   handleCopy: (files: FileInfo[]) => void
@@ -45,32 +59,30 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
   const [pendingFiles, setPendingFiles] = useState<FileInfo[]>([])
   const [pendingTargetDir, setPendingTargetDir] = useState<FileInfo | null>(null)
   const [conflicts, setConflicts] = useState<ConflictItem[]>([])
-  const [targetFilesCache, setTargetFilesCache] = useState<Map<string, 'file' | 'directory'>>(
-    new Map()
-  )
+  const [targetFilesCache, setTargetFilesCache] = useState<Map<string, FileType>>(new Map())
   const isHandlingConflictRef = useRef(false)
 
   const handleCopy = (files: FileInfo[]) => {
     setPendingFiles(files)
-    setPendingOperation(FILE_OPERATIONS.COPY)
+    setPendingOperation(FILE_OPERATION.COPY)
     setTargetFolderDialogOpen(true)
   }
 
   const handleMove = (files: FileInfo[]) => {
     setPendingFiles(files)
-    setPendingOperation(FILE_OPERATIONS.MOVE)
+    setPendingOperation(FILE_OPERATION.MOVE)
     setTargetFolderDialogOpen(true)
   }
 
   const getTargetPath = (fileName: string, targetDir: string): string => {
-    return targetDir === '/' ? `/${fileName}` : `${targetDir}/${fileName}`
+    return targetDir === ROOT_PATH ? `/${fileName}` : `${targetDir}/${fileName}`
   }
 
   const executeOperation = async (
     files: FileInfo[],
     targetDir: FileInfo,
     resolutionsMap: Map<string, ConflictResolution>,
-    existingNames?: Map<string, 'file' | 'directory'>,
+    existingNames?: Map<string, FileType>,
     operation?: CopyMoveOperation
   ) => {
     const op = operation ?? pendingOperation
@@ -109,7 +121,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
 
     for (const { file, targetPath } of itemsToProcess) {
       let result
-      if (op === FILE_OPERATIONS.COPY) {
+      if (op === FILE_OPERATION.COPY) {
         result = await window.electronAPI.protocol.copy(sessionId, file, targetPath)
       } else {
         result = await window.electronAPI.protocol.move(sessionId, file, targetPath)
@@ -117,7 +129,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
 
       if (isProtocolResponseErr(result)) {
         const errorMsg = formatErrorMessage(result.error) || t('error.unknown')
-        if (op === FILE_OPERATIONS.COPY) {
+        if (op === FILE_OPERATION.COPY) {
           addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.copyFailed')}: ${errorMsg}` })
         } else {
           addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.moveFailed')}: ${errorMsg}` })
@@ -126,7 +138,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
       }
     }
 
-    if (op === FILE_OPERATIONS.COPY) {
+    if (op === FILE_OPERATION.COPY) {
       addToast({ type: TOAST_TYPE.SUCCESS, message: t('toast.copySuccess') })
     } else {
       addToast({ type: TOAST_TYPE.SUCCESS, message: t('toast.moveSuccess') })
@@ -139,19 +151,19 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
     targetDir: FileInfo
   ): Promise<Result<void, ErrorInfo>> => {
     if (!pendingOperation || pendingFiles.length === 0) {
-      return err(createErrorInfo('INVALID_STATE', t('error.noOperationPending')))
+      return err(createErrorInfo(ERROR_CODE.INVALID_STATE, t('error.noOperationPending')))
     }
 
     for (const pendingFile of pendingFiles) {
       if (
-        pendingFile.type === 'directory' &&
+        pendingFile.type === FILE_TYPE.DIRECTORY &&
         isSubPath(pendingFile.absolutePath, targetDir.absolutePath)
       ) {
         const errorMessage =
-          pendingOperation === FILE_OPERATIONS.COPY
+          pendingOperation === FILE_OPERATION.COPY
             ? t('toast.cannotCopyToSelf')
             : t('toast.cannotMoveToSelf')
-        return err(createErrorInfo('SELF_CONTAINED', errorMessage))
+        return err(createErrorInfo(ERROR_CODE.SELF_CONTAINED, errorMessage))
       }
     }
 
@@ -159,7 +171,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
 
     if (isProtocolResponseErr(listResult)) {
       const msg = formatErrorMessage(listResult.error) || t('error.unknown')
-      return err(createErrorInfo('LIST_FAILED', msg))
+      return err(createErrorInfo(ERROR_CODE.LIST_FAILED, msg))
     }
 
     const targetFiles = listResult.value
@@ -222,9 +234,9 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
       const resolutionsMap = new Map(resolutions.map(r => [r.sourceFile.absolutePath, r]))
       await executeOperation(pendingFilesList, pendingTargetDirValue, resolutionsMap, cache, op)
     } catch (error) {
-      logger.catch(error, { action: op === FILE_OPERATIONS.COPY ? 'copy' : 'move' })
+      logger.catch(error, { action: op === FILE_OPERATION.COPY ? 'copy' : 'move' })
       const msg = formatErrorMessage(error) || t('error.unknown')
-      if (op === FILE_OPERATIONS.COPY) {
+      if (op === FILE_OPERATION.COPY) {
         addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.copyFailed')}: ${msg}` })
       } else {
         addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.moveFailed')}: ${msg}` })

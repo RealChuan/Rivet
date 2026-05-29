@@ -1,11 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { DEFAULT_THEME_VALUE, SORT_ORDER } from '@shared/constants/index.js'
 import {
   defaultUiSettings,
   getUserInterfaceSettings,
   setUserInterfaceSettings,
 } from './ui-settings.js'
-import { DEFAULT_THEME_VALUE } from '@shared/constants/theme.js'
-import { SORT_ORDER_NONE } from '@shared/constants/sort.js'
 import { isValidUiSettings } from './validation.js'
 
 vi.mock('./validation.js', () => ({
@@ -27,7 +26,7 @@ describe('ui-settings utilities', () => {
     it('should have correct default values', () => {
       expect(defaultUiSettings.appearance).toBe(DEFAULT_THEME_VALUE)
       expect(defaultUiSettings.locale).toBe('')
-      expect(defaultUiSettings.connectionSortOrder).toBe(SORT_ORDER_NONE)
+      expect(defaultUiSettings.connectionSortOrder).toBe(SORT_ORDER.NONE)
     })
   })
 

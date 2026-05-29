@@ -1,11 +1,11 @@
 import {
-  type Result,
-  ok,
-  err,
-  isErr,
-  tryCatchAsync,
-  type ErrorInfo,
   createErrorInfo,
+  err,
+  type ErrorInfo,
+  isErr,
+  ok,
+  type Result,
+  tryCatchAsync,
 } from '../types/result.js'
 
 export async function handleIpcResultAsync<T>(
@@ -49,22 +49,4 @@ export function toIpcResult<T>(
     return err(createErrorInfo('IPC_NULL', errorMessage))
   }
   return ok(value)
-}
-
-export function wrapIpcHandler<T extends unknown[], R>(
-  operation: string,
-  handler: (...args: T) => Promise<R>
-): (...args: T) => Promise<Result<R, ErrorInfo>> {
-  return async (...args: T) => {
-    return handleIpcResultAsync(operation, () => handler(...args))
-  }
-}
-
-export function wrapSyncIpcHandler<T extends unknown[], R>(
-  operation: string,
-  handler: (...args: T) => R
-): (...args: T) => Result<R, ErrorInfo> {
-  return (...args: T) => {
-    return handleIpcResult(operation, () => handler(...args))
-  }
 }

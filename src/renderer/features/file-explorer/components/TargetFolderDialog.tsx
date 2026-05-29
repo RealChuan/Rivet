@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react'
+import type React from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { type FileInfo, isProtocolResponseErr } from '@shared/types/index.js'
-import GlassDialog from '@renderer/components/ui/GlassDialog.js'
-import VirtualList from '@renderer/components/ui/VirtualList.js'
-import { useUiStore } from '@renderer/stores/index.js'
+import FileIcon from '@renderer/components/common/FileIcon.js'
 import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
 import Button from '@renderer/components/ui/Button.js'
+import GlassDialog from '@renderer/components/ui/GlassDialog.js'
+import VirtualList from '@renderer/components/ui/VirtualList.js'
 import FileExplorerBreadcrumb from '@renderer/features/file-explorer/components/FileExplorerBreadcrumb.js'
-import FileIcon from '@renderer/components/common/FileIcon.js'
-import { getParentPath, formatErrorMessage } from '@shared/utils/index.js'
-import { TOAST_TYPE } from '@shared/constants/index.js'
+import { useUiStore } from '@renderer/stores/index.js'
 import logger from '@renderer/utils/logger.js'
+import { FILE_TYPE, ROOT_PATH, TOAST_TYPE } from '@shared/constants/index.js'
+import { type FileInfo, isProtocolResponseErr } from '@shared/types/index.js'
+import { formatErrorMessage, getParentPath } from '@shared/utils/index.js'
 
 interface TargetFolderDialogProps {
   open: boolean
@@ -31,12 +32,25 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
 }) => {
   const { t } = useTranslation()
   const addToast = useUiStore(state => state.addToast)
-  const [currentPath, setCurrentPath] = useState('/')
+  const [currentPath, setCurrentPath] = useState(ROOT_PATH)
   const [folders, setFolders] = useState<FolderItem[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(open)
   const [selectedFolder, setSelectedFolder] = useState<FolderItem | null>(null)
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
   const currentRequestIdRef = useRef<string | null>(null)
+  const [prevOpen, setPrevOpen] = useState(open)
+  const [prevCurrentPath, setPrevCurrentPath] = useState(currentPath)
+  if (open && open !== prevOpen) {
+    setPrevOpen(open)
+    setCurrentPath(ROOT_PATH)
+    setPrevCurrentPath(ROOT_PATH)
+    setSelectedFolder(null)
+    setIsLoading(true)
+  }
+  if (currentPath !== prevCurrentPath) {
+    setPrevCurrentPath(currentPath)
+    setIsLoading(true)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -46,10 +60,8 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
       void window.electronAPI.protocol.cancel(oldRequestId)
     }
 
-    const requestId = window.electronAPI.utils.generateUuid()
+    const requestId = window.electronAPI.generateUuid()
     currentRequestIdRef.current = requestId
-
-    setIsLoading(true)
 
     const load = async () => {
       try {
@@ -66,7 +78,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
 
         const files = result.value
         const dirs = files
-          .filter((f: FileInfo) => f.type === 'directory')
+          .filter((f: FileInfo) => f.type === FILE_TYPE.DIRECTORY)
           .map((f: FileInfo) => ({ ...f })) as FolderItem[]
         dirs.sort((a, b) => a.name.localeCompare(b.name))
         setFolders(dirs)
@@ -96,26 +108,20 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     }
   }, [])
 
-  useEffect(() => {
-    if (open) {
-      setCurrentPath('/')
-      setSelectedFolder(null)
-    }
-  }, [open])
-
   const handleNavigate = (folder: FolderItem) => {
     setCurrentPath(folder.absolutePath)
     setSelectedFolder(null)
   }
 
   const handleParentDirectory = () => {
-    if (currentPath === '/') return
+    if (currentPath === ROOT_PATH) return
     setCurrentPath(getParentPath(currentPath))
     setSelectedFolder(null)
   }
 
   const handleNewFolder = async (folderName: string) => {
-    const newFolderPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`
+    const newFolderPath =
+      currentPath === ROOT_PATH ? `/${folderName}` : `${currentPath}/${folderName}`
 
     const mkdirResult = await window.electronAPI.protocol.mkdir(sessionId, newFolderPath)
     if (isProtocolResponseErr(mkdirResult)) {
@@ -133,7 +139,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
       void window.electronAPI.protocol.cancel(oldRequestId)
     }
 
-    const requestId = window.electronAPI.utils.generateUuid()
+    const requestId = window.electronAPI.generateUuid()
     currentRequestIdRef.current = requestId
 
     setIsLoading(true)
@@ -152,7 +158,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
 
       const files = listResult.value
       const dirs = files
-        .filter((f: FileInfo) => f.type === 'directory')
+        .filter((f: FileInfo) => f.type === FILE_TYPE.DIRECTORY)
         .map((f: FileInfo) => ({ ...f })) as FolderItem[]
       dirs.sort((a, b) => a.name.localeCompare(b.name))
       setFolders(dirs)
@@ -170,8 +176,8 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
 
   const handleConfirm = () => {
     const targetDir: FileInfo = selectedFolder ?? {
-      name: currentPath === '/' ? '/' : (currentPath.split('/').pop() ?? ''),
-      type: 'directory',
+      name: currentPath === ROOT_PATH ? ROOT_PATH : (currentPath.split('/').pop() ?? ''),
+      type: FILE_TYPE.DIRECTORY,
       size: 0,
       modifyTime: 0,
       permissions: '',
@@ -214,7 +220,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
         style={{ ...style, width: '100%' }}
         title={item.name}
       >
-        <FileIcon type="directory" />
+        <FileIcon type={FILE_TYPE.DIRECTORY} />
         <span className="flex-1 text-sm text-left overflow-hidden text-ellipsis whitespace-nowrap">
           {item.name}
         </span>
@@ -233,7 +239,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
 
   const parentItem: FolderItem = {
     name: '..',
-    type: 'directory',
+    type: FILE_TYPE.DIRECTORY,
     isParent: true,
     size: 0,
     modifyTime: 0,
@@ -242,7 +248,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     absolutePath: getParentPath(currentPath),
   }
 
-  const allItems: FolderItem[] = currentPath !== '/' ? [parentItem, ...folders] : folders
+  const allItems: FolderItem[] = currentPath !== ROOT_PATH ? [parentItem, ...folders] : folders
 
   return (
     <>
@@ -281,7 +287,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
               <div className="flex items-center justify-center h-full">
                 <div className="text-xs text-text-muted">{t('fileExplorerList.loading')}</div>
               </div>
-            ) : folders.length === 0 && currentPath === '/' ? (
+            ) : folders.length === 0 && currentPath === ROOT_PATH ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-xs text-text-muted">{t('fileExplorerList.empty')}</div>
               </div>
@@ -316,7 +322,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
                 className="text-xs text-text-muted px-3 py-2 bg-hover rounded max-w-60 overflow-hidden text-ellipsis whitespace-nowrap"
                 title={currentPath}
               >
-                {currentPath ?? '/'}
+                {currentPath ?? ROOT_PATH}
               </div>
             </div>
             <div className="flex gap-2.5">

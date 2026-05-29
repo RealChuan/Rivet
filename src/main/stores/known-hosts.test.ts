@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/consistent-type-imports -- typeof import() 用于获取值导出的类型 */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockLogger = {
   info: vi.fn(),

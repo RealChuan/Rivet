@@ -1,8 +1,9 @@
-import React from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
+import { HOST_KEY_DIALOG_TYPE, type HostKeyDialogType } from '@shared/constants/index.js'
 
 export interface HostKeyNotificationProps {
-  type: 'first-connect' | 'mismatch'
+  type: HostKeyDialogType
   hash: string
   previousHash?: string | undefined
 }
@@ -13,7 +14,7 @@ export const HostKeyNotification: React.FC<HostKeyNotificationProps> = ({
   previousHash,
 }) => {
   const { t } = useTranslation()
-  const isMismatch = type === 'mismatch'
+  const isMismatch = type === HOST_KEY_DIALOG_TYPE.MISMATCH
 
   return (
     <>

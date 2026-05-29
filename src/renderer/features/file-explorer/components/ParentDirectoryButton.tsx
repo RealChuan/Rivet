@@ -1,5 +1,6 @@
-import React from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
+import { ROOT_PATH } from '@shared/constants/index.js'
 
 interface ParentDirectoryButtonProps {
   currentPath: string
@@ -12,7 +13,7 @@ export const ParentDirectoryButton: React.FC<ParentDirectoryButtonProps> = ({
 }) => {
   const { t } = useTranslation()
 
-  if (currentPath === '/') {
+  if (currentPath === ROOT_PATH) {
     return null
   }
 

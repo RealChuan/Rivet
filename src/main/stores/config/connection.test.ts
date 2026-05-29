@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getConnectionConfigs, saveConnectionConfig, removeConnectionConfig } from './connection.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PROTOCOL, STORE_KEY } from '@shared/constants/index.js'
+import { getConnectionConfigs, removeConnectionConfig, saveConnectionConfig } from './connection.js'
 import { getFromMemory, setToMemory } from './store.js'
-import { PROTOCOL_SFTP, PROTOCOL_WEBDAV, STORE_KEYS } from '@shared/constants/index.js'
 import { isValidConnection } from './validation.js'
 
 vi.mock('./store.js', () => ({
@@ -32,7 +32,7 @@ describe('connection config utilities', () => {
         {
           id: 'conn1',
           name: 'Connection 1',
-          protocol: PROTOCOL_SFTP,
+          protocol: PROTOCOL.SFTP,
           host: 'localhost',
           port: 22,
           username: 'user',
@@ -41,7 +41,7 @@ describe('connection config utilities', () => {
         {
           id: 'conn2',
           name: 'Connection 2',
-          protocol: PROTOCOL_WEBDAV,
+          protocol: PROTOCOL.WEBDAV,
           host: 'localhost',
           port: 80,
           username: 'user',
@@ -52,7 +52,7 @@ describe('connection config utilities', () => {
 
       const result = getConnectionConfigs()
 
-      expect(getFromMemory).toHaveBeenCalledWith(STORE_KEYS.SAVED_CONNECTIONS)
+      expect(getFromMemory).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS)
       expect(result.success).toBe(true)
       expect(result.value).toEqual(mockConnections)
     })
@@ -78,7 +78,7 @@ describe('connection config utilities', () => {
       const newConnection = {
         id: 'new-conn',
         name: 'New Connection',
-        protocol: PROTOCOL_SFTP,
+        protocol: PROTOCOL.SFTP,
         host: 'localhost',
         port: 22,
         username: 'user',
@@ -90,8 +90,8 @@ describe('connection config utilities', () => {
       const result = saveConnectionConfig(newConnection)
 
       expect(isValidConnection).toHaveBeenCalledWith(newConnection)
-      expect(getFromMemory).toHaveBeenCalledWith(STORE_KEYS.SAVED_CONNECTIONS)
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEYS.SAVED_CONNECTIONS, [newConnection])
+      expect(getFromMemory).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS)
+      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, [newConnection])
       expect(result.success).toBe(true)
     })
 
@@ -99,7 +99,7 @@ describe('connection config utilities', () => {
       const existingConnection = {
         id: 'conn1',
         name: 'Old Name',
-        protocol: PROTOCOL_SFTP,
+        protocol: PROTOCOL.SFTP,
         host: 'localhost',
         port: 22,
         username: 'user',
@@ -114,7 +114,7 @@ describe('connection config utilities', () => {
 
       const result = saveConnectionConfig(updatedConnection)
 
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEYS.SAVED_CONNECTIONS, [updatedConnection])
+      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, [updatedConnection])
       expect(result.success).toBe(true)
     })
 
@@ -122,7 +122,7 @@ describe('connection config utilities', () => {
       const connectionWithPassword = {
         id: 'conn1',
         name: 'Test',
-        protocol: PROTOCOL_SFTP,
+        protocol: PROTOCOL.SFTP,
         host: 'localhost',
         port: 22,
         username: 'user',
@@ -157,7 +157,7 @@ describe('connection config utilities', () => {
       const connection = {
         id: 'conn1',
         name: 'Test',
-        protocol: PROTOCOL_SFTP,
+        protocol: PROTOCOL.SFTP,
         host: 'localhost',
         port: 22,
         username: 'user',
@@ -182,7 +182,7 @@ describe('connection config utilities', () => {
         {
           id: 'conn1',
           name: 'Connection 1',
-          protocol: PROTOCOL_SFTP,
+          protocol: PROTOCOL.SFTP,
           host: 'localhost',
           port: 22,
           username: 'user',
@@ -191,7 +191,7 @@ describe('connection config utilities', () => {
         {
           id: 'conn2',
           name: 'Connection 2',
-          protocol: PROTOCOL_SFTP,
+          protocol: PROTOCOL.SFTP,
           host: 'localhost',
           port: 22,
           username: 'user',
@@ -202,12 +202,12 @@ describe('connection config utilities', () => {
 
       const result = removeConnectionConfig('conn1')
 
-      expect(getFromMemory).toHaveBeenCalledWith(STORE_KEYS.SAVED_CONNECTIONS)
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEYS.SAVED_CONNECTIONS, [
+      expect(getFromMemory).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS)
+      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, [
         {
           id: 'conn2',
           name: 'Connection 2',
-          protocol: PROTOCOL_SFTP,
+          protocol: PROTOCOL.SFTP,
           host: 'localhost',
           port: 22,
           username: 'user',
@@ -222,7 +222,7 @@ describe('connection config utilities', () => {
         {
           id: 'conn1',
           name: 'Connection 1',
-          protocol: PROTOCOL_SFTP,
+          protocol: PROTOCOL.SFTP,
           host: 'localhost',
           port: 22,
           username: 'user',
@@ -233,7 +233,7 @@ describe('connection config utilities', () => {
 
       const result = removeConnectionConfig('nonexistent')
 
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEYS.SAVED_CONNECTIONS, connections)
+      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, connections)
       expect(result.success).toBe(true)
     })
 

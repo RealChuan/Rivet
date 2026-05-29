@@ -1,25 +1,31 @@
 import { v4 as uuidv4 } from 'uuid'
-import { type FileProtocol } from './protocol-types.js'
-import { SftpProtocol } from './SftpProtocol.js'
-import { WebdavProtocol } from './WebdavProtocol.js'
-import { type ProtocolType, PROTOCOL_SFTP, SftpStatus, TIMEOUTS } from '@shared/constants/index.js'
+import {
+  ERROR_CODE,
+  PROTOCOL,
+  ProtocolStatus,
+  type ProtocolType,
+  SftpStatus,
+  TIMEOUTS,
+} from '@shared/constants/index.js'
 import {
   type ConnectionConfig,
-  type FileInfo,
-  type OperationResult,
-  type ProtocolResponse,
-} from '@shared/types/index.js'
-import { sessionManager } from '../session-manager.js'
-import { logger, decryptPassword } from '../../utils/index.js'
-import {
-  type Result,
-  ok,
+  createErrorInfo,
   err,
+  type ErrorInfo,
+  type FileInfo,
   isErr,
   isOk,
-  type ErrorInfo,
-  createErrorInfo,
-} from '@shared/types/result.js'
+  ok,
+  type OperationResult,
+  type ProtocolResponse,
+  type Result,
+} from '@shared/types/index.js'
+import { getHostKeyRecord } from '../../stores/index.js'
+import { decryptPassword, logger } from '../../utils/index.js'
+import { sessionRegistry } from '../session-registry.js'
+import { type FileProtocol, type HostVerifierResult } from './protocol-types.js'
+import { SftpProtocol } from './SftpProtocol.js'
+import { WebdavProtocol } from './WebdavProtocol.js'
 
 interface ActiveRequestInfo {
   controller: AbortController
@@ -40,7 +46,7 @@ export class ProtocolService {
 
   private getProtocol(protocol: ProtocolType): FileProtocol {
     if (!this.protocols.has(protocol)) {
-      const instance = protocol === PROTOCOL_SFTP ? new SftpProtocol() : new WebdavProtocol()
+      const instance = protocol === PROTOCOL.SFTP ? new SftpProtocol() : new WebdavProtocol()
       this.protocols.set(protocol, instance)
     }
 
@@ -53,9 +59,9 @@ export class ProtocolService {
   }
 
   private getProtocolBySessionId(sessionId: string): Result<FileProtocol, ErrorInfo> {
-    const handle = sessionManager.get(sessionId)
+    const handle = sessionRegistry.get(sessionId)
     if (!handle) {
-      return err(createErrorInfo('CONN_NOT_FOUND', `Connection not found: ${sessionId}`))
+      return err(createErrorInfo(ERROR_CODE.CONN_NOT_FOUND, `Connection not found: ${sessionId}`))
     }
     return ok(this.getProtocol(handle.protocolType))
   }
@@ -99,7 +105,10 @@ export class ProtocolService {
             requestId,
             success: false,
             value: undefined,
-            error: createErrorInfo('REQUEST_ABORTED', 'Request was cancelled or timed out'),
+            error: createErrorInfo(
+              ERROR_CODE.REQUEST_ABORTED,
+              'Request was cancelled or timed out'
+            ),
           }
         }
         throw error
@@ -128,12 +137,31 @@ export class ProtocolService {
           requestId,
           success: false,
           value: undefined,
-          error: createErrorInfo('AUTH_ERROR', 'Password is required for connection'),
+          error: createErrorInfo(ERROR_CODE.AUTH_ERROR, 'Password is required for connection'),
         }
       }
 
       const protocol = this.getProtocol(config.protocol)
-      const result = await protocol.connect(config, password)
+
+      const hostVerifier =
+        config.protocol === PROTOCOL.SFTP
+          ? (hashedKey: string): HostVerifierResult => {
+              const hostKeyResult = getHostKeyRecord(config.id)
+              if (isErr(hostKeyResult) || !hostKeyResult.value) {
+                return { detail: { hash: hashedKey }, status: ProtocolStatus.FIRST_CONNECT }
+              }
+              const hostKey = hostKeyResult.value
+              if (hostKey.hash === hashedKey) {
+                return { detail: { hash: hashedKey }, status: ProtocolStatus.OK }
+              }
+              return {
+                detail: { hash: hashedKey, previousHash: hostKey.hash },
+                status: SftpStatus.HOST_KEY_MISMATCH,
+              }
+            }
+          : undefined
+
+      const result = await protocol.connect(config, password, hostVerifier)
 
       if (isErr(result)) {
         return {
@@ -160,7 +188,10 @@ export class ProtocolService {
           requestId,
           success: false,
           value: undefined,
-          error: createErrorInfo('CONN_FAILED', 'Connection failed: no session ID returned'),
+          error: createErrorInfo(
+            ERROR_CODE.CONN_FAILED,
+            'Connection failed: no session ID returned'
+          ),
         }
       }
 
@@ -177,7 +208,7 @@ export class ProtocolService {
         requestId,
         success: false,
         value: undefined,
-        error: createErrorInfo('CONN_FAILED', String(error)),
+        error: createErrorInfo(ERROR_CODE.CONN_FAILED, String(error)),
       }
     }
   }

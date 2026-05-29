@@ -1,11 +1,11 @@
-import { setupProtocolIpcHandlers } from './protocol.js'
+import { logger } from '../utils/index.js'
 import { setupConfigIpcHandlers } from './config.js'
+import { setupCryptoIpcHandlers } from './crypto.js'
 import { setupDialogIpcHandlers } from './dialog.js'
 import { setupHostKeyIpcHandlers } from './host-key.js'
+import { setupProtocolIpcHandlers } from './protocol.js'
 import { setupSystemIpcHandlers } from './system.js'
-import { setupUtilsIpcHandlers } from './utils.js'
 import { setupWindowIpcHandlers } from './window.js'
-import { logger } from '../utils/index.js'
 
 export function setupIpcHandlers(): void {
   setupProtocolIpcHandlers()
@@ -13,7 +13,7 @@ export function setupIpcHandlers(): void {
   setupDialogIpcHandlers()
   setupHostKeyIpcHandlers()
   setupSystemIpcHandlers()
-  setupUtilsIpcHandlers()
+  setupCryptoIpcHandlers()
   setupWindowIpcHandlers()
   logger.info('All IPC handlers registered')
 }

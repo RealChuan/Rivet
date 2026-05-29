@@ -1,77 +1,22 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { FileInfo, Session } from '@shared/types/index.js'
 import { useSessionStore } from './session.js'
-import type { Session, FileInfo, ConnectionConfig } from '@shared/types/index.js'
-import { ProtocolStatus, SftpStatus } from '@shared/constants/index.js'
 
 // ---------------------------------------------------------------------------
 // Mock: window.electronAPI
 // ---------------------------------------------------------------------------
-const mockProtocolConnect = vi.fn()
-const mockProtocolDisconnect = vi.fn()
 const mockProtocolCancel = vi.fn()
 const mockProtocolList = vi.fn()
-const mockHostKeySave = vi.fn()
-const mockHostKeyDelete = vi.fn()
 const mockGenerateUuid = vi.fn()
 
 vi.stubGlobal('window', {
   electronAPI: {
     protocol: {
-      connect: mockProtocolConnect,
-      disconnect: mockProtocolDisconnect,
       cancel: mockProtocolCancel,
       list: mockProtocolList,
     },
-    hostKey: {
-      save: mockHostKeySave,
-      delete: mockHostKeyDelete,
-    },
-    utils: {
-      generateUuid: mockGenerateUuid,
-    },
+    generateUuid: mockGenerateUuid,
   },
-})
-
-// ---------------------------------------------------------------------------
-// Mock: useHostKeyStore — auto-confirm host key dialogs
-// ---------------------------------------------------------------------------
-vi.mock('@renderer/features/host-key/stores/host-key.js', () => {
-  const setHostKeyVerificationDialog = vi.fn((state: Record<string, unknown>) => {
-    const onConfirm = state.onConfirm
-    if (onConfirm && typeof onConfirm === 'function') {
-      ;(onConfirm as () => void)()
-    }
-  })
-  return {
-    useHostKeyStore: {
-      getState: () => ({
-        hostKeyDialog: {
-          open: false,
-          type: 'first-connect' as const,
-          hash: '',
-          previousHash: undefined,
-          sessionId: '',
-          connectionId: '',
-        },
-        setHostKeyVerificationDialog,
-      }),
-    },
-  }
-})
-
-// ---------------------------------------------------------------------------
-// Mock: useConnectionStore
-// ---------------------------------------------------------------------------
-vi.mock('./connection.js', () => {
-  const connections: ConnectionConfig[] = []
-  return {
-    useConnectionStore: {
-      getState: () => ({
-        connections,
-        getConnectionById: (id: string) => connections.find(c => c.id === id),
-      }),
-    },
-  }
 })
 
 // ---------------------------------------------------------------------------
@@ -96,16 +41,6 @@ const makeFileInfo = (overrides: Partial<FileInfo> = {}): FileInfo => ({
   permissions: 'rw-r--r--',
   owner: 'user',
   absolutePath: '/home/test.txt',
-  ...overrides,
-})
-
-const makeConfig = (overrides: Partial<ConnectionConfig> = {}): ConnectionConfig => ({
-  id: 'conn-1',
-  name: 'Test Server',
-  protocol: 'sftp',
-  host: 'example.com',
-  port: 22,
-  username: 'user',
   ...overrides,
 })
 
@@ -608,201 +543,6 @@ describe('useSessionStore', () => {
 
       resolveList(okResponse([]))
       await refreshPromise
-    })
-  })
-
-  // =========================================================================
-  // connectSession
-  // =========================================================================
-  describe('connectSession', () => {
-    const okConnectResponse = (sessionId: string, statusCode: number) =>
-      okResponse({
-        sessionId,
-        statusCode,
-        detail: { hash: 'hash-abc' },
-      })
-
-    it('should connect successfully with OK status', async () => {
-      mockProtocolConnect.mockResolvedValue(okConnectResponse('sess-new', ProtocolStatus.OK))
-      mockProtocolList.mockResolvedValue(okResponse([]))
-
-      const config = makeConfig()
-      const result = await useSessionStore.getState().connectSession(config)
-
-      expect(result).toBe(true)
-      const session = useSessionStore.getState().getSessionById('sess-new')
-      if (!session) throw new Error('session not found')
-      expect(session.connectionId).toBe('conn-1')
-      expect(session.currentPath).toBe('/')
-      expect(session.isConnected).toBe(true)
-      expect(useSessionStore.getState().activeSessionId).toBe('sess-new')
-    })
-
-    it('should replace existing session with same connectionId', async () => {
-      // Pre-existing session for same connection
-      const oldSession = makeSession({
-        sessionId: 'sess-old',
-        connectionId: 'conn-1',
-      })
-      useSessionStore.setState({ sessions: [oldSession] })
-
-      mockProtocolConnect.mockResolvedValue(okConnectResponse('sess-new', ProtocolStatus.OK))
-      mockProtocolList.mockResolvedValue(okResponse([]))
-
-      const config = makeConfig()
-      await useSessionStore.getState().connectSession(config)
-
-      const state = useSessionStore.getState()
-      expect(state.sessions).toHaveLength(1)
-      expect(state.sessions[0]?.sessionId).toBe('sess-new')
-    })
-
-    it('should throw when connect throws', async () => {
-      mockProtocolConnect.mockRejectedValue(new Error('Connection refused'))
-
-      const config = makeConfig()
-      await expect(useSessionStore.getState().connectSession(config)).rejects.toThrow(
-        'Connection refused'
-      )
-    })
-
-    it('should throw when protocol response is error', async () => {
-      mockProtocolConnect.mockResolvedValue(errResponse('Auth failed'))
-
-      const config = makeConfig()
-      await expect(useSessionStore.getState().connectSession(config)).rejects.toThrow('Auth failed')
-    })
-
-    it('should handle FIRST_CONNECT status and confirm host key', async () => {
-      mockProtocolConnect.mockResolvedValue(
-        okConnectResponse('sess-fc', ProtocolStatus.FIRST_CONNECT)
-      )
-      mockHostKeySave.mockResolvedValue({ success: true, value: undefined, error: null })
-      mockProtocolList.mockResolvedValue(okResponse([]))
-
-      const config = makeConfig()
-      const result = await useSessionStore.getState().connectSession(config)
-
-      expect(result).toBe(true)
-      expect(mockHostKeySave).toHaveBeenCalledWith({
-        connectionId: 'conn-1',
-        hash: 'hash-abc',
-      })
-    })
-
-    it('should handle FIRST_CONNECT status and cancel (user rejects host key)', async () => {
-      // Override host key mock to trigger cancel
-      const { useHostKeyStore } = await import('@renderer/features/host-key/stores/host-key.js')
-      const originalGetState = useHostKeyStore.getState
-      useHostKeyStore.getState = () => ({
-        ...originalGetState(),
-        setHostKeyVerificationDialog: vi.fn((state: Record<string, unknown>) => {
-          const onCancel = state.onCancel
-          if (onCancel && typeof onCancel === 'function') {
-            ;(onCancel as () => void)()
-          }
-        }),
-      })
-
-      mockProtocolConnect.mockResolvedValue(
-        okConnectResponse('sess-fc', ProtocolStatus.FIRST_CONNECT)
-      )
-      mockProtocolDisconnect.mockResolvedValue(okResponse(undefined))
-      mockHostKeyDelete.mockResolvedValue({ success: true, value: undefined, error: null })
-
-      const config = makeConfig()
-      const result = await useSessionStore.getState().connectSession(config)
-
-      expect(result).toBe(false)
-      expect(mockProtocolDisconnect).toHaveBeenCalledWith('sess-fc')
-      expect(mockHostKeyDelete).toHaveBeenCalledWith('conn-1')
-
-      // Restore
-      useHostKeyStore.getState = originalGetState
-    })
-
-    it('should handle HOST_KEY_MISMATCH status and retry on confirm', async () => {
-      // First call returns mismatch, second call returns OK
-      mockProtocolConnect
-        .mockResolvedValueOnce(okConnectResponse('', SftpStatus.HOST_KEY_MISMATCH))
-        .mockResolvedValueOnce(okConnectResponse('sess-ok', ProtocolStatus.OK))
-      mockHostKeySave.mockResolvedValue({ success: true, value: undefined, error: null })
-      mockProtocolList.mockResolvedValue(okResponse([]))
-
-      const config = makeConfig()
-      const result = await useSessionStore.getState().connectSession(config)
-
-      expect(result).toBe(true)
-      expect(mockProtocolConnect).toHaveBeenCalledTimes(2)
-    })
-  })
-
-  // =========================================================================
-  // reconnectSession
-  // =========================================================================
-  describe('reconnectSession', () => {
-    it('should throw when connection not found', async () => {
-      await expect(useSessionStore.getState().reconnectSession('nonexistent')).rejects.toThrow(
-        'Connection not found'
-      )
-    })
-
-    it('should reconnect using the stored connection config', async () => {
-      // Set up a connection in the mock store
-      const { useConnectionStore } = await import('./connection.js')
-      const config = makeConfig()
-      // Push into the shared connections array used by the mock
-      const connState = useConnectionStore.getState()
-      connState.connections.push(config)
-
-      mockProtocolConnect.mockResolvedValue(
-        okResponse({
-          sessionId: 'sess-reconnect',
-          statusCode: ProtocolStatus.OK,
-          detail: { hash: 'hash-xyz' },
-        })
-      )
-      mockProtocolList.mockResolvedValue(okResponse([]))
-
-      const result = await useSessionStore.getState().reconnectSession('conn-1')
-      expect(result).toBe(true)
-
-      // Clean up
-      connState.connections.length = 0
-    })
-
-    it('should pass passwordConfig to connectSession', async () => {
-      const { useConnectionStore } = await import('./connection.js')
-      const config = makeConfig()
-      const connState = useConnectionStore.getState()
-      connState.connections.push(config)
-
-      mockProtocolConnect.mockResolvedValue(
-        okResponse({
-          sessionId: 'sess-reconnect-pw',
-          statusCode: ProtocolStatus.OK,
-          detail: { hash: 'hash-pw' },
-        })
-      )
-      mockProtocolList.mockResolvedValue(okResponse([]))
-
-      const result = await useSessionStore.getState().reconnectSession('conn-1', {
-        password: 'encrypted-pw',
-        savePassword: true,
-      })
-      expect(result).toBe(true)
-
-      // Verify connect was called with merged config
-      expect(mockProtocolConnect).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'conn-1',
-          password: 'encrypted-pw',
-          savePassword: true,
-        })
-      )
-
-      // Clean up
-      connState.connections.length = 0
     })
   })
 })

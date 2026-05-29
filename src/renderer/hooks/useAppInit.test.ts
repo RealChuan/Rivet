@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
-import { useApplicationInitialization } from './useAppInit.js'
-import { useUiStore } from '../stores/index.js'
-import { useConnectionStore } from '../features/session/stores/connection.js'
 import { useTranslation } from 'react-i18next'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { useConnectionStore } from '../features/session/stores/connection.js'
+import { useUiStore } from '../stores/index.js'
+import { useApplicationInitialization } from './useAppInit.js'
 
 vi.mock('../stores/index.js', () => ({
   useUiStore: vi.fn(),

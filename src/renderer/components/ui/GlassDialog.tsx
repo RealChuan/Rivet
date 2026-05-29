@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
+import type React from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface GlassDialogProps {
   open: boolean
@@ -19,20 +20,27 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
   const [isDragging, setIsDragging] = useState(false)
   const [startPos, setStartPos] = useState({ mouseX: 0, mouseY: 0, dialogX: 0, dialogY: 0 })
   const [customPosition, setCustomPosition] = useState<{ x: number; y: number } | null>(null)
-  const [shouldRender, setShouldRender] = useState(false)
+  const [shouldRender, setShouldRender] = useState(open)
   const [isVisible, setIsVisible] = useState(false)
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open !== prevOpen) {
     if (open) {
       setCustomPosition(null)
       setShouldRender(true)
-      requestAnimationFrame(() => {
-        setIsVisible(true)
-      })
     } else {
       setIsVisible(false)
       setShouldRender(false)
     }
+    setPrevOpen(open)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const id = requestAnimationFrame(() => {
+      setIsVisible(true)
+    })
+    return () => cancelAnimationFrame(id)
   }, [open])
 
   useEffect(() => {

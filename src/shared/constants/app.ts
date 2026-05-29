@@ -18,6 +18,26 @@ export const APP_VERSION = '0.0.1'
 export const MAIN_WINDOW_ID = 'main'
 
 /**
+ * 主窗口默认宽度（像素）
+ */
+export const DEFAULT_MAIN_WINDOW_WIDTH = 1100
+
+/**
+ * 主窗口最小宽度（像素）
+ */
+export const MIN_MAIN_WINDOW_WIDTH = 800
+
+/**
+ * 主窗口默认高度（像素）
+ */
+export const DEFAULT_MAIN_WINDOW_HEIGHT = 700
+
+/**
+ * 主窗口最小高度（像素）
+ */
+export const MIN_MAIN_WINDOW_HEIGHT = 600
+
+/**
  * 侧边栏默认宽度（像素）
  */
 export const DEFAULT_SIDEBAR_WIDTH = 240
@@ -32,17 +52,17 @@ export const MIN_SIDEBAR_WIDTH = 180
  */
 export const MAX_SIDEBAR_WIDTH = 400
 
-/**
- * 队列面板默认宽度（像素）
- */
-export const DEFAULT_QUEUE_WIDTH = 300
+export const STORE_KEY = {
+  SAVED_CONNECTIONS: 'savedConnections',
+  UI_SETTINGS: 'uiSettings',
+  KNOWN_HOSTS: 'knownHosts',
+} as const
 
-/**
- * 队列面板最小宽度（像素）
- */
-export const MIN_QUEUE_WIDTH = 200
+export type StoreKey = (typeof STORE_KEY)[keyof typeof STORE_KEY]
 
-/**
- * 队列面板最大宽度（像素）
- */
-export const MAX_QUEUE_WIDTH = 500
+export const STORE_NAME = {
+  KNOWN_HOSTS: 'known-hosts',
+} as const
+
+export const ROOT_PATH = '/'
+export const DEFAULT_ROUTE = '/'

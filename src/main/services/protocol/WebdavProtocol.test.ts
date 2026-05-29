@@ -1,14 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { WebdavProtocol } from './WebdavProtocol.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PROTOCOL, ProtocolStatus } from '@shared/constants/index.js'
 import { type ConnectionConfig } from '@shared/types/index.js'
-import { PROTOCOL_WEBDAV, ProtocolStatus } from '@shared/constants/index.js'
+import { WebdavProtocol } from './WebdavProtocol.js'
 
 // 使用 vi.hoisted 确保 mock 对象在 vi.mock 提升前可用
 const {
   mockWebdavClient,
   mockHttpAgent,
   mockHttpsAgent,
-  mockSessionManager,
+  mockSessionRegistry,
   mockCreateClient,
   mockHttpAgentCtor,
   mockHttpsAgentCtor,
@@ -30,7 +30,7 @@ const {
   const mockHttpsAgentCtor = vi.fn().mockImplementation(function () {
     return mockHttpsAgent
   })
-  const mockSessionManager = {
+  const mockSessionRegistry = {
     register: vi.fn(),
     unregister: vi.fn(),
     get: vi.fn().mockReturnValue(null),
@@ -40,7 +40,7 @@ const {
     mockWebdavClient,
     mockHttpAgent,
     mockHttpsAgent,
-    mockSessionManager,
+    mockSessionRegistry,
     mockCreateClient,
     mockHttpAgentCtor,
     mockHttpsAgentCtor,
@@ -73,8 +73,8 @@ vi.mock('node:https', async importOriginal => {
   }
 })
 
-vi.mock('../session-manager', () => ({
-  sessionManager: mockSessionManager,
+vi.mock('../session-registry', () => ({
+  sessionRegistry: mockSessionRegistry,
 }))
 
 vi.mock('@main/utils/index.js', () => ({
@@ -107,7 +107,7 @@ vi.mock('@main/utils/window-meta.js', () => ({
 const baseConfig: ConnectionConfig = {
   id: 'test-conn-id',
   name: 'Test WebDAV',
-  protocol: PROTOCOL_WEBDAV,
+  protocol: PROTOCOL.WEBDAV,
   host: 'webdav.example.com',
   port: 443,
   username: 'testuser',
@@ -146,10 +146,10 @@ describe('WebdavProtocol', () => {
       controller: mockController,
       agent: mockHttpsAgent,
     }
-    mockSessionManager.get.mockReturnValue({
+    mockSessionRegistry.get.mockReturnValue({
       client: webdavSession,
       config: baseConfig,
-      protocolType: PROTOCOL_WEBDAV,
+      protocolType: PROTOCOL.WEBDAV,
     })
     return { mockController }
   }
@@ -233,11 +233,11 @@ describe('WebdavProtocol', () => {
 
       const result = await webdav.disconnect('webdav_test_session')
       expect(result.success).toBe(true)
-      expect(mockSessionManager.unregister).toHaveBeenCalledWith('webdav_test_session')
+      expect(mockSessionRegistry.unregister).toHaveBeenCalledWith('webdav_test_session')
     })
 
     it('should handle disconnect when session not found', async () => {
-      mockSessionManager.get.mockReturnValue(null)
+      mockSessionRegistry.get.mockReturnValue(null)
       const result = await webdav.disconnect('nonexistent')
       expect(result.success).toBe(false)
       if (result.success) return
@@ -262,14 +262,14 @@ describe('WebdavProtocol', () => {
         },
         agent: { destroy: vi.fn() },
       }
-      mockSessionManager.get.mockReturnValue({
+      mockSessionRegistry.get.mockReturnValue({
         client: webdavSession,
         config: baseConfig,
-        protocolType: PROTOCOL_WEBDAV,
+        protocolType: PROTOCOL.WEBDAV,
       })
 
       await webdav.disconnect('webdav_test_session')
-      expect(mockSessionManager.unregister).toHaveBeenCalledWith('webdav_test_session')
+      expect(mockSessionRegistry.unregister).toHaveBeenCalledWith('webdav_test_session')
     })
   })
 

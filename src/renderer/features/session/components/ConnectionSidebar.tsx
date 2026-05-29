@@ -1,16 +1,16 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useSessionDisconnect } from '@renderer/features/session/hooks/useSessionDisconnect.js'
+import ConfirmationDialog from '@renderer/components/common/ConfirmationDialog.js'
+import { HostKeyVerificationDialog } from '@renderer/features/host-key/index.js'
 import { useConnectionActions } from '@renderer/features/session/hooks/useConnectionActions.js'
+import { useSessionDisconnect } from '@renderer/features/session/hooks/useSessionDisconnect.js'
 import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
+import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { useUiStore } from '@renderer/stores/index.js'
+import { SORT_ORDER } from '@shared/constants/index.js'
 import ConnectionDialog from './ConnectionDialog.js'
 import ConnectionList from './ConnectionList.js'
 import SidebarHeader from './SidebarHeader.js'
-import { HostKeyVerificationDialog } from '@renderer/features/host-key/index.js'
-import ConfirmationDialog from '@renderer/components/common/ConfirmationDialog.js'
-import { SORT_ORDER_NONE, SORT_ORDER_ASC, SORT_ORDER_DESC } from '@shared/constants/index.js'
 
 export const ConnectionSidebar: React.FC = () => {
   const { t } = useTranslation()
@@ -27,13 +27,13 @@ export const ConnectionSidebar: React.FC = () => {
 
   const handleSortClick = () => {
     const nextOrder: typeof sortOrder =
-      sortOrder === SORT_ORDER_NONE
-        ? SORT_ORDER_ASC
-        : sortOrder === SORT_ORDER_ASC
-          ? SORT_ORDER_DESC
-          : SORT_ORDER_NONE
+      sortOrder === SORT_ORDER.NONE
+        ? SORT_ORDER.ASC
+        : sortOrder === SORT_ORDER.ASC
+          ? SORT_ORDER.DESC
+          : SORT_ORDER.NONE
 
-    if (nextOrder === SORT_ORDER_NONE) {
+    if (nextOrder === SORT_ORDER.NONE) {
       void setSortOrder(nextOrder)
     } else {
       void sortConnections(nextOrder)
@@ -60,13 +60,13 @@ export const ConnectionSidebar: React.FC = () => {
     handleEdit,
   } = useConnectionActions()
 
-  React.useEffect(() => {
-    if (closeConnectionDialog) {
-      setConnectionDialogOpen(false)
-      setEditConfig(null)
-      setCloseConnectionDialog(false)
-    }
-  }, [closeConnectionDialog, setCloseConnectionDialog, setEditConfig])
+  const [prevCloseDialog, setPrevCloseDialog] = useState(closeConnectionDialog)
+  if (closeConnectionDialog && closeConnectionDialog !== prevCloseDialog) {
+    setPrevCloseDialog(closeConnectionDialog)
+    setConnectionDialogOpen(false)
+    setEditConfig(null)
+    setCloseConnectionDialog(false)
+  }
 
   const handleNewConnection = () => {
     setConnectionDialogOpen(true)

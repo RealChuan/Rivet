@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return -- mock 工厂函数透传 any 参数 */
 /* eslint-disable @typescript-eslint/require-await -- vitest it() 保持 async 签名一致性 */
 /* eslint-disable @typescript-eslint/consistent-type-imports -- typeof import() 用于获取值导出的类型 */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockRegisterWindowMeta = vi.fn()
 const mockUnregisterWindowMeta = vi.fn()

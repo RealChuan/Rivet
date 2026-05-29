@@ -1,6 +1,4 @@
-import type { Theme } from '@shared/constants/theme.js'
-import type { SupportedLanguageLiteral } from '@shared/constants/i18n.js'
-import type { SortOrder } from '@shared/constants/sort.js'
+import type { SortOrder, SupportedLanguageLiteral, Theme } from '@shared/constants/index.js'
 
 /**
  * UI 设置接口

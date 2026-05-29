@@ -1,6 +1,6 @@
+import { app } from 'electron'
 import log from 'electron-log/main'
 import path from 'node:path'
-import { app } from 'electron'
 import { formatMessage, getCallerInfo } from '@shared/utils/index.js'
 
 // 主进程特有的配置

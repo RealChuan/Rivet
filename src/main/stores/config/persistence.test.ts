@@ -1,17 +1,17 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { STORE_KEY } from '@shared/constants/index.js'
 import {
-  initializeConfig,
   flushConfigToDisk,
+  getConfigurationValue,
+  getUserInterfaceSettings,
+  initializeConfig,
+  removeConfigurationValue,
   saveConfig,
+  setConfigurationValue,
+  setUserInterfaceSettings,
   startAutoSave,
   stopAutoSave,
-  getUserInterfaceSettings,
-  setUserInterfaceSettings,
-  getConfigurationValue,
-  setConfigurationValue,
-  removeConfigurationValue,
 } from './persistence.js'
-import { STORE_KEYS } from '@shared/constants/index.js'
 
 const mockStoreGet = vi.fn()
 const mockStoreSet = vi.fn()
@@ -54,15 +54,12 @@ vi.mock('../../utils/index.js', () => ({
   },
 }))
 
-vi.mock('../constants.js', () => ({
-  ERROR_CODES: { CONFIG_ERROR: 'CONFIG_ERROR' },
-}))
-
 vi.mock('@shared/constants/index.js', () => ({
-  STORE_KEYS: {
+  STORE_KEY: {
     SAVED_CONNECTIONS: 'savedConnections',
     UI_SETTINGS: 'uiSettings',
   },
+  ERROR_CODE: { CONFIG_ERROR: 'CONFIG_ERROR' },
 }))
 
 vi.mock('@shared/types/index.js', () => ({
@@ -76,16 +73,16 @@ vi.mock('@shared/types/index.js', () => ({
   isErr: <T, E>(result: { success: boolean; value: T; error: E }) => result.success === false,
 }))
 
+import { logger } from '../../utils/index.js'
 import {
+  getInMemoryConfig,
   hasConfigChanged,
   resetConfigChanged,
-  getInMemoryConfig,
   setInMemoryConfig,
   setToMemory,
 } from './store.js'
-import { isValidConnection, isValidUiSettings, detectSystemLanguage } from './validation.js'
 import { defaultUiSettings } from './ui-settings.js'
-import { logger } from '../../utils/index.js'
+import { detectSystemLanguage, isValidConnection, isValidUiSettings } from './validation.js'
 
 describe('persistence', () => {
   beforeEach(() => {
@@ -98,8 +95,6 @@ describe('persistence', () => {
     vi.useRealTimers()
   })
 
-  // ─── initializeConfig ────────────────────────────────────────────────
-
   describe('initializeConfig', () => {
     it('should load valid UI settings with locale', () => {
       const savedSettings = {
@@ -108,8 +103,8 @@ describe('persistence', () => {
         connectionSortOrder: 'none',
       } as const
       mockStoreGet.mockImplementation((key: unknown) => {
-        if (key === STORE_KEYS.UI_SETTINGS) return savedSettings
-        if (key === STORE_KEYS.SAVED_CONNECTIONS) return []
+        if (key === STORE_KEY.UI_SETTINGS) return savedSettings
+        if (key === STORE_KEY.SAVED_CONNECTIONS) return []
         return undefined
       })
       vi.mocked(isValidUiSettings).mockReturnValue(true)
@@ -126,8 +121,8 @@ describe('persistence', () => {
     it('should auto-detect language when saved UI settings have empty locale', () => {
       const savedSettings = { appearance: 'dark', locale: '', connectionSortOrder: 'none' } as const
       mockStoreGet.mockImplementation((key: unknown) => {
-        if (key === STORE_KEYS.UI_SETTINGS) return savedSettings
-        if (key === STORE_KEYS.SAVED_CONNECTIONS) return []
+        if (key === STORE_KEY.UI_SETTINGS) return savedSettings
+        if (key === STORE_KEY.SAVED_CONNECTIONS) return []
         return undefined
       })
       vi.mocked(isValidUiSettings).mockReturnValue(true)
@@ -145,8 +140,8 @@ describe('persistence', () => {
 
     it('should reset to defaults and detect language when UI settings are invalid', () => {
       mockStoreGet.mockImplementation((key: unknown) => {
-        if (key === STORE_KEYS.UI_SETTINGS) return { invalid: true }
-        if (key === STORE_KEYS.SAVED_CONNECTIONS) return []
+        if (key === STORE_KEY.UI_SETTINGS) return { invalid: true }
+        if (key === STORE_KEY.SAVED_CONNECTIONS) return []
         return undefined
       })
       vi.mocked(isValidUiSettings).mockReturnValue(false)
@@ -173,9 +168,9 @@ describe('persistence', () => {
       }
       const invalidConn = { id: '2', bad: true }
       mockStoreGet.mockImplementation((key: unknown) => {
-        if (key === STORE_KEYS.UI_SETTINGS)
+        if (key === STORE_KEY.UI_SETTINGS)
           return { appearance: 'dark', locale: 'en-US', connectionSortOrder: 'none' }
-        if (key === STORE_KEYS.SAVED_CONNECTIONS) return [validConn, invalidConn]
+        if (key === STORE_KEY.SAVED_CONNECTIONS) return [validConn, invalidConn]
         return undefined
       })
       vi.mocked(isValidUiSettings).mockReturnValue(true)
@@ -191,9 +186,9 @@ describe('persistence', () => {
 
     it('should reset connections to empty array when format is invalid', () => {
       mockStoreGet.mockImplementation((key: unknown) => {
-        if (key === STORE_KEYS.UI_SETTINGS)
+        if (key === STORE_KEY.UI_SETTINGS)
           return { appearance: 'dark', locale: 'en-US', connectionSortOrder: 'none' }
-        if (key === STORE_KEYS.SAVED_CONNECTIONS) return 'not-an-array'
+        if (key === STORE_KEY.SAVED_CONNECTIONS) return 'not-an-array'
         return undefined
       })
       vi.mocked(isValidUiSettings).mockReturnValue(true)
@@ -221,8 +216,6 @@ describe('persistence', () => {
       })
     })
   })
-
-  // ─── flushConfigToDisk ───────────────────────────────────────────────
 
   describe('flushConfigToDisk', () => {
     it('should skip flush when config has not changed', () => {
@@ -260,10 +253,10 @@ describe('persistence', () => {
 
       expect(result.success).toBe(true)
       expect(mockStoreSet).toHaveBeenCalledWith(
-        STORE_KEYS.SAVED_CONNECTIONS,
+        STORE_KEY.SAVED_CONNECTIONS,
         mockConfig.savedConnections
       )
-      expect(mockStoreSet).toHaveBeenCalledWith(STORE_KEYS.UI_SETTINGS, mockConfig.uiSettings)
+      expect(mockStoreSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, mockConfig.uiSettings)
       expect(resetConfigChanged).toHaveBeenCalled()
       expect(logger.info).toHaveBeenCalledWith('Config flushed to disk')
     })
@@ -280,8 +273,6 @@ describe('persistence', () => {
       expect(logger.catch).toHaveBeenCalledWith(expect.any(Error), { action: 'flush-config' })
     })
   })
-
-  // ─── saveConfig ──────────────────────────────────────────────────────
 
   describe('saveConfig', () => {
     it('should call flushConfigToDisk and succeed silently', () => {
@@ -303,8 +294,6 @@ describe('persistence', () => {
       expect(logger.error).toHaveBeenCalled()
     })
   })
-
-  // ─── startAutoSave / stopAutoSave ────────────────────────────────────
 
   describe('startAutoSave', () => {
     it('should start auto-save with default interval', () => {
@@ -333,11 +322,9 @@ describe('persistence', () => {
       startAutoSave(1000)
       startAutoSave(2000)
 
-      // Only one timer should be active — advancing 1000ms should NOT trigger
       vi.advanceTimersByTime(1000)
       expect(logger.debug).not.toHaveBeenCalled()
 
-      // Advancing another 1000ms (total 2000ms from second startAutoSave) should trigger
       vi.advanceTimersByTime(1000)
       expect(logger.debug).toHaveBeenCalledWith('Auto-save triggered')
     })
@@ -360,8 +347,6 @@ describe('persistence', () => {
       expect(logger.info).not.toHaveBeenCalledWith('Auto-save stopped')
     })
   })
-
-  // ─── getUserInterfaceSettings ────────────────────────────────────────
 
   describe('getUserInterfaceSettings', () => {
     it('should return UI settings from in-memory config', () => {
@@ -409,8 +394,6 @@ describe('persistence', () => {
     })
   })
 
-  // ─── setUserInterfaceSettings ────────────────────────────────────────
-
   describe('setUserInterfaceSettings', () => {
     it('should set valid UI settings', () => {
       const settings = {
@@ -423,7 +406,7 @@ describe('persistence', () => {
       const result = setUserInterfaceSettings(settings)
 
       expect(result.success).toBe(true)
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEYS.UI_SETTINGS, { ...settings })
+      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, { ...settings })
     })
 
     it('should return error for invalid UI settings', () => {
@@ -458,8 +441,6 @@ describe('persistence', () => {
     })
   })
 
-  // ─── getConfigurationValue ───────────────────────────────────────────
-
   describe('getConfigurationValue', () => {
     const mockConfig = {
       savedConnections: [
@@ -482,7 +463,7 @@ describe('persistence', () => {
     it('should return a copy of saved connections', () => {
       vi.mocked(getInMemoryConfig).mockReturnValue(mockConfig)
 
-      const result = getConfigurationValue(STORE_KEYS.SAVED_CONNECTIONS)
+      const result = getConfigurationValue(STORE_KEY.SAVED_CONNECTIONS)
 
       expect(result.success).toBe(true)
       expect(result.value).toEqual(mockConfig.savedConnections)
@@ -492,7 +473,7 @@ describe('persistence', () => {
     it('should return a copy of UI settings', () => {
       vi.mocked(getInMemoryConfig).mockReturnValue(mockConfig)
 
-      const result = getConfigurationValue(STORE_KEYS.UI_SETTINGS)
+      const result = getConfigurationValue(STORE_KEY.UI_SETTINGS)
 
       expect(result.success).toBe(true)
       expect(result.value).toEqual(mockConfig.uiSettings)
@@ -505,7 +486,6 @@ describe('persistence', () => {
         customKey: 'customValue',
       } as unknown as ReturnType<typeof getInMemoryConfig>)
 
-      // Accessing a key that exists at runtime but not in StoreSchema type
       const allConfig = getInMemoryConfig() as unknown as Record<string, unknown>
       const customKey = Object.keys(allConfig).find(k => k === 'customKey') as keyof ReturnType<
         typeof getInMemoryConfig
@@ -521,17 +501,15 @@ describe('persistence', () => {
         throw new Error('read error')
       })
 
-      const result = getConfigurationValue(STORE_KEYS.UI_SETTINGS)
+      const result = getConfigurationValue(STORE_KEY.UI_SETTINGS)
 
       expect(result.success).toBe(false)
       expect(logger.catch).toHaveBeenCalledWith(expect.any(Error), {
         action: 'get-config-value',
-        key: STORE_KEYS.UI_SETTINGS,
+        key: STORE_KEY.UI_SETTINGS,
       })
     })
   })
-
-  // ─── setConfigurationValue ───────────────────────────────────────────
 
   describe('setConfigurationValue', () => {
     it('should filter and set connections for SAVED_CONNECTIONS key', () => {
@@ -546,10 +524,10 @@ describe('persistence', () => {
       const invalidConn = { id: '2', bad: true }
       vi.mocked(isValidConnection).mockImplementation((c: unknown) => c === validConn)
 
-      const result = setConfigurationValue(STORE_KEYS.SAVED_CONNECTIONS, [validConn, invalidConn])
+      const result = setConfigurationValue(STORE_KEY.SAVED_CONNECTIONS, [validConn, invalidConn])
 
       expect(result.success).toBe(true)
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEYS.SAVED_CONNECTIONS, [validConn])
+      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, [validConn])
     })
 
     it('should set valid UI settings for UI_SETTINGS key', () => {
@@ -560,16 +538,16 @@ describe('persistence', () => {
       }
       vi.mocked(isValidUiSettings).mockReturnValue(true)
 
-      const result = setConfigurationValue(STORE_KEYS.UI_SETTINGS, settings)
+      const result = setConfigurationValue(STORE_KEY.UI_SETTINGS, settings)
 
       expect(result.success).toBe(true)
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEYS.UI_SETTINGS, { ...settings })
+      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, { ...settings })
     })
 
     it('should return error for invalid UI settings value', () => {
       vi.mocked(isValidUiSettings).mockReturnValue(false)
 
-      const result = setConfigurationValue(STORE_KEYS.UI_SETTINGS, { bad: true })
+      const result = setConfigurationValue(STORE_KEY.UI_SETTINGS, { bad: true })
 
       expect(result.success).toBe(false)
       expect(setToMemory).not.toHaveBeenCalled()
@@ -598,9 +576,9 @@ describe('persistence', () => {
     it('should log info on successful set', () => {
       vi.mocked(isValidConnection).mockReturnValue(true)
 
-      setConfigurationValue(STORE_KEYS.SAVED_CONNECTIONS, [])
+      setConfigurationValue(STORE_KEY.SAVED_CONNECTIONS, [])
 
-      expect(logger.info).toHaveBeenCalledWith(`Config updated: ${STORE_KEYS.SAVED_CONNECTIONS}`)
+      expect(logger.info).toHaveBeenCalledWith(`Config updated: ${STORE_KEY.SAVED_CONNECTIONS}`)
     })
 
     it('should return error when set throws', () => {
@@ -608,7 +586,7 @@ describe('persistence', () => {
         throw new Error('set fail')
       })
 
-      const result = setConfigurationValue(STORE_KEYS.SAVED_CONNECTIONS, [
+      const result = setConfigurationValue(STORE_KEY.SAVED_CONNECTIONS, [
         {
           id: '1',
           name: 'Test',
@@ -622,26 +600,24 @@ describe('persistence', () => {
       expect(result.success).toBe(false)
       expect(logger.catch).toHaveBeenCalledWith(expect.any(Error), {
         action: 'set-config-value',
-        key: STORE_KEYS.SAVED_CONNECTIONS,
+        key: STORE_KEY.SAVED_CONNECTIONS,
       })
     })
   })
 
-  // ─── removeConfigurationValue ────────────────────────────────────────
-
   describe('removeConfigurationValue', () => {
     it('should reset saved connections to empty array', () => {
-      const result = removeConfigurationValue(STORE_KEYS.SAVED_CONNECTIONS)
+      const result = removeConfigurationValue(STORE_KEY.SAVED_CONNECTIONS)
 
       expect(result.success).toBe(true)
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEYS.SAVED_CONNECTIONS, [])
+      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, [])
     })
 
     it('should reset UI settings to defaults', () => {
-      const result = removeConfigurationValue(STORE_KEYS.UI_SETTINGS)
+      const result = removeConfigurationValue(STORE_KEY.UI_SETTINGS)
 
       expect(result.success).toBe(true)
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEYS.UI_SETTINGS, { ...defaultUiSettings })
+      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, { ...defaultUiSettings })
     })
 
     it('should return ok for other keys (no-op)', () => {
@@ -656,12 +632,12 @@ describe('persistence', () => {
         throw new Error('remove fail')
       })
 
-      const result = removeConfigurationValue(STORE_KEYS.SAVED_CONNECTIONS)
+      const result = removeConfigurationValue(STORE_KEY.SAVED_CONNECTIONS)
 
       expect(result.success).toBe(false)
       expect(logger.catch).toHaveBeenCalledWith(expect.any(Error), {
         action: 'remove-config-value',
-        key: STORE_KEYS.SAVED_CONNECTIONS,
+        key: STORE_KEY.SAVED_CONNECTIONS,
       })
     })
   })

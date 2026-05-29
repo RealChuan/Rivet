@@ -1,13 +1,13 @@
 import { BrowserWindow, ipcMain } from 'electron'
+import { DEFAULT_ROUTE, IPC_CHANNELS } from '@shared/constants/index.js'
 import { WindowManager } from '../app/window-factory.js'
 import { getWindowMeta } from '../utils/window-meta.js'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
 
 export function setupWindowIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.WINDOW.GET_META, event => {
     const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return { windowId: 'unknown', route: '/' }
-    return getWindowMeta(win) ?? { windowId: 'unknown', route: '/' }
+    if (!win) return { windowId: 'unknown', route: DEFAULT_ROUTE }
+    return getWindowMeta(win) ?? { windowId: 'unknown', route: DEFAULT_ROUTE }
   })
 
   ipcMain.on(IPC_CHANNELS.WINDOW.MINIMIZE, event => {

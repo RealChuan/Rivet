@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method -- vitest expect() 需要分离方法引用 */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
 import { ipcMain } from 'electron'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { IPC_CHANNELS } from '@shared/constants/index.js'
 
 vi.mock('../utils/index.js', () => ({
   getTempDir: vi.fn().mockReturnValue('/tmp'),

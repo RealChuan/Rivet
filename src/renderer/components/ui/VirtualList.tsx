@@ -1,6 +1,6 @@
 import React, { type ReactElement } from 'react'
-import { List, type RowComponentProps, type ListImperativeAPI } from 'react-window'
 import { AutoSizer, type SizeProps } from 'react-virtualized-auto-sizer'
+import { List, type ListImperativeAPI, type RowComponentProps } from 'react-window'
 
 interface VirtualListProps<T> {
   items: T[] | undefined | null

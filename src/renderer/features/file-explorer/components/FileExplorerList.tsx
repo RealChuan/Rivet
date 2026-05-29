@@ -1,29 +1,30 @@
-import React, { useEffect } from 'react'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
-import { type FileInfo } from '@shared/types/index.js'
-import { PROTOCOL_WEBDAV } from '@shared/constants/index.js'
-import FileListHeader from './FileListHeader.js'
-import FileExplorerItem from './FileExplorerItem.js'
-import FileExplorerDialogs from './FileExplorerDialogs.js'
-import {
-  FileExplorerListLoading,
-  FileExplorerListError,
-  FileExplorerListEmpty,
-} from './FileListStates.js'
-import ParentDirectoryButton from './ParentDirectoryButton.js'
+import type React from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
 import {
-  useFileDeletion,
-  useFileRenaming,
-  useFolderCreation,
-  useFileCopyMove,
   useColumnResizing,
+  useDirectoryNavigation,
+  useFileCopyMove,
+  useFileDeletion,
   useFileDragSelect,
   useFileListState,
+  useFileRenaming,
   useFileSort,
-  useDirectoryNavigation,
+  useFolderCreation,
 } from '@renderer/features/file-explorer/hooks/index.js'
+import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
+import { useSessionStore } from '@renderer/features/session/stores/session.js'
+import { PROTOCOL } from '@shared/constants/index.js'
+import { type FileInfo } from '@shared/types/index.js'
+import FileExplorerDialogs from './FileExplorerDialogs.js'
+import FileExplorerItem from './FileExplorerItem.js'
+import FileListHeader from './FileListHeader.js'
+import {
+  FileExplorerListEmpty,
+  FileExplorerListError,
+  FileExplorerListLoading,
+} from './FileListStates.js'
+import ParentDirectoryButton from './ParentDirectoryButton.js'
 
 interface FileExplorerListProps {
   sessionId: string
@@ -37,7 +38,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
   const connections = useConnectionStore(state => state.connections)
   const session = sessions.find(s => s.sessionId === sessionId)
   const connection = connections.find(c => c.id === session?.connectionId)
-  const isWebdav = connection?.protocol === PROTOCOL_WEBDAV
+  const isWebdav = connection?.protocol === PROTOCOL.WEBDAV
 
   const {
     selectedFile,
@@ -65,6 +66,13 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
 
   const { columnWidths, actualColumnWidths, handleResizeStart, containerRef, resetColumnWidths } =
     useColumnResizing({ isWebdav })
+  const [scrollbarWidth, setScrollbarWidth] = useState(0)
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const width = el.offsetWidth - el.clientWidth
+    setScrollbarWidth(width)
+  }, [containerRef])
   const files = session?.files ?? []
   const { sortBy, sortOrder, sortedFiles, handleSort } = useFileSort(files)
   const { handleDoubleClick, handleParentDirectory } = useDirectoryNavigation(
@@ -100,7 +108,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
   const fileCopyMoveState = useFileCopyMove(sessionId)
 
   const handleFileClick = (file: FileInfo, e: React.MouseEvent) => {
-    if (isDragging) return
+    if (hasStartedDrag) return
 
     const isCtrl = e.ctrlKey || e.metaKey
     const isShift = e.shiftKey
@@ -192,9 +200,6 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
 
   const gapWidth = 6
   const numGaps = isWebdav ? 3 : 5
-  const scrollbarWidth = containerRef.current
-    ? containerRef.current.offsetWidth - containerRef.current.clientWidth
-    : 0
   const totalWidth =
     columnWidths.name +
     columnWidths.permissions +

@@ -1,22 +1,20 @@
-import React, { useState, useEffect } from 'react'
+import type React from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { type ConnectionConfig } from '@shared/types/index.js'
+import { ConfirmationDialog } from '@renderer/components/common/ConfirmationDialog.js'
+import Button from '@renderer/components/ui/Button.js'
+import GlassDialog from '@renderer/components/ui/GlassDialog.js'
+import logger from '@renderer/utils/logger.js'
 import {
-  type ProtocolType,
-  PROTOCOL_SFTP,
-  PROTOCOL_WEBDAV,
   PORT_SFTP,
   PORT_WEBDAV_HTTPS,
-  SCHEME_HTTP,
-  SCHEME_HTTPS,
+  PROTOCOL,
+  type ProtocolType,
+  SCHEME,
+  type SchemeType,
 } from '@shared/constants/index.js'
-import GlassDialog from '@renderer/components/ui/GlassDialog.js'
-import Button from '@renderer/components/ui/Button.js'
-import { ConfirmationDialog } from '@renderer/components/common/ConfirmationDialog.js'
+import { type ConnectionConfig, isErr } from '@shared/types/index.js'
 import { ConnectionFormFields } from './ConnectionFormFields.js'
-
-import { isErr } from '@shared/types/result.js'
-import logger from '@renderer/utils/logger.js'
 
 export interface ConnectionDialogProps {
   open: boolean
@@ -33,64 +31,65 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 }) => {
   const { t } = useTranslation()
   const [name, setName] = useState(config?.name ?? '')
-  const [protocol, setProtocol] = useState<ProtocolType>(config?.protocol ?? PROTOCOL_SFTP)
+  const [protocol, setProtocol] = useState<ProtocolType>(config?.protocol ?? PROTOCOL.SFTP)
   const [host, setHost] = useState(config?.host ?? '')
   const [port, setPort] = useState(config?.port?.toString() ?? String(PORT_SFTP))
   const [username, setUsername] = useState(config?.username ?? '')
   const [password, setPassword] = useState('')
   const [savePassword, setSavePassword] = useState(config?.savePassword ?? false)
   const [basePath, setBasePath] = useState(config?.basePath ?? '')
-  const [scheme, setScheme] = useState<'http' | 'https'>(config?.scheme ?? SCHEME_HTTPS)
+  const [scheme, setScheme] = useState<SchemeType>(config?.scheme ?? SCHEME.HTTPS)
   const [rejectUnauthorized, setRejectUnauthorized] = useState(config?.rejectUnauthorized !== false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showCertWarning, setShowCertWarning] = useState(false)
+  const [prevOpen, setPrevOpen] = useState(open)
+  if (open && open !== prevOpen) {
+    setPrevOpen(open)
+    setError('')
+    setIsLoading(false)
+    setShowCertWarning(false)
+    if (config) {
+      setName(config.name)
+      setProtocol(config.protocol)
+      setHost(config.host)
+      setPort(config.port?.toString() ?? String(PORT_SFTP))
+      setUsername(config.username)
+      setBasePath(config.basePath ?? '')
+      setScheme(config.scheme ?? SCHEME.HTTPS)
+      setRejectUnauthorized(config.rejectUnauthorized !== false)
+      setSavePassword(config.savePassword ?? false)
+      setPassword('')
+    } else {
+      setName('')
+      setProtocol(PROTOCOL.SFTP)
+      setHost('')
+      setPort(String(PORT_SFTP))
+      setUsername('')
+      setPassword('')
+      setSavePassword(false)
+      setBasePath('')
+      setScheme(SCHEME.HTTPS)
+      setRejectUnauthorized(true)
+    }
+  }
 
   useEffect(() => {
-    if (open) {
-      setError('')
-      setIsLoading(false)
-      setShowCertWarning(false)
-      if (config) {
-        setName(config.name)
-        setProtocol(config.protocol)
-        setHost(config.host)
-        setPort(config.port?.toString() ?? String(PORT_SFTP))
-        setUsername(config.username)
-        setBasePath(config.basePath ?? '')
-        setScheme(config.scheme ?? SCHEME_HTTPS)
-        setRejectUnauthorized(config.rejectUnauthorized !== false)
-        setSavePassword(config.savePassword ?? false)
-        setPassword('')
-
-        if (config.savePassword && config.password) {
-          const loadPassword = async () => {
-            try {
-              const encryptedPassword = config.password
-              if (encryptedPassword) {
-                const result = await window.electronAPI.utils.decryptPassword(encryptedPassword)
-                if (!isErr(result)) {
-                  setPassword(result.value)
-                }
-              }
-            } catch (error) {
-              logger.catch(error, { action: 'load-password', configId: config.id })
+    if (open && config?.savePassword && config.password) {
+      const loadPassword = async () => {
+        try {
+          const encryptedPassword = config.password
+          if (encryptedPassword) {
+            const result = await window.electronAPI.crypto.decryptPassword(encryptedPassword)
+            if (!isErr(result)) {
+              setPassword(result.value)
             }
           }
-          void loadPassword()
+        } catch (error) {
+          logger.catch(error, { action: 'load-password', configId: config.id })
         }
-      } else {
-        setName('')
-        setProtocol(PROTOCOL_SFTP)
-        setHost('')
-        setPort(String(PORT_SFTP))
-        setUsername('')
-        setPassword('')
-        setSavePassword(false)
-        setBasePath('')
-        setScheme(SCHEME_HTTPS)
-        setRejectUnauthorized(true)
       }
+      void loadPassword()
     }
   }, [open, config])
 
@@ -107,7 +106,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
       return
     }
 
-    if (protocol === PROTOCOL_WEBDAV && scheme === SCHEME_HTTPS && !rejectUnauthorized) {
+    if (protocol === PROTOCOL.WEBDAV && scheme === SCHEME.HTTPS && !rejectUnauthorized) {
       setShowCertWarning(true)
       return
     }
@@ -128,9 +127,9 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         username: username.trim(),
         password: password || '',
         savePassword,
-        basePath: protocol === PROTOCOL_WEBDAV ? basePath.trim() : '',
-        scheme: protocol === PROTOCOL_WEBDAV ? scheme : SCHEME_HTTP,
-        rejectUnauthorized: protocol === PROTOCOL_WEBDAV ? rejectUnauthorized : false,
+        basePath: protocol === PROTOCOL.WEBDAV ? basePath.trim() : '',
+        scheme: protocol === PROTOCOL.WEBDAV ? scheme : SCHEME.HTTP,
+        rejectUnauthorized: protocol === PROTOCOL.WEBDAV ? rejectUnauthorized : false,
       })
       onClose()
     } catch (err) {
@@ -154,7 +153,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
   const handleProtocolChange = (value: string) => {
     setProtocol(value as ProtocolType)
-    setPort(value === PROTOCOL_WEBDAV ? String(PORT_WEBDAV_HTTPS) : String(PORT_SFTP))
+    setPort(value === PROTOCOL.WEBDAV ? String(PORT_WEBDAV_HTTPS) : String(PORT_SFTP))
   }
 
   const isEditMode = !!config

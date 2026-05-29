@@ -1,48 +1,46 @@
-import { logger } from '../../utils/index.js'
-import { ERROR_CODES } from '../constants.js'
-import {
-  store,
-  hasConfigChanged,
-  resetConfigChanged,
-  getInMemoryConfig,
-  setInMemoryConfig,
-  setToMemory,
-} from './store.js'
-import { isValidConnection, isValidUiSettings, detectSystemLanguage } from './validation.js'
-import { defaultUiSettings } from './ui-settings.js'
-import { STORE_KEYS } from '@shared/constants/index.js'
+import { ERROR_CODE, STORE_KEY } from '@shared/constants/index.js'
 import {
   type ConnectionConfig,
-  type UiSettings,
-  type Result,
-  type ErrorInfo,
-  ok,
-  err,
   createErrorInfo,
+  err,
+  type ErrorInfo,
   isErr,
+  ok,
+  type Result,
+  type UiSettings,
 } from '@shared/types/index.js'
+import { logger } from '../../utils/index.js'
+import {
+  getInMemoryConfig,
+  hasConfigChanged,
+  resetConfigChanged,
+  setInMemoryConfig,
+  setToMemory,
+  store,
+} from './store.js'
+import { defaultUiSettings } from './ui-settings.js'
+import { detectSystemLanguage, isValidConnection, isValidUiSettings } from './validation.js'
 
 export function initializeConfig(): void {
   try {
-    const savedUiSettings = store.get(STORE_KEYS.UI_SETTINGS)
-    const savedConnections = store.get(STORE_KEYS.SAVED_CONNECTIONS)
+    const savedUiSettings = store.get(STORE_KEY.UI_SETTINGS)
+    const savedConnections = store.get(STORE_KEY.SAVED_CONNECTIONS)
 
-    let uiSettings = { ...defaultUiSettings }
-    let connections: ConnectionConfig[] = []
-
-    if (isValidUiSettings(savedUiSettings)) {
-      if (!savedUiSettings.locale) {
-        const systemLang = detectSystemLanguage()
-        uiSettings = { ...savedUiSettings, locale: systemLang }
-        logger.info(`First launch: language auto-detected as ${systemLang}`)
-      } else {
-        uiSettings = { ...savedUiSettings }
+    const uiSettings = (() => {
+      if (isValidUiSettings(savedUiSettings)) {
+        if (!savedUiSettings.locale) {
+          const systemLang = detectSystemLanguage()
+          logger.info(`First launch: language auto-detected as ${systemLang}`)
+          return { ...savedUiSettings, locale: systemLang }
+        }
+        return { ...savedUiSettings }
       }
-    } else {
       const systemLang = detectSystemLanguage()
-      uiSettings = { ...defaultUiSettings, locale: systemLang }
       logger.warn('Invalid UI settings detected, reset to defaults')
-    }
+      return { ...defaultUiSettings, locale: systemLang }
+    })()
+
+    let connections: ConnectionConfig[] = []
 
     if (Array.isArray(savedConnections)) {
       const validConnections = savedConnections.filter(isValidConnection)
@@ -75,14 +73,14 @@ export function flushConfigToDisk(): Result<void, ErrorInfo> {
 
   try {
     const config = getInMemoryConfig()
-    store.set(STORE_KEYS.SAVED_CONNECTIONS, config.savedConnections)
-    store.set(STORE_KEYS.UI_SETTINGS, config.uiSettings)
+    store.set(STORE_KEY.SAVED_CONNECTIONS, config.savedConnections)
+    store.set(STORE_KEY.UI_SETTINGS, config.uiSettings)
     resetConfigChanged()
     logger.info('Config flushed to disk')
     return ok(undefined)
   } catch (error) {
     logger.catch(error, { action: 'flush-config' })
-    return err(createErrorInfo(ERROR_CODES.CONFIG_ERROR, 'Failed to flush config to disk'))
+    return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to flush config to disk'))
   }
 }
 
@@ -122,30 +120,30 @@ export function getUserInterfaceSettings(): Result<UiSettings, ErrorInfo> {
     return ok({ ...config.uiSettings })
   } catch (error) {
     logger.catch(error, { action: 'get-ui-settings' })
-    return err(createErrorInfo(ERROR_CODES.CONFIG_ERROR, 'Failed to get UI settings'))
+    return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to get UI settings'))
   }
 }
 
 export function setUserInterfaceSettings(settings: UiSettings): Result<void, ErrorInfo> {
   try {
     if (!isValidUiSettings(settings)) {
-      return err(createErrorInfo(ERROR_CODES.CONFIG_ERROR, 'Invalid UI settings value'))
+      return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Invalid UI settings value'))
     }
-    setToMemory(STORE_KEYS.UI_SETTINGS, { ...settings })
+    setToMemory(STORE_KEY.UI_SETTINGS, { ...settings })
     return ok(undefined)
   } catch (error) {
     logger.catch(error, { action: 'set-ui-settings' })
-    return err(createErrorInfo(ERROR_CODES.CONFIG_ERROR, 'Failed to set UI settings'))
+    return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to set UI settings'))
   }
 }
 
 export function getConfigurationValue(key: string): Result<unknown, ErrorInfo> {
   try {
-    if (key === STORE_KEYS.SAVED_CONNECTIONS) {
+    if (key === STORE_KEY.SAVED_CONNECTIONS) {
       const config = getInMemoryConfig()
       return ok([...config.savedConnections])
     }
-    if (key === STORE_KEYS.UI_SETTINGS) {
+    if (key === STORE_KEY.UI_SETTINGS) {
       const config = getInMemoryConfig()
       return ok({ ...config.uiSettings })
     }
@@ -153,20 +151,20 @@ export function getConfigurationValue(key: string): Result<unknown, ErrorInfo> {
     return ok(config[key as keyof typeof config])
   } catch (error) {
     logger.catch(error, { action: 'get-config-value', key })
-    return err(createErrorInfo(ERROR_CODES.CONFIG_ERROR, 'Failed to get config value'))
+    return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to get config value'))
   }
 }
 
 export function setConfigurationValue(key: string, value: unknown): Result<void, ErrorInfo> {
   try {
-    if (key === STORE_KEYS.SAVED_CONNECTIONS) {
+    if (key === STORE_KEY.SAVED_CONNECTIONS) {
       const connections = (value as ConnectionConfig[]).filter(isValidConnection)
-      setToMemory(STORE_KEYS.SAVED_CONNECTIONS, connections)
-    } else if (key === STORE_KEYS.UI_SETTINGS) {
+      setToMemory(STORE_KEY.SAVED_CONNECTIONS, connections)
+    } else if (key === STORE_KEY.UI_SETTINGS) {
       if (!isValidUiSettings(value)) {
-        return err(createErrorInfo(ERROR_CODES.CONFIG_ERROR, 'Invalid UI settings value'))
+        return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Invalid UI settings value'))
       }
-      setToMemory(STORE_KEYS.UI_SETTINGS, { ...value })
+      setToMemory(STORE_KEY.UI_SETTINGS, { ...value })
     } else {
       const config = getInMemoryConfig()
       setInMemoryConfig({ ...config, [key]: value })
@@ -175,20 +173,20 @@ export function setConfigurationValue(key: string, value: unknown): Result<void,
     return ok(undefined)
   } catch (error) {
     logger.catch(error, { action: 'set-config-value', key })
-    return err(createErrorInfo(ERROR_CODES.CONFIG_ERROR, 'Failed to set config value'))
+    return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to set config value'))
   }
 }
 
 export function removeConfigurationValue(key: string): Result<void, ErrorInfo> {
   try {
-    if (key === STORE_KEYS.SAVED_CONNECTIONS) {
-      setToMemory(STORE_KEYS.SAVED_CONNECTIONS, [])
-    } else if (key === STORE_KEYS.UI_SETTINGS) {
-      setToMemory(STORE_KEYS.UI_SETTINGS, { ...defaultUiSettings })
+    if (key === STORE_KEY.SAVED_CONNECTIONS) {
+      setToMemory(STORE_KEY.SAVED_CONNECTIONS, [])
+    } else if (key === STORE_KEY.UI_SETTINGS) {
+      setToMemory(STORE_KEY.UI_SETTINGS, { ...defaultUiSettings })
     }
     return ok(undefined)
   } catch (error) {
     logger.catch(error, { action: 'remove-config-value', key })
-    return err(createErrorInfo(ERROR_CODES.CONFIG_ERROR, 'Failed to delete config value'))
+    return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to delete config value'))
   }
 }

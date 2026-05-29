@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method -- vitest expect() 需要分离方法引用 */
 /* eslint-disable @typescript-eslint/no-misused-promises -- mockImplementation 回调允许返回 Promise */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { app } from 'electron'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../utils/index.js', () => ({
   logger: {
@@ -19,8 +19,10 @@ vi.mock('../stores/index.js', () => ({
 
 vi.mock('../services/index.js', () => ({
   sessionManager: {
-    count: 0,
     safeUnregisterAll: vi.fn(),
+  },
+  sessionRegistry: {
+    count: 0,
   },
 }))
 
@@ -31,7 +33,13 @@ vi.mock('./window-factory.js', () => ({
 }))
 
 vi.mock('@shared/constants/index.js', () => ({
-  MAIN_WINDOW_ID: 'main-window',
+  APP_NAME: 'Rivet',
+  MAIN_WINDOW_ID: 'main',
+  DEFAULT_MAIN_WINDOW_WIDTH: 1100,
+  DEFAULT_MAIN_WINDOW_HEIGHT: 700,
+  MIN_MAIN_WINDOW_WIDTH: 800,
+  MIN_MAIN_WINDOW_HEIGHT: 600,
+  DEFAULT_ROUTE: '/',
 }))
 
 vi.mock('@shared/constants/timeouts.js', () => ({
@@ -44,8 +52,8 @@ vi.mock('@shared/utils/index.js', () => ({
   formatErrorMessage: vi.fn((error: unknown) => String(error)),
 }))
 
-function setSessionCount(manager: { count: number }, value: number): void {
-  Object.defineProperty(manager, 'count', { value, writable: true, configurable: true })
+function setSessionCount(registry: { count: number }, value: number): void {
+  Object.defineProperty(registry, 'count', { value, writable: true, configurable: true })
 }
 
 describe('lifecycle', () => {
@@ -56,9 +64,9 @@ describe('lifecycle', () => {
   describe('disconnectAllSessions', () => {
     it('should prevent concurrent disconnections', async () => {
       const { disconnectAllSessions } = await import('./lifecycle.js')
-      const { sessionManager } = await import('../services/index.js')
+      const { sessionManager, sessionRegistry } = await import('../services/index.js')
 
-      setSessionCount(sessionManager, 3)
+      setSessionCount(sessionRegistry, 3)
       const mockResult = { success: true, value: null }
       ;(sessionManager.safeUnregisterAll as ReturnType<typeof vi.fn>).mockImplementation(
         () => new Promise(resolve => setTimeout(() => resolve(mockResult), 100))
@@ -74,9 +82,9 @@ describe('lifecycle', () => {
 
     it('should return early if no active sessions', async () => {
       const { disconnectAllSessions } = await import('./lifecycle.js')
-      const { sessionManager } = await import('../services/index.js')
+      const { sessionManager, sessionRegistry } = await import('../services/index.js')
 
-      setSessionCount(sessionManager, 0)
+      setSessionCount(sessionRegistry, 0)
       await disconnectAllSessions()
 
       expect(sessionManager.safeUnregisterAll).not.toHaveBeenCalled()
@@ -84,9 +92,9 @@ describe('lifecycle', () => {
 
     it('should disconnect all sessions when sessions exist', async () => {
       const { disconnectAllSessions } = await import('./lifecycle.js')
-      const { sessionManager } = await import('../services/index.js')
+      const { sessionManager, sessionRegistry } = await import('../services/index.js')
 
-      setSessionCount(sessionManager, 3)
+      setSessionCount(sessionRegistry, 3)
       const mockResult = { success: true, value: null }
       ;(sessionManager.safeUnregisterAll as ReturnType<typeof vi.fn>).mockResolvedValue(mockResult)
 
@@ -97,10 +105,10 @@ describe('lifecycle', () => {
 
     it('should handle disconnection failure gracefully', async () => {
       const { disconnectAllSessions } = await import('./lifecycle.js')
-      const { sessionManager } = await import('../services/index.js')
+      const { sessionManager, sessionRegistry } = await import('../services/index.js')
       const { logger } = await import('../utils/index.js')
 
-      setSessionCount(sessionManager, 2)
+      setSessionCount(sessionRegistry, 2)
       const mockResult = { success: false, error: new Error('Disconnect failed') }
       ;(sessionManager.safeUnregisterAll as ReturnType<typeof vi.fn>).mockResolvedValue(mockResult)
 
@@ -111,10 +119,10 @@ describe('lifecycle', () => {
 
     it('should handle unexpected errors during disconnection', async () => {
       const { disconnectAllSessions } = await import('./lifecycle.js')
-      const { sessionManager } = await import('../services/index.js')
+      const { sessionManager, sessionRegistry } = await import('../services/index.js')
       const { logger } = await import('../utils/index.js')
 
-      setSessionCount(sessionManager, 1)
+      setSessionCount(sessionRegistry, 1)
       ;(sessionManager.safeUnregisterAll as ReturnType<typeof vi.fn>).mockRejectedValue(
         new Error('Unexpected error')
       )
@@ -221,9 +229,9 @@ describe('lifecycle', () => {
       createMainWindow()
 
       expect(WindowManager.create).toHaveBeenCalledWith({
-        id: 'main-window',
+        id: 'main',
         route: '/',
-        width: 1000,
+        width: 1100,
         height: 700,
         minWidth: 800,
         minHeight: 600,

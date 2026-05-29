@@ -1,4 +1,4 @@
-import React from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import FileExplorerArea from './FileExplorerArea.js'

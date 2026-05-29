@@ -1,4 +1,4 @@
-import { type ProtocolType } from '@shared/constants/protocol.js'
+import { type ProtocolType, type SchemeType } from '@shared/constants/protocol.js'
 
 /**
  * 连接配置接口
@@ -38,7 +38,7 @@ export interface ConnectionConfig {
   basePath?: string
 
   /** WebDAV 协议类型（http/https），默认 https */
-  scheme?: 'http' | 'https'
+  scheme?: SchemeType
 
   /** 是否验证 SSL 证书（仅 WebDAV HTTPS 使用），默认 true */
   rejectUnauthorized?: boolean

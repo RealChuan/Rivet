@@ -2,10 +2,11 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.js'
 import './sentry.js'
+import './i18n/config.js'
+
 import '@fontsource-variable/geist/wght.css'
 import '@fontsource-variable/geist-mono/wght.css'
 import './styles/index.css'
-import './i18n/config.js'
 
 const rootElement = document.getElementById('root')
 if (!rootElement) {

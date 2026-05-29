@@ -1,7 +1,7 @@
-import React from 'react'
+import type React from 'react'
 import { useTranslation } from 'react-i18next'
-import { GlassDialog } from '../ui/index.js'
 import Button from '../../components/ui/Button.js'
+import { GlassDialog } from '../ui/index.js'
 
 interface ConfirmationDialogProps {
   open: boolean

@@ -1,23 +1,22 @@
+import crypto from 'crypto'
 import Store from 'electron-store'
-import { logger } from '../utils/index.js'
+import { ERROR_CODE, STORE_KEY, STORE_NAME } from '@shared/constants/index.js'
 import {
-  type Result,
-  ok,
+  createErrorInfo,
   err,
   type ErrorInfo,
-  createErrorInfo,
   type HostKey,
+  ok,
+  type Result,
 } from '@shared/types/index.js'
-import crypto from 'crypto'
+import { logger } from '../utils/index.js'
 
 interface KnownHostsStore {
   knownHosts: HostKey[]
 }
 
-const KNOWN_HOSTS_KEY = 'knownHosts'
-
 const store = new Store<KnownHostsStore>({
-  name: 'known-hosts',
+  name: STORE_NAME.KNOWN_HOSTS,
   defaults: { knownHosts: [] },
 })
 
@@ -28,25 +27,25 @@ function computeChecksum(record: Omit<HostKey, 'checksum'>): string {
 
 export function getHostKeyRecord(connectionId: string): Result<HostKey | undefined, ErrorInfo> {
   try {
-    const host = store.get(KNOWN_HOSTS_KEY).find(h => h.connectionId === connectionId)
+    const host = store.get(STORE_KEY.KNOWN_HOSTS).find(h => h.connectionId === connectionId)
     if (host?.checksum) {
       const { checksum, ...recordWithoutChecksum } = host
       const computedChecksum = computeChecksum(recordWithoutChecksum)
       if (checksum !== computedChecksum) {
         logger.error(`Host key checksum verification failed for connection: ${connectionId}`)
-        return err(createErrorInfo('HOST_KEY_ERROR', 'Host key data corrupted'))
+        return err(createErrorInfo(ERROR_CODE.HOST_KEY_ERROR, 'Host key data corrupted'))
       }
     }
     return ok(host)
   } catch (error) {
     logger.catch(error, { connectionId, action: 'get-known-host' })
-    return err(createErrorInfo('HOST_KEY_ERROR', 'Failed to read known host'))
+    return err(createErrorInfo(ERROR_CODE.HOST_KEY_ERROR, 'Failed to read known host'))
   }
 }
 
 export function saveHostKeyRecord(record: Omit<HostKey, 'createdAt'>): Result<void, ErrorInfo> {
   try {
-    const hosts = store.get(KNOWN_HOSTS_KEY)
+    const hosts = store.get(STORE_KEY.KNOWN_HOSTS)
     const idx = hosts.findIndex(h => h.connectionId === record.connectionId)
 
     const createdAt = Date.now()
@@ -64,24 +63,24 @@ export function saveHostKeyRecord(record: Omit<HostKey, 'createdAt'>): Result<vo
       hosts.push(hostRecord)
     }
 
-    store.set(KNOWN_HOSTS_KEY, hosts)
+    store.set(STORE_KEY.KNOWN_HOSTS, hosts)
     logger.info(`Saved host key for connection: ${record.connectionId}`)
     return ok(undefined)
   } catch (error) {
     logger.catch(error, { connectionId: record.connectionId, action: 'save-known-host' })
-    return err(createErrorInfo('HOST_KEY_ERROR', 'Failed to save host key'))
+    return err(createErrorInfo(ERROR_CODE.HOST_KEY_ERROR, 'Failed to save host key'))
   }
 }
 
 export function removeHostKeyRecord(connectionId: string): Result<void, ErrorInfo> {
   try {
-    const hosts = store.get(KNOWN_HOSTS_KEY)
+    const hosts = store.get(STORE_KEY.KNOWN_HOSTS)
     const filteredHosts = hosts.filter(h => h.connectionId !== connectionId)
-    store.set(KNOWN_HOSTS_KEY, filteredHosts)
+    store.set(STORE_KEY.KNOWN_HOSTS, filteredHosts)
     logger.info(`Deleted host key for connection: ${connectionId}`)
     return ok(undefined)
   } catch (error) {
     logger.catch(error, { connectionId, action: 'delete-known-host' })
-    return err(createErrorInfo('HOST_KEY_ERROR', 'Failed to delete host key'))
+    return err(createErrorInfo(ERROR_CODE.HOST_KEY_ERROR, 'Failed to delete host key'))
   }
 }

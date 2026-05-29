@@ -5,11 +5,11 @@
  * 自动应用平台适配的无边框配置，复用同一套 Preload 脚本。
  */
 
-import { BrowserWindow, app, type BrowserWindowConstructorOptions } from 'electron'
-import { fileURLToPath, URL } from 'node:url'
+import { app, BrowserWindow, type BrowserWindowConstructorOptions } from 'electron'
 import path from 'node:path'
-import { registerWindowMeta, unregisterWindowMeta } from '../utils/window-meta.js'
+import { fileURLToPath, URL } from 'node:url'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
+import { registerWindowMeta, unregisterWindowMeta } from '../utils/window-meta.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 

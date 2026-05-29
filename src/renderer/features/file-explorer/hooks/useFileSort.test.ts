@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-import { useFileSort } from './useFileSort.js'
+import { act, renderHook } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import type { FileInfo } from '@shared/types/index.js'
+import { useFileSort } from './useFileSort.js'
 
 const mockFiles: FileInfo[] = [
   {

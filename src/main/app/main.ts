@@ -7,12 +7,12 @@
  * 3. 使用 WindowManager 创建主窗口
  */
 
-import { app, session } from 'electron'
 import * as Sentry from '@sentry/electron/main'
-import { logger } from '../utils/index.js'
+import { app, session } from 'electron'
 import { setupIpcHandlers } from '../ipc/index.js'
 import { initializeConfig, startAutoSave } from '../stores/index.js'
-import { setupAppLifecycle, createMainWindow } from './index.js'
+import { logger } from '../utils/index.js'
+import { createMainWindow, setupAppLifecycle } from './index.js'
 
 // 初始化 Sentry 崩溃报告（仅生产环境且配置了 DSN 时启用）
 Sentry.init({
