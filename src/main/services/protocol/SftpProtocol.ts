@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import Client from 'ssh2-sftp-client'
 import { generateSessionId, logger } from '@main/utils/index.js'
 import {
@@ -207,11 +208,11 @@ export class SftpProtocol extends AbstractProtocol<Client> {
   protected async deleteImpl(
     client: Client,
     path: string,
-    _basePath: string
+    _basePath: string,
+    fileType: string
   ): Promise<Result<void, ErrorInfo>> {
     try {
-      const stat = await client.stat(path)
-      if (stat.isDirectory) {
+      if (fileType === FILE_TYPE.DIRECTORY) {
         await client.rmdir(path, true)
       } else {
         await client.delete(path)
@@ -226,11 +227,11 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     client: Client,
     sourcePath: string,
     targetPath: string,
-    _basePath: string
+    _basePath: string,
+    fileType: string
   ): Promise<Result<void, ErrorInfo>> {
     try {
-      const stat = await client.stat(sourcePath)
-      if (stat.isDirectory) {
+      if (fileType === FILE_TYPE.DIRECTORY) {
         await this.copyDirectory(client, sourcePath, targetPath)
       } else {
         await client.rcopy(sourcePath, targetPath)
@@ -281,6 +282,48 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       return ok(undefined)
     } catch (e) {
       return err(createErrorInfo(ERROR_CODE.MOVE_ERROR, formatErrorMessage(e)))
+    }
+  }
+
+  private computeChunkSize(fileSize: number): number {
+    const MIN_CHUNK = 32768
+    const MAX_CHUNK = 1024 * 1024
+    const TARGET_CHUNKS = 50
+
+    let chunkSize = Math.ceil(fileSize / TARGET_CHUNKS)
+    chunkSize = Math.ceil(chunkSize / MIN_CHUNK) * MIN_CHUNK
+    return Math.max(MIN_CHUNK, Math.min(MAX_CHUNK, chunkSize))
+  }
+
+  protected async uploadImpl(
+    client: Client,
+    localPath: string,
+    remotePath: string,
+    _basePath: string,
+    onProgress: (transferred: number) => void,
+    signal: AbortSignal
+  ): Promise<Result<void, ErrorInfo>> {
+    try {
+      let fileSize = 0
+      try {
+        fileSize = fs.statSync(localPath).size
+      } catch {
+        // ignore stat errors, will use default chunkSize
+      }
+
+      const chunkSize = this.computeChunkSize(fileSize)
+
+      await client.fastPut(localPath, remotePath, {
+        chunkSize,
+        step: (totalTransferred: number) => {
+          if (!signal.aborted) {
+            onProgress(totalTransferred)
+          }
+        },
+      })
+      return ok(undefined)
+    } catch (e) {
+      return err(createErrorInfo(ERROR_CODE.UPLOAD_ERROR, formatErrorMessage(e)))
     }
   }
 

@@ -5,6 +5,7 @@ import { dialogAPI } from './dialog.js'
 import { hostKeyAPI } from './host-key.js'
 import { protocolAPI } from './protocol.js'
 import { systemAPI } from './system.js'
+import { transferAPI } from './transfer.js'
 import { windowAPI } from './window.js'
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -16,4 +17,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   crypto: cryptoAPI,
   generateUuid: () => crypto.randomUUID(),
   window: windowAPI,
+  transfer: transferAPI,
 })

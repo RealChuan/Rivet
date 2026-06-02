@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig, FileInfo, Session } from '@shared/types/index.js'
+import { SORT_ORDER } from '@shared/constants/sort.js'
 import { FileExplorerList } from './FileExplorerList.js'
 
 vi.mock('react-i18next', () => ({
@@ -117,7 +118,7 @@ vi.mock('@renderer/features/file-explorer/hooks/index.js', () => ({
   }),
   useFileSort: (files: FileInfo[]) => ({
     sortBy: 'name' as const,
-    sortOrder: 'asc' as const,
+    sortOrder: SORT_ORDER.ASC as typeof SORT_ORDER.ASC,
     sortedFiles: files,
     handleSort: vi.fn(),
   }),
@@ -142,6 +143,7 @@ const makeSession = (overrides: Partial<Session> = {}): Session => ({
   files: [],
   isConnected: true,
   isLoading: false,
+  isOperating: false,
   error: null,
   ...overrides,
 })

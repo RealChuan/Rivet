@@ -494,8 +494,8 @@ describe('ProtocolService', () => {
 
       const listPromise = service.list('session-1', '/path')
 
-      // Advance past the LIST timeout (30000ms) which triggers controller.abort()
-      await vi.advanceTimersByTimeAsync(30001)
+      // Advance past the LIST timeout (60000ms) which triggers controller.abort()
+      await vi.advanceTimersByTimeAsync(60001)
 
       const result = await listPromise
       expect(result.success).toBe(false)

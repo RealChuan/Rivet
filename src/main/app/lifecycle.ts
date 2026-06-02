@@ -9,8 +9,10 @@ import {
   MIN_MAIN_WINDOW_WIDTH,
   TIMEOUTS,
 } from '@shared/constants/index.js'
+import { TRANSFER_CHANNELS } from '@shared/constants/ipc/transfer.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
 import { sessionManager, sessionRegistry } from '../services/index.js'
+import { transferService } from '../services/transfer/index.js'
 import { saveConfig, stopAutoSave } from '../stores/index.js'
 import { logger } from '../utils/index.js'
 import { WindowManager } from './window-factory.js'
@@ -69,6 +71,15 @@ export function setupAppLifecycle(): void {
   app.on('before-quit', event => {
     if (isCleaningUp) return
 
+    if (transferService.hasActiveTasks()) {
+      event.preventDefault()
+      const mainWindow = BrowserWindow.getAllWindows()[0]
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send(TRANSFER_CHANNELS.HAS_ACTIVE_TASKS)
+      }
+      return
+    }
+
     event.preventDefault()
     logger.info('App quitting, cleaning up sessions...')
 
@@ -114,7 +125,7 @@ export function setupAppLifecycle(): void {
 }
 
 export function createMainWindow(): void {
-  void WindowManager.create({
+  const win = WindowManager.create({
     id: MAIN_WINDOW_ID,
     route: DEFAULT_ROUTE,
     width: DEFAULT_MAIN_WINDOW_WIDTH,
@@ -124,13 +135,16 @@ export function createMainWindow(): void {
     title: APP_NAME,
   })
 
+  transferService.setMainWindow(win)
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      void WindowManager.create({
+      const newWin = WindowManager.create({
         id: MAIN_WINDOW_ID,
         route: DEFAULT_ROUTE,
         title: APP_NAME,
       })
+      transferService.setMainWindow(newWin)
     }
   })
 }

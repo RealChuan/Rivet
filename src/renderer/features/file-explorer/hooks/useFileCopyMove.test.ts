@@ -5,6 +5,7 @@ import type { FileInfo } from '@shared/types/index.js'
 import { useFileCopyMove } from './useFileCopyMove.js'
 
 const mockRefreshCurrentDirectory = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+const mockSetOperating = vi.fn()
 const mockAddToast = vi.fn()
 
 vi.mock('react-i18next', () => ({
@@ -13,7 +14,10 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@renderer/features/session/stores/session.js', () => ({
   useSessionStore: (selector: (state: Record<string, unknown>) => unknown) =>
-    selector({ refreshCurrentDirectory: mockRefreshCurrentDirectory }),
+    selector({
+      refreshCurrentDirectory: mockRefreshCurrentDirectory,
+      setOperating: mockSetOperating,
+    }),
 }))
 
 vi.mock('@renderer/stores/index.js', () => ({

@@ -23,6 +23,7 @@ import {
 import { getHostKeyRecord } from '../../stores/index.js'
 import { decryptPassword, logger } from '../../utils/index.js'
 import { sessionRegistry } from '../session-registry.js'
+import { transferService } from '../transfer/index.js'
 import { type FileProtocol, type HostVerifierResult } from './protocol-types.js'
 import { SftpProtocol } from './SftpProtocol.js'
 import { WebdavProtocol } from './WebdavProtocol.js'
@@ -214,6 +215,15 @@ export class ProtocolService {
   }
 
   async disconnect(sessionId: string, requestId?: string): Promise<ProtocolResponse<void>> {
+    if (transferService.hasActiveTasks(sessionId)) {
+      return {
+        requestId: requestId ?? uuidv4(),
+        success: false,
+        value: undefined,
+        error: createErrorInfo(ERROR_CODE.UPLOAD_IN_PROGRESS, 'Upload in progress'),
+      }
+    }
+
     return this.executeWithRequest(
       sessionId,
       TIMEOUTS.LIST,
@@ -359,6 +369,22 @@ export class ProtocolService {
       },
       requestId
     )
+  }
+
+  async upload(
+    sessionId: string,
+    localPath: string,
+    remotePath: string,
+    onProgress: (transferred: number) => void,
+    signal: AbortSignal
+  ): Promise<Result<void, ErrorInfo>> {
+    const protocolResult = this.getProtocolBySessionId(sessionId)
+    if (isErr(protocolResult)) {
+      return err(protocolResult.error)
+    }
+
+    const protocol = protocolResult.value
+    return protocol.upload(sessionId, localPath, remotePath, onProgress, signal)
   }
 
   async ping(sessionId: string): Promise<Result<void, ErrorInfo>> {

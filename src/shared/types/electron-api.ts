@@ -4,6 +4,7 @@ import type { FileInfo } from './file.js'
 import type { OperationResult } from './operation-result.js'
 import type { ProtocolResponse } from './protocol-request.js'
 import type { ErrorInfo, Result } from './result.js'
+import type { DeduplicateResult, TransferProgressData, TransferTask } from './transfer.js'
 
 export interface WindowAPI {
   minimize: () => void
@@ -68,8 +69,10 @@ export interface ConfigAPI {
 }
 
 export interface DialogAPI {
+  getPathForFile: (file: File) => string
   showOpenDialog: (options: {
     properties: string[]
+    defaultPath?: string | undefined
   }) => Promise<Result<{ canceled: boolean; filePaths: string[] } | undefined, ErrorInfo>>
   showSaveDialog: (
     options: unknown
@@ -91,6 +94,24 @@ export interface CryptoAPI {
   decryptPassword: (encrypted: string) => Promise<Result<string, ErrorInfo>>
 }
 
+export interface TransferAPI {
+  add: (tasks: TransferTask[]) => Promise<DeduplicateResult>
+  cancel: (taskId: string) => Promise<void>
+  cancelAll: (sessionId?: string) => Promise<void>
+  retry: (taskId: string) => Promise<void>
+  retryAll: (sessionId?: string) => Promise<void>
+  getTasks: (sessionId?: string) => Promise<TransferTask[]>
+  setConcurrency: (max: number) => Promise<void>
+  onTasksEnqueued: (callback: (tasks: TransferTask[]) => void) => () => void
+  onProgress: (callback: (data: TransferProgressData) => void) => () => void
+  onTaskCompleted: (
+    callback: (data: { taskId: string; transferredSize?: number; fileSize?: number }) => void
+  ) => () => void
+  onTaskFailed: (callback: (data: { taskId: string; errorMessage: string }) => void) => () => void
+  onTaskRemoved: (callback: (data: { taskId: string }) => void) => () => void
+  onHasActiveTasks: (callback: () => void) => () => void
+}
+
 export interface ElectronAPI {
   window: WindowAPI
   protocol: ProtocolAPI
@@ -99,6 +120,7 @@ export interface ElectronAPI {
   hostKey: HostKeyAPI
   system: SystemAPI
   crypto: CryptoAPI
+  transfer: TransferAPI
   generateUuid: () => string
   windowMeta: { windowId: string; route: string }
 }

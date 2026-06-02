@@ -29,6 +29,7 @@ const makeSession = (overrides: Partial<Session> = {}): Session => ({
   files: [],
   isConnected: true,
   isLoading: false,
+  isOperating: false,
   error: null,
   ...overrides,
 })

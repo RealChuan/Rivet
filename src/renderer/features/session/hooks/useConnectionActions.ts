@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { v4 as uuidv4 } from 'uuid'
 import { useUiStore } from '@renderer/stores/index.js'
 import { logger } from '@renderer/utils/index.js'
-import { SCHEME, TOAST_TYPE } from '@shared/constants/index.js'
-import { type ConnectionConfig, isOk } from '@shared/types/index.js'
+import { ERROR_CODE, SCHEME, TOAST_TYPE } from '@shared/constants/index.js'
+import { type ConnectionConfig, isProtocolResponseErr, isOk } from '@shared/types/index.js'
 import { useConnectionStore } from '../stores/connection.js'
 import { useSessionStore } from '../stores/session.js'
 import { useSessionConnect } from './use-session-connect.js'
@@ -25,6 +25,10 @@ export const useConnectionActions = () => {
   const [reconnectConfig, setReconnectConfig] = useState<ConnectionConfig | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [connectionToDelete, setConnectionToDelete] = useState<string | null>(null)
+  const [uploadConfirmOpen, setUploadConfirmOpen] = useState(false)
+  const [pendingDisconnectConnectionId, setPendingDisconnectConnectionId] = useState<string | null>(
+    null
+  )
 
   const showConnectionToast = (
     type: typeof TOAST_TYPE.SUCCESS | typeof TOAST_TYPE.ERROR,
@@ -89,7 +93,22 @@ export const useConnectionActions = () => {
     try {
       const session = getSessionByConnectionId(connectionId)
       if (session) {
-        await window.electronAPI.protocol.disconnect(session.sessionId)
+        const response = await window.electronAPI.protocol.disconnect(session.sessionId)
+        if (isProtocolResponseErr(response)) {
+          if (response.error.code === ERROR_CODE.UPLOAD_IN_PROGRESS) {
+            setPendingDisconnectConnectionId(connectionId)
+            setUploadConfirmOpen(true)
+            return
+          }
+          addToast({
+            type: TOAST_TYPE.ERROR,
+            message: t('toast.disconnectFailed', {
+              protocol: connection ? connection.protocol.toUpperCase() : t('error.unknownProtocol'),
+              name: connection?.name ?? connection?.host ?? t('error.unknownName'),
+            }),
+          })
+          return
+        }
         removeSession(session.sessionId)
       }
       addToast({
@@ -215,6 +234,37 @@ export const useConnectionActions = () => {
     onOpenDialog?.()
   }
 
+  const handleConfirmCancelUploads = async () => {
+    if (!pendingDisconnectConnectionId) return
+    const connection = connections.find(c => c.id === pendingDisconnectConnectionId)
+    const session = getSessionByConnectionId(pendingDisconnectConnectionId)
+    try {
+      if (session) {
+        await window.electronAPI.transfer.cancelAll(session.sessionId)
+        await window.electronAPI.protocol.disconnect(session.sessionId)
+        removeSession(session.sessionId)
+      }
+      addToast({
+        type: TOAST_TYPE.INFO,
+        message: t('toast.disconnectSuccess', {
+          protocol: connection ? connection.protocol.toUpperCase() : t('error.unknownProtocol'),
+          name: connection?.name ?? connection?.host ?? t('error.unknownName'),
+        }),
+      })
+    } catch (_error) {
+      addToast({
+        type: TOAST_TYPE.ERROR,
+        message: t('toast.disconnectFailed', {
+          protocol: connection ? connection.protocol.toUpperCase() : t('error.unknownProtocol'),
+          name: connection?.name ?? connection?.host ?? t('error.unknownName'),
+        }),
+      })
+    } finally {
+      setUploadConfirmOpen(false)
+      setPendingDisconnectConnectionId(null)
+    }
+  }
+
   return {
     editConfig,
     setEditConfig,
@@ -224,10 +274,13 @@ export const useConnectionActions = () => {
     setDeleteConfirmOpen,
     connectionToDelete,
     setConnectionToDelete,
+    uploadConfirmOpen,
+    setUploadConfirmOpen,
     handleSaveConnection,
     handleDisconnect,
     handleDelete,
     handleConfirmDelete,
+    handleConfirmCancelUploads,
     handleReconnect,
     handleReconnectSubmit,
     handleEdit,

@@ -6,7 +6,6 @@ import { useConnectionActions } from '@renderer/features/session/hooks/useConnec
 import { useSessionDisconnect } from '@renderer/features/session/hooks/useSessionDisconnect.js'
 import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useUiStore } from '@renderer/stores/index.js'
 import { SORT_ORDER } from '@shared/constants/index.js'
 import ConnectionDialog from './ConnectionDialog.js'
 import ConnectionList from './ConnectionList.js'
@@ -39,7 +38,6 @@ export const ConnectionSidebar: React.FC = () => {
       void sortConnections(nextOrder)
     }
   }
-  const sidebarWidth = useUiStore(state => state.sidebarWidth)
   const [connectionDialogOpen, setConnectionDialogOpen] = React.useState(false)
 
   useSessionDisconnect()
@@ -51,10 +49,13 @@ export const ConnectionSidebar: React.FC = () => {
     setReconnectConfig,
     deleteConfirmOpen,
     setDeleteConfirmOpen,
+    uploadConfirmOpen,
+    setUploadConfirmOpen,
     handleSaveConnection,
     handleDisconnect,
     handleDelete,
     handleConfirmDelete,
+    handleConfirmCancelUploads,
     handleReconnect,
     handleReconnectSubmit,
     handleEdit,
@@ -88,10 +89,7 @@ export const ConnectionSidebar: React.FC = () => {
 
   return (
     <>
-      <div
-        className="h-full flex flex-col"
-        style={{ width: sidebarWidth, backgroundColor: 'var(--sidebar-bg)' }}
-      >
+      <div className="h-full flex flex-col bg-bg">
         <SidebarHeader onNewConnection={handleNewConnection} />
 
         <div className="flex-1 overflow-hidden">
@@ -131,6 +129,16 @@ export const ConnectionSidebar: React.FC = () => {
           confirmText={t('action.delete')}
           cancelText={t('action.cancel')}
           type="danger"
+        />
+        <ConfirmationDialog
+          open={uploadConfirmOpen}
+          onClose={() => setUploadConfirmOpen(false)}
+          onConfirm={() => handleConfirmCancelUploads()}
+          title={t('transfer.confirmDisconnect.title')}
+          message={t('transfer.confirmDisconnect.message')}
+          confirmText={t('action.confirm')}
+          cancelText={t('action.cancel')}
+          type="warning"
         />
       </div>
       <HostKeyVerificationDialog />

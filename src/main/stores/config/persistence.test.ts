@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { STORE_KEY } from '@shared/constants/index.js'
+import { SORT_ORDER } from '@shared/constants/sort.js'
 import {
   flushConfigToDisk,
   getConfigurationValue,
@@ -399,7 +400,7 @@ describe('persistence', () => {
       const settings = {
         appearance: 'dark' as const,
         locale: 'zh-CN' as const,
-        connectionSortOrder: 'asc' as const,
+        connectionSortOrder: SORT_ORDER.ASC as typeof SORT_ORDER.ASC,
       }
       vi.mocked(isValidUiSettings).mockReturnValue(true)
 

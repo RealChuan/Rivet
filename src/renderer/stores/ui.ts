@@ -10,17 +10,22 @@ import {
   TOAST_TYPE,
   type ToastType,
 } from '@shared/constants/index.js'
+import { SIDEBAR_VIEW, type SidebarView } from '@shared/constants/transfer.js'
 import { type UiSettings } from '@shared/types/index.js'
 
 interface UiStore extends UiSettings {
-  sidebarWidth: number
+  connectionPanelWidth: number
+  transferPanelWidth: number
   queueDrawerOpen: boolean
   queueDrawerWidth: number
   initialized: boolean
+  activeView: SidebarView
   toasts: Toast[]
   setAppearance: (appearance: Theme) => void
   setLocale: (locale: SupportedLanguageLiteral) => void
-  setSidebarWidth: (width: number) => void
+  setConnectionPanelWidth: (width: number) => void
+  setTransferPanelWidth: (width: number) => void
+  setActiveView: (view: SidebarView) => void
   initialize: (settings: Partial<UiSettings>) => void
   addToast: (toast: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
@@ -38,10 +43,12 @@ export const useUiStore = create<UiStore>((set, get) => ({
   appearance: DEFAULT_THEME_VALUE,
   locale: DEFAULT_LANGUAGE,
   connectionSortOrder: SORT_ORDER.NONE,
-  sidebarWidth: 260,
+  connectionPanelWidth: 260,
+  transferPanelWidth: 260,
   queueDrawerOpen: false,
   queueDrawerWidth: 360,
   initialized: false,
+  activeView: SIDEBAR_VIEW.CONNECTIONS,
   toasts: [],
 
   setAppearance: appearance => {
@@ -64,13 +71,22 @@ export const useUiStore = create<UiStore>((set, get) => ({
     })
   },
 
-  setSidebarWidth: sidebarWidth => {
-    set({ sidebarWidth })
+  setConnectionPanelWidth: connectionPanelWidth => {
+    set({ connectionPanelWidth })
+  },
+
+  setTransferPanelWidth: transferPanelWidth => {
+    set({ transferPanelWidth })
+  },
+
+  setActiveView: activeView => {
+    set({ activeView })
   },
 
   initialize: settings => {
     set({
       ...settings,
+      activeView: SIDEBAR_VIEW.CONNECTIONS,
       initialized: true,
     })
   },

@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { SORT_ORDER } from '@shared/constants/sort.js'
 import { useFileExplorerStore } from './file-explorer.js'
 
 describe('file-explorer store', () => {
   beforeEach(() => {
     useFileExplorerStore.setState({
       sortField: 'name',
-      sortOrder: 'asc',
+      sortOrder: SORT_ORDER.ASC,
       viewMode: 'list',
       showHiddenFiles: false,
       selectedFiles: new Set(),
@@ -16,7 +17,7 @@ describe('file-explorer store', () => {
     it('should have correct default values', () => {
       const state = useFileExplorerStore.getState()
       expect(state.sortField).toBe('name')
-      expect(state.sortOrder).toBe('asc')
+      expect(state.sortOrder).toBe(SORT_ORDER.ASC)
       expect(state.viewMode).toBe('list')
       expect(state.showHiddenFiles).toBe(false)
       expect(state.selectedFiles.size).toBe(0)
@@ -25,36 +26,36 @@ describe('file-explorer store', () => {
 
   describe('setSortField', () => {
     it('should set sort field and reset order to asc when field changes', () => {
-      useFileExplorerStore.setState({ sortOrder: 'desc' })
+      useFileExplorerStore.setState({ sortOrder: SORT_ORDER.DESC })
       useFileExplorerStore.getState().setSortField('size')
       expect(useFileExplorerStore.getState().sortField).toBe('size')
-      expect(useFileExplorerStore.getState().sortOrder).toBe('asc')
+      expect(useFileExplorerStore.getState().sortOrder).toBe(SORT_ORDER.ASC)
     })
 
     it('should keep current order when setting same field', () => {
-      useFileExplorerStore.setState({ sortOrder: 'desc' })
+      useFileExplorerStore.setState({ sortOrder: SORT_ORDER.DESC })
       useFileExplorerStore.getState().setSortField('name')
-      expect(useFileExplorerStore.getState().sortOrder).toBe('desc')
+      expect(useFileExplorerStore.getState().sortOrder).toBe(SORT_ORDER.DESC)
     })
   })
 
   describe('setSortOrder', () => {
     it('should set sort order', () => {
-      useFileExplorerStore.getState().setSortOrder('desc')
-      expect(useFileExplorerStore.getState().sortOrder).toBe('desc')
+      useFileExplorerStore.getState().setSortOrder(SORT_ORDER.DESC)
+      expect(useFileExplorerStore.getState().sortOrder).toBe(SORT_ORDER.DESC)
     })
   })
 
   describe('toggleSortOrder', () => {
     it('should toggle from asc to desc', () => {
       useFileExplorerStore.getState().toggleSortOrder()
-      expect(useFileExplorerStore.getState().sortOrder).toBe('desc')
+      expect(useFileExplorerStore.getState().sortOrder).toBe(SORT_ORDER.DESC)
     })
 
     it('should toggle from desc to asc', () => {
-      useFileExplorerStore.setState({ sortOrder: 'desc' })
+      useFileExplorerStore.setState({ sortOrder: SORT_ORDER.DESC })
       useFileExplorerStore.getState().toggleSortOrder()
-      expect(useFileExplorerStore.getState().sortOrder).toBe('asc')
+      expect(useFileExplorerStore.getState().sortOrder).toBe(SORT_ORDER.ASC)
     })
   })
 

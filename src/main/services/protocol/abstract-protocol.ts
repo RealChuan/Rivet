@@ -47,19 +47,29 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
   protected abstract deleteImpl(
     client: T,
     path: string,
-    basePath: string
+    basePath: string,
+    fileType: string
   ): Promise<Result<void, ErrorInfo>>
   protected abstract copyImpl(
     client: T,
     sourcePath: string,
     targetPath: string,
-    basePath: string
+    basePath: string,
+    fileType: string
   ): Promise<Result<void, ErrorInfo>>
   protected abstract moveImpl(
     client: T,
     sourcePath: string,
     targetPath: string,
     basePath: string
+  ): Promise<Result<void, ErrorInfo>>
+  protected abstract uploadImpl(
+    client: T,
+    localPath: string,
+    remotePath: string,
+    basePath: string,
+    onProgress: (transferred: number) => void,
+    signal: AbortSignal
   ): Promise<Result<void, ErrorInfo>>
   protected abstract pingImpl(client: T, basePath: string): Promise<Result<void, ErrorInfo>>
 
@@ -99,25 +109,40 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     }
 
     return new Promise<Result<T, ErrorInfo>>(resolve => {
+      let settled = false
+
+      const cleanup = () => {
+        clearTimeout(timeoutId)
+        signal.removeEventListener('abort', onAbort)
+      }
+
       const timeoutId = setTimeout(() => {
+        if (settled) return
+        settled = true
+        cleanup()
         resolve(err(createErrorInfo(timeoutErrorCode, `Operation timed out after ${timeout}ms`)))
       }, timeout)
 
-      const originalAbort = signal.onabort
-      signal.onabort = () => {
-        clearTimeout(timeoutId)
+      const onAbort = () => {
+        if (settled) return
+        settled = true
+        cleanup()
         resolve(err(createErrorInfo(abortErrorCode, 'Operation was aborted')))
       }
 
+      signal.addEventListener('abort', onAbort)
+
       operation()
         .then(result => {
-          clearTimeout(timeoutId)
-          signal.onabort = originalAbort
+          if (settled) return
+          settled = true
+          cleanup()
           resolve(result)
         })
         .catch(error => {
-          clearTimeout(timeoutId)
-          signal.onabort = originalAbort
+          if (settled) return
+          settled = true
+          cleanup()
           resolve(err(createErrorInfo(timeoutErrorCode, String(error))))
         })
     })
@@ -198,6 +223,13 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
         errorCode: result.error.code,
         errorMessage: result.error.message,
       })
+    } else {
+      logger.info('Protocol operation succeeded', {
+        protocol: this.protocolType,
+        action: 'mkdir',
+        sessionId,
+        path: sanitizedPath,
+      })
     }
 
     return result
@@ -243,6 +275,14 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
         errorCode: result.error.code,
         errorMessage: result.error.message,
       })
+    } else {
+      logger.info('Protocol operation succeeded', {
+        protocol: this.protocolType,
+        action: 'rename',
+        sessionId,
+        from: sanitizedCurrentPath,
+        to: sanitizedNewPath,
+      })
     }
 
     return result
@@ -268,7 +308,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
 
     const result = await this.withAbort(
       signal,
-      () => this.deleteImpl(clientResult.value, sanitizedPath, basePath),
+      () => this.deleteImpl(clientResult.value, sanitizedPath, basePath, file.type),
       TIMEOUTS.DELETE,
       ERROR_CODE.DELETE_TIMEOUT,
       ERROR_CODE.DELETE_ABORTED
@@ -282,6 +322,13 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
         path: sanitizedPath,
         errorCode: result.error.code,
         errorMessage: result.error.message,
+      })
+    } else {
+      logger.info('Protocol operation succeeded', {
+        protocol: this.protocolType,
+        action: 'delete',
+        sessionId,
+        path: sanitizedPath,
       })
     }
 
@@ -311,7 +358,14 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
 
     const result = await this.withAbort(
       signal,
-      () => this.copyImpl(clientResult.value, sanitizedSourcePath, sanitizedTargetPath, basePath),
+      () =>
+        this.copyImpl(
+          clientResult.value,
+          sanitizedSourcePath,
+          sanitizedTargetPath,
+          basePath,
+          file.type
+        ),
       TIMEOUTS.COPY,
       ERROR_CODE.COPY_TIMEOUT,
       ERROR_CODE.COPY_ABORTED
@@ -326,6 +380,14 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
         to: sanitizedTargetPath,
         errorCode: result.error.code,
         errorMessage: result.error.message,
+      })
+    } else {
+      logger.info('Protocol operation succeeded', {
+        protocol: this.protocolType,
+        action: 'copy',
+        sessionId,
+        from: sanitizedSourcePath,
+        to: sanitizedTargetPath,
       })
     }
 
@@ -371,9 +433,87 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
         errorCode: result.error.code,
         errorMessage: result.error.message,
       })
+    } else {
+      logger.info('Protocol operation succeeded', {
+        protocol: this.protocolType,
+        action: 'move',
+        sessionId,
+        from: sanitizedSourcePath,
+        to: sanitizedTargetPath,
+      })
     }
 
     return result
+  }
+
+  async upload(
+    sessionId: string,
+    localPath: string,
+    remotePath: string,
+    onProgress: (transferred: number) => void,
+    signal?: AbortSignal
+  ): Promise<Result<void, ErrorInfo>> {
+    const clientResult = this.getClient(sessionId)
+    if (isErr(clientResult)) return clientResult
+
+    let sanitizedRemotePath: string
+    try {
+      sanitizedRemotePath = sanitizePath(remotePath)
+    } catch (e) {
+      return err(
+        createErrorInfo(ERROR_CODE.PATH_TRAVERSAL, e instanceof Error ? e.message : String(e))
+      )
+    }
+    const basePath = normalizePath(this.getBasePath(sessionId))
+    const controller = new AbortController()
+
+    const onSignalAbort = () => controller.abort()
+    if (signal) {
+      signal.addEventListener('abort', onSignalAbort)
+    }
+
+    try {
+      const result = await this.withAbort(
+        signal,
+        () =>
+          this.uploadImpl(
+            clientResult.value,
+            localPath,
+            sanitizedRemotePath,
+            basePath,
+            onProgress,
+            controller.signal
+          ),
+        TIMEOUTS.UPLOAD,
+        ERROR_CODE.UPLOAD_TIMEOUT,
+        ERROR_CODE.UPLOAD_ABORTED
+      )
+
+      if (isErr(result)) {
+        controller.abort()
+        logger.warn('Protocol operation failed', {
+          protocol: this.protocolType,
+          action: 'upload',
+          sessionId,
+          remotePath: sanitizedRemotePath,
+          errorCode: result.error.code,
+          errorMessage: result.error.message,
+        })
+      } else {
+        logger.info('Protocol operation succeeded', {
+          protocol: this.protocolType,
+          action: 'upload',
+          sessionId,
+          remotePath: sanitizedRemotePath,
+        })
+      }
+
+      return result
+    } finally {
+      if (signal) {
+        signal.removeEventListener('abort', onSignalAbort)
+      }
+    }
   }
 
   async ping(sessionId: string): Promise<Result<void, ErrorInfo>> {

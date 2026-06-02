@@ -12,6 +12,7 @@ export interface SessionStore {
   updateCurrentPath: (sessionId: string, path: string) => void
   setFiles: (sessionId: string, files: FileInfo[]) => void
   setLoading: (sessionId: string, loading: boolean) => void
+  setOperating: (sessionId: string, operating: boolean) => void
   setError: (sessionId: string, error: string | null) => void
   refreshCurrentDirectory: (sessionId: string) => Promise<void>
   addSession: (session: Session) => void
@@ -90,6 +91,14 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     set(state => ({
       sessions: state.sessions.map(s =>
         s.sessionId === sessionId ? { ...s, isLoading: loading } : s
+      ),
+    }))
+  },
+
+  setOperating: (sessionId, operating) => {
+    set(state => ({
+      sessions: state.sessions.map(s =>
+        s.sessionId === sessionId ? { ...s, isOperating: operating } : s
       ),
     }))
   },

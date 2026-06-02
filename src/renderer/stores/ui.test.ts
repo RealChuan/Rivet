@@ -30,7 +30,7 @@ describe('useUiStore', () => {
       appearance: DEFAULT_THEME_VALUE,
       locale: DEFAULT_LANGUAGE,
       connectionSortOrder: SORT_ORDER.NONE,
-      sidebarWidth: 260,
+      connectionPanelWidth: 260,
       queueDrawerOpen: false,
       queueDrawerWidth: 360,
       initialized: false,
@@ -55,8 +55,8 @@ describe('useUiStore', () => {
       expect(useUiStore.getState().connectionSortOrder).toBe(SORT_ORDER.NONE)
     })
 
-    it('should have default sidebarWidth of 260', () => {
-      expect(useUiStore.getState().sidebarWidth).toBe(260)
+    it('should have default connectionPanelWidth of 260', () => {
+      expect(useUiStore.getState().connectionPanelWidth).toBe(260)
     })
 
     it('should have default queueDrawerOpen as false', () => {
@@ -134,15 +134,15 @@ describe('useUiStore', () => {
     })
   })
 
-  describe('setSidebarWidth', () => {
-    it('should update sidebarWidth in state', () => {
-      useUiStore.getState().setSidebarWidth(300)
+  describe('setConnectionPanelWidth', () => {
+    it('should update connectionPanelWidth in state', () => {
+      useUiStore.getState().setConnectionPanelWidth(300)
 
-      expect(useUiStore.getState().sidebarWidth).toBe(300)
+      expect(useUiStore.getState().connectionPanelWidth).toBe(300)
     })
 
     it('should not persist via config.set', () => {
-      useUiStore.getState().setSidebarWidth(300)
+      useUiStore.getState().setConnectionPanelWidth(300)
 
       expect(mockConfigSet).not.toHaveBeenCalled()
     })
@@ -168,11 +168,11 @@ describe('useUiStore', () => {
     })
 
     it('should merge partial settings without overriding unspecified fields', () => {
-      useUiStore.setState({ sidebarWidth: 300 })
+      useUiStore.setState({ connectionPanelWidth: 300 })
       useUiStore.getState().initialize({ appearance: THEME.LIGHT })
 
       expect(useUiStore.getState().appearance).toBe(THEME.LIGHT)
-      expect(useUiStore.getState().sidebarWidth).toBe(300)
+      expect(useUiStore.getState().connectionPanelWidth).toBe(300)
     })
 
     it('should handle empty settings object', () => {

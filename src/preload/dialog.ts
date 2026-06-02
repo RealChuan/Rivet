@@ -1,9 +1,10 @@
-import { ipcRenderer } from 'electron'
+import { ipcRenderer, webUtils } from 'electron'
 import type { ErrorInfo, Result } from '@shared/types/index.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
 
 export const dialogAPI = {
-  showOpenDialog: (options: { properties: string[] }) =>
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
+  showOpenDialog: (options: { properties: string[]; defaultPath?: string | undefined }) =>
     ipcRenderer.invoke(IPC_CHANNELS.DIALOG.SHOW_OPEN_DIALOG, options) as Promise<
       Result<{ canceled: boolean; filePaths: string[] } | undefined, ErrorInfo>
     >,

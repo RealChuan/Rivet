@@ -4,7 +4,7 @@ import { List, type ListImperativeAPI, type RowComponentProps } from 'react-wind
 
 interface VirtualListProps<T> {
   items: T[] | undefined | null
-  itemHeight: number
+  itemHeight: number | ((index: number) => number)
   width: string | number
   renderItem: (
     item: T,

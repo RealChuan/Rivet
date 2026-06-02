@@ -37,20 +37,11 @@ export const DEFAULT_MAIN_WINDOW_HEIGHT = 700
  */
 export const MIN_MAIN_WINDOW_HEIGHT = 600
 
-/**
- * 侧边栏默认宽度（像素）
- */
-export const DEFAULT_SIDEBAR_WIDTH = 240
+export const DEFAULT_PANEL_WIDTH = 240
 
-/**
- * 侧边栏最小宽度（像素）
- */
-export const MIN_SIDEBAR_WIDTH = 180
+export const MIN_PANEL_WIDTH = 180
 
-/**
- * 侧边栏最大宽度（像素）
- */
-export const MAX_SIDEBAR_WIDTH = 400
+export const MAX_PANEL_WIDTH = 400
 
 export const STORE_KEY = {
   SAVED_CONNECTIONS: 'savedConnections',

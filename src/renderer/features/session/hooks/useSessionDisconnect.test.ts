@@ -71,6 +71,7 @@ describe('useSessionDisconnect', () => {
       files: [],
       isConnected: true,
       isLoading: false,
+      isOperating: false,
       error: null,
     }
     mockGetSessionByConnectionId.mockReturnValue(mockSession)
@@ -92,6 +93,7 @@ describe('useSessionDisconnect', () => {
       files: [],
       isConnected: true,
       isLoading: false,
+      isOperating: false,
       error: null,
     }
     mockGetSessionByConnectionId.mockReturnValue(mockSession)

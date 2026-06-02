@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { FileInfo } from '@shared/types/index.js'
+import { SORT_ORDER } from '@shared/constants/sort.js'
 import { useFileSort } from './useFileSort.js'
 
 const mockFiles: FileInfo[] = [
@@ -52,11 +53,11 @@ describe('useFileSort', () => {
     act(() => {
       result.current.handleSort('name')
     })
-    expect(result.current.sortOrder).toBe('desc')
+    expect(result.current.sortOrder).toBe(SORT_ORDER.DESC)
     act(() => {
       result.current.handleSort('name')
     })
-    expect(result.current.sortOrder).toBe('asc')
+    expect(result.current.sortOrder).toBe(SORT_ORDER.ASC)
   })
 
   it('should reset to asc when clicking different column', () => {
@@ -64,12 +65,12 @@ describe('useFileSort', () => {
     act(() => {
       result.current.handleSort('name')
     })
-    expect(result.current.sortOrder).toBe('desc')
+    expect(result.current.sortOrder).toBe(SORT_ORDER.DESC)
     act(() => {
       result.current.handleSort('size')
     })
     expect(result.current.sortBy).toBe('size')
-    expect(result.current.sortOrder).toBe('asc')
+    expect(result.current.sortOrder).toBe(SORT_ORDER.ASC)
   })
 
   it('should sort by size', () => {

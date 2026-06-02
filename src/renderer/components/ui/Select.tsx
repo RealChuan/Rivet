@@ -55,7 +55,7 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
   }
 
   return (
-    <div ref={containerRef} className="relative w-full" onKeyDown={handleKeyDown}>
+    <div ref={containerRef} className={`relative ${className ?? ''}`} onKeyDown={handleKeyDown}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

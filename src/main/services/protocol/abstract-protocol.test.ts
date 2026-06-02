@@ -22,6 +22,7 @@ class TestableProtocol extends AbstractProtocol<{ id: string }> {
   deleteImpl = vi.fn()
   copyImpl = vi.fn()
   moveImpl = vi.fn()
+  uploadImpl = vi.fn()
   pingImpl = vi.fn()
 
   protected getSessionInfo(sessionId: string): SessionInfo | null {
@@ -176,7 +177,12 @@ describe('AbstractProtocol', () => {
         absolutePath: '/some/deep/file.txt',
       }
       await protocol.delete('s1', file)
-      expect(protocol.deleteImpl).toHaveBeenCalledWith({ id: 'c1' }, '/some/deep/file.txt', '/base')
+      expect(protocol.deleteImpl).toHaveBeenCalledWith(
+        { id: 'c1' },
+        '/some/deep/file.txt',
+        '/base',
+        'file'
+      )
     })
   })
 
@@ -196,7 +202,8 @@ describe('AbstractProtocol', () => {
         { id: 'c1' },
         '/source/src.txt',
         '/target/dst.txt',
-        '/base'
+        '/base',
+        'file'
       )
     })
   })

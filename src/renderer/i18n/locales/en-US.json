@@ -8,6 +8,10 @@
       "delete": "Delete",
       "refresh": "Refresh"
     },
+    "activityBar": {
+      "connections": "Connections",
+      "transfers": "Transfers"
+    },
     "app": {
       "name": "Rivet",
       "subtitle": "SFTP / WebDAV"
@@ -66,7 +70,10 @@
         "copy": "Copy",
         "move": "Move",
         "newFolder": "New Folder",
-        "rename": "Rename"
+        "rename": "Rename",
+        "upload": "Upload",
+        "uploadFiles": "Upload Files...",
+        "uploadFolder": "Upload Folder..."
       },
       "conflict": {
         "applyToAll": "Apply to All",
@@ -78,7 +85,8 @@
         "source": "Source",
         "target": "Target",
         "title": "File Conflict"
-      }
+      },
+      "dropToUpload": "Drop to Upload"
     },
     "fileExplorerList": {
       "dateModified": "Date Modified",
@@ -109,6 +117,10 @@
       "darkMode": "Dark Mode",
       "lightMode": "Light Mode",
       "system": "System"
+    },
+    "sort": {
+      "asc": "Ascending",
+      "desc": "Descending"
     },
     "sortButton": {
       "sortConnections": "Sort Connections"
@@ -150,7 +162,66 @@
       "moveSuccess": "Moved successfully",
       "refreshFailed": "Refresh failed",
       "renameFailed": "Rename failed",
-      "renameSuccess": "Renamed successfully"
+      "renameSuccess": "Renamed successfully",
+      "uploadDuplicates_one": "{{count}} upload task already exists",
+      "uploadDuplicates_other": "{{count}} upload tasks already exist",
+      "uploadFailed": "Upload failed"
+    },
+    "transfer": {
+      "action": {
+        "cancel": "Cancel",
+        "cancelAll": "Cancel All",
+        "remove": "Remove",
+        "retry": "Retry",
+        "sort": "Sort"
+      },
+      "concurrency": {
+        "upload": "Upload Concurrency"
+      },
+      "confirmDisconnect": {
+        "message": "There are active uploads. Do you want to cancel them and disconnect?",
+        "title": "Uploads in Progress"
+      },
+      "confirmQuit": {
+        "message": "There are active uploads. Do you want to cancel them and quit?",
+        "title": "Uploads in Progress"
+      },
+      "conflict": {
+        "applyToAll": "Apply to All",
+        "cannotOverwrite": "Cannot overwrite file to folder with same name, or vice versa",
+        "globalAction": "Global Action",
+        "keepBoth": "Keep Both",
+        "overwrite": "Overwrite",
+        "skip": "Skip",
+        "source": "Local",
+        "target": "Remote",
+        "title": "Upload Conflict"
+      },
+      "download": "Download",
+      "downloadDisabled": "Coming soon",
+      "empty": "",
+      "errorDetail": {
+        "copied": "Copied",
+        "copy": "Copy",
+        "title": "Error Details"
+      },
+      "folderStats": {
+        "fileCount": "{{completed}}/{{total}} files"
+      },
+      "noActiveTasks": "No active tasks",
+      "runningCount_one": "{{count}} task in progress",
+      "runningCount_other": "{{count}} tasks in progress",
+      "sort": {
+        "name": "Name",
+        "size": "Size",
+        "status": "Status",
+        "time": "Time"
+      },
+      "status": {
+        "failed": "Failed",
+        "waiting": "Waiting"
+      },
+      "upload": "Upload"
     }
   }
 }

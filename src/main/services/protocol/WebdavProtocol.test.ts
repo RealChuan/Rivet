@@ -1,3 +1,4 @@
+import type * as fs from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PROTOCOL, ProtocolStatus } from '@shared/constants/index.js'
 import { type ConnectionConfig } from '@shared/types/index.js'
@@ -20,6 +21,7 @@ const {
     deleteFile: vi.fn(),
     copyFile: vi.fn(),
     stat: vi.fn(),
+    putFileContents: vi.fn(),
   }
   const mockCreateClient = vi.fn().mockReturnValue(mockWebdavClient)
   const mockHttpAgent = { destroy: vi.fn() }
@@ -70,6 +72,37 @@ vi.mock('node:https', async importOriginal => {
       Agent: mockHttpsAgentCtor,
     },
     Agent: mockHttpsAgentCtor,
+  }
+})
+
+const { mockFs } = vi.hoisted(() => {
+  const mockReadStream = {
+    on: vi.fn().mockReturnThis(),
+    pipe: vi.fn().mockReturnThis(),
+    destroy: vi.fn(),
+  }
+  const mockFs = {
+    promises: {
+      stat: vi.fn().mockResolvedValue({ size: 1024 }),
+    },
+    createReadStream: vi.fn().mockReturnValue(mockReadStream),
+    _mockReadStream: mockReadStream,
+  }
+  return { mockFs }
+})
+
+vi.mock('node:fs', async importOriginal => {
+  const actual = await importOriginal<typeof fs>()
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      promises: {
+        ...(typeof actual.promises === 'object' && actual.promises !== null ? actual.promises : {}),
+        stat: mockFs.promises.stat,
+      },
+      createReadStream: mockFs.createReadStream,
+    },
   }
 })
 
@@ -136,6 +169,9 @@ describe('WebdavProtocol', () => {
     mockWebdavClient.deleteFile.mockResolvedValue(undefined)
     mockWebdavClient.copyFile.mockResolvedValue(undefined)
     mockWebdavClient.stat.mockResolvedValue({ type: 'directory' })
+    mockWebdavClient.putFileContents.mockResolvedValue(undefined)
+    mockFs.promises.stat.mockResolvedValue({ size: 1024 })
+    mockFs.createReadStream.mockReturnValue(mockFs._mockReadStream)
   })
 
   /** 注册一个模拟会话，使公共方法（list/mkdir/...）可通过 sessionId 获取 mockWebdavClient */
@@ -457,6 +493,40 @@ describe('WebdavProtocol', () => {
       expect(result.success).toBe(false)
       if (result.success) return
       expect(result.error.code).toBe('PING_ERROR')
+    })
+  })
+
+  describe('upload', () => {
+    it('should upload file successfully', async () => {
+      setupSession()
+      const onProgress = vi.fn()
+      const result = await webdav.upload(
+        'webdav_test_session',
+        '/local/file.txt',
+        '/remote/file.txt',
+        onProgress
+      )
+      expect(result.success).toBe(true)
+      expect(mockWebdavClient.putFileContents).toHaveBeenCalledWith(
+        '/dav/remote/file.txt',
+        expect.anything(),
+        expect.objectContaining({ contentLength: 1024, overwrite: true })
+      )
+    })
+
+    it('should handle upload failure', async () => {
+      setupSession()
+      mockWebdavClient.putFileContents.mockRejectedValue(new Error('507 Insufficient Storage'))
+      const onProgress = vi.fn()
+      const result = await webdav.upload(
+        'webdav_test_session',
+        '/local/file.txt',
+        '/remote/file.txt',
+        onProgress
+      )
+      expect(result.success).toBe(false)
+      if (result.success) return
+      expect(result.error.code).toBe('UPLOAD_ERROR')
     })
   })
 })

@@ -104,6 +104,33 @@ describe('useFileDragSelect', () => {
     expect(result.current.isDragging).toBe(true)
   })
 
+  it('should account for scroll offset in mousedown coordinates', () => {
+    const scrolledRef = createMockContainerRef()
+    Object.defineProperty(scrolledRef.current, 'scrollTop', { value: 200, writable: true })
+    Object.defineProperty(scrolledRef.current, 'scrollLeft', { value: 50, writable: true })
+
+    const { result } = renderHook(() =>
+      useFileDragSelect({
+        items: mockFiles,
+        itemHeight: 30,
+        containerRef: scrolledRef,
+        onDragSelect,
+      })
+    )
+
+    act(() => {
+      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 50 }))
+    })
+
+    act(() => {
+      dispatchMouseEvent('mousemove', { clientX: 120, clientY: 70 })
+    })
+
+    const style = result.current.getDragStyle()
+    expect(style.left).toBe(150)
+    expect(style.top).toBe(250)
+  })
+
   it('should not start drag on non-left button', () => {
     const { result } = renderHook(() =>
       useFileDragSelect({
@@ -344,5 +371,48 @@ describe('useFileDragSelect', () => {
     expect(result.current.isDragging).toBe(false)
     expect(result.current.hasStartedDrag).toBe(false)
     expect(onDragSelect).not.toHaveBeenCalled()
+  })
+
+  it('should not start drag when clicking on header element', () => {
+    const { result } = renderHook(() =>
+      useFileDragSelect({
+        items: mockFiles,
+        itemHeight: 30,
+        headerHeight: 32,
+        containerRef: mockContainerRef,
+        onDragSelect,
+      })
+    )
+
+    const headerEl = document.createElement('div')
+    headerEl.setAttribute('data-file-list-header', '')
+    act(() => {
+      result.current.handleMouseDown(
+        createMouseEvent({ clientX: 100, clientY: 10, target: headerEl })
+      )
+    })
+
+    expect(result.current.isDragging).toBe(false)
+  })
+
+  it('should allow drag when scrolled down and clicking first visible row', () => {
+    const scrolledRef = createMockContainerRef()
+    Object.defineProperty(scrolledRef.current, 'scrollTop', { value: 200, writable: true })
+
+    const { result } = renderHook(() =>
+      useFileDragSelect({
+        items: mockFiles,
+        itemHeight: 30,
+        headerHeight: 32,
+        containerRef: scrolledRef,
+        onDragSelect,
+      })
+    )
+
+    act(() => {
+      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 5 }))
+    })
+
+    expect(result.current.isDragging).toBe(true)
   })
 })

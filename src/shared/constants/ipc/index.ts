@@ -5,6 +5,7 @@ import { EVENTS_CHANNELS } from './events.js'
 import { HOST_KEY_CHANNELS } from './host-key.js'
 import { PROTOCOL_CHANNELS } from './protocol.js'
 import { SYSTEM_CHANNELS } from './system.js'
+import { TRANSFER_CHANNELS } from './transfer.js'
 import { WINDOW_CHANNELS } from './window.js'
 
 export { CONFIG_CHANNELS } from './config.js'
@@ -14,6 +15,7 @@ export { EVENTS_CHANNELS } from './events.js'
 export { HOST_KEY_CHANNELS } from './host-key.js'
 export { PROTOCOL_CHANNELS } from './protocol.js'
 export { SYSTEM_CHANNELS } from './system.js'
+export { TRANSFER_CHANNELS } from './transfer.js'
 export { WINDOW_CHANNELS } from './window.js'
 
 export const IPC_CHANNELS = {
@@ -25,6 +27,7 @@ export const IPC_CHANNELS = {
   SYSTEM: SYSTEM_CHANNELS,
   CRYPTO: CRYPTO_CHANNELS,
   EVENTS: EVENTS_CHANNELS,
+  TRANSFER: TRANSFER_CHANNELS,
 } as const
 
 export type IpcChannels = typeof IPC_CHANNELS

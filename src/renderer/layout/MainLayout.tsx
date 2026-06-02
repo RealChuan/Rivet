@@ -1,14 +1,13 @@
 import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGE, THEME, type Theme } from '@shared/constants/index.js'
+import { SIDEBAR_VIEW, type SidebarView } from '@shared/constants/transfer.js'
 import { TitleBar, Toast } from '../components/common/index.js'
 import { useApplicationTheme, useInternationalization } from '../hooks/index.js'
-import { ResizablePanel } from './ResizablePanel.js'
-
-interface MainLayoutProps {
-  sidebar: React.ReactNode
-  content: React.ReactNode
-}
+import { ConnectionPage } from '../pages/ConnectionPage.js'
+import { TransferPage } from '../pages/TransferPage.js'
+import { useUiStore } from '../stores/ui.js'
+import { ActivityBar } from './ActivityBar.js'
 
 interface ThemeIconProps {
   theme: Theme
@@ -66,10 +65,31 @@ const ThemeIcon = ({ theme }: ThemeIconProps) => {
   )
 }
 
-export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content }) => {
+const PageContent = ({ activeView }: { activeView: SidebarView }) => {
+  return (
+    <div className="flex-1 min-w-0 flex">
+      <div
+        className="flex-1 min-w-0 min-h-0"
+        style={{ display: activeView === SIDEBAR_VIEW.TRANSFERS ? 'flex' : 'none' }}
+      >
+        <TransferPage />
+      </div>
+      <div
+        className="flex-1 min-w-0 min-h-0"
+        style={{ display: activeView === SIDEBAR_VIEW.TRANSFERS ? 'none' : 'flex' }}
+      >
+        <ConnectionPage />
+      </div>
+    </div>
+  )
+}
+
+export const MainLayout: React.FC = () => {
   const { t } = useTranslation()
   const { theme, cycleTheme } = useApplicationTheme()
   const { language, changeLanguage } = useInternationalization()
+  const activeView = useUiStore(state => state.activeView)
+  const setActiveView = useUiStore(state => state.setActiveView)
 
   return (
     <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden">
@@ -109,7 +129,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ sidebar, content }) => {
         }
       />
 
-      <ResizablePanel sidebar={sidebar} content={content} />
+      <div className="flex-1 flex overflow-hidden">
+        <ActivityBar activeView={activeView} onViewChange={setActiveView} />
+        <PageContent activeView={activeView} />
+      </div>
 
       <Toast />
     </div>

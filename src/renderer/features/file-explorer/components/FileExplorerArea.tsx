@@ -1,6 +1,7 @@
 import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
+import { TransferConflictDialog } from '@renderer/features/transfer/components/TransferConflictDialog.js'
 import FileExplorerBreadcrumb from './FileExplorerBreadcrumb.js'
 import FileExplorerList from './FileExplorerList.js'
 import FileExplorerToolbar from './FileExplorerToolbar.js'
@@ -55,6 +56,7 @@ export const FileExplorerArea: React.FC<FileExplorerAreaProps> = ({ sessionId })
           currentPath={activeSession.currentPath}
         />
       </div>
+      <TransferConflictDialog />
     </div>
   )
 }

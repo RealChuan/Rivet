@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import http from 'node:http'
 import https from 'node:https'
 import { createClient, type FileStat, type WebDAVClient } from 'webdav'
@@ -188,7 +189,8 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
   protected async deleteImpl(
     session: WebDAVSession,
     path: string,
-    basePath: string
+    basePath: string,
+    _fileType: string
   ): Promise<Result<void, ErrorInfo>> {
     try {
       const serverPath = joinPaths(basePath, path)
@@ -203,7 +205,8 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     session: WebDAVSession,
     sourcePath: string,
     targetPath: string,
-    basePath: string
+    basePath: string,
+    _fileType: string
   ): Promise<Result<void, ErrorInfo>> {
     try {
       const serverSourcePath = joinPaths(basePath, sourcePath)
@@ -228,6 +231,39 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
       return ok(undefined)
     } catch (e) {
       return err(createErrorInfo(ERROR_CODE.MOVE_ERROR, formatErrorMessage(e)))
+    }
+  }
+
+  protected async uploadImpl(
+    session: WebDAVSession,
+    localPath: string,
+    remotePath: string,
+    basePath: string,
+    onProgress: (transferred: number) => void,
+    signal: AbortSignal
+  ): Promise<Result<void, ErrorInfo>> {
+    try {
+      const serverPath = joinPaths(basePath, remotePath)
+      const stat = await fs.promises.stat(localPath)
+      const contentLength = stat.size
+      let transferred = 0
+
+      const stream = fs.createReadStream(localPath)
+      stream.on('data', (chunk: Buffer) => {
+        if (!signal.aborted) {
+          transferred += chunk.length
+          onProgress(transferred)
+        }
+      })
+
+      await session.client.putFileContents(serverPath, stream, {
+        contentLength,
+        overwrite: true,
+      })
+
+      return ok(undefined)
+    } catch (e) {
+      return err(createErrorInfo(ERROR_CODE.UPLOAD_ERROR, formatErrorMessage(e)))
     }
   }
 

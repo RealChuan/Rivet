@@ -51,6 +51,7 @@ export interface UseFileCopyMoveReturn {
 export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
   const { t } = useTranslation()
   const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
+  const setOperating = useSessionStore(state => state.setOperating)
   const addToast = useUiStore(state => state.addToast)
 
   const [targetFolderDialogOpen, setTargetFolderDialogOpen] = useState(false)
@@ -119,32 +120,37 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
 
     logger.info(`[${op?.toUpperCase() ?? 'Unknown'}] Processing ${itemsToProcess.length} items`)
 
-    for (const { file, targetPath } of itemsToProcess) {
-      let result
-      if (op === FILE_OPERATION.COPY) {
-        result = await window.electronAPI.protocol.copy(sessionId, file, targetPath)
-      } else {
-        result = await window.electronAPI.protocol.move(sessionId, file, targetPath)
-      }
-
-      if (isProtocolResponseErr(result)) {
-        const errorMsg = formatErrorMessage(result.error) || t('error.unknown')
+    setOperating(sessionId, true)
+    try {
+      for (const { file, targetPath } of itemsToProcess) {
+        let result
         if (op === FILE_OPERATION.COPY) {
-          addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.copyFailed')}: ${errorMsg}` })
+          result = await window.electronAPI.protocol.copy(sessionId, file, targetPath)
         } else {
-          addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.moveFailed')}: ${errorMsg}` })
+          result = await window.electronAPI.protocol.move(sessionId, file, targetPath)
         }
-        return
+
+        if (isProtocolResponseErr(result)) {
+          const errorMsg = formatErrorMessage(result.error) || t('error.unknown')
+          if (op === FILE_OPERATION.COPY) {
+            addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.copyFailed')}: ${errorMsg}` })
+          } else {
+            addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.moveFailed')}: ${errorMsg}` })
+          }
+          return
+        }
       }
-    }
 
-    if (op === FILE_OPERATION.COPY) {
-      addToast({ type: TOAST_TYPE.SUCCESS, message: t('toast.copySuccess') })
-    } else {
-      addToast({ type: TOAST_TYPE.SUCCESS, message: t('toast.moveSuccess') })
-    }
+      if (op === FILE_OPERATION.COPY) {
+        addToast({ type: TOAST_TYPE.SUCCESS, message: t('toast.copySuccess') })
+      } else {
+        addToast({ type: TOAST_TYPE.SUCCESS, message: t('toast.moveSuccess') })
+      }
 
-    await refreshCurrentDirectory(sessionId)
+      await refreshCurrentDirectory(sessionId)
+    } finally {
+      setOperating(sessionId, false)
+    }
   }
 
   const handleSelectTargetFolder = async (
@@ -199,7 +205,9 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
       return ok(undefined)
     }
 
-    await executeOperation(
+    setTargetFolderDialogOpen(false)
+
+    void executeOperation(
       pendingFiles,
       targetDir,
       new Map(),
@@ -232,6 +240,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
 
     try {
       const resolutionsMap = new Map(resolutions.map(r => [r.sourceFile.absolutePath, r]))
+      setConflictDialogOpen(false)
       await executeOperation(pendingFilesList, pendingTargetDirValue, resolutionsMap, cache, op)
     } catch (error) {
       logger.catch(error, { action: op === FILE_OPERATION.COPY ? 'copy' : 'move' })

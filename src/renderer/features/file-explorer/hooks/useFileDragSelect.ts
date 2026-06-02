@@ -55,13 +55,15 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
     if ((e.target as HTMLElement).closest('button')) return
     if ((e.target as HTMLElement).closest('[data-file-list-header]')) return
 
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
+    const container = containerRef.current
+    const rect = container?.getBoundingClientRect()
+    if (!rect || !container) return
 
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const scrollLeft = container.scrollLeft
+    const scrollTop = container.scrollTop
 
-    if (y < headerHeight) return
+    const x = e.clientX - rect.left + scrollLeft
+    const y = e.clientY - rect.top + scrollTop
 
     setIsDragging(true)
     setHasStartedDrag(false)

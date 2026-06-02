@@ -1,4 +1,4 @@
-import { type ProtocolType, TIMEOUTS } from '@shared/constants/index.js'
+import { ERROR_CODE, type ProtocolType, TIMEOUTS } from '@shared/constants/index.js'
 import {
   type ConnectionConfig,
   createErrorInfo,
@@ -9,6 +9,7 @@ import {
 } from '@shared/types/index.js'
 import { logger } from '../utils/logger.js'
 import { sessionRegistry } from './session-registry.js'
+import { transferService } from './transfer/index.js'
 
 export type { SessionHandle } from './session-registry.js'
 
@@ -49,6 +50,11 @@ class SessionManager {
     if (!handle) return ok(undefined)
 
     if (handle.isClosing) return ok(undefined)
+
+    if (transferService.hasActiveTasks(sessionId)) {
+      return err(createErrorInfo(ERROR_CODE.UPLOAD_IN_PROGRESS, 'Upload in progress'))
+    }
+
     sessionRegistry.setClosing(sessionId)
 
     try {

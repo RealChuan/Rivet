@@ -15,6 +15,7 @@ const { mockClient, mockSessionRegistry, mockSftpConstructor } = vi.hoisted(() =
     delete: vi.fn(),
     rmdir: vi.fn(),
     rcopy: vi.fn(),
+    fastPut: vi.fn(),
   }
   const mockSftpConstructor = vi.fn().mockImplementation(function () {
     return mockClient
@@ -93,6 +94,7 @@ describe('SftpProtocol', () => {
     mockClient.delete.mockResolvedValue(undefined)
     mockClient.rmdir.mockResolvedValue(undefined)
     mockClient.rcopy.mockResolvedValue(undefined)
+    mockClient.fastPut.mockResolvedValue(undefined)
   })
 
   /** 注册一个模拟会话，使公共方法（list/mkdir/...）可通过 sessionId 获取 mockClient */
@@ -355,7 +357,7 @@ describe('SftpProtocol', () => {
   describe('delete error handling', () => {
     it('should handle delete file not found', async () => {
       setupSession()
-      mockClient.stat.mockRejectedValue(new Error('No such file'))
+      mockClient.delete.mockRejectedValue(new Error('No such file'))
       const result = await sftp.delete('sftp_test_session', {
         name: 'nonexistent',
         type: 'file',
@@ -372,7 +374,6 @@ describe('SftpProtocol', () => {
 
     it('should handle delete directory (rmdir) error', async () => {
       setupSession()
-      mockClient.stat.mockResolvedValue({ isDirectory: true })
       mockClient.rmdir.mockRejectedValue(new Error('Directory not empty'))
       const result = await sftp.delete('sftp_test_session', {
         name: 'nonempty',
@@ -390,7 +391,6 @@ describe('SftpProtocol', () => {
 
     it('should handle delete permission denied', async () => {
       setupSession()
-      mockClient.stat.mockResolvedValue({ isDirectory: false })
       mockClient.delete.mockRejectedValue(new Error('Permission denied'))
       const result = await sftp.delete('sftp_test_session', {
         name: 'protected',
@@ -405,12 +405,56 @@ describe('SftpProtocol', () => {
       if (result.success) return
       expect(result.error.code).toBe('DELETE_ERROR')
     })
+
+    it('should call rmdir for directory type and delete for file type', async () => {
+      setupSession()
+
+      await sftp.delete('sftp_test_session', {
+        name: 'dir',
+        type: 'directory',
+        size: 0,
+        modifyTime: 0,
+        permissions: '',
+        owner: '',
+        absolutePath: '/dir',
+      })
+      expect(mockClient.rmdir).toHaveBeenCalledWith('/dir', true)
+      expect(mockClient.delete).not.toHaveBeenCalled()
+
+      mockClient.rmdir.mockClear()
+
+      await sftp.delete('sftp_test_session', {
+        name: 'file',
+        type: 'file',
+        size: 0,
+        modifyTime: 0,
+        permissions: '',
+        owner: '',
+        absolutePath: '/file',
+      })
+      expect(mockClient.delete).toHaveBeenCalledWith('/file')
+      expect(mockClient.rmdir).not.toHaveBeenCalled()
+    })
+
+    it('should not call stat for delete operations', async () => {
+      setupSession()
+
+      await sftp.delete('sftp_test_session', {
+        name: 'file',
+        type: 'file',
+        size: 0,
+        modifyTime: 0,
+        permissions: '',
+        owner: '',
+        absolutePath: '/file',
+      })
+      expect(mockClient.stat).not.toHaveBeenCalled()
+    })
   })
 
   describe('copy error handling', () => {
     it('should handle copy file error', async () => {
       setupSession()
-      mockClient.stat.mockResolvedValue({ isDirectory: false })
       mockClient.rcopy.mockRejectedValue(new Error('Copy failed'))
       const result = await sftp.copy(
         'sftp_test_session',
@@ -430,30 +474,8 @@ describe('SftpProtocol', () => {
       expect(result.error.code).toBe('COPY_ERROR')
     })
 
-    it('should handle copy directory stat error', async () => {
-      setupSession()
-      mockClient.stat.mockRejectedValue(new Error('Stat failed'))
-      const result = await sftp.copy(
-        'sftp_test_session',
-        {
-          name: 'src',
-          type: 'directory',
-          size: 0,
-          modifyTime: 0,
-          permissions: '',
-          owner: '',
-          absolutePath: '/src',
-        },
-        '/dst'
-      )
-      expect(result.success).toBe(false)
-      if (result.success) return
-      expect(result.error.code).toBe('COPY_ERROR')
-    })
-
     it('should handle copy directory mkdir target error', async () => {
       setupSession()
-      mockClient.stat.mockResolvedValue({ isDirectory: true })
       mockClient.mkdir.mockRejectedValue(new Error('Cannot create target directory'))
       const result = await sftp.copy(
         'sftp_test_session',
@@ -471,6 +493,62 @@ describe('SftpProtocol', () => {
       expect(result.success).toBe(false)
       if (result.success) return
       expect(result.error.code).toBe('COPY_ERROR')
+    })
+
+    it('should call copyDirectory for directory type and rcopy for file type', async () => {
+      setupSession()
+
+      await sftp.copy(
+        'sftp_test_session',
+        {
+          name: 'file',
+          type: 'file',
+          size: 0,
+          modifyTime: 0,
+          permissions: '',
+          owner: '',
+          absolutePath: '/file',
+        },
+        '/dst'
+      )
+      expect(mockClient.rcopy).toHaveBeenCalledWith('/file', '/dst')
+
+      mockClient.rcopy.mockClear()
+
+      await sftp.copy(
+        'sftp_test_session',
+        {
+          name: 'dir',
+          type: 'directory',
+          size: 0,
+          modifyTime: 0,
+          permissions: '',
+          owner: '',
+          absolutePath: '/dir',
+        },
+        '/dstdir'
+      )
+      expect(mockClient.rcopy).not.toHaveBeenCalled()
+      expect(mockClient.mkdir).toHaveBeenCalled()
+    })
+
+    it('should not call stat for copy operations', async () => {
+      setupSession()
+
+      await sftp.copy(
+        'sftp_test_session',
+        {
+          name: 'src',
+          type: 'file',
+          size: 0,
+          modifyTime: 0,
+          permissions: '',
+          owner: '',
+          absolutePath: '/src',
+        },
+        '/dst'
+      )
+      expect(mockClient.stat).not.toHaveBeenCalled()
     })
   })
 
@@ -506,6 +584,64 @@ describe('SftpProtocol', () => {
       expect(result.success).toBe(false)
       if (result.success) return
       expect(result.error.code).toBe('PING_ERROR')
+    })
+  })
+
+  describe('upload', () => {
+    it('should upload file successfully', async () => {
+      setupSession()
+      const onProgress = vi.fn()
+      const result = await sftp.upload(
+        'sftp_test_session',
+        '/local/file.txt',
+        '/remote/file.txt',
+        onProgress
+      )
+      expect(result.success).toBe(true)
+      expect(mockClient.fastPut).toHaveBeenCalledWith(
+        '/local/file.txt',
+        '/remote/file.txt',
+        expect.objectContaining({
+          step: expect.any(Function) as unknown as ((total: number) => void) | undefined,
+        })
+      )
+    })
+
+    it('should handle upload failure', async () => {
+      setupSession()
+      mockClient.fastPut.mockRejectedValue(new Error('Permission denied'))
+      const onProgress = vi.fn()
+      const result = await sftp.upload(
+        'sftp_test_session',
+        '/local/file.txt',
+        '/remote/file.txt',
+        onProgress
+      )
+      expect(result.success).toBe(false)
+      if (result.success) return
+      expect(result.error.code).toBe('UPLOAD_ERROR')
+    })
+
+    it('should call onProgress with step values', async () => {
+      setupSession()
+      const onProgress = vi.fn()
+      mockClient.fastPut.mockImplementation(
+        (_local: string, _remote: string, options: Record<string, unknown>) => {
+          const step = options.step as ((total: number) => void) | undefined
+          step?.(1024)
+          step?.(2048)
+          return Promise.resolve(undefined)
+        }
+      )
+      const result = await sftp.upload(
+        'sftp_test_session',
+        '/local/file.txt',
+        '/remote/file.txt',
+        onProgress
+      )
+      expect(result.success).toBe(true)
+      expect(onProgress).toHaveBeenCalledWith(1024)
+      expect(onProgress).toHaveBeenCalledWith(2048)
     })
   })
 })

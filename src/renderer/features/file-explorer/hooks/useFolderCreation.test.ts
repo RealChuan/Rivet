@@ -5,11 +5,15 @@ import { useFolderCreation } from './useFolderCreation.js'
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 
 const mockRefreshCurrentDirectory = vi.fn().mockResolvedValue(undefined)
+const mockSetOperating = vi.fn()
 const mockAddToast = vi.fn()
 
 vi.mock('@renderer/features/session/stores/session.js', () => ({
   useSessionStore: (selector: (state: Record<string, unknown>) => unknown) =>
-    selector({ refreshCurrentDirectory: mockRefreshCurrentDirectory }),
+    selector({
+      refreshCurrentDirectory: mockRefreshCurrentDirectory,
+      setOperating: mockSetOperating,
+    }),
 }))
 
 vi.mock('@renderer/stores/index.js', () => ({

@@ -1,5 +1,6 @@
 import type React from 'react'
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
 import {
   useColumnResizing,
@@ -14,8 +15,10 @@ import {
 } from '@renderer/features/file-explorer/hooks/index.js'
 import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
+import { useTransferActions } from '@renderer/features/transfer/hooks/useTransferActions.js'
 import { PROTOCOL } from '@shared/constants/index.js'
-import { type FileInfo } from '@shared/types/index.js'
+import { TRANSFER_ITEM_TYPE } from '@shared/constants/transfer.js'
+import { type FileInfo, isOk } from '@shared/types/index.js'
 import FileExplorerDialogs from './FileExplorerDialogs.js'
 import FileExplorerItem from './FileExplorerItem.js'
 import FileListHeader from './FileListHeader.js'
@@ -32,6 +35,7 @@ interface FileExplorerListProps {
 }
 
 export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, currentPath }) => {
+  const { t } = useTranslation()
   const sessions = useSessionStore(state => state.sessions)
   const updateCurrentPath = useSessionStore(state => state.updateCurrentPath)
   const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
@@ -39,6 +43,8 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
   const session = sessions.find(s => s.sessionId === sessionId)
   const connection = connections.find(c => c.id === session?.connectionId)
   const isWebdav = connection?.protocol === PROTOCOL.WEBDAV
+  const { startUpload } = useTransferActions()
+  const [isDragOver, setIsDragOver] = useState(false)
 
   const {
     selectedFile,
@@ -66,13 +72,6 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
 
   const { columnWidths, actualColumnWidths, handleResizeStart, containerRef, resetColumnWidths } =
     useColumnResizing({ isWebdav })
-  const [scrollbarWidth, setScrollbarWidth] = useState(0)
-  useLayoutEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const width = el.offsetWidth - el.clientWidth
-    setScrollbarWidth(width)
-  }, [containerRef])
   const files = session?.files ?? []
   const { sortBy, sortOrder, sortedFiles, handleSort } = useFileSort(files)
   const { handleDoubleClick, handleParentDirectory } = useDirectoryNavigation(
@@ -152,6 +151,78 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
     void handleCreateFolder(currentPath, folderName)
   }
 
+  const handleUploadFiles = useCallback(async () => {
+    const downloadDirResult = await window.electronAPI.system.getDownloadDir()
+    const defaultPath = downloadDirResult.success ? downloadDirResult.value : undefined
+    const result = await window.electronAPI.dialog.showOpenDialog({
+      properties: ['openFile', 'multiSelections'],
+      defaultPath,
+    })
+    if (!isOk(result) || !result.value) return
+    if (result.value.canceled || result.value.filePaths.length === 0) return
+    await startUpload(result.value.filePaths, sessionId, currentPath, TRANSFER_ITEM_TYPE.FILE)
+  }, [sessionId, currentPath, startUpload])
+
+  const handleUploadFolder = useCallback(async () => {
+    const downloadDirResult = await window.electronAPI.system.getDownloadDir()
+    const defaultPath = downloadDirResult.success ? downloadDirResult.value : undefined
+    const result = await window.electronAPI.dialog.showOpenDialog({
+      properties: ['openDirectory'],
+      defaultPath,
+    })
+    if (!isOk(result) || !result.value) return
+    if (result.value.canceled || result.value.filePaths.length === 0) return
+    await startUpload(result.value.filePaths, sessionId, currentPath, TRANSFER_ITEM_TYPE.FOLDER)
+  }, [sessionId, currentPath, startUpload])
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsDragOver(false)
+
+      const filePaths: string[] = []
+      const folderPaths: string[] = []
+
+      for (const item of Array.from(e.dataTransfer.items)) {
+        const entry = item.webkitGetAsEntry?.()
+        const file = item.getAsFile()
+        if (!file) continue
+
+        const filePath = window.electronAPI.dialog.getPathForFile(file)
+        if (!filePath) continue
+
+        if (entry?.isDirectory) {
+          folderPaths.push(filePath)
+        } else {
+          filePaths.push(filePath)
+        }
+      }
+
+      if (filePaths.length === 0 && folderPaths.length === 0) return
+
+      if (filePaths.length > 0) {
+        void startUpload(filePaths, sessionId, currentPath, TRANSFER_ITEM_TYPE.FILE)
+      }
+      if (folderPaths.length > 0) {
+        void startUpload(folderPaths, sessionId, currentPath, TRANSFER_ITEM_TYPE.FOLDER)
+      }
+    },
+    [sessionId, currentPath, startUpload]
+  )
+
   useEffect(() => {
     if (!session?.isLoading) resetColumnWidths()
   }, [session?.isLoading, resetColumnWidths])
@@ -206,13 +277,11 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
     columnWidths.owner +
     columnWidths.size +
     columnWidths.modifyTime +
-    gapWidth * numGaps -
-    scrollbarWidth
+    gapWidth * numGaps
 
   return (
     <div className="flex flex-col h-full" style={{ width: '100%' }}>
-      {/* 加载进度条 — 刷新/切换目录时保留旧数据，顶部显示进度条 */}
-      {session.isLoading && files.length > 0 && (
+      {(session.isLoading || session.isOperating) && files.length > 0 && (
         <div className="h-0.5 bg-accent/10 shrink-0 overflow-hidden">
           <div className="h-full bg-accent animate-[loading-bar_1.5s_ease-in-out_infinite]" />
         </div>
@@ -228,7 +297,22 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
           }
         }}
         onMouseDown={handleMouseDown}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
+        {isDragOver && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-accent/5 border-2 border-dashed border-accent rounded pointer-events-none">
+            <div className="flex flex-col items-center gap-2 text-accent">
+              <svg className="w-8 h-8 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <span className="text-sm font-medium">{t('file.dropToUpload')}</span>
+            </div>
+          </div>
+        )}
         <div className="flex flex-col" style={{ minWidth: totalWidth, height: '100%' }}>
           <FileListHeader
             columnWidths={actualColumnWidths}
@@ -248,13 +332,15 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
           {sortedFiles.length === 0 ? (
             <FileExplorerListEmpty />
           ) : (
-            <VirtualList
-              items={sortedFiles}
-              itemHeight={40}
-              width={totalWidth}
-              renderItem={renderFileExplorerItem}
-              overflowStyle={{ overflow: 'visible' }}
-            />
+            <div className="flex-1 min-h-0">
+              <VirtualList
+                items={sortedFiles}
+                itemHeight={40}
+                width={totalWidth}
+                renderItem={renderFileExplorerItem}
+                overflowStyle={{ overflow: 'visible' }}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -279,6 +365,8 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
         closeContextMenu={closeContextMenu}
         openDeleteDialog={openDeleteDialog}
         openRenameDialog={openRenameDialog}
+        onUploadFiles={() => void handleUploadFiles()}
+        onUploadFolder={() => void handleUploadFolder()}
       />
     </div>
   )

@@ -40,6 +40,14 @@ vi.mock('@shared/constants/index.js', () => ({
   MIN_MAIN_WINDOW_WIDTH: 800,
   MIN_MAIN_WINDOW_HEIGHT: 600,
   DEFAULT_ROUTE: '/',
+  TRANSFER_CONFIG: {
+    PROGRESS_THROTTLE_MS: 500,
+    ROTATION_INTERVAL_MS: 3000,
+    DEFAULT_MAX_CONCURRENCY: 5,
+    MIN_CONCURRENCY: 1,
+    MAX_CONCURRENCY: 10,
+    MAX_INLINE_OPERATIONS: 3,
+  },
 }))
 
 vi.mock('@shared/constants/timeouts.js', () => ({

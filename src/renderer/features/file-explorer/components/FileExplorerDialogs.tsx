@@ -29,6 +29,8 @@ interface FileExplorerDialogsProps {
   closeContextMenu: () => void
   openDeleteDialog: (files: FileInfo[]) => void
   openRenameDialog: (file: FileInfo) => void
+  onUploadFiles: () => void
+  onUploadFolder: () => void
 }
 
 export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
@@ -49,6 +51,8 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
   closeContextMenu,
   openDeleteDialog,
   openRenameDialog,
+  onUploadFiles,
+  onUploadFolder,
 }) => {
   const { t } = useTranslation()
   const addToast = useUiStore(state => state.addToast)
@@ -150,6 +154,8 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
             setNewFolderDialogOpen(true)
             closeContextMenu()
           }}
+          onUploadFiles={onUploadFiles}
+          onUploadFolder={onUploadFolder}
         />
       )}
     </>

@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 interface ResizerProps {
   isDragging: boolean
-  onMouseDown: () => void
+  onMouseDown: (e: React.MouseEvent) => void
 }
 
 export const Resizer: React.FC<ResizerProps> = ({ isDragging, onMouseDown }) => {

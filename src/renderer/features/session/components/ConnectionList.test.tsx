@@ -125,6 +125,7 @@ describe('ConnectionList', () => {
       files: [],
       isConnected: true,
       isLoading: false,
+      isOperating: false,
       error: null,
     }
     render(

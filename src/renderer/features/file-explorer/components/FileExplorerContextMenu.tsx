@@ -14,6 +14,8 @@ interface FileExplorerContextMenuProps {
   onDelete: (files: FileInfo[]) => void
   onCopy: (files: FileInfo[]) => void
   onMove: (files: FileInfo[]) => void
+  onUploadFiles: () => void
+  onUploadFolder: () => void
 }
 
 export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = ({
@@ -27,6 +29,8 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
   onDelete,
   onCopy,
   onMove,
+  onUploadFiles,
+  onUploadFolder,
 }) => {
   const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
@@ -74,12 +78,31 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
   return (
     <div ref={menuRef} className={menuClass} style={{ left: x, top: y }}>
       {isEmptyArea ? (
-        <button className={itemClass} onClick={() => handleItemClick(onCreateFolder)}>
-          <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
-            <path d="M12 4v16m8-8H4" />
-          </svg>
-          {t('file.action.newFolder')}
-        </button>
+        <>
+          <button className={itemClass} onClick={() => handleItemClick(onCreateFolder)}>
+            <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
+              <path d="M12 4v16m8-8H4" />
+            </svg>
+            {t('file.action.newFolder')}
+          </button>
+          <div className={separatorClass} />
+          <button className={itemClass} onClick={() => handleItemClick(onUploadFiles)}>
+            <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {t('file.action.uploadFiles')}
+          </button>
+          <button className={itemClass} onClick={() => handleItemClick(onUploadFolder)}>
+            <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
+              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+              <polyline points="17 11 12 6 7 11" />
+              <line x1="12" y1="6" x2="12" y2="18" />
+            </svg>
+            {t('file.action.uploadFolder')}
+          </button>
+        </>
       ) : (
         <>
           <button className={itemClass} onClick={() => handleItemClick(() => onCopy(files))}>
