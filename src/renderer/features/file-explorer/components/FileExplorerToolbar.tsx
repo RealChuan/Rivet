@@ -1,13 +1,11 @@
 import type React from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
+import { useUploadDialog } from '@renderer/features/file-explorer/hooks/index.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useTransferActions } from '@renderer/features/transfer/hooks/useTransferActions.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import { ROOT_PATH, TOAST_TYPE } from '@shared/constants/index.js'
-import { TRANSFER_ITEM_TYPE } from '@shared/constants/transfer.js'
-import { isOk } from '@shared/types/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
 
 interface FileExplorerToolbarProps {
@@ -40,9 +38,13 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
   const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
   const sessions = useSessionStore(state => state.sessions)
   const addToast = useUiStore(state => state.addToast)
-  const { startUpload } = useTransferActions()
 
   const session = sessions.find(s => s.sessionId === sessionId)
+
+  const { openFilePicker, openFolderPicker } = useUploadDialog({
+    sessionId,
+    currentPath: session?.currentPath ?? '/',
+  })
 
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
   const [showUploadMenu, setShowUploadMenu] = useState(false)
@@ -94,42 +96,6 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
     }
   }
 
-  const handleUploadFiles = useCallback(async () => {
-    setShowUploadMenu(false)
-    const downloadDirResult = await window.electronAPI.system.getDownloadDir()
-    const defaultPath = downloadDirResult.success ? downloadDirResult.value : undefined
-    const result = await window.electronAPI.dialog.showOpenDialog({
-      properties: ['openFile', 'multiSelections'],
-      defaultPath,
-    })
-    if (!isOk(result) || !result.value) return
-    if (result.value.canceled || result.value.filePaths.length === 0) return
-    await startUpload(
-      result.value.filePaths,
-      sessionId,
-      session?.currentPath ?? '/',
-      TRANSFER_ITEM_TYPE.FILE
-    )
-  }, [sessionId, session?.currentPath, startUpload])
-
-  const handleUploadFolder = useCallback(async () => {
-    setShowUploadMenu(false)
-    const downloadDirResult = await window.electronAPI.system.getDownloadDir()
-    const defaultPath = downloadDirResult.success ? downloadDirResult.value : undefined
-    const result = await window.electronAPI.dialog.showOpenDialog({
-      properties: ['openDirectory'],
-      defaultPath,
-    })
-    if (!isOk(result) || !result.value) return
-    if (result.value.canceled || result.value.filePaths.length === 0) return
-    await startUpload(
-      result.value.filePaths,
-      sessionId,
-      session?.currentPath ?? '/',
-      TRANSFER_ITEM_TYPE.FOLDER
-    )
-  }, [sessionId, session?.currentPath, startUpload])
-
   return (
     <div className="flex items-center gap-0.5 ml-auto">
       <ToolButton onClick={() => void handleRefresh()} title={`${t('action.refresh')} (F5)`}>
@@ -163,7 +129,10 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
           <div className="absolute right-0 top-full mt-1 bg-bg rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.03)] border border-border p-1 min-w-40 z-1000 animate-menu-in">
             <button
               className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
-              onClick={() => void handleUploadFiles()}
+              onClick={() => {
+                setShowUploadMenu(false)
+                void openFilePicker()
+              }}
             >
               <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
@@ -174,7 +143,10 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
             </button>
             <button
               className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
-              onClick={() => void handleUploadFolder()}
+              onClick={() => {
+                setShowUploadMenu(false)
+                void openFolderPicker()
+              }}
             >
               <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
                 <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />

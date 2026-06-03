@@ -118,7 +118,7 @@ export const TransferConflictDialog: React.FC = () => {
           <h2 className="text-base font-semibold text-text">{t('transfer.conflict.title')}</h2>
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-background rounded-md border border-border min-h-10">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-bg rounded-md border border-border min-h-10">
           {conflicts.map((conflict, index) => {
             const resolution = resolutions[index] ?? {
               localPath: conflict.localPath,

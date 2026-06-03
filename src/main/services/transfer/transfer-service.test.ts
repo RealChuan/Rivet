@@ -35,11 +35,17 @@ vi.mock('@main/utils/index.js', () => ({
 
 const mockReaddirSync = vi.fn()
 const mockStatSync = vi.fn()
+const mockReaddirAsync = vi.fn()
+const mockStatAsync = vi.fn()
 
 vi.mock('node:fs', () => ({
   default: {
     readdirSync: mockReaddirSync,
     statSync: mockStatSync,
+    promises: {
+      readdir: mockReaddirAsync,
+      stat: mockStatAsync,
+    },
   },
 }))
 
@@ -107,7 +113,7 @@ describe('TransferService', () => {
       mockUpload.mockResolvedValue(ok(undefined))
 
       const task = createFileTask()
-      const result = service.addTasks([task])
+      const result = await service.addTasks([task])
 
       expect(result.added).toHaveLength(1)
       expect(result.duplicates).toHaveLength(0)
@@ -117,7 +123,7 @@ describe('TransferService', () => {
       })
     })
 
-    it('deduplicates tasks with same sessionId + localPath + remotePath', () => {
+    it('deduplicates tasks with same sessionId + localPath + remotePath', async () => {
       const task1 = createFileTask({ id: 'id-1' })
       const task2 = createFileTask({
         id: 'id-2',
@@ -125,14 +131,14 @@ describe('TransferService', () => {
         remotePath: task1.remotePath,
       })
 
-      service.addTasks([task1])
-      const result = service.addTasks([task2])
+      void service.addTasks([task1])
+      const result = await service.addTasks([task2])
 
       expect(result.added).toHaveLength(0)
       expect(result.duplicates).toHaveLength(1)
     })
 
-    it('allows different paths for same session', () => {
+    it('allows different paths for same session', async () => {
       const task1 = createFileTask({ id: 'id-1' })
       const task2 = createFileTask({
         id: 'id-2',
@@ -140,7 +146,7 @@ describe('TransferService', () => {
         remotePath: '/remote/other.txt',
       })
 
-      const result = service.addTasks([task1, task2])
+      const result = await service.addTasks([task1, task2])
 
       expect(result.added).toHaveLength(2)
       expect(result.duplicates).toHaveLength(0)
@@ -148,13 +154,13 @@ describe('TransferService', () => {
 
     it('sends TASKS_ENQUEUED event', () => {
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASKS_ENQUEUED, expect.any(Array))
     })
 
     it('does not send TASKS_ENQUEUED when no tasks added', () => {
-      service.addTasks([])
+      void service.addTasks([])
 
       expect(mockSend).not.toHaveBeenCalledWith(TRANSFER_CHANNELS.TASKS_ENQUEUED, expect.anything())
     })
@@ -174,7 +180,7 @@ describe('TransferService', () => {
 
       mockUpload.mockReturnValue(new Promise<void>(() => {}))
 
-      service.addTasks(tasks)
+      void service.addTasks(tasks)
 
       expect(mockUpload).toHaveBeenCalledTimes(2)
 
@@ -208,9 +214,14 @@ describe('TransferService', () => {
         { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
         { name: 'file2.txt', isDirectory: () => false, isFile: () => true },
       ])
+      mockReaddirAsync.mockResolvedValue([
+        { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
+        { name: 'file2.txt', isDirectory: () => false, isFile: () => true },
+      ])
       mockStatSync.mockReturnValue({ size: 100 })
+      mockStatAsync.mockResolvedValue({ size: 100 })
 
-      service.addTasks([folderTask, fileTask1, fileTask2])
+      void service.addTasks([folderTask, fileTask1, fileTask2])
 
       const runningTasks = service.getTasks().filter(t => t.status === TRANSFER_TASK_STATUS.RUNNING)
       expect(runningTasks).toHaveLength(3)
@@ -235,7 +246,7 @@ describe('TransferService', () => {
         )
         .mockReturnValueOnce(new Promise<void>(() => {}))
 
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       expect(mockUpload).toHaveBeenCalledTimes(1)
 
@@ -251,7 +262,7 @@ describe('TransferService', () => {
       mockUpload.mockResolvedValue(ok(undefined))
 
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(mockUpload).toHaveBeenCalledWith(
@@ -272,7 +283,7 @@ describe('TransferService', () => {
       mockUpload.mockResolvedValue(err(createErrorInfo(ERROR_CODE.UPLOAD_ERROR, 'Upload failed')))
 
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASK_FAILED, expect.anything())
@@ -287,7 +298,7 @@ describe('TransferService', () => {
       mockUpload.mockResolvedValue(err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, 'Aborted')))
 
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASK_REMOVED, expect.anything())
@@ -307,15 +318,16 @@ describe('TransferService', () => {
         })
       )
       mockReaddirSync.mockReturnValue([])
+      mockReaddirAsync.mockResolvedValue([])
 
       const task = createFolderTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       expect(mockMkdir).toHaveBeenCalledTimes(1)
 
       mkdirResolve()
       await vi.waitFor(() => {
-        expect(mockReaddirSync).toHaveBeenCalled()
+        expect(mockReaddirAsync).toHaveBeenCalled()
       })
     })
 
@@ -337,14 +349,26 @@ describe('TransferService', () => {
         }
         return []
       })
+      let readdirAsyncCallCount = 0
+      mockReaddirAsync.mockImplementation(() => {
+        readdirAsyncCallCount++
+        if (readdirAsyncCallCount <= 1) {
+          return Promise.resolve([
+            { name: 'subdir', isDirectory: () => true, isFile: () => false },
+            { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
+          ])
+        }
+        return Promise.resolve([])
+      })
       mockStatSync.mockReturnValue({ size: 200 })
+      mockStatAsync.mockResolvedValue({ size: 200 })
       mockUpload.mockResolvedValue(ok(undefined))
 
       const task = createFolderTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
-        expect(mockReaddirSync).toHaveBeenCalled()
+        expect(mockReaddirAsync).toHaveBeenCalled()
       })
 
       await vi.waitFor(() => {
@@ -361,7 +385,7 @@ describe('TransferService', () => {
       })
 
       const task = createFolderTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASK_FAILED, expect.anything())
@@ -385,7 +409,7 @@ describe('TransferService', () => {
       )
 
       const task = createFolderTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(mockMkdir).toHaveBeenCalledTimes(1)
@@ -395,12 +419,17 @@ describe('TransferService', () => {
         { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
         { name: 'file2.txt', isDirectory: () => false, isFile: () => true },
       ])
+      mockReaddirAsync.mockResolvedValue([
+        { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
+        { name: 'file2.txt', isDirectory: () => false, isFile: () => true },
+      ])
       mockStatSync.mockReturnValue({ size: 100 })
+      mockStatAsync.mockResolvedValue({ size: 100 })
 
       mkdirResolve()
 
       await vi.waitFor(() => {
-        expect(mockReaddirSync).toHaveBeenCalled()
+        expect(mockReaddirAsync).toHaveBeenCalled()
       })
 
       mockUpload.mockResolvedValueOnce(
@@ -429,7 +458,7 @@ describe('TransferService', () => {
         remotePath: '/other',
       })
 
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       expect(service.getTasks().find(t => t.id === 'running-task')?.status).toBe(
         TRANSFER_TASK_STATUS.RUNNING
@@ -448,7 +477,7 @@ describe('TransferService', () => {
       mockUpload.mockReturnValue(new Promise<void>(() => {}))
 
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(mockUpload).toHaveBeenCalledTimes(1)
@@ -470,7 +499,7 @@ describe('TransferService', () => {
       )
 
       const task = createFolderTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(mockMkdir).toHaveBeenCalledTimes(1)
@@ -479,7 +508,11 @@ describe('TransferService', () => {
       mockReaddirSync.mockReturnValue([
         { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
       ])
+      mockReaddirAsync.mockResolvedValue([
+        { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
+      ])
       mockStatSync.mockReturnValue({ size: 100 })
+      mockStatAsync.mockResolvedValue({ size: 100 })
       mockUpload.mockReturnValue(new Promise<void>(() => {}))
       mkdirResolve()
       await vi.waitFor(() => {
@@ -496,6 +529,204 @@ describe('TransferService', () => {
       service.cancel('non-existent-id')
       expect(mockSend).not.toHaveBeenCalled()
     })
+
+    it('does not continue upload after cancelling folder task during mkdir', async () => {
+      let mkdirResolve: () => void = () => {}
+      mockMkdir.mockReturnValue(
+        new Promise(resolve => {
+          mkdirResolve = () =>
+            resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
+        })
+      )
+
+      mockReaddirSync.mockReturnValue([
+        { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
+      ])
+      mockReaddirAsync.mockResolvedValue([
+        { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
+      ])
+      mockStatSync.mockReturnValue({ size: 100 })
+      mockStatAsync.mockResolvedValue({ size: 100 })
+      mockUpload.mockResolvedValue(ok(undefined))
+
+      const task = createFolderTask()
+      void service.addTasks([task])
+
+      await vi.waitFor(() => {
+        expect(mockMkdir).toHaveBeenCalledTimes(1)
+      })
+
+      service.cancel(task.id)
+
+      mkdirResolve()
+
+      await vi.waitFor(() => {
+        expect(service.getTasks().find(t => t.id === task.id)).toBeUndefined()
+      })
+
+      expect(mockUpload).not.toHaveBeenCalled()
+    })
+
+    it('stops expanding subdirectories after cancelling folder task', async () => {
+      mockMkdir.mockResolvedValue({
+        success: true,
+        value: undefined,
+        error: undefined,
+        requestId: 'r1',
+      })
+
+      let readdirCallCount = 0
+      mockReaddirSync.mockImplementation(() => {
+        readdirCallCount++
+        if (readdirCallCount === 1) {
+          return [
+            { name: 'subdir', isDirectory: () => true, isFile: () => false },
+            { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
+          ]
+        }
+        return []
+      })
+      let readdirAsyncCallCount = 0
+      mockReaddirAsync.mockImplementation(() => {
+        readdirAsyncCallCount++
+        if (readdirAsyncCallCount === 1) {
+          return Promise.resolve([
+            { name: 'subdir', isDirectory: () => true, isFile: () => false },
+            { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
+          ])
+        }
+        return Promise.resolve([])
+      })
+      mockStatSync.mockReturnValue({ size: 100 })
+      mockStatAsync.mockResolvedValue({ size: 100 })
+      mockUpload.mockReturnValue(new Promise<void>(() => {}))
+
+      const task = createFolderTask()
+      void service.addTasks([task])
+
+      await vi.waitFor(() => {
+        expect(mockUpload).toHaveBeenCalledTimes(1)
+      })
+
+      const uploadCallCountBefore = mockUpload.mock.calls.length
+
+      service.cancel(task.id)
+
+      await new Promise(resolve => setTimeout(resolve, 50))
+
+      expect(mockUpload.mock.calls.length).toBe(uploadCallCountBefore)
+    })
+
+    it('does not double-decrement runningTasks when cancelling file task', async () => {
+      service.setConcurrency(2)
+
+      let uploadResolve1: () => void = () => {}
+      mockUpload
+        .mockReturnValueOnce(
+          new Promise<void>(resolve => {
+            uploadResolve1 = resolve
+          })
+        )
+        .mockResolvedValue(ok(undefined))
+
+      const task1 = createFileTask({ id: 't1' })
+      const task2 = createFileTask({ id: 't2', localPath: '/b', remotePath: '/b' })
+
+      void service.addTasks([task1, task2])
+
+      await vi.waitFor(() => {
+        expect(mockUpload).toHaveBeenCalledTimes(2)
+      })
+
+      service.cancel('t1')
+
+      uploadResolve1()
+
+      await vi.waitFor(() => {
+        expect(service.getTasks()).toHaveLength(0)
+      })
+    })
+
+    it('does not double-decrement runningTasks when cancelling folder task', async () => {
+      service.setConcurrency(1)
+
+      let mkdirResolve: () => void = () => {}
+      mockMkdir.mockReturnValue(
+        new Promise(resolve => {
+          mkdirResolve = () =>
+            resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
+        })
+      )
+
+      const folderTask = createFolderTask({ id: 'folder-1' })
+      void service.addTasks([folderTask])
+
+      await vi.waitFor(() => {
+        expect(mockMkdir).toHaveBeenCalledTimes(1)
+      })
+
+      service.cancel('folder-1')
+
+      mkdirResolve()
+
+      await new Promise(resolve => setTimeout(resolve, 50))
+
+      let uploadResolve: () => void = () => {}
+      mockUpload.mockReturnValueOnce(
+        new Promise<void>(resolve => {
+          uploadResolve = resolve
+        })
+      )
+
+      const newTask = createFileTask({ id: 'new-task', localPath: '/c', remotePath: '/c' })
+      void service.addTasks([newTask])
+
+      await vi.waitFor(() => {
+        expect(mockUpload).toHaveBeenCalledTimes(1)
+      })
+
+      expect(service.getTasks().find(t => t.id === 'new-task')?.status).toBe(
+        TRANSFER_TASK_STATUS.RUNNING
+      )
+
+      uploadResolve()
+    })
+
+    it('allows retry after cancelling a folder task', async () => {
+      let mkdirResolve: () => void = () => {}
+      mockMkdir.mockReturnValue(
+        new Promise(resolve => {
+          mkdirResolve = () =>
+            resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
+        })
+      )
+
+      mockReaddirSync.mockReturnValue([])
+      mockReaddirAsync.mockResolvedValue([])
+      mockUpload.mockResolvedValue(ok(undefined))
+
+      const task = createFolderTask()
+      void service.addTasks([task])
+
+      await vi.waitFor(() => {
+        expect(mockMkdir).toHaveBeenCalledTimes(1)
+      })
+
+      service.cancel(task.id)
+
+      mkdirResolve()
+
+      await vi.waitFor(() => {
+        expect(service.getTasks().find(t => t.id === task.id)).toBeUndefined()
+      })
+
+      task.status = TRANSFER_TASK_STATUS.FAILED
+      void service.addTasks([task])
+
+      await vi.waitFor(() => {
+        expect(service.getTasks().find(t => t.id === task.id)).toBeDefined()
+      })
+    })
   })
 
   describe('cancelAll', () => {
@@ -507,7 +738,7 @@ describe('TransferService', () => {
       const task1 = createFileTask({ id: 't1', localPath: '/a', remotePath: '/a' })
       const task2 = createFileTask({ id: 't2', localPath: '/b', remotePath: '/b' })
 
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       service.cancelAll()
 
@@ -522,7 +753,7 @@ describe('TransferService', () => {
       const task1 = createFileTask({ id: 't1', sessionId: 's1', localPath: '/a', remotePath: '/a' })
       const task2 = createFileTask({ id: 't2', sessionId: 's2', localPath: '/b', remotePath: '/b' })
 
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       service.cancelAll('s1')
 
@@ -538,7 +769,7 @@ describe('TransferService', () => {
         .mockResolvedValue(ok(undefined))
 
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(service.getTasks().find(t => t.id === task.id)?.status).toBe(
@@ -564,7 +795,7 @@ describe('TransferService', () => {
       const task2 = createFileTask({ id: 't2', localPath: '/b', remotePath: '/b' })
 
       service.setConcurrency(2)
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       await vi.waitFor(() => {
         expect(
@@ -586,7 +817,7 @@ describe('TransferService', () => {
 
     it('does not retry a non-failed task', () => {
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       service.retry(task.id)
 
@@ -602,7 +833,7 @@ describe('TransferService', () => {
       })
 
       const task = createFolderTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(service.getTasks().find(t => t.id === task.id)?.status).toBe(
@@ -626,7 +857,7 @@ describe('TransferService', () => {
       const task2 = createFileTask({ id: 't2', localPath: '/b', remotePath: '/b' })
 
       service.setConcurrency(2)
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       await vi.waitFor(() => {
         expect(
@@ -650,7 +881,7 @@ describe('TransferService', () => {
       const task2 = createFileTask({ id: 't2', sessionId: 's2', localPath: '/b', remotePath: '/b' })
 
       service.setConcurrency(2)
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       await vi.waitFor(() => {
         expect(
@@ -676,7 +907,7 @@ describe('TransferService', () => {
       const task = createFileTask()
       mockUpload.mockResolvedValue(ok(undefined))
 
-      service.addTasks([task])
+      void service.addTasks([task])
 
       expect(mockUpload).toHaveBeenCalled()
     })
@@ -690,7 +921,7 @@ describe('TransferService', () => {
 
       mockUpload.mockResolvedValue(ok(undefined))
 
-      service.addTasks(tasks)
+      void service.addTasks(tasks)
 
       const runningTasks = service.getTasks().filter(t => t.status === TRANSFER_TASK_STATUS.RUNNING)
       expect(runningTasks.length).toBeLessThanOrEqual(10)
@@ -709,7 +940,7 @@ describe('TransferService', () => {
       const task1 = createFileTask({ id: 't1' })
       const task2 = createFileTask({ id: 't2', localPath: '/b', remotePath: '/b' })
 
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       expect(
         service.getTasks().filter(t => t.status === TRANSFER_TASK_STATUS.RUNNING)
@@ -734,7 +965,7 @@ describe('TransferService', () => {
       const task1 = createFileTask({ id: 't1' })
       const task2 = createFileTask({ id: 't2', localPath: '/b', remotePath: '/b' })
 
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       expect(service.hasActiveTasks()).toBe(true)
     })
@@ -743,7 +974,7 @@ describe('TransferService', () => {
       mockUpload.mockResolvedValue(ok(undefined))
 
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(service.getTasks()).toHaveLength(0)
@@ -759,7 +990,7 @@ describe('TransferService', () => {
 
       const task1 = createFileTask({ id: 't1', sessionId: 's1' })
       const task2 = createFileTask({ id: 't2', sessionId: 's2', localPath: '/b', remotePath: '/b' })
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       expect(service.hasActiveTasks('s1')).toBe(true)
       expect(service.hasActiveTasks('s2')).toBe(true)
@@ -770,7 +1001,7 @@ describe('TransferService', () => {
       mockUpload.mockResolvedValue(err(createErrorInfo(ERROR_CODE.UPLOAD_ERROR, 'Failed')))
 
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(service.getTasks().find(t => t.id === task.id)?.status).toBe(
@@ -791,7 +1022,7 @@ describe('TransferService', () => {
       const task1 = createFileTask({ id: 't1', sessionId: 's1' })
       const task2 = createFileTask({ id: 't2', sessionId: 's2', localPath: '/b', remotePath: '/b' })
 
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       expect(service.getTasks()).toHaveLength(2)
     })
@@ -804,7 +1035,7 @@ describe('TransferService', () => {
       const task1 = createFileTask({ id: 't1', sessionId: 's1' })
       const task2 = createFileTask({ id: 't2', sessionId: 's2', localPath: '/b', remotePath: '/b' })
 
-      service.addTasks([task1, task2])
+      void service.addTasks([task1, task2])
 
       expect(service.getTasks('s1')).toHaveLength(1)
     })
@@ -819,7 +1050,7 @@ describe('TransferService', () => {
       )
 
       const task = createFolderTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       const ops = service.getActiveOperations(task.id)
       expect(ops.length).toBeGreaterThanOrEqual(1)
@@ -851,7 +1082,7 @@ describe('TransferService', () => {
       )
 
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       const progressCalls = mockSend.mock.calls.filter(
         call => call[0] === TRANSFER_CHANNELS.PROGRESS
@@ -869,12 +1100,16 @@ describe('TransferService', () => {
       mockReaddirSync.mockReturnValue([
         { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
       ])
+      mockReaddirAsync.mockResolvedValue([
+        { name: 'file1.txt', isDirectory: () => false, isFile: () => true },
+      ])
       mockStatSync.mockReturnValue({ size: 500 })
+      mockStatAsync.mockResolvedValue({ size: 500 })
 
       mockUpload.mockReturnValue(new Promise<void>(() => {}))
 
       const task = createFolderTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       await vi.waitFor(() => {
         expect(mockUpload).toHaveBeenCalled()
@@ -895,7 +1130,7 @@ describe('TransferService', () => {
       mockIsDestroyed.mockReturnValue(true)
 
       const task = createFileTask()
-      service.addTasks([task])
+      void service.addTasks([task])
 
       expect(mockSend).not.toHaveBeenCalled()
     })
@@ -904,7 +1139,7 @@ describe('TransferService', () => {
       const svc = new TransferService()
 
       const task = createFileTask()
-      svc.addTasks([task])
+      void svc.addTasks([task])
 
       expect(mockSend).not.toHaveBeenCalled()
     })

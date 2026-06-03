@@ -37,6 +37,7 @@ const SPEED_MIN_SAMPLES = 2
 export class TransferService {
   private tasks: TransferTask[] = []
   private operations: UploadOperation[] = []
+  private operationsByTask = new Map<string, UploadOperation[]>()
   private runningTasks = 0
   private folderRunningOps = new Map<string, number>()
   private maxConcurrency: number = TRANSFER_CONFIG.MAX_CONCURRENCY
@@ -44,13 +45,15 @@ export class TransferService {
   private lastProgressTime = new Map<string, number>()
   private lastOpProgressTime = new Map<string, number>()
   private speedSamples = new Map<string, SpeedSample[]>()
+  private opSpeedSamples = new Map<string, SpeedSample[]>()
+  private cancelledTaskIds = new Set<string>()
   private mainWindow: Electron.BrowserWindow | null = null
 
   setMainWindow(window: Electron.BrowserWindow): void {
     this.mainWindow = window
   }
 
-  addTasks(tasks: TransferTask[]): DeduplicateResult {
+  async addTasks(tasks: TransferTask[]): Promise<DeduplicateResult> {
     const added: TransferTask[] = []
     const duplicates: TransferTask[] = []
 
@@ -68,7 +71,7 @@ export class TransferService {
 
         if (task.itemType === TRANSFER_ITEM_TYPE.FILE && task.fileSize === 0) {
           try {
-            const stat = fs.statSync(task.localPath)
+            const stat = await fs.promises.stat(task.localPath)
             task.fileSize = stat.size
           } catch {
             // ignore stat errors
@@ -94,9 +97,19 @@ export class TransferService {
     return { added, duplicates }
   }
 
+  private addOperation(op: UploadOperation): void {
+    this.operations.push(op)
+    const list = this.operationsByTask.get(op.parentTaskId)
+    if (list) {
+      list.push(op)
+    } else {
+      this.operationsByTask.set(op.parentTaskId, [op])
+    }
+  }
+
   private createInitialOperations(task: TransferTask): void {
     if (task.itemType === TRANSFER_ITEM_TYPE.FOLDER) {
-      this.operations.push({
+      this.addOperation({
         id: crypto.randomUUID(),
         parentTaskId: task.id,
         type: UPLOAD_OPERATION_TYPE.MKDIR,
@@ -127,20 +140,27 @@ export class TransferService {
   }
 
   private scheduleFolderOps(taskId: string): void {
+    if (this.cancelledTaskIds.has(taskId)) return
+
     const runningOps = this.folderRunningOps.get(taskId) ?? 0
     if (runningOps >= this.maxConcurrency) return
 
-    const pendingOps = this.operations.filter(
-      op => op.parentTaskId === taskId && op.status === UPLOAD_OPERATION_STATUS.WAITING
+    const pendingOps = (this.operationsByTask.get(taskId) ?? []).filter(
+      op => op.status === UPLOAD_OPERATION_STATUS.WAITING
     )
 
     let currentRunning = runningOps
     for (const op of pendingOps) {
       if (currentRunning >= this.maxConcurrency) break
+      if (this.cancelledTaskIds.has(taskId)) return
       currentRunning++
       this.folderRunningOps.set(taskId, currentRunning)
       void this.executeFolderOp(op)
     }
+  }
+
+  private isTaskCancelled(taskId: string): boolean {
+    return this.cancelledTaskIds.has(taskId)
   }
 
   private async executeFileTask(task: TransferTask): Promise<void> {
@@ -157,6 +177,8 @@ export class TransferService {
         transferred => this.onFileProgress(task, transferred),
         controller.signal
       )
+
+      if (this.isTaskCancelled(task.id)) return
 
       if (isErr(result)) {
         if (isAbortError(result.error)) {
@@ -179,19 +201,25 @@ export class TransferService {
         this.removeTask(task.id)
       }
     } catch (_error) {
+      if (this.isTaskCancelled(task.id)) return
       task.status = TRANSFER_TASK_STATUS.FAILED
       task.errorMessage = formatErrorMessage(_error)
       this.speedSamples.delete(task.id)
       this.lastProgressTime.delete(task.id)
       this.sendTaskFailed(task)
     } finally {
-      this.runningTasks--
+      if (!this.isTaskCancelled(task.id)) {
+        this.runningTasks--
+      }
       this.abortControllers.delete(task.id)
+      this.cancelledTaskIds.delete(task.id)
       this.scheduleTasks()
     }
   }
 
   private async executeFolderOp(op: UploadOperation): Promise<void> {
+    if (this.isTaskCancelled(op.parentTaskId)) return
+
     op.status = UPLOAD_OPERATION_STATUS.RUNNING
     op.startedAt = Date.now()
     const task = this.tasks.find(t => t.id === op.parentTaskId)
@@ -202,6 +230,8 @@ export class TransferService {
         const sessionId = task?.sessionId ?? ''
         const result = await protocolService.mkdir(sessionId, op.remotePath)
 
+        if (this.isTaskCancelled(op.parentTaskId)) return
+
         if (!result.success) {
           this.failOperation(op, result.error?.message ?? 'Mkdir failed')
           return
@@ -210,7 +240,7 @@ export class TransferService {
         op.status = UPLOAD_OPERATION_STATUS.COMPLETED
 
         if (task) {
-          this.expandDirectory(task, op.remotePath, task.localPath)
+          await this.expandDirectory(task, op.remotePath, task.localPath)
         }
       } else if (op.type === UPLOAD_OPERATION_TYPE.UPLOAD) {
         const controller = new AbortController()
@@ -228,9 +258,16 @@ export class TransferService {
             controller.signal
           )
 
+          if (this.isTaskCancelled(op.parentTaskId)) return
+
           if (isErr(result)) {
             if (isAbortError(result.error)) {
               this.operations = this.operations.filter(o => o.id !== op.id)
+              const taskOpList = this.operationsByTask.get(op.parentTaskId)
+              if (taskOpList) {
+                const idx = taskOpList.findIndex(o => o.id === op.id)
+                if (idx !== -1) taskOpList.splice(idx, 1)
+              }
             } else {
               this.failOperation(op, result.error.message)
               return
@@ -244,30 +281,48 @@ export class TransferService {
         }
       }
     } catch (error) {
+      if (this.isTaskCancelled(op.parentTaskId)) return
       this.failOperation(op, formatErrorMessage(error))
       return
     }
 
-    if (task) {
+    if (task && !this.isTaskCancelled(op.parentTaskId)) {
       this.lastOpProgressTime.delete(op.id)
+      this.opSpeedSamples.delete(op.id)
       const runningOps = this.folderRunningOps.get(task.id) ?? 1
       this.folderRunningOps.set(task.id, Math.max(0, runningOps - 1))
       this.updateTaskStats(task)
-      this.sendProgress(task)
+      this.throttledSendProgress(task)
       this.checkTaskCompletion(task)
       this.scheduleFolderOps(task.id)
     }
   }
 
-  private expandDirectory(task: TransferTask, remoteDir: string, _localBaseDir: string): void {
+  private async expandDirectory(
+    task: TransferTask,
+    remoteDir: string,
+    _localBaseDir: string
+  ): Promise<void> {
+    if (this.isTaskCancelled(task.id)) return
+
     const relativePath = path.posix.relative(task.remotePath, remoteDir)
     const localDir = relativePath === '' ? task.localPath : path.join(task.localPath, relativePath)
 
     let entries: fs.Dirent[]
     try {
-      entries = fs.readdirSync(localDir, { withFileTypes: true })
+      entries = await fs.promises.readdir(localDir, { withFileTypes: true })
     } catch (_error) {
-      logger.error(`Failed to read directory: ${localDir}`)
+      const errorMessage = _error instanceof Error ? _error.message : String(_error)
+      logger.error(`Failed to read directory: ${localDir}`, { errorMessage })
+      task.status = TRANSFER_TASK_STATUS.FAILED
+      task.errorMessage = `Failed to read directory: ${errorMessage}`
+      this.cancelTaskWaitingOperations(task.id)
+      this.folderRunningOps.delete(task.id)
+      this.runningTasks--
+      this.speedSamples.delete(task.id)
+      this.lastProgressTime.delete(task.id)
+      this.sendTaskFailed(task)
+      this.scheduleTasks()
       return
     }
 
@@ -276,7 +331,7 @@ export class TransferService {
       const childLocalPath = path.join(localDir, entry.name)
 
       if (entry.isDirectory()) {
-        this.operations.push({
+        this.addOperation({
           id: crypto.randomUUID(),
           parentTaskId: task.id,
           type: UPLOAD_OPERATION_TYPE.MKDIR,
@@ -288,7 +343,7 @@ export class TransferService {
       } else if (entry.isFile()) {
         let fileSize = 0
         try {
-          const stat = fs.statSync(childLocalPath)
+          const stat = await fs.promises.stat(childLocalPath)
           fileSize = stat.size
         } catch {
           // ignore stat errors
@@ -296,7 +351,7 @@ export class TransferService {
 
         task.totalFileCount = (task.totalFileCount ?? 0) + 1
 
-        this.operations.push({
+        this.addOperation({
           id: crypto.randomUUID(),
           parentTaskId: task.id,
           type: UPLOAD_OPERATION_TYPE.UPLOAD,
@@ -312,12 +367,13 @@ export class TransferService {
 
     this.updateTaskStats(task)
     this.scheduleFolderOps(task.id)
-    this.sendProgress(task)
+    this.throttledSendProgress(task)
   }
 
   private failOperation(op: UploadOperation, errorMessage: string): void {
     op.status = UPLOAD_OPERATION_STATUS.FAILED
     op.errorMessage = errorMessage
+    this.opSpeedSamples.delete(op.id)
 
     const task = this.tasks.find(t => t.id === op.parentTaskId)
     if (!task) return
@@ -339,16 +395,16 @@ export class TransferService {
   }
 
   private cancelTaskWaitingOperations(taskId: string): void {
-    for (const op of this.operations) {
-      if (op.parentTaskId === taskId && op.status === UPLOAD_OPERATION_STATUS.WAITING) {
+    for (const op of this.operationsByTask.get(taskId) ?? []) {
+      if (op.status === UPLOAD_OPERATION_STATUS.WAITING) {
         op.status = UPLOAD_OPERATION_STATUS.FAILED
       }
     }
   }
 
   private abortTaskRunningOperations(taskId: string): void {
-    for (const op of this.operations) {
-      if (op.parentTaskId === taskId && op.status === UPLOAD_OPERATION_STATUS.RUNNING) {
+    for (const op of this.operationsByTask.get(taskId) ?? []) {
+      if (op.status === UPLOAD_OPERATION_STATUS.RUNNING) {
         const controller = this.abortControllers.get(op.id)
         if (controller) {
           controller.abort()
@@ -359,7 +415,7 @@ export class TransferService {
   }
 
   private updateTaskStats(task: TransferTask): void {
-    const taskOps = this.operations.filter(op => op.parentTaskId === task.id)
+    const taskOps = this.operationsByTask.get(task.id) ?? []
     const completedOps = taskOps.filter(op => op.status === UPLOAD_OPERATION_STATUS.COMPLETED)
     const runningOps = taskOps.filter(op => op.status === UPLOAD_OPERATION_STATUS.RUNNING)
     const waitingOps = taskOps.filter(op => op.status === UPLOAD_OPERATION_STATUS.WAITING)
@@ -378,7 +434,7 @@ export class TransferService {
   private checkTaskCompletion(task: TransferTask): void {
     if (task.status === TRANSFER_TASK_STATUS.FAILED) return
 
-    const taskOps = this.operations.filter(op => op.parentTaskId === task.id)
+    const taskOps = this.operationsByTask.get(task.id) ?? []
     const allDone = taskOps.every(
       op =>
         op.status === UPLOAD_OPERATION_STATUS.COMPLETED ||
@@ -419,13 +475,14 @@ export class TransferService {
 
   private onOperationProgress(op: UploadOperation, task: TransferTask, transferred: number): void {
     op.transferredSize = transferred
+    this.addOpSpeedSample(op.id, transferred)
     this.updateTaskStats(task)
     this.addSpeedSample(task.id, task.transferredSize)
 
     const now = Date.now()
-    const lastTime = this.lastOpProgressTime.get(op.id) ?? 0
+    const lastTime = this.lastProgressTime.get(task.id) ?? 0
     if (now - lastTime >= TRANSFER_CONFIG.PROGRESS_THROTTLE_MS) {
-      this.lastOpProgressTime.set(op.id, now)
+      this.lastProgressTime.set(task.id, now)
       this.sendProgress(task)
     }
   }
@@ -436,6 +493,8 @@ export class TransferService {
 
     const task = this.tasks[taskIndex]
     if (!task) return
+
+    this.cancelledTaskIds.add(taskId)
 
     if (task.status === TRANSFER_TASK_STATUS.WAITING) {
       this.removeTask(task.id)
@@ -449,17 +508,22 @@ export class TransferService {
         const controller = this.abortControllers.get(task.id)
         if (controller) controller.abort()
       } else {
-        for (const op of this.operations) {
-          if (op.parentTaskId === taskId && op.status === UPLOAD_OPERATION_STATUS.RUNNING) {
+        for (const op of this.operationsByTask.get(taskId) ?? []) {
+          if (op.status === UPLOAD_OPERATION_STATUS.RUNNING) {
             const controller = this.abortControllers.get(op.id)
             if (controller) controller.abort()
           }
         }
+        const taskOps = this.operationsByTask.get(taskId) ?? []
+        for (const op of taskOps) {
+          this.opSpeedSamples.delete(op.id)
+        }
+        this.operationsByTask.delete(taskId)
+        this.operations = this.operations.filter(op => op.parentTaskId !== taskId)
+        this.folderRunningOps.delete(taskId)
       }
 
       this.removeTask(task.id)
-      this.operations = this.operations.filter(op => op.parentTaskId !== taskId)
-      this.folderRunningOps.delete(taskId)
       this.runningTasks--
       this.sendTaskRemoved(task)
       this.scheduleTasks()
@@ -506,16 +570,18 @@ export class TransferService {
     const task = this.tasks.find(t => t.id === taskId)
     if (task?.status !== TRANSFER_TASK_STATUS.FAILED) return
 
+    this.cancelledTaskIds.delete(taskId)
+    this.operationsByTask.delete(taskId)
     this.operations = this.operations.filter(op => op.parentTaskId !== taskId)
     this.folderRunningOps.delete(taskId)
 
     task.status = TRANSFER_TASK_STATUS.WAITING
-    delete task.errorMessage
+    task.errorMessage = undefined
     task.transferredSize = 0
-    delete task.startedAt
-    delete task.completedFileCount
-    delete task.activeFileCount
-    delete task.waitingFileCount
+    task.startedAt = undefined
+    task.completedFileCount = undefined
+    task.activeFileCount = undefined
+    task.waitingFileCount = undefined
 
     this.createInitialOperations(task)
     this.scheduleTasks()
@@ -545,13 +611,9 @@ export class TransferService {
   }
 
   getActiveOperations(taskId: string): OperationProgressInfo[] {
-    const taskOps = this.operations.filter(op => op.parentTaskId === taskId)
+    const taskOps = this.operationsByTask.get(taskId) ?? []
 
-    const activeOps = taskOps.filter(
-      op =>
-        op.status === UPLOAD_OPERATION_STATUS.RUNNING ||
-        op.status === UPLOAD_OPERATION_STATUS.WAITING
-    )
+    const runningOps = taskOps.filter(op => op.status === UPLOAD_OPERATION_STATUS.RUNNING)
 
     const completedUploadOps = taskOps
       .filter(
@@ -561,7 +623,7 @@ export class TransferService {
       )
       .slice(-TRANSFER_CONFIG.MAX_INLINE_OPERATIONS)
 
-    return [...activeOps, ...completedUploadOps].map(op => {
+    return [...runningOps, ...completedUploadOps].map(op => {
       const opSpeed = this.computeOpSpeed(op)
       const info: OperationProgressInfo = {
         id: op.id,
@@ -584,10 +646,12 @@ export class TransferService {
   }
 
   private removeTask(taskId: string): void {
-    const taskOps = this.operations.filter(op => op.parentTaskId === taskId)
+    const taskOps = this.operationsByTask.get(taskId) ?? []
     for (const op of taskOps) {
       this.lastOpProgressTime.delete(op.id)
+      this.opSpeedSamples.delete(op.id)
     }
+    this.operationsByTask.delete(taskId)
     this.tasks = this.tasks.filter(t => t.id !== taskId)
     this.operations = this.operations.filter(op => op.parentTaskId !== taskId)
     this.lastProgressTime.delete(taskId)
@@ -614,6 +678,20 @@ export class TransferService {
     }
   }
 
+  private addOpSpeedSample(opId: string, transferredSize: number): void {
+    let samples = this.opSpeedSamples.get(opId)
+    if (!samples) {
+      samples = []
+      this.opSpeedSamples.set(opId, samples)
+    }
+    const now = Date.now()
+    samples.push({ timestamp: now, transferredSize })
+    const cutoff = now - SPEED_WINDOW_MS
+    while (samples.length > SPEED_MIN_SAMPLES && samples[0] && samples[0].timestamp < cutoff) {
+      samples.shift()
+    }
+  }
+
   private computeSpeed(taskId: string): number {
     const samples = this.speedSamples.get(taskId)
 
@@ -632,10 +710,18 @@ export class TransferService {
   }
 
   private computeOpSpeed(op: UploadOperation): number {
-    if (!op.startedAt || op.transferredSize === 0) return 0
-    const elapsed = (Date.now() - op.startedAt) / 1000
-    if (elapsed <= 0) return 0
-    return op.transferredSize / elapsed
+    const samples = this.opSpeedSamples.get(op.id)
+    if (samples && samples.length >= SPEED_MIN_SAMPLES) {
+      const oldest = samples[0]
+      const latest = samples[samples.length - 1]
+      if (oldest && latest) {
+        const elapsed = (latest.timestamp - oldest.timestamp) / 1000
+        if (elapsed > 0) {
+          return (latest.transferredSize - oldest.transferredSize) / elapsed
+        }
+      }
+    }
+    return 0
   }
 
   private sendProgress(task: TransferTask): void {
@@ -656,6 +742,15 @@ export class TransferService {
     }
 
     this.send(TRANSFER_CHANNELS.PROGRESS, data)
+  }
+
+  private throttledSendProgress(task: TransferTask): void {
+    const now = Date.now()
+    const lastTime = this.lastProgressTime.get(task.id) ?? 0
+    if (now - lastTime >= TRANSFER_CONFIG.PROGRESS_THROTTLE_MS) {
+      this.lastProgressTime.set(task.id, now)
+      this.sendProgress(task)
+    }
   }
 
   private sendTaskCompleted(task: TransferTask): void {

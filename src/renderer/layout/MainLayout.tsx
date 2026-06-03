@@ -66,17 +66,18 @@ const ThemeIcon = ({ theme }: ThemeIconProps) => {
 }
 
 const PageContent = ({ activeView }: { activeView: SidebarView }) => {
+  const isTransferActive = activeView === SIDEBAR_VIEW.TRANSFERS
   return (
-    <div className="flex-1 min-w-0 flex">
+    <div className="flex-1 min-w-0 relative">
       <div
-        className="flex-1 min-w-0 min-h-0"
-        style={{ display: activeView === SIDEBAR_VIEW.TRANSFERS ? 'flex' : 'none' }}
+        className="absolute inset-0 flex"
+        style={{ display: isTransferActive ? 'flex' : 'none' }}
       >
         <TransferPage />
       </div>
       <div
-        className="flex-1 min-w-0 min-h-0"
-        style={{ display: activeView === SIDEBAR_VIEW.TRANSFERS ? 'none' : 'flex' }}
+        className="absolute inset-0 flex"
+        style={{ display: isTransferActive ? 'none' : 'flex' }}
       >
         <ConnectionPage />
       </div>

@@ -79,6 +79,7 @@ vi.mock('@renderer/features/file-explorer/hooks/index.js', () => ({
   useFileCopyMove: () => ({
     fileCopyMoveState: { conflicts: [], isProcessing: false },
   }),
+  useUploadDialog: () => ({ openFilePicker: vi.fn(), openFolderPicker: vi.fn() }),
   useColumnResizing: () => ({
     columnWidths: { name: 300, permissions: 100, owner: 100, size: 100, modifyTime: 150 },
     actualColumnWidths: { name: 300, permissions: 100, owner: 100, size: 100, modifyTime: 150 },

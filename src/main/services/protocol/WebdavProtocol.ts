@@ -259,10 +259,14 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
       await session.client.putFileContents(serverPath, stream, {
         contentLength,
         overwrite: true,
+        signal,
       })
 
       return ok(undefined)
     } catch (e) {
+      if (signal.aborted) {
+        return err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, 'Upload was aborted'))
+      }
       return err(createErrorInfo(ERROR_CODE.UPLOAD_ERROR, formatErrorMessage(e)))
     }
   }

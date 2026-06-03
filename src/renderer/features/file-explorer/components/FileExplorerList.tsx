@@ -12,13 +12,13 @@ import {
   useFileRenaming,
   useFileSort,
   useFolderCreation,
+  useUploadDialog,
 } from '@renderer/features/file-explorer/hooks/index.js'
 import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { useTransferActions } from '@renderer/features/transfer/hooks/useTransferActions.js'
 import { PROTOCOL } from '@shared/constants/index.js'
-import { TRANSFER_ITEM_TYPE } from '@shared/constants/transfer.js'
-import { type FileInfo, isOk } from '@shared/types/index.js'
+import { type FileInfo } from '@shared/types/index.js'
 import FileExplorerDialogs from './FileExplorerDialogs.js'
 import FileExplorerItem from './FileExplorerItem.js'
 import FileListHeader from './FileListHeader.js'
@@ -43,7 +43,8 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
   const session = sessions.find(s => s.sessionId === sessionId)
   const connection = connections.find(c => c.id === session?.connectionId)
   const isWebdav = connection?.protocol === PROTOCOL.WEBDAV
-  const { startUpload } = useTransferActions()
+  const { startMixedUpload } = useTransferActions()
+  const { openFilePicker, openFolderPicker } = useUploadDialog({ sessionId, currentPath })
   const [isDragOver, setIsDragOver] = useState(false)
 
   const {
@@ -151,30 +152,6 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
     void handleCreateFolder(currentPath, folderName)
   }
 
-  const handleUploadFiles = useCallback(async () => {
-    const downloadDirResult = await window.electronAPI.system.getDownloadDir()
-    const defaultPath = downloadDirResult.success ? downloadDirResult.value : undefined
-    const result = await window.electronAPI.dialog.showOpenDialog({
-      properties: ['openFile', 'multiSelections'],
-      defaultPath,
-    })
-    if (!isOk(result) || !result.value) return
-    if (result.value.canceled || result.value.filePaths.length === 0) return
-    await startUpload(result.value.filePaths, sessionId, currentPath, TRANSFER_ITEM_TYPE.FILE)
-  }, [sessionId, currentPath, startUpload])
-
-  const handleUploadFolder = useCallback(async () => {
-    const downloadDirResult = await window.electronAPI.system.getDownloadDir()
-    const defaultPath = downloadDirResult.success ? downloadDirResult.value : undefined
-    const result = await window.electronAPI.dialog.showOpenDialog({
-      properties: ['openDirectory'],
-      defaultPath,
-    })
-    if (!isOk(result) || !result.value) return
-    if (result.value.canceled || result.value.filePaths.length === 0) return
-    await startUpload(result.value.filePaths, sessionId, currentPath, TRANSFER_ITEM_TYPE.FOLDER)
-  }, [sessionId, currentPath, startUpload])
-
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -213,14 +190,11 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
 
       if (filePaths.length === 0 && folderPaths.length === 0) return
 
-      if (filePaths.length > 0) {
-        void startUpload(filePaths, sessionId, currentPath, TRANSFER_ITEM_TYPE.FILE)
-      }
-      if (folderPaths.length > 0) {
-        void startUpload(folderPaths, sessionId, currentPath, TRANSFER_ITEM_TYPE.FOLDER)
+      if (filePaths.length > 0 || folderPaths.length > 0) {
+        void startMixedUpload(filePaths, folderPaths, sessionId, currentPath)
       }
     },
-    [sessionId, currentPath, startUpload]
+    [sessionId, currentPath, startMixedUpload]
   )
 
   useEffect(() => {
@@ -365,8 +339,8 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
         closeContextMenu={closeContextMenu}
         openDeleteDialog={openDeleteDialog}
         openRenameDialog={openRenameDialog}
-        onUploadFiles={() => void handleUploadFiles()}
-        onUploadFolder={() => void handleUploadFolder()}
+        onUploadFiles={() => void openFilePicker()}
+        onUploadFolder={() => void openFolderPicker()}
       />
     </div>
   )

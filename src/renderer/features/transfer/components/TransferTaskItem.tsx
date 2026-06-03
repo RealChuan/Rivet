@@ -3,6 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { OperationProgressInfo, TransferTask } from '@shared/types/transfer.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
+import { RetryIcon } from '@renderer/components/common/RetryIcon.js'
+import { TrashIcon } from '@renderer/components/common/TrashIcon.js'
+import { XIcon } from '@renderer/components/common/XIcon.js'
 import { useTransferStore } from '@renderer/features/transfer/stores/transfer.js'
 import {
   TRANSFER_CONFIG,
@@ -62,7 +65,7 @@ const InlineOperationRow: React.FC<InlineOperationRowProps> = ({ op, lng }) => {
 
   if (isMkdir) {
     return (
-      <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-[12px]">
+      <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-xs">
         <FileIcon type="directory" className="w-3.5 h-3.5 shrink-0" />
         <span className="truncate flex-1 min-w-0">{op.itemName}</span>
         <span className="text-text-muted shrink-0">{t('transfer.status.waiting')}</span>
@@ -76,7 +79,7 @@ const InlineOperationRow: React.FC<InlineOperationRowProps> = ({ op, lng }) => {
 
   if (isFailed) {
     return (
-      <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-[12px]">
+      <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-xs">
         <FileIcon type="file" className="w-3.5 h-3.5 shrink-0" />
         <span className="truncate flex-1 min-w-0">{op.itemName}</span>
         <span className="text-danger shrink-0">{t('transfer.status.failed')}</span>
@@ -86,7 +89,7 @@ const InlineOperationRow: React.FC<InlineOperationRowProps> = ({ op, lng }) => {
 
   if (isCompleted) {
     return (
-      <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-[12px]">
+      <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-xs">
         <FileIcon type="file" className="w-3.5 h-3.5 shrink-0" />
         <span className="truncate flex-1 min-w-0">{op.itemName}</span>
         {op.fileSize !== undefined && op.fileSize > 0 && (
@@ -108,7 +111,7 @@ const InlineOperationRow: React.FC<InlineOperationRowProps> = ({ op, lng }) => {
   const remainingSeconds = computeOpRemainingSeconds(op)
 
   return (
-    <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-[12px]">
+    <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-xs">
       <FileIcon type="file" className="w-3.5 h-3.5 shrink-0" />
       <span className="truncate flex-1 min-w-0">{op.itemName}</span>
       <span className="text-text-muted tabular-nums shrink-0 whitespace-nowrap w-28 text-right">
@@ -157,6 +160,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
   const activeOperations = useTransferStore(
     state => state.activeOperations.get(task.id) ?? EMPTY_OPERATIONS
   )
+  const progress = useTransferStore(state => state.taskProgress.get(task.id))
   const [rotationOffset, setRotationOffset] = useState(0)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -166,8 +170,18 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
   const isRunning = task.status === TRANSFER_TASK_STATUS.RUNNING
   const isWaiting = task.status === TRANSFER_TASK_STATUS.WAITING
 
-  const speed = task.speed ?? 0
-  const remainingSeconds = computeRemainingSeconds(task)
+  const transferredSize = progress?.transferredSize ?? task.transferredSize
+  const fileSize = progress?.fileSize ?? task.fileSize
+  const speed = progress?.speed ?? task.speed ?? 0
+  const completedFileCount = progress?.completedFileCount ?? task.completedFileCount
+  const totalFileCount = progress?.totalFileCount ?? task.totalFileCount
+
+  const remainingSeconds = computeRemainingSeconds({
+    ...task,
+    transferredSize,
+    fileSize,
+    speed,
+  })
 
   const statusText = isFailed
     ? t('transfer.status.failed')
@@ -251,7 +265,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
       >
         <FileIcon type={isFolder ? 'directory' : 'file'} className="w-4 h-4 shrink-0" />
         <span
-          className="truncate flex-1 min-w-0 text-[13px]"
+          className="truncate flex-1 min-w-0 text-sm"
           title={`${task.localPath} → ${task.remotePath}`}
         >
           {task.itemName}
@@ -259,39 +273,39 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
 
         {isFailed && errorText ? (
           <span
-            className="text-danger text-[12px] truncate max-w-40 shrink-0"
+            className="text-danger text-xs truncate max-w-40 shrink-0"
             title={task.errorMessage}
           >
             {errorText}
           </span>
         ) : isFolder ? (
-          <span className="text-text-muted text-[12px] tabular-nums shrink-0 whitespace-nowrap">
+          <span className="text-text-muted text-xs tabular-nums shrink-0 whitespace-nowrap">
             {t('transfer.folderStats.fileCount', {
-              completed: task.completedFileCount ?? 0,
-              total: task.totalFileCount ?? 0,
+              completed: completedFileCount ?? 0,
+              total: totalFileCount ?? 0,
             })}
           </span>
         ) : (
           <>
-            <span className="text-text-muted text-[12px] tabular-nums shrink-0 whitespace-nowrap">
-              {formatFileSize(task.transferredSize, lng)}/{formatFileSize(task.fileSize, lng)}
+            <span className="text-text-muted text-xs tabular-nums shrink-0 whitespace-nowrap">
+              {formatFileSize(transferredSize, lng)}/{formatFileSize(fileSize, lng)}
             </span>
             <div className="w-28 shrink-0">
               <TransferProgressBar
-                transferred={task.transferredSize}
-                total={task.fileSize}
+                transferred={transferredSize}
+                total={fileSize}
                 status={task.status}
               />
             </div>
             {(isRunning || isWaiting) && (
-              <span className="text-text-muted text-[12px] tabular-nums w-16 text-right shrink-0 whitespace-nowrap">
+              <span className="text-text-muted text-xs tabular-nums w-16 text-right shrink-0 whitespace-nowrap">
                 {formatSpeed(speed, lng)}
               </span>
             )}
           </>
         )}
 
-        <span className="text-text-muted text-[12px] tabular-nums w-12 text-right shrink-0 whitespace-nowrap">
+        <span className="text-text-muted text-xs tabular-nums w-12 text-right shrink-0 whitespace-nowrap">
           {statusText}
         </span>
 
@@ -302,19 +316,10 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
               e.stopPropagation()
               onCancel?.(task.id)
             }}
-            className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-danger hover:bg-danger/10 transition-colors shrink-0"
+            className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-danger hover:bg-danger-light transition-colors shrink-0"
             aria-label={t('transfer.action.cancel')}
           >
-            <svg
-              className="w-3.5 h-3.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <XIcon />
           </button>
         )}
 
@@ -328,16 +333,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
             className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors shrink-0"
             aria-label={t('transfer.action.remove')}
           >
-            <svg
-              className="w-3.5 h-3.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <XIcon />
           </button>
         )}
       </div>
@@ -354,66 +350,39 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
           {isFailed && (
             <button
               type="button"
-              className="w-full px-3 py-2 text-left text-[13px] text-text bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
+              className="w-full px-3 py-2 text-left text-sm text-text bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
               onClick={() => {
                 onRetry?.(contextMenu.taskId)
                 setContextMenu(null)
               }}
             >
-              <svg
-                className="w-3.5 h-3.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <polyline points="23 4 23 10 17 10" />
-                <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10V4" />
-              </svg>
+              <RetryIcon />
               {t('transfer.action.retry')}
             </button>
           )}
           {(isRunning || isWaiting) && (
             <button
               type="button"
-              className="w-full px-3 py-2 text-left text-[13px] text-danger bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
+              className="w-full px-3 py-2 text-left text-sm text-danger bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
               onClick={() => {
                 onCancel?.(contextMenu.taskId)
                 setContextMenu(null)
               }}
             >
-              <svg
-                className="w-3.5 h-3.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <XIcon />
               {t('transfer.action.cancel')}
             </button>
           )}
           {isFailed && (
             <button
               type="button"
-              className="w-full px-3 py-2 text-left text-[13px] text-text-muted bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
+              className="w-full px-3 py-2 text-left text-sm text-text-muted bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
               onClick={() => {
                 onRemove?.(contextMenu.taskId)
                 setContextMenu(null)
               }}
             >
-              <svg
-                className="w-3.5 h-3.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-              </svg>
+              <TrashIcon />
               {t('transfer.action.remove')}
             </button>
           )}

@@ -1,5 +1,8 @@
 export { ConfirmationDialog } from './ConfirmationDialog.js'
 export { FileIcon } from './FileIcon.js'
+export { RetryIcon } from './RetryIcon.js'
 export { TextInputDialog } from './TextInputDialog.js'
 export { TitleBar } from './TitleBar.js'
 export { Toast } from './Toast.js'
+export { TrashIcon } from './TrashIcon.js'
+export { XIcon } from './XIcon.js'

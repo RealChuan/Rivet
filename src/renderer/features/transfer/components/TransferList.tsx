@@ -10,8 +10,8 @@ import { TransferActionBar } from './TransferActionBar.js'
 import { TransferTabBar } from './TransferTabBar.js'
 import { TransferTaskItem } from './TransferTaskItem.js'
 
-const FILE_ROW_HEIGHT = 40
-const FOLDER_HEADER_HEIGHT = 40
+const FILE_ROW_HEIGHT = 44
+const FOLDER_HEADER_HEIGHT = 44
 const FOLDER_OP_ROW_HEIGHT = 32
 
 export const TransferList: React.FC = () => {
@@ -77,9 +77,9 @@ export const TransferList: React.FC = () => {
       <div className="flex-1 min-h-0">
         {sortedTasks.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-2">
-            <div className="w-16 h-16 rounded-lg bg-hover flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-hover flex items-center justify-center">
               <svg
-                className="w-6 h-6 stroke-text-muted/60"
+                className="w-4 h-4 stroke-text-muted/60"
                 viewBox="0 0 24 24"
                 fill="none"
                 strokeWidth="1.5"

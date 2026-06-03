@@ -47,6 +47,12 @@ export const getParentPath = (path: string): string => {
   return '/' + parts.slice(0, -1).join('/')
 }
 
+export const pathBasename = (filePath: string): string => {
+  const normalized = filePath.replace(/\\/g, '/')
+  const parts = normalized.split('/')
+  return parts[parts.length - 1] ?? ''
+}
+
 export const isSubPath = (parent: string, child: string): boolean => {
   const normalizedParent = normalizePath(parent)
   const normalizedChild = normalizePath(child)

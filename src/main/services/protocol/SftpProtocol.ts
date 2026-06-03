@@ -306,7 +306,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     try {
       let fileSize = 0
       try {
-        fileSize = fs.statSync(localPath).size
+        fileSize = (await fs.promises.stat(localPath)).size
       } catch {
         // ignore stat errors, will use default chunkSize
       }
@@ -316,13 +316,17 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       await client.fastPut(localPath, remotePath, {
         chunkSize,
         step: (totalTransferred: number) => {
-          if (!signal.aborted) {
-            onProgress(totalTransferred)
+          if (signal.aborted) {
+            throw new Error('Upload was aborted')
           }
+          onProgress(totalTransferred)
         },
       })
       return ok(undefined)
     } catch (e) {
+      if (signal.aborted) {
+        return err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, 'Upload was aborted'))
+      }
       return err(createErrorInfo(ERROR_CODE.UPLOAD_ERROR, formatErrorMessage(e)))
     }
   }

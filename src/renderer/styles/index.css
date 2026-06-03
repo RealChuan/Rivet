@@ -36,6 +36,10 @@
   --color-subtle-hover: rgba(0, 0, 0, 0.02);
   --color-danger-subtle: rgba(239, 68, 68, 0.04);
 
+  /* 字号 */
+  --font-size-2xs: 11px;
+  --font-size-sm: 13px;
+
   /* 字体 */
   --font-sans: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'Geist Mono Variable', 'SF Mono', 'Fira Code', monospace;

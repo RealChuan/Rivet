@@ -2,16 +2,10 @@ import type { FileInfo } from '@shared/types/index.js'
 import type { ConflictItem, ConflictResolution } from '@shared/types/transfer.js'
 import {
   CONFLICT_ACTION,
-  TRANSFER_ITEM_TYPE,
   type ConflictAction,
   type TransferItemType,
 } from '@shared/constants/transfer.js'
-
-const pathBasename = (filePath: string): string => {
-  const normalized = filePath.replace(/\\/g, '/')
-  const parts = normalized.split('/')
-  return parts[parts.length - 1] ?? ''
-}
+import { joinPaths, pathBasename } from '@shared/utils/index.js'
 
 export function detectConflicts(
   localPaths: string[],
@@ -28,7 +22,7 @@ export function detectConflicts(
     if (remoteFile) {
       detected.push({
         localPath,
-        remotePath: `${remoteDir}/${name}`,
+        remotePath: joinPaths(remoteDir, name),
         itemName: name,
         itemType,
         remoteFileType: remoteFile.type,
@@ -70,7 +64,7 @@ export function applyResolutions(
         if (resolution.action === CONFLICT_ACTION.OVERWRITE) {
           return {
             localPath,
-            remotePath: `${remoteDir}/${name}`,
+            remotePath: joinPaths(remoteDir, name),
             itemName: name,
             conflictAction: CONFLICT_ACTION.OVERWRITE as ConflictAction,
           }
@@ -78,7 +72,7 @@ export function applyResolutions(
         if (resolution.action === CONFLICT_ACTION.KEEP_BOTH && resolution.newName) {
           return {
             localPath,
-            remotePath: `${remoteDir}/${resolution.newName}`,
+            remotePath: joinPaths(remoteDir, resolution.newName),
             itemName: resolution.newName,
             renamedName: resolution.newName,
           }
@@ -87,10 +81,8 @@ export function applyResolutions(
 
       return {
         localPath,
-        remotePath: `${remoteDir}/${name}`,
+        remotePath: joinPaths(remoteDir, name),
         itemName: name,
       }
     })
 }
-
-export { pathBasename, TRANSFER_ITEM_TYPE }

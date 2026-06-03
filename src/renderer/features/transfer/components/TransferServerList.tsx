@@ -59,7 +59,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
       data-testid="transfer-server-list"
     >
       <div className="flex items-center gap-2 px-3 py-2">
-        <label className="text-[13px] text-text-muted whitespace-nowrap">
+        <label className="text-sm text-text-muted whitespace-nowrap">
           {t('transfer.concurrency.upload')}
         </label>
         <Select
@@ -81,7 +81,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
       <div className="flex-1 overflow-y-auto">
         {sessionSummaries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-2 gap-2.5">
-            <svg className="w-8 h-8 stroke-text-muted/40" viewBox="0 0 24 24" fill="none">
+            <svg className="w-10 h-10 stroke-text-muted/40" viewBox="0 0 24 24" fill="none">
               <path
                 d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"
                 strokeLinecap="round"
@@ -104,7 +104,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
                 strokeWidth="1.5"
               />
             </svg>
-            <p className="text-[12px] text-text-muted text-center leading-relaxed">
+            <p className="text-xs text-text-muted text-center leading-relaxed">
               {t('transfer.empty')}
             </p>
           </div>
@@ -119,14 +119,14 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
                 failed > 0 ? 'bg-danger' : running > 0 ? 'bg-accent' : 'bg-text-muted/30'
 
               return (
-                <li key={sessionId}>
+                <li key={sessionId} className="mx-2 my-1">
                   <button
                     type="button"
                     onClick={handleSelectSession(sessionId)}
                     className={`
-                      w-full flex items-center gap-2 px-3 py-2 cursor-pointer
-                      transition-colors text-left border-b border-border
-                      ${isSelected ? 'bg-accent/8 ring-1 ring-accent/20' : 'hover:bg-hover'}
+                      w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md cursor-pointer
+                      transition-all duration-150 text-left border
+                      ${isSelected ? 'bg-selected border-l-2 border-l-accent border-input-border shadow-[0_1px_3px_rgba(0,0,0,0.04)]' : 'bg-transparent border-input-border hover:bg-hover hover:shadow-[0_1px_3px_rgba(0,0,0,0.04)]'}
                     `}
                   >
                     <span
@@ -135,10 +135,10 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
                     />
 
                     <div className="flex-1 min-w-0">
-                      <div className="truncate text-[13px] font-medium text-text leading-tight">
+                      <div className="truncate text-sm font-medium text-text leading-tight">
                         {info?.name ?? sessionId}
                       </div>
-                      <div className="flex items-center gap-1.5 text-[11px] text-text-muted mt-0.5 leading-tight">
+                      <div className="flex items-center gap-1.5 text-2xs text-text-muted mt-0.5 leading-tight">
                         {info ? (
                           <span className="truncate">
                             {info.host}:{info.port}
@@ -166,7 +166,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
 
       {runningTaskCount > 0 && (
         <div className="px-3 py-1.5 border-t border-border bg-bg-secondary/80">
-          <span className="text-[11px] text-text-muted tabular-nums">
+          <span className="text-2xs text-text-muted tabular-nums">
             {t('transfer.runningCount', { count: runningTaskCount })}
           </span>
         </div>

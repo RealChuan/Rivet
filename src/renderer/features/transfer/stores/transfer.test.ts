@@ -34,6 +34,22 @@ vi.stubGlobal('window', {
   },
 })
 
+// Mock setTimeout-based throttle for testing
+let timerCallbacks: Array<() => void> = []
+vi.stubGlobal('setTimeout', (cb: () => void, _ms: number) => {
+  timerCallbacks.push(cb)
+  return timerCallbacks.length
+})
+vi.stubGlobal('clearTimeout', () => {})
+
+function flushTimers() {
+  const callbacks = [...timerCallbacks]
+  timerCallbacks = []
+  for (const cb of callbacks) {
+    cb()
+  }
+}
+
 function createTask(overrides: Partial<TransferTask> = {}): TransferTask {
   return {
     id: 'task-1',
@@ -53,8 +69,10 @@ function createTask(overrides: Partial<TransferTask> = {}): TransferTask {
 describe('useTransferStore', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    timerCallbacks = []
     useTransferStore.setState({
       tasks: [],
+      taskProgress: new Map(),
       sortBy: TRANSFER_SORT_FIELD.CREATED_AT,
       sortOrder: SORT_ORDER.DESC,
       maxConcurrency: TRANSFER_CONFIG.MAX_CONCURRENCY,
@@ -66,6 +84,10 @@ describe('useTransferStore', () => {
   describe('initial state', () => {
     it('should have empty tasks', () => {
       expect(useTransferStore.getState().tasks).toEqual([])
+    })
+
+    it('should have empty taskProgress', () => {
+      expect(useTransferStore.getState().taskProgress.size).toBe(0)
     })
 
     it('should have default sortBy as CREATED_AT', () => {
@@ -98,6 +120,15 @@ describe('useTransferStore', () => {
       expect(useTransferStore.getState().tasks).toEqual([task1, task2])
     })
 
+    it('should populate taskProgress for enqueued tasks', () => {
+      const task = createTask({ id: 'task-1', transferredSize: 100, fileSize: 1000 })
+      useTransferStore.getState().handleTasksEnqueued([task])
+
+      const progress = useTransferStore.getState().taskProgress.get('task-1')
+      expect(progress?.transferredSize).toBe(100)
+      expect(progress?.fileSize).toBe(1000)
+    })
+
     it('should set selectedSessionId to first task sessionId when null', () => {
       const task = createTask({ sessionId: 'session-abc' })
       useTransferStore.getState().handleTasksEnqueued([task])
@@ -124,7 +155,7 @@ describe('useTransferStore', () => {
   })
 
   describe('handleProgress', () => {
-    it('should update transferredSize on matching task', () => {
+    it('should update taskProgress after timer flush', () => {
       const task = createTask({ id: 'task-1', transferredSize: 0 })
       useTransferStore.setState({ tasks: [task] })
 
@@ -132,11 +163,26 @@ describe('useTransferStore', () => {
         taskId: 'task-1',
         transferredSize: 500,
       })
+      flushTimers()
 
-      expect(useTransferStore.getState().tasks[0]?.transferredSize).toBe(500)
+      expect(useTransferStore.getState().taskProgress.get('task-1')?.transferredSize).toBe(500)
     })
 
-    it('should update fileSize on matching task', () => {
+    it('should not update tasks array on progress', () => {
+      const task = createTask({ id: 'task-1', transferredSize: 0 })
+      useTransferStore.setState({ tasks: [task] })
+      const originalTasksRef = useTransferStore.getState().tasks
+
+      useTransferStore.getState().handleProgress({
+        taskId: 'task-1',
+        transferredSize: 500,
+      })
+      flushTimers()
+
+      expect(useTransferStore.getState().tasks).toBe(originalTasksRef)
+    })
+
+    it('should update fileSize in taskProgress', () => {
       const task = createTask({ id: 'task-1', fileSize: 0 })
       useTransferStore.setState({ tasks: [task] })
 
@@ -145,11 +191,12 @@ describe('useTransferStore', () => {
         transferredSize: 500,
         fileSize: 1000,
       })
+      flushTimers()
 
-      expect(useTransferStore.getState().tasks[0]?.fileSize).toBe(1000)
+      expect(useTransferStore.getState().taskProgress.get('task-1')?.fileSize).toBe(1000)
     })
 
-    it('should update folder stats on matching task', () => {
+    it('should update folder stats in taskProgress', () => {
       const task = createTask({ id: 'task-1' })
       useTransferStore.setState({ tasks: [task] })
 
@@ -161,12 +208,13 @@ describe('useTransferStore', () => {
         activeFileCount: 2,
         waitingFileCount: 5,
       })
+      flushTimers()
 
-      const updated = useTransferStore.getState().tasks[0]
-      expect(updated?.totalFileCount).toBe(10)
-      expect(updated?.completedFileCount).toBe(3)
-      expect(updated?.activeFileCount).toBe(2)
-      expect(updated?.waitingFileCount).toBe(5)
+      const progress = useTransferStore.getState().taskProgress.get('task-1')
+      expect(progress?.totalFileCount).toBe(10)
+      expect(progress?.completedFileCount).toBe(3)
+      expect(progress?.activeFileCount).toBe(2)
+      expect(progress?.waitingFileCount).toBe(5)
     })
 
     it('should update activeOperations map', () => {
@@ -188,20 +236,9 @@ describe('useTransferStore', () => {
         transferredSize: 100,
         activeOperations: ops,
       })
+      flushTimers()
 
       expect(useTransferStore.getState().activeOperations.get('task-1')).toEqual(ops)
-    })
-
-    it('should set activeOperations to empty array when not provided', () => {
-      const task = createTask({ id: 'task-1' })
-      useTransferStore.setState({ tasks: [task] })
-
-      useTransferStore.getState().handleProgress({
-        taskId: 'task-1',
-        transferredSize: 100,
-      })
-
-      expect(useTransferStore.getState().activeOperations.get('task-1')).toEqual([])
     })
 
     it('should not modify non-matching tasks', () => {
@@ -213,8 +250,49 @@ describe('useTransferStore', () => {
         taskId: 'task-1',
         transferredSize: 500,
       })
+      flushTimers()
 
-      expect(useTransferStore.getState().tasks[1]?.transferredSize).toBe(0)
+      expect(useTransferStore.getState().taskProgress.has('task-2')).toBe(false)
+    })
+
+    it('should batch multiple progress updates into a single set call', () => {
+      const task1 = createTask({ id: 'task-1', transferredSize: 0 })
+      const task2 = createTask({ id: 'task-2', transferredSize: 0 })
+      useTransferStore.setState({ tasks: [task1, task2] })
+
+      useTransferStore.getState().handleProgress({
+        taskId: 'task-1',
+        transferredSize: 100,
+      })
+      useTransferStore.getState().handleProgress({
+        taskId: 'task-2',
+        transferredSize: 200,
+      })
+      // Before flush, state should not be updated yet
+      expect(useTransferStore.getState().taskProgress.has('task-1')).toBe(false)
+      expect(useTransferStore.getState().taskProgress.has('task-2')).toBe(false)
+
+      flushTimers()
+
+      expect(useTransferStore.getState().taskProgress.get('task-1')?.transferredSize).toBe(100)
+      expect(useTransferStore.getState().taskProgress.get('task-2')?.transferredSize).toBe(200)
+    })
+
+    it('should use latest data when same task receives multiple updates in one batch', () => {
+      const task = createTask({ id: 'task-1', transferredSize: 0 })
+      useTransferStore.setState({ tasks: [task] })
+
+      useTransferStore.getState().handleProgress({
+        taskId: 'task-1',
+        transferredSize: 100,
+      })
+      useTransferStore.getState().handleProgress({
+        taskId: 'task-1',
+        transferredSize: 500,
+      })
+      flushTimers()
+
+      expect(useTransferStore.getState().taskProgress.get('task-1')?.transferredSize).toBe(500)
     })
   })
 
@@ -228,6 +306,18 @@ describe('useTransferStore', () => {
 
       expect(useTransferStore.getState().tasks).toHaveLength(1)
       expect(useTransferStore.getState().tasks[0]?.id).toBe('task-2')
+    })
+
+    it('should remove taskProgress entry', () => {
+      const task = createTask({ id: 'task-1' })
+      useTransferStore.setState({
+        tasks: [task],
+        taskProgress: new Map([['task-1', { transferredSize: 500 }]]),
+      })
+
+      useTransferStore.getState().handleTaskCompleted({ taskId: 'task-1' })
+
+      expect(useTransferStore.getState().taskProgress.has('task-1')).toBe(false)
     })
 
     it('should remove activeOperations entry', () => {
@@ -290,6 +380,18 @@ describe('useTransferStore', () => {
 
       expect(useTransferStore.getState().tasks).toHaveLength(1)
       expect(useTransferStore.getState().tasks[0]?.id).toBe('task-2')
+    })
+
+    it('should remove taskProgress entry', () => {
+      const task = createTask({ id: 'task-1' })
+      useTransferStore.setState({
+        tasks: [task],
+        taskProgress: new Map([['task-1', { transferredSize: 500 }]]),
+      })
+
+      useTransferStore.getState().handleTaskRemoved({ taskId: 'task-1' })
+
+      expect(useTransferStore.getState().taskProgress.has('task-1')).toBe(false)
     })
 
     it('should remove activeOperations entry', () => {

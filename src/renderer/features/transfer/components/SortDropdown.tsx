@@ -93,7 +93,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
                   type="button"
                   className={`
                     flex-1 px-3 py-1.5 rounded-md text-xs border cursor-default transition-colors
-                    ${isActive(field, SORT_ORDER.ASC) ? 'border-accent text-accent bg-accent/5' : 'border-border text-text bg-transparent hover:bg-hover'}
+                    ${isActive(field, SORT_ORDER.ASC) ? 'border-accent text-accent bg-accent-light' : 'border-border text-text bg-transparent hover:bg-hover'}
                   `}
                   onClick={() => {
                     onSort(field)

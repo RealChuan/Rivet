@@ -50,8 +50,20 @@ function computeSessionSummaries(tasks: TransferTask[]): SessionTaskSummary[] {
   return [...map.values()]
 }
 
+/** Progress data separated from task list to avoid triggering list re-renders */
+export interface TaskProgress {
+  transferredSize: number
+  speed?: number | undefined
+  fileSize?: number | undefined
+  totalFileCount?: number | undefined
+  completedFileCount?: number | undefined
+  activeFileCount?: number | undefined
+  waitingFileCount?: number | undefined
+}
+
 interface TransferState {
   tasks: TransferTask[]
+  taskProgress: Map<string, TaskProgress>
   sessionTaskSummaries: SessionTaskSummary[]
   runningTaskCount: number
   sortBy: TransferSortField
@@ -78,13 +90,105 @@ interface TransferState {
   startListening: () => () => void
 }
 
+// Progress batch buffer: accumulate progress updates and flush on a time-based throttle
+let progressBuffer: TransferProgressData[] = []
+let progressTimerId: ReturnType<typeof setTimeout> | null = null
+const PROGRESS_FLUSH_MS = 250
+
+function applyProgressBatch(
+  state: TransferState,
+  batch: TransferProgressData[]
+): Partial<TransferState> | null {
+  let taskProgress = state.taskProgress
+  let activeOperations = state.activeOperations
+  let progressChanged = false
+  let opsChanged = false
+
+  for (const data of batch) {
+    const taskExists = state.tasks.some(t => t.id === data.taskId)
+    if (!taskExists) continue
+
+    const current = taskProgress.get(data.taskId)
+    const transferredChanged =
+      current !== undefined && data.transferredSize !== current.transferredSize
+    const speedChanged = data.speed !== undefined && data.speed !== current?.speed
+    const fileSizeChanged = data.fileSize !== undefined && data.fileSize !== current?.fileSize
+    const totalFileCountChanged =
+      data.totalFileCount !== undefined && data.totalFileCount !== current?.totalFileCount
+    const completedFileCountChanged =
+      data.completedFileCount !== undefined &&
+      data.completedFileCount !== current?.completedFileCount
+    const activeFileCountChanged =
+      data.activeFileCount !== undefined && data.activeFileCount !== current?.activeFileCount
+    const waitingFileCountChanged =
+      data.waitingFileCount !== undefined && data.waitingFileCount !== current?.waitingFileCount
+
+    const progressUnchanged =
+      current !== undefined &&
+      !transferredChanged &&
+      !speedChanged &&
+      !fileSizeChanged &&
+      !totalFileCountChanged &&
+      !completedFileCountChanged &&
+      !activeFileCountChanged &&
+      !waitingFileCountChanged
+
+    const incomingOps = data.activeOperations ?? []
+    const currentOps = activeOperations.get(data.taskId)
+    const currentOpsUnchanged =
+      currentOps !== undefined &&
+      incomingOps.length === currentOps?.length &&
+      incomingOps.every(
+        (incoming, i) =>
+          incoming.id === currentOps[i]?.id &&
+          incoming.transferredSize === currentOps[i]?.transferredSize &&
+          incoming.status === currentOps[i]?.status &&
+          incoming.fileSize === currentOps[i]?.fileSize
+      )
+
+    if (progressUnchanged && currentOpsUnchanged) continue
+
+    if (!progressUnchanged) {
+      if (taskProgress === state.taskProgress) {
+        taskProgress = new Map(state.taskProgress)
+      }
+      taskProgress.set(data.taskId, {
+        transferredSize: data.transferredSize,
+        speed: data.speed ?? current?.speed,
+        fileSize: data.fileSize ?? current?.fileSize,
+        totalFileCount: data.totalFileCount ?? current?.totalFileCount,
+        completedFileCount: data.completedFileCount ?? current?.completedFileCount,
+        activeFileCount: data.activeFileCount ?? current?.activeFileCount,
+        waitingFileCount: data.waitingFileCount ?? current?.waitingFileCount,
+      })
+      progressChanged = true
+    }
+
+    if (!currentOpsUnchanged) {
+      if (activeOperations === state.activeOperations) {
+        activeOperations = new Map(state.activeOperations)
+      }
+      activeOperations.set(data.taskId, incomingOps)
+      opsChanged = true
+    }
+  }
+
+  if (!progressChanged && !opsChanged) return null
+
+  const result: Partial<TransferState> = {}
+  if (progressChanged) result.taskProgress = taskProgress
+  if (opsChanged) result.activeOperations = activeOperations
+  return result
+}
+
 export const useTransferStore = create<TransferState>((set, get) => ({
   tasks: [],
+  taskProgress: new Map(),
   sessionTaskSummaries: [],
   runningTaskCount: 0,
   sortBy: TRANSFER_SORT_FIELD.CREATED_AT,
   sortOrder: SORT_ORDER.DESC,
-  maxConcurrency: TRANSFER_CONFIG.MAX_CONCURRENCY,
+  maxConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
   selectedSessionId: null,
   activeOperations: new Map(),
 
@@ -105,8 +209,16 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     set(state => {
       const updatedTasks = [...state.tasks, ...tasks]
       const selectedSessionId = state.selectedSessionId ?? tasks[0]?.sessionId ?? null
+      const taskProgress = new Map(state.taskProgress)
+      for (const task of tasks) {
+        taskProgress.set(task.id, {
+          transferredSize: task.transferredSize,
+          fileSize: task.fileSize > 0 ? task.fileSize : undefined,
+        })
+      }
       return {
         tasks: updatedTasks,
+        taskProgress,
         selectedSessionId,
         sessionTaskSummaries: computeSessionSummaries(updatedTasks),
         runningTaskCount: updatedTasks.filter(
@@ -118,83 +230,36 @@ export const useTransferStore = create<TransferState>((set, get) => ({
   },
 
   handleProgress: data => {
-    set(state => {
-      const targetIndex = state.tasks.findIndex(t => t.id === data.taskId)
-      if (targetIndex === -1) return state
+    progressBuffer.push(data)
 
-      const target = state.tasks[targetIndex]
-      if (!target) return state
-      const speedChanged = data.speed !== undefined && data.speed !== target.speed
-      const fileSizeChanged = data.fileSize !== undefined && data.fileSize !== target.fileSize
-      const totalFileCountChanged =
-        data.totalFileCount !== undefined && data.totalFileCount !== target.totalFileCount
-      const completedFileCountChanged =
-        data.completedFileCount !== undefined &&
-        data.completedFileCount !== target.completedFileCount
-      const activeFileCountChanged =
-        data.activeFileCount !== undefined && data.activeFileCount !== target.activeFileCount
-      const waitingFileCountChanged =
-        data.waitingFileCount !== undefined && data.waitingFileCount !== target.waitingFileCount
-      const transferredChanged = data.transferredSize !== target.transferredSize
+    if (
+      (progressTimerId ??= setTimeout(() => {
+        const batch = progressBuffer
+        progressBuffer = []
+        progressTimerId = null
 
-      const taskUnchanged =
-        !transferredChanged &&
-        !speedChanged &&
-        !fileSizeChanged &&
-        !totalFileCountChanged &&
-        !completedFileCountChanged &&
-        !activeFileCountChanged &&
-        !waitingFileCountChanged
+        if (batch.length === 0) return
 
-      const incomingOps = data.activeOperations ?? []
-      const currentOps = state.activeOperations.get(data.taskId)
-      const opsUnchanged =
-        currentOps !== undefined &&
-        incomingOps.length === currentOps?.length &&
-        incomingOps.every(
-          (incoming, i) =>
-            incoming.id === currentOps[i]?.id &&
-            incoming.transferredSize === currentOps[i]?.transferredSize &&
-            incoming.status === currentOps[i]?.status &&
-            incoming.fileSize === currentOps[i]?.fileSize
-        )
-
-      if (taskUnchanged && opsUnchanged) return state
-
-      let tasks = state.tasks
-      if (!taskUnchanged) {
-        const updated: TransferTask = {
-          ...target,
-          transferredSize: data.transferredSize,
-        }
-        if (fileSizeChanged && data.fileSize !== undefined) updated.fileSize = data.fileSize
-        if (speedChanged && data.speed !== undefined) updated.speed = data.speed
-        if (totalFileCountChanged && data.totalFileCount !== undefined)
-          updated.totalFileCount = data.totalFileCount
-        if (completedFileCountChanged && data.completedFileCount !== undefined)
-          updated.completedFileCount = data.completedFileCount
-        if (activeFileCountChanged && data.activeFileCount !== undefined)
-          updated.activeFileCount = data.activeFileCount
-        if (waitingFileCountChanged && data.waitingFileCount !== undefined)
-          updated.waitingFileCount = data.waitingFileCount
-        tasks = state.tasks.with(targetIndex, updated)
-      }
-
-      if (opsUnchanged) return { tasks }
-
-      const activeOperations = new Map(state.activeOperations)
-      activeOperations.set(data.taskId, incomingOps)
-      return { tasks, activeOperations }
-    })
+        set(state => {
+          const result = applyProgressBatch(state, batch)
+          return result ?? state
+        })
+      }, PROGRESS_FLUSH_MS)) !== null
+    ) {
+      // Timer already running, no action needed
+    }
   },
 
   handleTaskCompleted: data => {
     set(state => {
       const tasks = state.tasks.filter(t => t.id !== data.taskId)
+      const taskProgress = new Map(state.taskProgress)
+      taskProgress.delete(data.taskId)
       const activeOperations = new Map(state.activeOperations)
       activeOperations.delete(data.taskId)
       return {
         tasks,
+        taskProgress,
         activeOperations,
         sessionTaskSummaries: computeSessionSummaries(tasks),
         runningTaskCount: tasks.filter(
@@ -226,10 +291,13 @@ export const useTransferStore = create<TransferState>((set, get) => ({
   handleTaskRemoved: data => {
     set(state => {
       const tasks = state.tasks.filter(t => t.id !== data.taskId)
+      const taskProgress = new Map(state.taskProgress)
+      taskProgress.delete(data.taskId)
       const activeOperations = new Map(state.activeOperations)
       activeOperations.delete(data.taskId)
       return {
         tasks,
+        taskProgress,
         activeOperations,
         sessionTaskSummaries: computeSessionSummaries(tasks),
         runningTaskCount: tasks.filter(
@@ -248,8 +316,16 @@ export const useTransferStore = create<TransferState>((set, get) => ({
         const newTasks = existingTasks.filter(t => !currentIds.has(t.id))
         if (newTasks.length === 0) return state
         const tasks = [...state.tasks, ...newTasks]
+        const taskProgress = new Map(state.taskProgress)
+        for (const task of newTasks) {
+          taskProgress.set(task.id, {
+            transferredSize: task.transferredSize,
+            fileSize: task.fileSize > 0 ? task.fileSize : undefined,
+          })
+        }
         return {
           tasks,
+          taskProgress,
           sessionTaskSummaries: computeSessionSummaries(tasks),
           runningTaskCount: tasks.filter(
             t =>
@@ -305,13 +381,15 @@ export const selectSortedTasks = (state: TransferState): TransferTask[] => {
         cmp = a.status.localeCompare(b.status)
         break
       case TRANSFER_SORT_FIELD.REMAINING_TIME: {
+        const aProgress = state.taskProgress.get(a.id)
+        const bProgress = state.taskProgress.get(b.id)
         const aRemaining =
-          a.totalFileCount && a.completedFileCount !== undefined
-            ? a.totalFileCount - a.completedFileCount
+          aProgress?.totalFileCount && aProgress.completedFileCount !== undefined
+            ? aProgress.totalFileCount - aProgress.completedFileCount
             : 0
         const bRemaining =
-          b.totalFileCount && b.completedFileCount !== undefined
-            ? b.totalFileCount - b.completedFileCount
+          bProgress?.totalFileCount && bProgress.completedFileCount !== undefined
+            ? bProgress.totalFileCount - bProgress.completedFileCount
             : 0
         cmp = aRemaining - bRemaining
         break

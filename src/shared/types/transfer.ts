@@ -20,12 +20,12 @@ export interface TransferTask {
   transferredSize: number
   speed?: number
   createdAt: number
-  startedAt?: number
-  errorMessage?: string
+  startedAt?: number | undefined
+  errorMessage?: string | undefined
   totalFileCount?: number
-  completedFileCount?: number
-  activeFileCount?: number
-  waitingFileCount?: number
+  completedFileCount?: number | undefined
+  activeFileCount?: number | undefined
+  waitingFileCount?: number | undefined
 }
 
 export interface UploadOperation {
