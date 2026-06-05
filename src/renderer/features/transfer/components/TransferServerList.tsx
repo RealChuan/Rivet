@@ -6,6 +6,14 @@ import { useConnectionStore } from '@renderer/features/session/stores/connection
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { TRANSFER_CONFIG } from '@shared/constants/transfer.js'
 import { useTransferStore } from '../stores/transfer.js'
+import { TransferServerItem } from './TransferServerItem.js'
+
+interface SessionInfo {
+  name: string
+  host: string
+  port: number
+  protocol: string
+}
 
 interface TransferServerListProps {
   className?: string
@@ -24,7 +32,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
   const runningTaskCount = useTransferStore(state => state.runningTaskCount)
 
   const sessionInfos = useMemo(() => {
-    const map = new Map<string, { name: string; host: string; port: number }>()
+    const map = new Map<string, SessionInfo>()
     for (const summary of sessionSummaries) {
       const session = sessions.find(s => s.sessionId === summary.sessionId)
       if (!session) continue
@@ -34,6 +42,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
         name: connection.name,
         host: connection.host,
         port: connection.port,
+        protocol: connection.protocol,
       })
     }
     return map
@@ -55,10 +64,11 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
 
   return (
     <div
-      className={`flex flex-col h-full bg-bg-secondary border-r border-border ${className ?? ''}`}
+      className={`flex flex-col h-full bg-bg ${className ?? ''}`}
       data-testid="transfer-server-list"
     >
-      <div className="flex items-center gap-2 px-3 py-2">
+      {/* 并发控制 */}
+      <div className="flex items-center gap-2 px-4 pt-4 pb-3">
         <label className="text-sm text-text-muted whitespace-nowrap">
           {t('transfer.concurrency.upload')}
         </label>
@@ -78,95 +88,57 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
 
       <div className="border-t border-border" />
 
+      {/* 服务器列表 */}
       <div className="flex-1 overflow-y-auto">
         {sessionSummaries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 px-2 gap-2.5">
-            <svg className="w-10 h-10 stroke-text-muted/40" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"
+          <div className="flex flex-col items-center justify-center gap-3 h-full px-4">
+            <div className="w-12 h-12 rounded-xl bg-hover flex items-center justify-center">
+              <svg
+                className="w-5 h-5 stroke-text-muted stroke-[1.5]"
+                viewBox="0 0 24 24"
+                fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth="1.5"
-              />
-              <polyline
-                points="17 8 12 3 7 8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.5"
-              />
-              <line
-                x1="12"
-                y1="3"
-                x2="12"
-                y2="15"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.5"
-              />
-            </svg>
-            <p className="text-xs text-text-muted text-center leading-relaxed">
+              >
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
+            <p className="text-sm text-text-muted text-center leading-relaxed">
               {t('transfer.empty')}
             </p>
           </div>
         ) : (
-          <ul>
+          <ul className="py-2">
             {sessionSummaries.map(summary => {
-              const { sessionId, running, failed, total } = summary
-              const isSelected = sessionId === selectedSessionId
-              const info = sessionInfos.get(sessionId)
-
-              const statusColor =
-                failed > 0 ? 'bg-danger' : running > 0 ? 'bg-accent' : 'bg-text-muted/30'
+              const info = sessionInfos.get(summary.sessionId)
+              if (!info) return null
 
               return (
-                <li key={sessionId} className="mx-2 my-1">
-                  <button
-                    type="button"
-                    onClick={handleSelectSession(sessionId)}
-                    className={`
-                      w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md cursor-pointer
-                      transition-all duration-150 text-left border
-                      ${isSelected ? 'bg-selected border-l-2 border-l-accent border-input-border shadow-[0_1px_3px_rgba(0,0,0,0.04)]' : 'bg-transparent border-input-border hover:bg-hover hover:shadow-[0_1px_3px_rgba(0,0,0,0.04)]'}
-                    `}
-                  >
-                    <span
-                      className={`w-2 h-2 rounded-full shrink-0 ${statusColor}`}
-                      aria-hidden="true"
-                    />
-
-                    <div className="flex-1 min-w-0">
-                      <div className="truncate text-sm font-medium text-text leading-tight">
-                        {info?.name ?? sessionId}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-2xs text-text-muted mt-0.5 leading-tight">
-                        {info ? (
-                          <span className="truncate">
-                            {info.host}:{info.port}
-                          </span>
-                        ) : (
-                          <span className="truncate">{sessionId}</span>
-                        )}
-                        <span className="shrink-0 tabular-nums">
-                          {running}/{total}
-                        </span>
-                        {failed > 0 && (
-                          <span className="text-danger shrink-0 tabular-nums">
-                            {failed} {t('transfer.status.failed')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                </li>
+                <TransferServerItem
+                  key={summary.sessionId}
+                  sessionId={summary.sessionId}
+                  name={info.name}
+                  host={info.host}
+                  port={info.port}
+                  protocol={info.protocol}
+                  running={summary.running}
+                  failed={summary.failed}
+                  total={summary.total}
+                  isSelected={summary.sessionId === selectedSessionId}
+                  onSelect={handleSelectSession(summary.sessionId)}
+                />
               )
             })}
           </ul>
         )}
       </div>
 
+      {/* 底部状态栏 */}
       {runningTaskCount > 0 && (
-        <div className="px-3 py-1.5 border-t border-border bg-bg-secondary/80">
-          <span className="text-2xs text-text-muted tabular-nums">
+        <div className="px-4 py-2.5 border-t border-border">
+          <span className="text-sm text-text-muted tabular-nums">
             {t('transfer.runningCount', { count: runningTaskCount })}
           </span>
         </div>

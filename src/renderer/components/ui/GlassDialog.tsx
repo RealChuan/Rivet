@@ -112,7 +112,7 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center bg-black/30 z-50 p-12 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      className={`fixed inset-0 flex items-center justify-center bg-overlay z-50 p-12 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       onClick={e => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -122,9 +122,7 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
         className={`
           backdrop-blur-2xl rounded-xl p-6 max-w-full max-h-[calc(100vh-96px)]
           relative box-border overflow-y-auto overflow-x-hidden
-          bg-white/70 dark:bg-[#2a2a2b]/80
-          shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_4px_6px_-1px_rgba(0,0,0,0.05),0_10px_30px_-5px_rgba(0,0,0,0.12)]
-          dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_6px_-1px_rgba(0,0,0,0.3),0_10px_30px_-5px_rgba(0,0,0,0.5)]
+          bg-glass-bg shadow-dialog
           transition-all duration-200 ease-out
           ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'}
         `}

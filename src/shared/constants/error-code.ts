@@ -60,3 +60,9 @@ export const ERROR_CODE = {
 } as const
 
 export type ErrorCode = (typeof ERROR_CODE)[keyof typeof ERROR_CODE]
+
+export const ERROR_MESSAGE = {
+  UPLOAD_ABORTED: 'Upload was aborted',
+  OPERATION_ABORTED: 'Operation was aborted',
+  OPERATION_ALREADY_ABORTED: 'Operation was already aborted',
+} as const

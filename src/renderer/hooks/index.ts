@@ -1,3 +1,4 @@
+export { useActiveTaskGuard } from './useActiveTaskGuard.js'
 export { useApplicationInitialization } from './useAppInit.js'
 export { useGlobalShortcuts } from './useGlobalShortcuts.js'
 export { useInternationalization } from './useI18n.js'

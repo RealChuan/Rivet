@@ -76,18 +76,28 @@ export const TransferList: React.FC = () => {
 
       <div className="flex-1 min-h-0">
         {sortedTasks.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-hover flex items-center justify-center">
+          <div className="h-full flex flex-col items-center justify-center gap-3">
+            <div
+              className={`
+                w-16 h-16 rounded-xl
+                bg-hover flex items-center justify-center
+              `}
+            >
               <svg
-                className="w-4 h-4 stroke-text-muted/60"
+                className="w-7 h-7 stroke-text-muted stroke-[1.5]"
                 viewBox="0 0 24 24"
                 fill="none"
-                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               >
-                <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
             </div>
-            <p className="text-xs text-text-muted">{t('transfer.noActiveTasks')}</p>
+            <div className="text-center">
+              <p className="text-sm font-medium text-text mb-1">{t('transfer.noActiveTasks')}</p>
+            </div>
           </div>
         ) : (
           <VirtualList

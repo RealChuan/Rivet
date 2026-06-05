@@ -9,7 +9,7 @@ export const Input: React.FC<InputProps> = ({ className = '', as = 'input', ...p
     w-full px-3 py-2 bg-bg border border-border rounded-md
     text-text text-[13px] transition-colors duration-150
     placeholder:text-text-muted hover:border-text-muted
-    focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent
+    focus:outline-none focus:ring-2 focus:ring-ring focus:border-accent
     box-border
   `
 

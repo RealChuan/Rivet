@@ -3,7 +3,9 @@ import Client from 'ssh2-sftp-client'
 import { generateSessionId, logger } from '@main/utils/index.js'
 import {
   ERROR_CODE,
+  ERROR_MESSAGE,
   FILE_TYPE,
+  LOG_ACTION,
   PROTOCOL,
   ProtocolStatus,
   SftpStatus,
@@ -97,7 +99,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       try {
         await client.end()
       } catch (closeError) {
-        logger.catch(closeError, { action: 'close-connection' })
+        logger.catch(closeError, { action: LOG_ACTION.CLOSE_CONNECTION })
       }
 
       logger.catch(e, { configId: config.id })
@@ -114,7 +116,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
 
       await clientResult.value.end()
     } catch (e) {
-      logger.catch(e, { sessionId, action: 'disconnect' })
+      logger.catch(e, { sessionId, action: LOG_ACTION.DISCONNECT })
     } finally {
       sessionRegistry.unregister(sessionId)
     }
@@ -276,7 +278,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
           await client.delete(targetPath)
         }
       } catch (e) {
-        logger.catch(e, { action: 'check-target-before-move' })
+        logger.catch(e, { action: LOG_ACTION.CHECK_TARGET_BEFORE_MOVE })
       }
       await client.rename(sourcePath, targetPath)
       return ok(undefined)
@@ -286,13 +288,12 @@ export class SftpProtocol extends AbstractProtocol<Client> {
   }
 
   private computeChunkSize(fileSize: number): number {
-    const MIN_CHUNK = 32768
-    const MAX_CHUNK = 1024 * 1024
-    const TARGET_CHUNKS = 50
-
+    const MIN_CHUNK_SIZE = 32768
+    const MAX_CHUNK_SIZE = 1024 * 1024
+    const TARGET_CHUNKS = 25
     let chunkSize = Math.ceil(fileSize / TARGET_CHUNKS)
-    chunkSize = Math.ceil(chunkSize / MIN_CHUNK) * MIN_CHUNK
-    return Math.max(MIN_CHUNK, Math.min(MAX_CHUNK, chunkSize))
+    chunkSize = Math.ceil(chunkSize / MIN_CHUNK_SIZE) * MIN_CHUNK_SIZE
+    return Math.max(MIN_CHUNK_SIZE, Math.min(MAX_CHUNK_SIZE, chunkSize))
   }
 
   protected async uploadImpl(
@@ -303,6 +304,10 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     onProgress: (transferred: number) => void,
     signal: AbortSignal
   ): Promise<Result<void, ErrorInfo>> {
+    if (signal.aborted) {
+      return err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, ERROR_MESSAGE.UPLOAD_ABORTED))
+    }
+
     try {
       let fileSize = 0
       try {
@@ -316,16 +321,24 @@ export class SftpProtocol extends AbstractProtocol<Client> {
       await client.fastPut(localPath, remotePath, {
         chunkSize,
         step: (totalTransferred: number) => {
-          if (signal.aborted) {
-            throw new Error('Upload was aborted')
+          if (!signal.aborted) {
+            onProgress(totalTransferred)
           }
-          onProgress(totalTransferred)
         },
       })
+
+      if (signal.aborted) {
+        // 传输已完成但用户已取消，删除远程残留文件
+        await client
+          .delete(remotePath)
+          .catch(e => logger.catch(e, { action: LOG_ACTION.DELETE_ABORTED_UPLOAD_REMNANT }))
+        return err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, ERROR_MESSAGE.UPLOAD_ABORTED))
+      }
+
       return ok(undefined)
     } catch (e) {
       if (signal.aborted) {
-        return err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, 'Upload was aborted'))
+        return err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, ERROR_MESSAGE.UPLOAD_ABORTED))
       }
       return err(createErrorInfo(ERROR_CODE.UPLOAD_ERROR, formatErrorMessage(e)))
     }

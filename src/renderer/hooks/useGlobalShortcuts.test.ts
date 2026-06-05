@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react'
+import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSessionStore } from '../features/session/stores/session.js'
 import { useGlobalShortcuts } from './useGlobalShortcuts.js'
@@ -9,22 +9,11 @@ vi.mock('../features/session/stores/session.js', () => ({
 
 describe('useGlobalShortcuts', () => {
   const mockRefreshCurrentDirectory = vi.fn().mockResolvedValue(undefined)
-  const mockUnsubscribe = vi.fn()
-  const mockOnHasActiveTasks = vi.fn<(cb: () => void) => typeof mockUnsubscribe>(
-    () => mockUnsubscribe
-  )
-  const mockCancelAll = vi.fn().mockResolvedValue(undefined)
-  const mockWindowClose = vi.fn()
 
   beforeEach(() => {
     ;(window as unknown as Record<string, unknown>).electronAPI = {
-      transfer: {
-        onHasActiveTasks: mockOnHasActiveTasks,
-        cancelAll: mockCancelAll,
-      },
-      window: {
-        close: mockWindowClose,
-      },
+      transfer: {},
+      window: {},
     }
   })
 
@@ -97,51 +86,5 @@ describe('useGlobalShortcuts', () => {
     window.dispatchEvent(event)
 
     expect(mockRefreshCurrentDirectory).not.toHaveBeenCalled()
-  })
-
-  it('should subscribe to onHasActiveTasks on mount', () => {
-    setupMocks()
-
-    renderHook(() => useGlobalShortcuts())
-
-    expect(mockOnHasActiveTasks).toHaveBeenCalledTimes(1)
-  })
-
-  it('should unsubscribe from onHasActiveTasks on unmount', () => {
-    setupMocks()
-
-    const { unmount } = renderHook(() => useGlobalShortcuts())
-    unmount()
-
-    expect(mockUnsubscribe).toHaveBeenCalled()
-  })
-
-  it('should open quit confirm dialog when onHasActiveTasks fires', () => {
-    setupMocks()
-    let capturedCallback: (() => void) | undefined
-    mockOnHasActiveTasks.mockImplementation((cb: unknown) => {
-      capturedCallback = cb as () => void
-      return mockUnsubscribe
-    })
-
-    const { result } = renderHook(() => useGlobalShortcuts())
-
-    expect(capturedCallback).toBeDefined()
-    act(() => {
-      capturedCallback?.()
-    })
-
-    expect(result.current.quitConfirmOpen).toBe(true)
-  })
-
-  it('should cancel all transfers and close window on confirm quit', async () => {
-    setupMocks()
-
-    const { result } = renderHook(() => useGlobalShortcuts())
-
-    await result.current.handleConfirmQuit()
-
-    expect(mockCancelAll).toHaveBeenCalled()
-    expect(mockWindowClose).toHaveBeenCalled()
   })
 })

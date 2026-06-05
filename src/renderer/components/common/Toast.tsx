@@ -56,7 +56,7 @@ export const Toast: React.FC = () => {
       ),
     },
     warning: {
-      bgClass: 'bg-warning text-white border-none',
+      bgClass: 'bg-toast-warning',
       icon: (
         <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -78,8 +78,7 @@ export const Toast: React.FC = () => {
             className={`
               px-4 py-3 rounded-lg flex items-center gap-2.5
               min-w-70 ${config.bgClass}
-              shadow-[0_8px_24px_-4px_rgba(0,0,0,0.15)]
-              dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.4)]
+              shadow-toast
               transition-all duration-150 ease-out
               ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-[0.96]'}
             `}

@@ -5,17 +5,18 @@ export const TransferTabBar: React.FC = () => {
   const { t } = useTranslation()
 
   return (
-    <div className="flex border-b border-border shrink-0 px-4 pt-3.5 pb-0">
+    <div className="flex gap-6 border-b border-border shrink-0 px-4 pt-3.5 pb-0">
       <button
         type="button"
-        className="px-1 py-2 text-sm font-medium text-accent border-b-2 border-accent bg-transparent cursor-default"
+        className="px-3 py-2 text-sm font-medium text-accent border-b-2 border-accent bg-transparent cursor-default"
         aria-label={t('transfer.upload')}
+        title={t('transfer.upload')}
       >
         {t('transfer.upload')}
       </button>
       <button
         type="button"
-        className="px-1 py-2 text-sm text-text-muted cursor-not-allowed opacity-50 bg-transparent border-b-2 border-transparent"
+        className="px-3 py-2 text-sm text-text-muted cursor-not-allowed opacity-50 bg-transparent border-b-2 border-transparent"
         disabled
         title={t('transfer.downloadDisabled')}
         aria-label={t('transfer.download')}

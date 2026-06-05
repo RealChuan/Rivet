@@ -1,7 +1,6 @@
 import type React from 'react'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ConfirmationDialog } from './components/common/index.js'
 import { useTransferStore } from './features/transfer/stores/transfer.js'
 import { useApplicationInitialization } from './hooks/useAppInit.js'
 import { useGlobalShortcuts } from './hooks/useGlobalShortcuts.js'
@@ -12,7 +11,7 @@ import { useUiStore } from './stores/ui.js'
 const App: React.FC = () => {
   const { t } = useTranslation()
   const initialized = useUiStore(state => state.initialized)
-  const { quitConfirmOpen, setQuitConfirmOpen, handleConfirmQuit } = useGlobalShortcuts()
+  useGlobalShortcuts()
   const startTransferListening = useTransferStore(state => state.startListening)
   const loadExistingTasks = useTransferStore(state => state.loadExistingTasks)
 
@@ -33,21 +32,7 @@ const App: React.FC = () => {
     )
   }
 
-  return (
-    <>
-      <MainLayout />
-      <ConfirmationDialog
-        open={quitConfirmOpen}
-        onClose={() => setQuitConfirmOpen(false)}
-        onConfirm={() => handleConfirmQuit()}
-        title={t('transfer.confirmQuit.title')}
-        message={t('transfer.confirmQuit.message')}
-        confirmText={t('action.confirm')}
-        cancelText={t('action.cancel')}
-        type="warning"
-      />
-    </>
-  )
+  return <MainLayout />
 }
 
 export default App

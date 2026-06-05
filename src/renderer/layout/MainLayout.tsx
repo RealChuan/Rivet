@@ -1,9 +1,11 @@
 import type React from 'react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGE, THEME, type Theme } from '@shared/constants/index.js'
 import { SIDEBAR_VIEW, type SidebarView } from '@shared/constants/transfer.js'
+import { ConfirmationDialog } from '../components/common/index.js'
 import { TitleBar, Toast } from '../components/common/index.js'
-import { useApplicationTheme, useInternationalization } from '../hooks/index.js'
+import { useActiveTaskGuard, useApplicationTheme, useInternationalization } from '../hooks/index.js'
 import { ConnectionPage } from '../pages/ConnectionPage.js'
 import { TransferPage } from '../pages/TransferPage.js'
 import { useUiStore } from '../stores/ui.js'
@@ -91,12 +93,26 @@ export const MainLayout: React.FC = () => {
   const { language, changeLanguage } = useInternationalization()
   const activeView = useUiStore(state => state.activeView)
   const setActiveView = useUiStore(state => state.setActiveView)
+  const { guard, confirmOpen, handleConfirm, handleCancel, title, message } = useActiveTaskGuard()
+
+  const handleClose = () => {
+    guard(() => window.electronAPI.window.quit())
+  }
+
+  // 监听主进程系统级关闭拦截（Alt+F4 等），触发同样的守卫逻辑
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.transfer.onHasActiveTasks(() => {
+      guard(() => window.electronAPI.window.quit())
+    })
+    return unsubscribe
+  }, [guard])
 
   return (
     <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden">
       <TitleBar
         childMode={false}
         title={t('app.name')}
+        onClose={handleClose}
         centerContent={
           <div className="flex items-center gap-1">
             <button
@@ -136,6 +152,17 @@ export const MainLayout: React.FC = () => {
       </div>
 
       <Toast />
+
+      <ConfirmationDialog
+        open={confirmOpen}
+        onClose={handleCancel}
+        onConfirm={() => void handleConfirm()}
+        title={title}
+        message={message}
+        confirmText={t('action.confirm')}
+        cancelText={t('action.cancel')}
+        type="warning"
+      />
     </div>
   )
 }

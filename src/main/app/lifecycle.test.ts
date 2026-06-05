@@ -32,6 +32,13 @@ vi.mock('./window-factory.js', () => ({
   },
 }))
 
+vi.mock('../services/transfer/index.js', () => ({
+  transferService: {
+    setMainWindow: vi.fn(),
+    hasActiveTasks: vi.fn(() => false),
+  },
+}))
+
 vi.mock('@shared/constants/index.js', () => ({
   APP_NAME: 'Rivet',
   MAIN_WINDOW_ID: 'main',
@@ -234,6 +241,9 @@ describe('lifecycle', () => {
       const { createMainWindow } = await import('./lifecycle.js')
       const { WindowManager } = await import('./window-factory.js')
 
+      const mockWin = { on: vi.fn(), isDestroyed: vi.fn(() => false) }
+      ;(WindowManager.create as ReturnType<typeof vi.fn>).mockReturnValue(mockWin)
+
       createMainWindow()
 
       expect(WindowManager.create).toHaveBeenCalledWith({
@@ -249,6 +259,10 @@ describe('lifecycle', () => {
 
     it('should register activate handler for macOS', async () => {
       const { createMainWindow } = await import('./lifecycle.js')
+      const { WindowManager } = await import('./window-factory.js')
+
+      const mockWin = { on: vi.fn(), isDestroyed: vi.fn(() => false) }
+      ;(WindowManager.create as ReturnType<typeof vi.fn>).mockReturnValue(mockWin)
 
       createMainWindow()
 

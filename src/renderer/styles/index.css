@@ -12,6 +12,7 @@
   --color-hover: rgba(0, 0, 0, 0.04);
   --color-selected: rgba(59, 130, 246, 0.12);
   --color-focus-ring: rgba(59, 130, 246, 0.4);
+  --color-ring: rgba(59, 130, 246, 0.25);
   --color-accent: #2563eb;
   --color-accent-hover: #1d4ed8;
   --color-accent-light: rgba(37, 99, 235, 0.08);
@@ -31,10 +32,22 @@
   --color-toast-success: rgba(34, 197, 94, 0.95);
   --color-toast-error: rgba(239, 68, 68, 0.95);
   --color-toast-info: rgba(37, 99, 235, 0.95);
+  --color-toast-warning: rgba(234, 179, 8, 0.95);
   --color-glass-bg: rgba(255, 255, 255, 0.85);
   --color-glass-border: rgba(0, 0, 0, 0.06);
   --color-subtle-hover: rgba(0, 0, 0, 0.02);
   --color-danger-subtle: rgba(239, 68, 68, 0.04);
+  --color-bg-secondary: #f5f5f5;
+  --color-overlay: rgba(0, 0, 0, 0.3);
+  --color-danger-border: rgba(239, 68, 68, 0.3);
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  --shadow-dialog:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.05),
+    0 10px 30px -5px rgba(0, 0, 0, 0.12);
+  --shadow-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
 
   /* 字号 */
   --font-size-2xs: 11px;
@@ -54,6 +67,8 @@
   --animate-menu-in: menu-in 0.12s ease-out;
   --animate-skeleton-shimmer: skeleton-shimmer 1.5s ease-in-out infinite;
   --animate-status-pulse: status-pulse 2s ease-in-out infinite;
+  --animate-progress-indeterminate: loading-bar 1.5s ease-in-out infinite;
+  --animate-progress-shimmer: progress-shimmer 2s ease-in-out infinite;
 }
 
 /* ========== Dark 模式覆盖 ========== */
@@ -61,10 +76,11 @@
   --color-bg: #1e1e1e;
   --color-border: #2e2e2e;
   --color-text: #e5e5e5;
-  --color-text-muted: #737373;
-  --color-hover: rgba(255, 255, 255, 0.06);
-  --color-selected: rgba(96, 165, 250, 0.12);
+  --color-text-muted: #a3a3a3;
+  --color-hover: rgba(255, 255, 255, 0.08);
+  --color-selected: rgba(96, 165, 250, 0.15);
   --color-focus-ring: rgba(96, 165, 250, 0.35);
+  --color-ring: rgba(96, 165, 250, 0.2);
   --color-accent: #4d94f5;
   --color-accent-hover: #6aabf7;
   --color-accent-light: rgba(96, 165, 250, 0.1);
@@ -84,10 +100,22 @@
   --color-toast-success: rgba(74, 222, 128, 0.9);
   --color-toast-error: rgba(248, 113, 113, 0.9);
   --color-toast-info: rgba(96, 165, 250, 0.9);
+  --color-toast-warning: rgba(250, 204, 21, 0.9);
   --color-glass-bg: rgba(37, 37, 38, 0.9);
   --color-glass-border: rgba(255, 255, 255, 0.1);
-  --color-subtle-hover: rgba(255, 255, 255, 0.04);
+  --color-subtle-hover: rgba(255, 255, 255, 0.06);
   --color-danger-subtle: rgba(248, 113, 113, 0.06);
+  --color-bg-secondary: #262626;
+  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-danger-border: rgba(248, 113, 113, 0.25);
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.15);
+  --shadow-dialog:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    0 10px 30px -5px rgba(0, 0, 0, 0.5);
+  --shadow-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
 }
 
 /* ========== Base 层 ========== */
@@ -166,7 +194,8 @@
   select:focus,
   textarea:focus {
     @apply outline-none;
-    box-shadow: 0 0 0 2px var(--color-focus-ring);
+    box-shadow: 0 0 0 2px var(--color-ring);
+    border-color: var(--color-accent);
   }
 }
 
@@ -273,6 +302,15 @@
   }
   50% {
     transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes progress-shimmer {
+  0% {
+    transform: translateX(-100%);
   }
   100% {
     transform: translateX(100%);

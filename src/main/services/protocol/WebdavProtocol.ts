@@ -5,8 +5,10 @@ import { createClient, type FileStat, type WebDAVClient } from 'webdav'
 import { generateSessionId, logger } from '@main/utils/index.js'
 import {
   ERROR_CODE,
+  ERROR_MESSAGE,
   FILE_TYPE,
   HTTP_AGENT,
+  LOG_ACTION,
   PROTOCOL,
   ProtocolStatus,
   ROOT_PATH,
@@ -90,7 +92,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     } catch (e) {
       const error = e as Error
       agent.destroy()
-      logger.catch(error, { action: 'connect' })
+      logger.catch(error, { action: LOG_ACTION.CONNECT })
       return err(createErrorInfo(ERROR_CODE.CONN_FAILED, formatErrorMessage(error)))
     }
 
@@ -118,7 +120,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
       session.agent.destroy()
       await Promise.resolve()
     } catch (e) {
-      logger.catch(e, { action: 'disconnect' })
+      logger.catch(e, { sessionId, action: LOG_ACTION.DISCONNECT })
     } finally {
       sessionRegistry.unregister(sessionId)
     }
@@ -265,7 +267,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
       return ok(undefined)
     } catch (e) {
       if (signal.aborted) {
-        return err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, 'Upload was aborted'))
+        return err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, ERROR_MESSAGE.UPLOAD_ABORTED))
       }
       return err(createErrorInfo(ERROR_CODE.UPLOAD_ERROR, formatErrorMessage(e)))
     }

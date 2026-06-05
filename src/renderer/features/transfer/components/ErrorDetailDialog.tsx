@@ -43,7 +43,7 @@ export const ErrorDetailDialog: React.FC<ErrorDetailDialogProps> = ({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto rounded-lg bg-black/5 dark:bg-white/5 p-3 mb-4">
+        <div className="flex-1 overflow-y-auto rounded-lg bg-hover p-3 mb-4">
           <pre className="text-sm text-text font-mono whitespace-pre-wrap break-all m-0">
             {errorMessage}
           </pre>

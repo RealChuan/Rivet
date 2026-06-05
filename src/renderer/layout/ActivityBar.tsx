@@ -18,7 +18,7 @@ const ActivityBarButton = ({ icon, isActive, label, onClick }: ActivityBarButton
         relative w-full h-12 flex items-center justify-center
         transition-colors
         focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
-        ${isActive ? 'text-text bg-accent/5' : 'text-text-muted/60 hover:text-text hover:bg-hover'}
+        ${isActive ? 'text-text bg-accent-light' : 'text-text-muted hover:text-text hover:bg-hover'}
       `}
     >
       {isActive && (

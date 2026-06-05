@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { DEFAULT_ROUTE, IPC_CHANNELS } from '@shared/constants/index.js'
 import { WindowManager } from '../app/window-factory.js'
 import { getWindowMeta } from '../utils/window-meta.js'
@@ -27,6 +27,10 @@ export function setupWindowIpcHandlers(): void {
   ipcMain.on(IPC_CHANNELS.WINDOW.CLOSE, event => {
     const win = BrowserWindow.fromWebContents(event.sender)
     win?.close()
+  })
+
+  ipcMain.on(IPC_CHANNELS.WINDOW.QUIT, () => {
+    app.quit()
   })
 
   ipcMain.handle(IPC_CHANNELS.WINDOW.GET_STATE, event => {

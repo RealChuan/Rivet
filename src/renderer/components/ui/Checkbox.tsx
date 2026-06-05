@@ -33,7 +33,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
         <span
           className={`
             size-4 rounded-[3px] border-2 flex items-center justify-center
-            transition-all duration-150 cursor-pointer
+            transition-all duration-200 cursor-pointer
             peer-checked:bg-accent peer-checked:border-accent
             peer-checked:shadow-[0_0_0_3px_var(--color-accent-light)]
             border-input-border bg-transparent

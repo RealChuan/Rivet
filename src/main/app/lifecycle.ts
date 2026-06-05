@@ -19,6 +19,27 @@ import { WindowManager } from './window-factory.js'
 
 let isCleaningUp = false
 
+/**
+ * 通知渲染进程有活跃任务，触发确认弹窗
+ */
+function notifyRendererActiveTasks(win: Electron.BrowserWindow): void {
+  if (!win.isDestroyed()) {
+    win.webContents.send(TRANSFER_CHANNELS.HAS_ACTIVE_TASKS)
+  }
+}
+
+/**
+ * 拦截窗口关闭：有活跃传输任务时阻止关闭并通知渲染进程弹窗
+ */
+function interceptCloseIfActive(win: Electron.BrowserWindow): void {
+  win.on('close', event => {
+    if (transferService.hasActiveTasks()) {
+      event.preventDefault()
+      notifyRendererActiveTasks(win)
+    }
+  })
+}
+
 export async function disconnectAllSessions(): Promise<void> {
   if (isCleaningUp || sessionRegistry.count === 0) return
   isCleaningUp = true
@@ -73,9 +94,9 @@ export function setupAppLifecycle(): void {
 
     if (transferService.hasActiveTasks()) {
       event.preventDefault()
-      const mainWindow = BrowserWindow.getAllWindows()[0]
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send(TRANSFER_CHANNELS.HAS_ACTIVE_TASKS)
+      const mainWindow = WindowManager.get(MAIN_WINDOW_ID)
+      if (mainWindow) {
+        notifyRendererActiveTasks(mainWindow)
       }
       return
     }
@@ -137,6 +158,8 @@ export function createMainWindow(): void {
 
   transferService.setMainWindow(win)
 
+  interceptCloseIfActive(win)
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       const newWin = WindowManager.create({
@@ -145,6 +168,8 @@ export function createMainWindow(): void {
         title: APP_NAME,
       })
       transferService.setMainWindow(newWin)
+
+      interceptCloseIfActive(newWin)
     }
   })
 }

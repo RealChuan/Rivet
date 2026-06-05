@@ -60,7 +60,7 @@ export const FileExplorerListEmpty: React.FC = () => {
   return (
     <div className="h-full flex flex-col items-center justify-center gap-2">
       <div className="w-10 h-10 rounded-lg bg-hover flex items-center justify-center">
-        <svg className="w-4 h-4 stroke-text-muted/60 stroke-[1.5]" viewBox="0 0 24 24" fill="none">
+        <svg className="w-4 h-4 stroke-text-muted stroke-[1.5]" viewBox="0 0 24 24" fill="none">
           <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
         </svg>
       </div>

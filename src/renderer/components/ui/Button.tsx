@@ -15,7 +15,7 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const baseClasses = `
     px-4 py-2 rounded-md text-sm font-medium
-    border transition-all duration-150 active:scale-[0.97]
+    transition-all duration-150 active:scale-[0.97]
     flex items-center gap-1.5
     cursor-pointer
   `
@@ -28,7 +28,7 @@ export const Button: React.FC<ButtonProps> = ({
     `,
     secondary: `
       bg-transparent text-text border border-input-border
-      hover:bg-hover hover:border-input-border-hover hover:shadow-[0_1px_3px_rgba(0,0,0,0.04)]
+      hover:bg-hover hover:border-input-border-hover hover:shadow-sm
     `,
     danger: `
       bg-danger text-white border-none
@@ -37,7 +37,7 @@ export const Button: React.FC<ButtonProps> = ({
     `,
     warning: `
       bg-warning text-white border-none
-      hover:bg-warning/90
+      hover:bg-warning/90 hover:shadow-[0_2px_8px_var(--color-warning-light)]
       disabled:bg-disabled disabled:cursor-not-allowed disabled:shadow-none
     `,
   }

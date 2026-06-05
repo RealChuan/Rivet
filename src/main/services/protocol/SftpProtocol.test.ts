@@ -65,6 +65,14 @@ vi.mock('@main/utils/window-meta.js', () => ({
   getWindowMeta: vi.fn(),
 }))
 
+vi.mock('node:fs', () => ({
+  default: {
+    promises: {
+      stat: vi.fn().mockResolvedValue({ size: 1024 }),
+    },
+  },
+}))
+
 // exactOptionalPropertyTypes: true 下不能写 password: undefined，省略即可
 const baseConfig: ConnectionConfig = {
   id: 'test-conn-id',
@@ -602,6 +610,7 @@ describe('SftpProtocol', () => {
         '/local/file.txt',
         '/remote/file.txt',
         expect.objectContaining({
+          chunkSize: expect.any(Number) as number,
           step: expect.any(Function) as unknown as ((total: number) => void) | undefined,
         })
       )
@@ -642,6 +651,75 @@ describe('SftpProtocol', () => {
       expect(result.success).toBe(true)
       expect(onProgress).toHaveBeenCalledWith(1024)
       expect(onProgress).toHaveBeenCalledWith(2048)
+    })
+
+    it('should return UPLOAD_ABORTED when signal is already aborted', async () => {
+      setupSession()
+      const controller = new AbortController()
+      controller.abort()
+      const onProgress = vi.fn()
+      const result = await sftp.upload(
+        'sftp_test_session',
+        '/local/file.txt',
+        '/remote/file.txt',
+        onProgress,
+        controller.signal
+      )
+      expect(result.success).toBe(false)
+      if (result.success) return
+      expect(result.error.code).toBe('UPLOAD_ABORTED')
+    })
+
+    it('should delete remote file when upload completes but signal was aborted', async () => {
+      setupSession()
+      const controller = new AbortController()
+      const onProgress = vi.fn()
+
+      // fastPut 完成后检测到 abort，应删除远程文件
+      mockClient.fastPut.mockImplementation(() => {
+        controller.abort()
+        return Promise.resolve(undefined)
+      })
+
+      const result = await sftp.upload(
+        'sftp_test_session',
+        '/local/file.txt',
+        '/remote/file.txt',
+        onProgress,
+        controller.signal
+      )
+      expect(result.success).toBe(false)
+      if (result.success) return
+      expect(result.error.code).toBe('UPLOAD_ABORTED')
+      expect(mockClient.delete).toHaveBeenCalledWith('/remote/file.txt')
+    })
+
+    it('should not report progress after signal is aborted', async () => {
+      setupSession()
+      const controller = new AbortController()
+      const onProgress = vi.fn()
+
+      mockClient.fastPut.mockImplementation(
+        (_local: string, _remote: string, options: Record<string, unknown>) => {
+          const step = options.step as ((total: number) => void) | undefined
+          step?.(1024)
+          controller.abort()
+          step?.(2048)
+          return Promise.resolve(undefined)
+        }
+      )
+
+      const result = await sftp.upload(
+        'sftp_test_session',
+        '/local/file.txt',
+        '/remote/file.txt',
+        onProgress,
+        controller.signal
+      )
+      expect(result.success).toBe(false)
+      // 只有 abort 前的进度被报告
+      expect(onProgress).toHaveBeenCalledTimes(1)
+      expect(onProgress).toHaveBeenCalledWith(1024)
     })
   })
 })

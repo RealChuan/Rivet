@@ -52,7 +52,7 @@ export const TextInputDialog: React.FC<TextInputDialogProps> = ({
           className={`
             w-full px-3 py-2.5 bg-bg border border-border rounded-md
             text-text text-sm mb-4 transition-all duration-150
-            focus:border-accent focus:ring-2 focus:ring-accent/20
+            focus:border-accent focus:ring-2 focus:ring-ring
             outline-none
           `}
         />

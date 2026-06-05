@@ -10,6 +10,7 @@ export interface WindowAPI {
   minimize: () => void
   maximize: () => void
   close: () => void
+  quit: () => void
   getState: () => Promise<{ isMaximized: boolean; platform: string }>
   onStateChange: (callback: (state: { isMaximized: boolean }) => void) => () => void
   createChild: (options: {

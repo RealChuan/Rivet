@@ -49,13 +49,15 @@ export const ConnectionSidebar: React.FC = () => {
     setReconnectConfig,
     deleteConfirmOpen,
     setDeleteConfirmOpen,
-    uploadConfirmOpen,
-    setUploadConfirmOpen,
+    confirmOpen,
+    handleConfirm,
+    handleCancel,
+    title,
+    message,
     handleSaveConnection,
     handleDisconnect,
     handleDelete,
     handleConfirmDelete,
-    handleConfirmCancelUploads,
     handleReconnect,
     handleReconnectSubmit,
     handleEdit,
@@ -131,11 +133,11 @@ export const ConnectionSidebar: React.FC = () => {
           type="danger"
         />
         <ConfirmationDialog
-          open={uploadConfirmOpen}
-          onClose={() => setUploadConfirmOpen(false)}
-          onConfirm={() => handleConfirmCancelUploads()}
-          title={t('transfer.confirmDisconnect.title')}
-          message={t('transfer.confirmDisconnect.message')}
+          open={confirmOpen}
+          onClose={handleCancel}
+          onConfirm={() => void handleConfirm()}
+          title={title}
+          message={message}
           confirmText={t('action.confirm')}
           cancelText={t('action.cancel')}
           type="warning"

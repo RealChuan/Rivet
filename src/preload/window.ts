@@ -15,6 +15,10 @@ export const windowAPI = {
     ipcRenderer.send(IPC_CHANNELS.WINDOW.CLOSE)
   },
 
+  quit: (): void => {
+    ipcRenderer.send(IPC_CHANNELS.WINDOW.QUIT)
+  },
+
   getState: (): Promise<{ isMaximized: boolean; platform: string }> => {
     return ipcRenderer.invoke(IPC_CHANNELS.WINDOW.GET_STATE)
   },

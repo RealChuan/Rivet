@@ -32,7 +32,7 @@ export const RadioButton: React.FC<RadioButtonProps> = ({
         />
         <span
           className={`
-            size-4 rounded-full border-2 transition-all duration-150
+            size-4 rounded-full border-2 transition-all duration-200
             ${
               checked
                 ? 'border-accent bg-accent shadow-[0_0_0_3px_var(--color-accent-light)]'

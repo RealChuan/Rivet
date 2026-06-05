@@ -17,7 +17,7 @@ export const DragOverlayContent: React.FC<DragOverlayContentProps> = ({
   return (
     <DragOverlay>
       {active ? (
-        <div className="shadow-xl">
+        <div className="shadow-dropdown">
           {(() => {
             const connection = connections.find(c => c.id === String(active.id))
             if (!connection) return null

@@ -63,8 +63,7 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
           w-full px-3 pr-8 py-2 bg-bg border border-border rounded-md
           text-text text-left flex items-center justify-between relative cursor-pointer
           transition-colors duration-150 hover:border-text-muted focus:outline-none
-          focus:ring-2 focus:ring-focus-ring text-[13px] box-border min-h-8.25 m-0
-          ${className}
+          focus:ring-2 focus:ring-ring text-[13px] box-border min-h-8.25 m-0
         `}
       >
         <span className="flex-1 truncate">{selectedOption?.label ?? 'Select...'}</span>
@@ -75,14 +74,7 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          style={{
-            position: 'absolute',
-            right: '10px',
-            top: '50%',
-            transform: `translateY(-50%) ${isOpen ? 'rotate(180deg)' : ''}`,
-            transition: 'transform 0.15s',
-            pointerEvents: 'none',
-          }}
+          className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
         >
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -93,7 +85,7 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
           ref={listRef}
           className={`
             absolute top-full left-0 right-0 z-100 bg-bg border border-border
-            rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.03)] list-none max-h-50 overflow-y-auto p-1 box-border mt-1
+            rounded-md shadow-dropdown list-none max-h-50 overflow-y-auto p-1 box-border mt-1
           `}
         >
           {options.map((option, index) => (

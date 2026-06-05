@@ -1,5 +1,11 @@
 import { logger } from '@main/utils/index.js'
-import { ERROR_CODE, type ProtocolType, TIMEOUTS } from '@shared/constants/index.js'
+import {
+  ERROR_CODE,
+  ERROR_MESSAGE,
+  FILE_OPERATION,
+  type ProtocolType,
+  TIMEOUTS,
+} from '@shared/constants/index.js'
 import {
   type ConnectionConfig,
   createErrorInfo,
@@ -105,7 +111,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     }
 
     if (signal.aborted) {
-      return err(createErrorInfo(abortErrorCode, 'Operation was already aborted'))
+      return err(createErrorInfo(abortErrorCode, ERROR_MESSAGE.OPERATION_ALREADY_ABORTED))
     }
 
     return new Promise<Result<T, ErrorInfo>>(resolve => {
@@ -127,7 +133,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
         if (settled) return
         settled = true
         cleanup()
-        resolve(err(createErrorInfo(abortErrorCode, 'Operation was aborted')))
+        resolve(err(createErrorInfo(abortErrorCode, ERROR_MESSAGE.OPERATION_ABORTED)))
       }
 
       signal.addEventListener('abort', onAbort)
@@ -177,7 +183,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     if (isErr(result)) {
       logger.warn('Protocol operation failed', {
         protocol: this.protocolType,
-        action: 'list',
+        action: FILE_OPERATION.LIST,
         sessionId,
         path: sanitizedPath,
         errorCode: result.error.code,
@@ -217,7 +223,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     if (isErr(result)) {
       logger.warn('Protocol operation failed', {
         protocol: this.protocolType,
-        action: 'mkdir',
+        action: FILE_OPERATION.MKDIR,
         sessionId,
         path: sanitizedPath,
         errorCode: result.error.code,
@@ -226,7 +232,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     } else {
       logger.info('Protocol operation succeeded', {
         protocol: this.protocolType,
-        action: 'mkdir',
+        action: FILE_OPERATION.MKDIR,
         sessionId,
         path: sanitizedPath,
       })
@@ -268,7 +274,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     if (isErr(result)) {
       logger.warn('Protocol operation failed', {
         protocol: this.protocolType,
-        action: 'rename',
+        action: FILE_OPERATION.RENAME,
         sessionId,
         from: sanitizedCurrentPath,
         to: sanitizedNewPath,
@@ -278,7 +284,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     } else {
       logger.info('Protocol operation succeeded', {
         protocol: this.protocolType,
-        action: 'rename',
+        action: FILE_OPERATION.RENAME,
         sessionId,
         from: sanitizedCurrentPath,
         to: sanitizedNewPath,
@@ -317,7 +323,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     if (isErr(result)) {
       logger.warn('Protocol operation failed', {
         protocol: this.protocolType,
-        action: 'delete',
+        action: FILE_OPERATION.DELETE,
         sessionId,
         path: sanitizedPath,
         errorCode: result.error.code,
@@ -326,7 +332,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     } else {
       logger.info('Protocol operation succeeded', {
         protocol: this.protocolType,
-        action: 'delete',
+        action: FILE_OPERATION.DELETE,
         sessionId,
         path: sanitizedPath,
       })
@@ -374,7 +380,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     if (isErr(result)) {
       logger.warn('Protocol operation failed', {
         protocol: this.protocolType,
-        action: 'copy',
+        action: FILE_OPERATION.COPY,
         sessionId,
         from: sanitizedSourcePath,
         to: sanitizedTargetPath,
@@ -384,7 +390,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     } else {
       logger.info('Protocol operation succeeded', {
         protocol: this.protocolType,
-        action: 'copy',
+        action: FILE_OPERATION.COPY,
         sessionId,
         from: sanitizedSourcePath,
         to: sanitizedTargetPath,
@@ -426,7 +432,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     if (isErr(result)) {
       logger.warn('Protocol operation failed', {
         protocol: this.protocolType,
-        action: 'move',
+        action: FILE_OPERATION.MOVE,
         sessionId,
         from: sanitizedSourcePath,
         to: sanitizedTargetPath,
@@ -436,7 +442,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     } else {
       logger.info('Protocol operation succeeded', {
         protocol: this.protocolType,
-        action: 'move',
+        action: FILE_OPERATION.MOVE,
         sessionId,
         from: sanitizedSourcePath,
         to: sanitizedTargetPath,
@@ -493,7 +499,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
         controller.abort()
         logger.warn('Protocol operation failed', {
           protocol: this.protocolType,
-          action: 'upload',
+          action: FILE_OPERATION.UPLOAD,
           sessionId,
           remotePath: sanitizedRemotePath,
           errorCode: result.error.code,
@@ -502,7 +508,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       } else {
         logger.info('Protocol operation succeeded', {
           protocol: this.protocolType,
-          action: 'upload',
+          action: FILE_OPERATION.UPLOAD,
           sessionId,
           remotePath: sanitizedRemotePath,
         })
@@ -527,7 +533,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     if (isErr(result)) {
       logger.warn('Protocol operation failed', {
         protocol: this.protocolType,
-        action: 'ping',
+        action: FILE_OPERATION.PING,
         sessionId,
         errorCode: result.error.code,
         errorMessage: result.error.message,

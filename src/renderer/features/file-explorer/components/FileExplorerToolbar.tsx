@@ -126,7 +126,7 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
           </svg>
         </ToolButton>
         {showUploadMenu && (
-          <div className="absolute right-0 top-full mt-1 bg-bg rounded-md shadow-[0_4px_12px_rgba(0,0,0,0.08),0_0_0_1px_rgba(0,0,0,0.03)] border border-border p-1 min-w-40 z-1000 animate-menu-in">
+          <div className="absolute right-0 top-full mt-1 bg-bg rounded-md shadow-dropdown border border-border p-1 min-w-40 z-1000 animate-menu-in">
             <button
               className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
               onClick={() => {

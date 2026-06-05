@@ -106,6 +106,11 @@ export interface TitleBarProps {
    * 自定义标题文字
    */
   title?: string
+  /**
+   * 自定义关闭按钮处理（可用于活跃任务守卫）
+   * 不传则直接调用 window.electronAPI.window.close()
+   */
+  onClose?: () => void
 }
 
 // ============================================================
@@ -113,10 +118,7 @@ export interface TitleBarProps {
 // ============================================================
 
 const AppLogo = () => (
-  <div
-    className="w-5 h-5 rounded-md flex items-center justify-center"
-    style={{ background: 'linear-gradient(135deg, #2563eb 0%, #06b6d4 100%)' }}
-  >
+  <div className="w-5 h-5 rounded-md flex items-center justify-center bg-accent">
     <svg
       width="10"
       height="10"
@@ -134,7 +136,13 @@ const AppLogo = () => (
   </div>
 )
 
-export function TitleBar({ childMode = false, centerContent, leftContent, title }: TitleBarProps) {
+export function TitleBar({
+  childMode = false,
+  centerContent,
+  leftContent,
+  title,
+  onClose,
+}: TitleBarProps) {
   const { t } = useTranslation()
   const [isMaximized, setIsMaximized] = useState(false)
   const [platform, setPlatform] = useState<string>('win32')
@@ -176,7 +184,11 @@ export function TitleBar({ childMode = false, centerContent, leftContent, title 
   }
 
   const handleClose = () => {
-    window.electronAPI.window.close()
+    if (onClose) {
+      onClose()
+    } else {
+      window.electronAPI.window.close()
+    }
   }
 
   const isMac = platform === 'darwin'

@@ -72,7 +72,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
       <div className="px-4 py-6 text-center h-full flex flex-col items-center justify-center gap-2">
         <div className="w-10 h-10 rounded-lg bg-hover flex items-center justify-center">
           <svg
-            className="w-4 h-4 stroke-text-muted/60"
+            className="w-4 h-4 stroke-text-muted stroke-[1.5]"
             viewBox="0 0 24 24"
             fill="none"
             strokeWidth="1.5"
