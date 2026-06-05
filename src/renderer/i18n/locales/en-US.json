@@ -1,13 +1,5 @@
 {
   "translation": {
-    "action": {
-      "cancel": "Cancel",
-      "close": "Close",
-      "confirm": "Confirm",
-      "create": "Create",
-      "delete": "Delete",
-      "refresh": "Refresh"
-    },
     "activityBar": {
       "connections": "Connections",
       "transfers": "Transfers"
@@ -15,6 +7,23 @@
     "app": {
       "name": "Rivet",
       "subtitle": "SFTP / WebDAV"
+    },
+    "common": {
+      "action": {
+        "cancel": "Cancel",
+        "close": "Close",
+        "confirm": "Confirm",
+        "create": "Create",
+        "delete": "Delete",
+        "refresh": "Refresh"
+      },
+      "sort": {
+        "asc": "Ascending",
+        "desc": "Descending"
+      },
+      "test": {
+        "key": "Test"
+      }
     },
     "confirmationDialog": {
       "confirmDeleteMessage": "Are you sure you want to delete this item?",
@@ -30,6 +39,7 @@
       "connections": "Connections",
       "disconnect": "Disconnect",
       "edit": "Edit",
+      "moreActions": "More actions",
       "newConnection": "New Connection",
       "newConnectionHint": "Create your first connection",
       "noConnections": "No connections"
@@ -76,15 +86,8 @@
         "uploadFolder": "Upload Folder..."
       },
       "conflict": {
-        "applyToAll": "Apply to All",
-        "cannotOverwrite": "Cannot overwrite file to folder with same name, or vice versa",
-        "globalAction": "Global Action",
-        "keepBoth": "Keep Both",
-        "overwrite": "Overwrite",
-        "skip": "Skip",
         "source": "Source",
-        "target": "Target",
-        "title": "File Conflict"
+        "target": "Target"
       },
       "dropToUpload": "Drop to Upload"
     },
@@ -118,18 +121,11 @@
       "lightMode": "Light Mode",
       "system": "System"
     },
-    "sort": {
-      "asc": "Ascending",
-      "desc": "Descending"
-    },
     "sortButton": {
       "sortConnections": "Sort Connections"
     },
     "targetFolderDialog": {
       "title": "Select Target Folder"
-    },
-    "test": {
-      "key": "Test"
     },
     "textInputDialog": {
       "folderNamePlaceholder": "Folder name",
@@ -187,19 +183,12 @@
         "title": "Uploads in Progress"
       },
       "conflict": {
-        "applyToAll": "Apply to All",
-        "cannotOverwrite": "Cannot overwrite file to folder with same name, or vice versa",
-        "globalAction": "Global Action",
-        "keepBoth": "Keep Both",
-        "overwrite": "Overwrite",
-        "skip": "Skip",
         "source": "Local",
-        "target": "Remote",
-        "title": "Upload Conflict"
+        "target": "Remote"
       },
       "download": "Download",
       "downloadDisabled": "Coming soon",
-      "empty": "",
+      "empty": "No active tasks",
       "errorDetail": {
         "copied": "Copied",
         "copy": "Copy",

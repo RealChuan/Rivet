@@ -36,7 +36,7 @@ export const HostKeyVerificationDialog: React.FC = () => {
       title={isMismatch ? t('hostKey.mismatchTitle') : t('hostKey.firstConnectTitle')}
       type={isMismatch ? 'danger' : 'info'}
       confirmText={isMismatch ? t('hostKey.trustNew') : t('hostKey.trustAndSave')}
-      cancelText={isMismatch ? t('action.close') : t('hostKey.disconnect')}
+      cancelText={isMismatch ? t('common.action.close') : t('hostKey.disconnect')}
       customContent={
         <HostKeyNotification
           type={hostKeyDialog.type}

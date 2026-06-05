@@ -39,11 +39,6 @@ export const TIMEOUTS = {
 } as const
 
 /**
- * 超时时间键类型
- */
-export type TimeoutKey = keyof typeof TIMEOUTS
-
-/**
  * HTTP Agent 配置常量
  */
 export const HTTP_AGENT = {

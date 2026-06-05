@@ -1,5 +1,6 @@
 import React from 'react'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
+import { cn } from '@renderer/utils/index.js'
 import { ROOT_PATH } from '@shared/constants/index.js'
 
 interface FileExplorerBreadcrumbProps {
@@ -58,15 +59,12 @@ export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
             </svg>
             <button
               onClick={() => void handleNavigate(fullPath)}
-              className={`
-                px-2 py-1 rounded bg-transparent border-none cursor-pointer
-                whitespace-nowrap transition-colors
-                ${
-                  isLast
-                    ? 'text-text font-medium'
-                    : 'text-text-muted font-normal hover:bg-hover hover:text-text'
-                }
-              `}
+              className={cn(
+                'px-2 py-1 rounded bg-transparent border-none cursor-pointer whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
+                isLast
+                  ? 'text-text font-medium'
+                  : 'text-text-muted font-normal hover:bg-hover hover:text-text'
+              )}
             >
               <span className="max-w-40 overflow-hidden text-ellipsis">{part}</span>
             </button>

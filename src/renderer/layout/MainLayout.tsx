@@ -131,8 +131,15 @@ export const MainLayout: React.FC = () => {
 
             <button
               onClick={cycleTheme}
-              className="p-1 rounded bg-transparent border-none cursor-default flex items-center justify-center hover:bg-hover transition-colors text-text"
+              className="p-1 rounded bg-transparent border-none cursor-default flex items-center justify-center hover:bg-hover transition-colors text-text focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
               title={
+                theme === THEME.LIGHT
+                  ? t('mainLayout.lightMode')
+                  : theme === THEME.DARK
+                    ? t('mainLayout.darkMode')
+                    : t('mainLayout.system')
+              }
+              aria-label={
                 theme === THEME.LIGHT
                   ? t('mainLayout.lightMode')
                   : theme === THEME.DARK
@@ -159,8 +166,8 @@ export const MainLayout: React.FC = () => {
         onConfirm={() => void handleConfirm()}
         title={title}
         message={message}
-        confirmText={t('action.confirm')}
-        cancelText={t('action.cancel')}
+        confirmText={t('common.action.confirm')}
+        cancelText={t('common.action.cancel')}
         type="warning"
       />
     </div>

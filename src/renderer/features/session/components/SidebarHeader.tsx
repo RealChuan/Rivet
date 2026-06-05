@@ -38,6 +38,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ onNewConnection })
           w-full px-3 py-2 rounded-md bg-accent text-white
           text-sm font-medium flex items-center justify-center gap-1.5
           transition-colors border-none cursor-pointer hover:bg-accent-hover
+          focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
         `}
       >
         <svg

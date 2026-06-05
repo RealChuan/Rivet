@@ -25,6 +25,7 @@ export const ParentDirectoryButton: React.FC<ParentDirectoryButtonProps> = ({
           px-3.5 py-1.5 rounded bg-transparent border border-border
           cursor-pointer text-xs text-text flex items-center gap-1.5
           hover:bg-hover transition-colors
+          focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
         `}
       >
         <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">

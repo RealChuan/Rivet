@@ -8,6 +8,7 @@ import GlassDialog from '@renderer/components/ui/GlassDialog.js'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
 import FileExplorerBreadcrumb from '@renderer/features/file-explorer/components/FileExplorerBreadcrumb.js'
 import { useUiStore } from '@renderer/stores/index.js'
+import { cn } from '@renderer/utils/index.js'
 import logger from '@renderer/utils/logger.js'
 import { FILE_TYPE, ROOT_PATH, TOAST_TYPE } from '@shared/constants/index.js'
 import { type FileInfo, isProtocolResponseErr } from '@shared/types/index.js'
@@ -40,10 +41,10 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
   const currentRequestIdRef = useRef<string | null>(null)
   const [prevOpen, setPrevOpen] = useState(open)
   const [prevCurrentPath, setPrevCurrentPath] = useState(currentPath)
+
   if (open && open !== prevOpen) {
     setPrevOpen(open)
     setCurrentPath(ROOT_PATH)
-    setPrevCurrentPath(ROOT_PATH)
     setSelectedFolder(null)
     setIsLoading(true)
   }
@@ -215,6 +216,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
         className={`
           flex items-center gap-2 h-10 px-3 cursor-pointer
           border-none rounded transition-all duration-100
+          focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
           ${isSelected ? 'bg-selected text-accent' : 'bg-transparent text-text hover:bg-hover'}
         `}
         style={{ ...style, width: '100%' }}
@@ -225,7 +227,10 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
           {item.name}
         </span>
         <svg
-          className={`w-4 h-4 stroke-1.5 transition-colors ${isSelected ? 'stroke-accent' : 'stroke-text-muted'}`}
+          className={cn(
+            'w-4 h-4 stroke-1.5 transition-colors',
+            isSelected ? 'stroke-accent' : 'stroke-text-muted'
+          )}
           viewBox="0 0 24 24"
           fill="none"
         >
@@ -258,7 +263,8 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
             <h2 className="text-base font-semibold text-text">{t('targetFolderDialog.title')}</h2>
             <button
               onClick={onClose}
-              className="p-1 rounded bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors"
+              aria-label="Close"
+              className="p-1 rounded bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
             >
               <svg
                 width="16"
@@ -327,10 +333,10 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
             </div>
             <div className="flex gap-2.5">
               <Button variant="secondary" onClick={onClose}>
-                {t('action.cancel')}
+                {t('common.action.cancel')}
               </Button>
               <Button variant="primary" onClick={handleConfirm}>
-                {t('action.confirm')}
+                {t('common.action.confirm')}
               </Button>
             </div>
           </div>
@@ -343,7 +349,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
         onSubmit={name => void handleNewFolder(name)}
         title={t('file.action.newFolder')}
         placeholder={t('textInputDialog.newFolderPlaceholder')}
-        submitText={t('action.confirm')}
+        submitText={t('common.action.confirm')}
       />
     </>
   )

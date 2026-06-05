@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Session } from '@shared/types/index.js'
-import { useSessionDisconnect } from './useSessionDisconnect.js'
+import { useSessionDisconnect } from './use-session-disconnect.js'
 
 const mockRemoveSession = vi.fn()
 const mockAddToast = vi.fn()

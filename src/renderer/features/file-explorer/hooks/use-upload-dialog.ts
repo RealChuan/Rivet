@@ -1,4 +1,4 @@
-import { useTransferActions } from '@renderer/features/transfer/hooks/useTransferActions.js'
+import { useTransferActions } from '@renderer/features/transfer/hooks/use-transfer-actions.js'
 import { TRANSFER_ITEM_TYPE } from '@shared/constants/transfer.js'
 import { isOk } from '@shared/types/index.js'
 

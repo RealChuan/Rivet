@@ -10,6 +10,4 @@ export const SUPPORTED_LANGUAGES: readonly string[] = [
   SUPPORTED_LANGUAGE.EN_US,
 ]
 
-export type SupportedLanguage = (typeof SUPPORTED_LANGUAGE)[keyof typeof SUPPORTED_LANGUAGE]
-
 export const DEFAULT_LANGUAGE = SUPPORTED_LANGUAGE.EN_US

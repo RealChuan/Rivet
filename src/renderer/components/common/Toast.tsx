@@ -1,5 +1,7 @@
 import type React from 'react'
 import { useEffect, useState } from 'react'
+
+import { cn } from '@renderer/utils/index.js'
 import { useUiStore } from '../../stores/ui.js'
 
 export const Toast: React.FC = () => {
@@ -75,22 +77,27 @@ export const Toast: React.FC = () => {
         return (
           <div
             key={toast.id}
-            className={`
-              px-4 py-3 rounded-lg flex items-center gap-2.5
-              min-w-70 ${config.bgClass}
-              shadow-toast
-              transition-all duration-150 ease-out
-              ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-2 scale-[0.96]'}
-            `}
+            className={cn(
+              'px-4 py-3 rounded-lg flex items-center gap-2.5',
+              'min-w-70',
+              config.bgClass,
+              'shadow-toast',
+              'transition-all duration-150 ease-out',
+              isVisible
+                ? 'opacity-100 translate-y-0 scale-100'
+                : 'opacity-0 translate-y-2 scale-[0.96]'
+            )}
           >
             {config.icon}
             <span className="flex-1 text-sm font-medium text-white">{toast.message}</span>
             <button
               onClick={() => removeToast(toast.id)}
+              aria-label="Close"
               className={`
                 p-0.5 rounded bg-transparent border-none cursor-pointer
                 text-white/70 hover:text-white transition-colors
                 hover:bg-white/10
+                focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
               `}
             >
               <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">

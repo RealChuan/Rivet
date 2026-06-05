@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConflictResolution } from '@renderer/features/file-explorer/components/ConflictDialog.js'
 import type { FileInfo } from '@shared/types/index.js'
-import { useFileCopyMove } from './useFileCopyMove.js'
+import { useFileCopyMove } from './use-file-copy-move.js'
 
 const mockRefreshCurrentDirectory = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
 const mockSetOperating = vi.fn()

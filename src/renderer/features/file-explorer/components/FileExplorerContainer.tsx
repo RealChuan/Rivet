@@ -1,6 +1,7 @@
 import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
+import { cn } from '@renderer/utils/index.js'
 import FileExplorerArea from './FileExplorerArea.js'
 
 export const FileExplorerContainer: React.FC = () => {
@@ -34,10 +35,10 @@ export const FileExplorerContainer: React.FC = () => {
       {sessions.map(session => (
         <div
           key={session.sessionId}
-          className={`
-            absolute top-0 left-0 right-0 bottom-0
-            ${session.sessionId === activeSessionId ? 'flex' : 'hidden'}
-          `}
+          className={cn(
+            'absolute top-0 left-0 right-0 bottom-0',
+            session.sessionId === activeSessionId ? 'flex' : 'hidden'
+          )}
         >
           <FileExplorerArea sessionId={session.sessionId} />
         </div>

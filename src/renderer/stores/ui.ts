@@ -1,8 +1,8 @@
 import { create } from 'zustand'
+import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import {
   DEFAULT_LANGUAGE,
   DEFAULT_THEME_VALUE,
-  SORT_ORDER,
   STORE_KEY,
   type SupportedLanguageLiteral,
   type Theme,
@@ -13,7 +13,9 @@ import {
 import { SIDEBAR_VIEW, type SidebarView } from '@shared/constants/transfer.js'
 import { type UiSettings } from '@shared/types/index.js'
 
-interface UiStore extends UiSettings {
+interface UiStore {
+  appearance: Theme
+  locale: SupportedLanguageLiteral | ''
   connectionPanelWidth: number
   transferPanelWidth: number
   queueDrawerOpen: boolean
@@ -42,7 +44,6 @@ interface Toast {
 export const useUiStore = create<UiStore>((set, get) => ({
   appearance: DEFAULT_THEME_VALUE,
   locale: DEFAULT_LANGUAGE,
-  connectionSortOrder: SORT_ORDER.NONE,
   connectionPanelWidth: 260,
   transferPanelWidth: 260,
   queueDrawerOpen: false,
@@ -53,7 +54,8 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
   setAppearance: appearance => {
     set({ appearance })
-    const { locale, connectionSortOrder } = get()
+    const { locale } = get()
+    const connectionSortOrder = useConnectionStore.getState().sortOrder
     void window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
       appearance,
       locale,
@@ -63,7 +65,8 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
   setLocale: locale => {
     set({ locale })
-    const { appearance, connectionSortOrder } = get()
+    const { appearance } = get()
+    const connectionSortOrder = useConnectionStore.getState().sortOrder
     void window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
       appearance,
       locale,
@@ -85,7 +88,8 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
   initialize: settings => {
     set({
-      ...settings,
+      appearance: settings.appearance ?? DEFAULT_THEME_VALUE,
+      locale: settings.locale ?? DEFAULT_LANGUAGE,
       activeView: SIDEBAR_VIEW.CONNECTIONS,
       initialized: true,
     })
@@ -134,5 +138,3 @@ export const useUiStore = create<UiStore>((set, get) => ({
     })
   },
 }))
-
-export default useUiStore

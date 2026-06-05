@@ -1,6 +1,8 @@
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 
+import { cn } from '@renderer/utils/index.js'
+
 interface GlassDialogProps {
   open: boolean
   onClose: () => void
@@ -112,20 +114,23 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center bg-overlay z-50 p-12 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      className={cn(
+        'fixed inset-0 flex items-center justify-center bg-overlay z-50 p-12 transition-opacity duration-200',
+        isVisible ? 'opacity-100' : 'opacity-0'
+      )}
       onClick={e => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
       <div
         ref={dialogRef}
-        className={`
-          backdrop-blur-2xl rounded-xl p-6 max-w-full max-h-[calc(100vh-96px)]
-          relative box-border overflow-y-auto overflow-x-hidden
-          bg-glass-bg shadow-dialog
-          transition-all duration-200 ease-out
-          ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'}
-        `}
+        className={cn(
+          'backdrop-blur-2xl rounded-xl p-6 max-w-full max-h-[calc(100vh-96px)]',
+          'relative box-border overflow-y-auto overflow-x-hidden',
+          'bg-glass-bg shadow-dialog',
+          'transition-all duration-200 ease-out',
+          isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'
+        )}
         onMouseDown={handleMouseDown}
         style={{
           position: customPosition ? 'absolute' : undefined,

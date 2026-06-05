@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { FileInfo } from '@shared/types/index.js'
 import { SORT_ORDER } from '@shared/constants/sort.js'
-import { useFileSort } from './useFileSort.js'
+import { useFileSort } from './use-file-sort.js'
 
 const mockFiles: FileInfo[] = [
   {

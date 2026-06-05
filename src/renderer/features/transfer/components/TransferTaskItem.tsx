@@ -1,5 +1,5 @@
 import type React from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { OperationProgressInfo, TransferTask } from '@shared/types/transfer.js'
 import FileIcon from '@renderer/components/common/FileIcon.js'
@@ -7,6 +7,7 @@ import { RetryIcon } from '@renderer/components/common/RetryIcon.js'
 import { TrashIcon } from '@renderer/components/common/TrashIcon.js'
 import { XIcon } from '@renderer/components/common/XIcon.js'
 import { useTransferStore } from '@renderer/features/transfer/stores/transfer.js'
+import { useClickOutside } from '@renderer/hooks/index.js'
 import {
   TRANSFER_CONFIG,
   TRANSFER_ITEM_TYPE,
@@ -73,9 +74,9 @@ const InlineOperationRow: React.FC<InlineOperationRowProps> = ({ op, lng }) => {
     )
   }
 
-  const isFailed = (op.status as string) === UPLOAD_OPERATION_STATUS.FAILED
-  const isRunning = (op.status as string) === UPLOAD_OPERATION_STATUS.RUNNING
-  const isCompleted = (op.status as string) === UPLOAD_OPERATION_STATUS.COMPLETED
+  const isFailed = op.status === UPLOAD_OPERATION_STATUS.FAILED
+  const isRunning = op.status === UPLOAD_OPERATION_STATUS.RUNNING
+  const isCompleted = op.status === UPLOAD_OPERATION_STATUS.COMPLETED
 
   if (isFailed) {
     return (
@@ -214,31 +215,16 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
       })
     : activeOperations.slice(0, TRANSFER_CONFIG.MAX_INLINE_OPERATIONS)
 
-  const handleContextMenu = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault()
-      setContextMenu({ x: e.clientX, y: e.clientY, taskId: task.id, taskStatus: task.status })
-    },
-    [task.id, task.status]
-  )
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY, taskId: task.id, taskStatus: task.status })
+  }
 
-  useEffect(() => {
-    if (!contextMenu) return
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setContextMenu(null)
-      }
-    }
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setContextMenu(null)
-    }
-    document.addEventListener('mousedown', handleClick)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', handleClick)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [contextMenu])
+  useClickOutside({
+    ref: menuRef,
+    enabled: !!contextMenu,
+    onOutside: () => setContextMenu(null),
+  })
 
   const errorText =
     isFailed && task.errorMessage
@@ -330,7 +316,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
               e.stopPropagation()
               onRemove?.(task.id)
             }}
-            className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors shrink-0"
+            className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors shrink-0 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
             aria-label={t('transfer.action.remove')}
           >
             <XIcon />

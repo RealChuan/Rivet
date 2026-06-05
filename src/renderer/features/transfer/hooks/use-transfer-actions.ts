@@ -11,9 +11,18 @@ import {
   type ConflictAction,
   type TransferItemType,
 } from '@shared/constants/transfer.js'
+import { isProtocolResponseErr } from '@shared/types/index.js'
 import { joinPaths, pathBasename } from '@shared/utils/index.js'
 import { useTransferConflictStore } from '../stores/transfer-conflict.js'
 import { applyResolutions, detectConflicts } from './transfer-conflict.js'
+
+interface ResolvedTask {
+  localPath: string
+  remotePath: string
+  itemName: string
+  conflictAction?: ConflictAction
+  renamedName?: string
+}
 
 const buildTransferTask = (
   localPath: string,
@@ -41,6 +50,45 @@ const buildTransferTask = (
     transferredSize: 0,
     createdAt: Date.now(),
   }
+}
+
+async function fetchRemoteFiles(sessionId: string, remoteDir: string): Promise<FileInfo[]> {
+  const response = await window.electronAPI.protocol.list(sessionId, remoteDir)
+  if (!isProtocolResponseErr(response)) {
+    return response.value
+  }
+  return []
+}
+
+interface ResolveParams {
+  localPaths: string[]
+  remoteFiles: FileInfo[]
+  remoteDir: string
+  itemType: TransferItemType
+}
+
+async function resolveConflictsAndBuildTasks(
+  params: ResolveParams
+): Promise<ResolvedTask[] | null> {
+  const { localPaths, remoteFiles, remoteDir, itemType } = params
+
+  const conflicts = detectConflicts(localPaths, remoteFiles, remoteDir, itemType)
+
+  if (conflicts.length > 0) {
+    const resolutions = await new Promise<ConflictResolution[] | null>(resolve => {
+      useTransferConflictStore.getState().openDialog(conflicts, resolve)
+    })
+
+    if (!resolutions) return null
+
+    return applyResolutions(localPaths, resolutions, remoteDir, itemType)
+  }
+
+  return localPaths.map(p => ({
+    localPath: p,
+    remotePath: joinPaths(remoteDir, pathBasename(p)),
+    itemName: pathBasename(p),
+  }))
 }
 
 interface UseTransferActionsReturn {
@@ -76,39 +124,16 @@ export function useTransferActions(): UseTransferActionsReturn {
     if (localPaths.length === 0) return
 
     try {
-      const response = await window.electronAPI.protocol.list(sessionId, remoteDir)
-      let remoteFiles: FileInfo[] = []
-      if (response.success) {
-        remoteFiles = response.value
-      }
+      const remoteFiles = await fetchRemoteFiles(sessionId, remoteDir)
 
-      const conflicts = detectConflicts(localPaths, remoteFiles, remoteDir, itemType)
+      const resolvedPaths = await resolveConflictsAndBuildTasks({
+        localPaths,
+        remoteFiles,
+        remoteDir,
+        itemType,
+      })
 
-      let resolvedPaths: {
-        localPath: string
-        remotePath: string
-        itemName: string
-        conflictAction?: ConflictAction
-        renamedName?: string
-      }[]
-
-      if (conflicts.length > 0) {
-        const resolutions = await new Promise<ConflictResolution[] | null>(resolve => {
-          useTransferConflictStore.getState().openDialog(conflicts, resolve)
-        })
-
-        useTransferConflictStore.getState().clearAll()
-
-        if (!resolutions) return
-
-        resolvedPaths = applyResolutions(localPaths, resolutions, remoteDir, itemType)
-      } else {
-        resolvedPaths = localPaths.map(p => ({
-          localPath: p,
-          remotePath: joinPaths(remoteDir, pathBasename(p)),
-          itemName: pathBasename(p),
-        }))
-      }
+      if (!resolvedPaths) return
 
       const tasks = resolvedPaths.map(p =>
         buildTransferTask(
@@ -149,14 +174,9 @@ export function useTransferActions(): UseTransferActionsReturn {
     if (filePaths.length === 0 && folderPaths.length === 0) return
 
     try {
-      // Single remote list request
-      const response = await window.electronAPI.protocol.list(sessionId, remoteDir)
-      let remoteFiles: FileInfo[] = []
-      if (response.success) {
-        remoteFiles = response.value
-      }
+      const remoteFiles = await fetchRemoteFiles(sessionId, remoteDir)
 
-      // Unified conflict detection
+      // Detect conflicts for both types and merge into a single dialog
       const fileConflicts = detectConflicts(
         filePaths,
         remoteFiles,
@@ -171,27 +191,13 @@ export function useTransferActions(): UseTransferActionsReturn {
       )
       const allConflicts = [...fileConflicts, ...folderConflicts]
 
-      let resolvedFilePaths: {
-        localPath: string
-        remotePath: string
-        itemName: string
-        conflictAction?: ConflictAction
-        renamedName?: string
-      }[]
-      let resolvedFolderPaths: {
-        localPath: string
-        remotePath: string
-        itemName: string
-        conflictAction?: ConflictAction
-        renamedName?: string
-      }[]
+      let resolvedFilePaths: ResolvedTask[]
+      let resolvedFolderPaths: ResolvedTask[]
 
       if (allConflicts.length > 0) {
         const resolutions = await new Promise<ConflictResolution[] | null>(resolve => {
           useTransferConflictStore.getState().openDialog(allConflicts, resolve)
         })
-
-        useTransferConflictStore.getState().clearAll()
 
         if (!resolutions) return
 

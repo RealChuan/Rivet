@@ -19,10 +19,10 @@
   --color-danger: #ef4444;
   --color-danger-light: rgba(239, 68, 68, 0.08);
   --color-success-light: rgba(34, 197, 94, 0.08);
-  --color-warning: #eab308;
-  --color-disabled: #d4d4d4;
+  --color-warning: #a16207;
+  --color-disabled: #9ca3af;
   --color-status-connected: #22c55e;
-  --color-status-disconnected: #f59e0b;
+  --color-status-disconnected: #b45309;
   --color-protocol-webdav: #8b5cf6;
   --color-protocol-webdav-light: rgba(139, 92, 246, 0.08);
   --color-input-border: #d4d4d4;
@@ -88,7 +88,7 @@
   --color-danger-light: rgba(248, 113, 113, 0.1);
   --color-success-light: rgba(74, 222, 128, 0.1);
   --color-warning: #facc15;
-  --color-disabled: #404040;
+  --color-disabled: #6b7280;
   --color-status-connected: #4ade80;
   --color-status-disconnected: #fbbf24;
   --color-protocol-webdav: #a78bfa;

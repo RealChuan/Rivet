@@ -22,6 +22,8 @@ Sentry.init({
   sendDefaultPii: false,
 })
 
+app.enableSandbox()
+
 void app.whenReady().then(() => {
   logger.info('App ready, initializing...')
 
@@ -34,7 +36,8 @@ void app.whenReady().then(() => {
   const isDev = !app.isPackaged
   const scriptSrc = isDev ? "'self' 'unsafe-inline' 'unsafe-eval'" : "'self'"
   const connectSrc = isDev ? "'self' ws://localhost:*" : "'self'"
-  const csp = `default-src 'self'; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src ${connectSrc}; object-src 'none'; base-uri 'self'; form-action 'none'`
+  const styleSrc = isDev ? "'self' 'unsafe-inline'" : "'self'"
+  const csp = `default-src 'self'; script-src ${scriptSrc}; style-src ${styleSrc}; img-src 'self' data:; font-src 'self'; connect-src ${connectSrc}; object-src 'none'; base-uri 'self'; form-action 'none'`
 
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({

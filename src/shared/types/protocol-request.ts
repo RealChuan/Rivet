@@ -23,9 +23,3 @@ export const isProtocolResponseErr = <T>(
 ): response is ProtocolErrorResponse => {
   return !response.success
 }
-
-export const isProtocolResponseOk = <T>(
-  response: ProtocolResponse<T>
-): response is ProtocolSuccessResponse<T> => {
-  return response.success
-}

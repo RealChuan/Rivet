@@ -8,11 +8,6 @@
 export const APP_NAME = 'Rivet'
 
 /**
- * 应用程序版本号
- */
-export const APP_VERSION = '0.0.1'
-
-/**
  * 主窗口唯一标识
  */
 export const MAIN_WINDOW_ID = 'main'

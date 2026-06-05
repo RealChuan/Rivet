@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.js'
+import { ErrorBoundary } from './components/common/ErrorBoundary.js'
 import './sentry.js'
 import './i18n/config.js'
 
@@ -14,6 +15,8 @@ if (!rootElement) {
 }
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 )

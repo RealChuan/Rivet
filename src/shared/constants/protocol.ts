@@ -34,6 +34,4 @@ export const LOG_ACTION = {
 } as const
 
 export const PORT_SFTP = 22
-export const PORT_WEBDAV_HTTP = 80
 export const PORT_WEBDAV_HTTPS = 443
-export const PORT_MAX = 65535

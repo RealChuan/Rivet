@@ -43,9 +43,12 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showCertWarning, setShowCertWarning] = useState(false)
+
   const [prevOpen, setPrevOpen] = useState(open)
-  if (open && open !== prevOpen) {
+  const [prevConfig, setPrevConfig] = useState(config)
+  if (open && (open !== prevOpen || config !== prevConfig)) {
     setPrevOpen(open)
+    setPrevConfig(config)
     setError('')
     setIsLoading(false)
     setShowCertWarning(false)
@@ -238,7 +241,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
         <div className="flex justify-end gap-2.5 mt-1">
           <Button type="button" variant="secondary" onClick={onClose}>
-            {t('action.cancel')}
+            {t('common.action.cancel')}
           </Button>
           <Button type="submit" variant="primary" isLoading={isLoading}>
             {isLoading ? t('connectionDialog.connecting') : t('connectionDialog.save')}
@@ -255,7 +258,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         message={t('connectionDialog.certWarningMessage')}
         type="warning"
         confirmText={t('connectionDialog.continue')}
-        cancelText={t('action.cancel')}
+        cancelText={t('common.action.cancel')}
       />
     </GlassDialog>
   )

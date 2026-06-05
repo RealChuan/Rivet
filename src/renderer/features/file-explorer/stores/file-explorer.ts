@@ -83,5 +83,3 @@ export const useFileExplorerStore = create<FileExplorerState>(set => ({
       return { selectedFiles: newSet }
     }),
 }))
-
-export default useFileExplorerStore

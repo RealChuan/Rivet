@@ -2,60 +2,53 @@ import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import ConfirmationDialog from '@renderer/components/common/ConfirmationDialog.js'
 import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
-import { type UseFileCopyMoveReturn } from '@renderer/features/file-explorer/hooks/useFileCopyMove.js'
-import { type ContextMenuState } from '@renderer/features/file-explorer/hooks/useFileListState.js'
+import { useFileCopyMove } from '@renderer/features/file-explorer/hooks/use-file-copy-move.js'
+import { useFileDeletion } from '@renderer/features/file-explorer/hooks/use-file-deletion.js'
+import { type UseFileListStateReturn } from '@renderer/features/file-explorer/hooks/use-file-list-state.js'
+import { useFileRenaming } from '@renderer/features/file-explorer/hooks/use-file-renaming.js'
+import { useFolderCreation } from '@renderer/features/file-explorer/hooks/use-folder-creation.js'
+import { useUploadDialog } from '@renderer/features/file-explorer/hooks/use-upload-dialog.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import { TOAST_TYPE } from '@shared/constants/index.js'
-import { type FileInfo, isOk } from '@shared/types/index.js'
+import { isOk } from '@shared/types/index.js'
 import ConflictDialog from './ConflictDialog.js'
 import FileExplorerContextMenu from './FileExplorerContextMenu.js'
 import TargetFolderDialog from './TargetFolderDialog.js'
 
 interface FileExplorerDialogsProps {
   sessionId: string
-  selectedFile: FileInfo | null
-  deleteDialogOpen: boolean
-  closeDeleteDialog: () => void
-  fileToDelete: FileInfo[] | null
-  handleDelete: (files: FileInfo[]) => Promise<void>
-  renameDialogOpen: boolean
-  closeRenameDialog: () => void
-  handleRenameWrapper: (newName: string) => void
-  newFolderDialogOpen: boolean
-  setNewFolderDialogOpen: (open: boolean) => void
-  handleCreateFolderWrapper: (folderName: string) => void
-  fileCopyMoveState: UseFileCopyMoveReturn
-  contextMenu: ContextMenuState | null
-  closeContextMenu: () => void
-  openDeleteDialog: (files: FileInfo[]) => void
-  openRenameDialog: (file: FileInfo) => void
-  onUploadFiles: () => void
-  onUploadFolder: () => void
+  currentPath: string
+  listState: UseFileListStateReturn
 }
 
 export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
   sessionId,
-  selectedFile,
-  deleteDialogOpen,
-  closeDeleteDialog,
-  fileToDelete,
-  handleDelete,
-  renameDialogOpen,
-  closeRenameDialog,
-  handleRenameWrapper,
-  newFolderDialogOpen,
-  setNewFolderDialogOpen,
-  handleCreateFolderWrapper,
-  fileCopyMoveState,
-  contextMenu,
-  closeContextMenu,
-  openDeleteDialog,
-  openRenameDialog,
-  onUploadFiles,
-  onUploadFolder,
+  currentPath,
+  listState,
 }) => {
   const { t } = useTranslation()
   const addToast = useUiStore(state => state.addToast)
+
+  const { handleDelete } = useFileDeletion(sessionId)
+  const { handleRename } = useFileRenaming(sessionId)
+  const { handleCreateFolder } = useFolderCreation(sessionId)
+  const fileCopyMoveState = useFileCopyMove(sessionId)
+  const { openFilePicker, openFolderPicker } = useUploadDialog({ sessionId, currentPath })
+
+  const {
+    selectedFile,
+    deleteDialogOpen,
+    closeDeleteDialog,
+    fileToDelete,
+    renameDialogOpen,
+    closeRenameDialog,
+    newFolderDialogOpen,
+    setNewFolderDialogOpen,
+    contextMenu,
+    closeContextMenu,
+    openDeleteDialog,
+    openRenameDialog,
+  } = listState
 
   const {
     handleCopy,
@@ -70,6 +63,17 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
     setTargetFolderDialogOpen,
     setConflictDialogOpen,
   } = fileCopyMoveState
+
+  const handleRenameWrapper = (newName: string) => {
+    if (selectedFile) {
+      void handleRename(selectedFile, newName)
+      closeRenameDialog()
+    }
+  }
+
+  const handleCreateFolderWrapper = (folderName: string) => {
+    void handleCreateFolder(currentPath, folderName)
+  }
 
   return (
     <>
@@ -86,7 +90,7 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
             ? t('confirmationDialog.confirmDeleteMessage', { name: fileToDelete[0]?.name })
             : t('confirmationDialog.confirmDeleteMultipleMessage', { count: fileToDelete?.length })
         }
-        confirmText={t('action.delete')}
+        confirmText={t('common.action.delete')}
         type="danger"
         onConfirm={() => {
           if (fileToDelete) {
@@ -111,7 +115,7 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
         onClose={() => setNewFolderDialogOpen(false)}
         title={t('file.action.newFolder')}
         placeholder={t('textInputDialog.folderNamePlaceholder')}
-        submitText={t('action.create')}
+        submitText={t('common.action.create')}
         onSubmit={handleCreateFolderWrapper}
       />
 
@@ -154,8 +158,8 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
             setNewFolderDialogOpen(true)
             closeContextMenu()
           }}
-          onUploadFiles={onUploadFiles}
-          onUploadFolder={onUploadFolder}
+          onUploadFiles={() => void openFilePicker()}
+          onUploadFolder={() => void openFolderPicker()}
         />
       )}
     </>

@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@renderer/utils/index.js'
 import { PROTOCOL } from '@shared/constants/index.js'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'
 
@@ -66,19 +67,19 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
     <div className="relative" style={style}>
       <div
         onClick={onSelect}
-        className={`
-          mx-2 my-1 px-3 py-2.5 rounded-md cursor-pointer flex items-center gap-2.5
-          border border-input-border transition-all duration-150
-          ${
-            isActive
-              ? 'bg-selected border-l-2 border-l-accent border-y border-r border-y-transparent border-r-transparent'
-              : 'bg-transparent hover:bg-hover border-l border-l-input-border'
-          }
-        `}
+        className={cn(
+          'mx-2 my-1 px-3 py-2.5 rounded-md cursor-pointer flex items-center gap-2.5 border border-input-border transition-all duration-150',
+          isActive
+            ? 'bg-selected border-l-2 border-l-accent border-y border-r border-y-transparent border-r-transparent'
+            : 'bg-transparent hover:bg-hover border-l border-l-input-border'
+        )}
       >
         <div className="flex items-center gap-2 shrink-0">
           <div
-            className={`relative ${isConnected ? 'text-status-connected' : 'text-status-disconnected'}`}
+            className={cn(
+              'relative',
+              isConnected ? 'text-status-connected' : 'text-status-disconnected'
+            )}
           >
             {isConnected && (
               <span className="absolute -inset-0.5 rounded-full bg-status-connected/20 animate-status-pulse" />
@@ -108,20 +109,20 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
             )}
           </div>
           <span
-            className={`
-              text-xs px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-[0.5px]
-              ${
-                connection.protocol === PROTOCOL.SFTP
-                  ? 'text-accent bg-accent-light'
-                  : 'text-protocol-webdav bg-protocol-webdav-light'
-              }
-            `}
+            className={cn(
+              'text-xs px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-[0.5px]',
+              connection.protocol === PROTOCOL.SFTP
+                ? 'text-accent bg-accent-light'
+                : 'text-protocol-webdav bg-protocol-webdav-light'
+            )}
           >
             {connection.protocol.toUpperCase()}
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          <div className={`text-sm font-medium truncate ${isActive ? 'text-accent' : 'text-text'}`}>
+          <div
+            className={cn('text-sm font-medium truncate', isActive ? 'text-accent' : 'text-text')}
+          >
             {connection.name ?? connection.host}
           </div>
           <div className="text-xs text-text-muted truncate">{connection.host}</div>
@@ -132,7 +133,8 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
             e.stopPropagation()
             setShowMenu(!showMenu)
           }}
-          className="p-1 rounded shrink-0 text-text-muted bg-transparent border-none cursor-pointer hover:bg-hover transition-colors"
+          className="p-1 rounded shrink-0 text-text-muted bg-transparent border-none cursor-pointer hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+          aria-label={t('connection.moreActions')}
         >
           <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
             <circle cx="12" cy="5" r="2" />
@@ -247,7 +249,7 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
                   <polyline points="3 6 5 6 21 6" />
                   <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                 </svg>
-                {t('action.delete')}
+                {t('common.action.delete')}
               </button>
             </div>
           </>,

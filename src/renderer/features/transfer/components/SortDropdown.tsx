@@ -1,6 +1,8 @@
 import type React from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useClickOutside } from '@renderer/hooks/index.js'
+import { cn } from '@renderer/utils/index.js'
 import { SORT_ORDER, type SortOrderWithDirection } from '@shared/constants/sort.js'
 import { type TransferSortField, TRANSFER_SORT_FIELD } from '@shared/constants/transfer.js'
 
@@ -22,6 +24,13 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
+  useClickOutside({
+    ref,
+    enabled: open,
+    includeEscape: false,
+    onOutside: () => setOpen(false),
+  })
+
   const getFieldLabel = (field: TransferSortField) => {
     switch (field) {
       case TRANSFER_SORT_FIELD.CREATED_AT:
@@ -34,17 +43,6 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
         return t('transfer.sort.size')
     }
   }
-
-  useEffect(() => {
-    if (!open) return
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [open])
 
   const isActive = (field: TransferSortField, order: SortOrderWithDirection) =>
     sortBy === field && sortOrder === order
@@ -100,20 +98,22 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
                     setOpen(false)
                   }}
                 >
-                  {t('sort.asc')}
+                  {t('common.sort.asc')}
                 </button>
                 <button
                   type="button"
-                  className={`
-                    flex-1 px-3 py-1.5 rounded-md text-xs border cursor-default transition-colors
-                    ${isActive(field, SORT_ORDER.DESC) ? 'border-accent text-accent bg-accent-light' : 'border-border text-text bg-transparent hover:bg-hover'}
-                  `}
+                  className={cn(
+                    'flex-1 px-3 py-1.5 rounded-md text-xs border cursor-default transition-colors',
+                    isActive(field, SORT_ORDER.DESC)
+                      ? 'border-accent text-accent bg-accent-light'
+                      : 'border-border text-text bg-transparent hover:bg-hover'
+                  )}
                   onClick={() => {
                     onSort(field)
                     setOpen(false)
                   }}
                 >
-                  {t('sort.desc')}
+                  {t('common.sort.desc')}
                 </button>
               </div>
             </div>

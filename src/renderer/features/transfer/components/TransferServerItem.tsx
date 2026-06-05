@@ -1,4 +1,5 @@
 import type React from 'react'
+import { cn } from '@renderer/utils/index.js'
 import { PROTOCOL } from '@shared/constants/index.js'
 
 interface TransferServerItemProps {
@@ -34,12 +35,10 @@ export const TransferServerItem: React.FC<TransferServerItemProps> = ({
       <button
         type="button"
         onClick={onSelect}
-        className={`
-          w-full flex items-center gap-3 px-4 py-3 cursor-pointer
-          transition-colors duration-150 text-left
-          border-b border-border
-          ${isSelected ? 'bg-selected' : 'hover:bg-hover bg-transparent'}
-        `}
+        className={cn(
+          'w-full flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-150 text-left border-b border-border focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
+          isSelected ? 'bg-selected' : 'hover:bg-hover bg-transparent'
+        )}
       >
         {/* 左侧：状态指示 + 协议 + 连接信息 */}
         <div className="flex items-center gap-2 min-w-0">

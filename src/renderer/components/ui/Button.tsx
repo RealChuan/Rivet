@@ -1,5 +1,7 @@
 import type React from 'react'
 
+import { cn } from '@renderer/utils/index.js'
+
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'warning'
   isLoading?: boolean
@@ -42,7 +44,7 @@ export const Button: React.FC<ButtonProps> = ({
     `,
   }
 
-  const classes = `${baseClasses} ${variantClasses[variant]} ${className}`.trim()
+  const classes = cn(baseClasses, variantClasses[variant], className)
 
   return (
     <button className={classes} disabled={isLoading || disabled} {...props}>

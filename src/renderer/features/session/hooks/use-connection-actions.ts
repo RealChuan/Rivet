@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { v4 as uuidv4 } from 'uuid'
-import { useActiveTaskGuard } from '@renderer/hooks/useActiveTaskGuard.js'
+import { useActiveTaskGuard } from '@renderer/hooks/use-active-task-guard.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import { logger } from '@renderer/utils/index.js'
 import { SCHEME, TOAST_TYPE } from '@shared/constants/index.js'

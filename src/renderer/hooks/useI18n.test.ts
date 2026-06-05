@@ -2,7 +2,7 @@ import { renderHook } from '@testing-library/react'
 import { useTranslation } from 'react-i18next'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useUiStore } from '../stores/index.js'
-import { useInternationalization } from './useI18n.js'
+import { useInternationalization } from './use-i18n.js'
 
 vi.mock('../stores/index.js', () => ({
   useUiStore: vi.fn(),
@@ -80,7 +80,7 @@ describe('useInternationalization', () => {
     })
 
     const { result } = renderHook(() => useInternationalization())
-    result.current.t('test.key')
-    expect(mockT).toHaveBeenCalledWith('test.key', {})
+    result.current.t('common.test.key')
+    expect(mockT).toHaveBeenCalledWith('common.test.key', {})
   })
 })

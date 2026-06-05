@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { generateUniqueFilename } from './index.js'
+import { generateUniqueFilename } from './generate-unique-filename.js'
 
 describe('generateUniqueFilename', () => {
   it('should append timestamp before extension', () => {

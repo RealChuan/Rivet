@@ -25,5 +25,3 @@ export const useHostKeyStore = create<{
     }))
   },
 }))
-
-export default useHostKeyStore

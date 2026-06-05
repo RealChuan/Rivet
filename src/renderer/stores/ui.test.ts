@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import {
   DEFAULT_LANGUAGE,
   DEFAULT_THEME_VALUE,
@@ -21,6 +22,12 @@ vi.stubGlobal('window', {
   },
 })
 
+vi.mock('@renderer/features/session/stores/connection.js', () => ({
+  useConnectionStore: {
+    getState: vi.fn(() => ({ sortOrder: SORT_ORDER.NONE })),
+  },
+}))
+
 describe('useUiStore', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -29,7 +36,6 @@ describe('useUiStore', () => {
     useUiStore.setState({
       appearance: DEFAULT_THEME_VALUE,
       locale: DEFAULT_LANGUAGE,
-      connectionSortOrder: SORT_ORDER.NONE,
       connectionPanelWidth: 260,
       queueDrawerOpen: false,
       queueDrawerWidth: 360,
@@ -49,10 +55,6 @@ describe('useUiStore', () => {
 
     it('should have default locale', () => {
       expect(useUiStore.getState().locale).toBe(DEFAULT_LANGUAGE)
-    })
-
-    it('should have default connectionSortOrder', () => {
-      expect(useUiStore.getState().connectionSortOrder).toBe(SORT_ORDER.NONE)
     })
 
     it('should have default connectionPanelWidth of 260', () => {
@@ -93,8 +95,9 @@ describe('useUiStore', () => {
       })
     })
 
-    it('should include current locale and connectionSortOrder when persisting', () => {
-      useUiStore.setState({ locale: SUPPORTED_LANGUAGE.ZH_CN, connectionSortOrder: SORT_ORDER.ASC })
+    it('should include current locale and connectionSortOrder from connection store when persisting', () => {
+      useUiStore.setState({ locale: SUPPORTED_LANGUAGE.ZH_CN })
+      vi.mocked(useConnectionStore.getState).mockReturnValue({ sortOrder: SORT_ORDER.ASC } as never)
       useUiStore.getState().setAppearance(THEME.DARK)
 
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
@@ -122,8 +125,11 @@ describe('useUiStore', () => {
       })
     })
 
-    it('should include current appearance and connectionSortOrder when persisting', () => {
-      useUiStore.setState({ appearance: THEME.DARK, connectionSortOrder: SORT_ORDER.DESC })
+    it('should include current appearance and connectionSortOrder from connection store when persisting', () => {
+      useUiStore.setState({ appearance: THEME.DARK })
+      vi.mocked(useConnectionStore.getState).mockReturnValue({
+        sortOrder: SORT_ORDER.DESC,
+      } as never)
       useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN)
 
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
@@ -153,12 +159,10 @@ describe('useUiStore', () => {
       useUiStore.getState().initialize({
         appearance: THEME.DARK,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
-        connectionSortOrder: SORT_ORDER.ASC,
       })
 
       expect(useUiStore.getState().appearance).toBe(THEME.DARK)
       expect(useUiStore.getState().locale).toBe(SUPPORTED_LANGUAGE.ZH_CN)
-      expect(useUiStore.getState().connectionSortOrder).toBe(SORT_ORDER.ASC)
     })
 
     it('should set initialized to true', () => {
@@ -181,6 +185,16 @@ describe('useUiStore', () => {
       expect(useUiStore.getState().initialized).toBe(true)
       expect(useUiStore.getState().appearance).toBe(DEFAULT_THEME_VALUE)
       expect(useUiStore.getState().locale).toBe(DEFAULT_LANGUAGE)
+    })
+
+    it('should not set connectionSortOrder from settings', () => {
+      useUiStore.getState().initialize({
+        connectionSortOrder: SORT_ORDER.ASC,
+      })
+
+      // connectionSortOrder should not be a key in UiStore state
+      const state = useUiStore.getState()
+      expect(Object.keys(state).includes('connectionSortOrder')).toBe(false)
     })
   })
 

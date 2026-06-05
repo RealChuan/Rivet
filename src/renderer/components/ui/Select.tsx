@@ -1,6 +1,9 @@
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 
+import { useClickOutside } from '@renderer/hooks/index.js'
+import { cn } from '@renderer/utils/index.js'
+
 interface SelectOption {
   value: string
   label: string
@@ -21,15 +24,11 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
 
   const selectedOption = options.find(opt => opt.value === value)
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  useClickOutside({
+    ref: containerRef,
+    includeEscape: false,
+    onOutside: () => setIsOpen(false),
+  })
 
   useEffect(() => {
     if (isOpen && highlightedIndex >= 0 && listRef.current) {
@@ -62,8 +61,8 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
         className={`
           w-full px-3 pr-8 py-2 bg-bg border border-border rounded-md
           text-text text-left flex items-center justify-between relative cursor-pointer
-          transition-colors duration-150 hover:border-text-muted focus:outline-none
-          focus:ring-2 focus:ring-ring text-[13px] box-border min-h-8.25 m-0
+          transition-colors duration-150 hover:border-text-muted focus-visible:outline-none
+          focus-visible:ring-2 focus-visible:ring-ring text-[13px] box-border min-h-8.25 m-0
         `}
       >
         <span className="flex-1 truncate">{selectedOption?.label ?? 'Select...'}</span>
@@ -74,7 +73,10 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
+          className={cn(
+            'absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-150',
+            isOpen && 'rotate-180'
+          )}
         >
           <polyline points="6 9 12 15 18 9" />
         </svg>
@@ -97,11 +99,11 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
               }}
               onMouseEnter={() => setHighlightedIndex(index)}
               onMouseLeave={() => setHighlightedIndex(-1)}
-              className={`
-                px-3 py-2 cursor-pointer transition-colors duration-100
-                ${highlightedIndex === index ? 'bg-hover' : 'bg-transparent'}
-                ${option.value === value ? 'text-accent font-medium' : 'text-text font-normal'}
-              `}
+              className={cn(
+                'px-3 py-2 cursor-pointer transition-colors duration-100',
+                highlightedIndex === index ? 'bg-hover' : 'bg-transparent',
+                option.value === value ? 'text-accent font-medium' : 'text-text font-normal'
+              )}
             >
               {option.label}
             </li>

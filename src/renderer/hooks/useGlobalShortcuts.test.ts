@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSessionStore } from '../features/session/stores/session.js'
-import { useGlobalShortcuts } from './useGlobalShortcuts.js'
+import { useGlobalShortcuts } from './use-global-shortcuts.js'
 
 vi.mock('../features/session/stores/session.js', () => ({
   useSessionStore: vi.fn(),

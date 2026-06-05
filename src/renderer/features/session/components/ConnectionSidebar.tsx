@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import ConfirmationDialog from '@renderer/components/common/ConfirmationDialog.js'
 import { HostKeyVerificationDialog } from '@renderer/features/host-key/index.js'
-import { useConnectionActions } from '@renderer/features/session/hooks/useConnectionActions.js'
-import { useSessionDisconnect } from '@renderer/features/session/hooks/useSessionDisconnect.js'
+import { useConnectionActions } from '@renderer/features/session/hooks/use-connection-actions.js'
+import { useSessionDisconnect } from '@renderer/features/session/hooks/use-session-disconnect.js'
 import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { SORT_ORDER } from '@shared/constants/index.js'
@@ -128,8 +128,8 @@ export const ConnectionSidebar: React.FC = () => {
           onConfirm={() => handleConfirmDelete()}
           title={t('confirmationDialog.deleteConnectionTitle')}
           message={t('confirmationDialog.deleteConnectionMessage')}
-          confirmText={t('action.delete')}
-          cancelText={t('action.cancel')}
+          confirmText={t('common.action.delete')}
+          cancelText={t('common.action.cancel')}
           type="danger"
         />
         <ConfirmationDialog
@@ -138,8 +138,8 @@ export const ConnectionSidebar: React.FC = () => {
           onConfirm={() => void handleConfirm()}
           title={title}
           message={message}
-          confirmText={t('action.confirm')}
-          cancelText={t('action.cancel')}
+          confirmText={t('common.action.confirm')}
+          cancelText={t('common.action.cancel')}
           type="warning"
         />
       </div>

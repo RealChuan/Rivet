@@ -1,6 +1,8 @@
 import type React from 'react'
 import { useState } from 'react'
 
+import { cn } from '@renderer/utils/index.js'
+
 interface ResizerProps {
   isDragging: boolean
   onMouseDown: (e: React.MouseEvent) => void
@@ -19,17 +21,17 @@ export const Resizer: React.FC<ResizerProps> = ({ isDragging, onMouseDown }) => 
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`
-          h-full w-px transition-colors duration-150
-          ${isActive ? 'bg-accent/30' : 'bg-border'}
-        `}
+        className={cn(
+          'h-full w-px transition-colors duration-150',
+          isActive ? 'bg-accent/30' : 'bg-border'
+        )}
       />
       <div
-        className={`
-          absolute w-0.5 h-5 rounded-full bg-accent
-          transition-all duration-150
-          ${isActive ? 'opacity-100' : 'opacity-0'}
-        `}
+        className={cn(
+          'absolute w-0.5 h-5 rounded-full bg-accent',
+          'transition-all duration-150',
+          isActive ? 'opacity-100' : 'opacity-0'
+        )}
       />
     </div>
   )

@@ -48,7 +48,10 @@ const IconSquare = ({ className }: { className?: string }) => (
   </svg>
 )
 
-const IconMaximize2 = ({ className }: { className?: string }) => (
+interface IconMaximize2Props {
+  className?: string
+}
+const IconMaximize2 = ({ className }: IconMaximize2Props) => (
   <svg
     width="12"
     height="12"
@@ -241,7 +244,7 @@ export function TitleBar({
           <>
             <button
               onClick={handleMinimize}
-              className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus:outline-none cursor-default"
+              className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 cursor-default"
               aria-label={t('titleBar.minimize')}
               title={t('titleBar.minimize')}
               type="button"
@@ -251,7 +254,7 @@ export function TitleBar({
 
             <button
               onClick={handleMaximize}
-              className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus:outline-none cursor-default"
+              className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 cursor-default"
               aria-label={isMaximized ? t('titleBar.restore') : t('titleBar.maximize')}
               title={isMaximized ? t('titleBar.restore') : t('titleBar.maximize')}
               type="button"
@@ -263,7 +266,7 @@ export function TitleBar({
 
         <button
           onClick={handleClose}
-          className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-danger hover:text-white transition-colors duration-150 focus:outline-none cursor-default"
+          className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-danger hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 cursor-default"
           aria-label={t('titleBar.close')}
           title={t('titleBar.close')}
           type="button"

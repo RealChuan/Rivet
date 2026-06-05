@@ -63,5 +63,3 @@ export const TRANSFER_CONFIG = {
   MAX_CONCURRENCY: 10,
   MAX_INLINE_OPERATIONS: 3,
 } as const
-
-export type TransferConfigKey = (typeof TRANSFER_CONFIG)[keyof typeof TRANSFER_CONFIG]

@@ -48,6 +48,13 @@ export const useFileListState = () => {
     setSelectedFile(file)
   }
 
+  const handleSelectAll = (sortedFiles: FileInfo[]) => {
+    setSelectedFiles(sortedFiles)
+    if (sortedFiles.length > 0) {
+      setSelectedFile(sortedFiles[sortedFiles.length - 1] ?? null)
+    }
+  }
+
   const clearSelection = () => {
     setSelectedFiles([])
     setSelectedFile(null)
@@ -95,6 +102,7 @@ export const useFileListState = () => {
     contextMenu,
     handleSelectFile,
     handleMultiSelect,
+    handleSelectAll,
     clearSelection,
     openDeleteDialog,
     closeDeleteDialog,
@@ -104,5 +112,7 @@ export const useFileListState = () => {
     closeContextMenu,
   }
 }
+
+export type UseFileListStateReturn = ReturnType<typeof useFileListState>
 
 export default useFileListState

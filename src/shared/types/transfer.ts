@@ -38,8 +38,8 @@ export interface UploadOperation {
   status: UploadOperationStatus
   fileSize?: number
   transferredSize: number
-  startedAt?: number
-  errorMessage?: string
+  startedAt?: number | undefined
+  errorMessage?: string | undefined
 }
 
 export interface OperationProgressInfo {
@@ -59,9 +59,9 @@ export interface TransferProgressData {
   fileSize?: number
   speed?: number
   totalFileCount?: number
-  completedFileCount?: number
-  activeFileCount?: number
-  waitingFileCount?: number
+  completedFileCount?: number | undefined
+  activeFileCount?: number | undefined
+  waitingFileCount?: number | undefined
   activeOperations?: OperationProgressInfo[]
 }
 

@@ -128,5 +128,3 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
     await saveSortOrderToSettings(order)
   },
 }))
-
-export default useConnectionStore

@@ -1,9 +1,10 @@
 import type React from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
 import { useUploadDialog } from '@renderer/features/file-explorer/hooks/index.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
+import { useClickOutside } from '@renderer/hooks/index.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import { ROOT_PATH, TOAST_TYPE } from '@shared/constants/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
@@ -23,9 +24,11 @@ const ToolButton = ({ onClick, title, isActive = false, children }: ToolButtonPr
   <button
     onClick={onClick}
     title={title}
+    aria-label={title}
     className={`
       p-1.5 rounded flex items-center justify-center
       border-none cursor-pointer transition-all duration-150
+      focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
       ${isActive ? 'text-accent bg-hover' : 'text-text hover:bg-hover'}
     `}
   >
@@ -50,23 +53,12 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
   const [showUploadMenu, setShowUploadMenu] = useState(false)
   const uploadMenuRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!showUploadMenu) return
-    const handleClickOutside = (e: MouseEvent) => {
-      if (uploadMenuRef.current && !uploadMenuRef.current.contains(e.target as Node)) {
-        setShowUploadMenu(false)
-      }
-    }
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setShowUploadMenu(false)
-    }
-    document.addEventListener('click', handleClickOutside)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('click', handleClickOutside)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [showUploadMenu])
+  useClickOutside({
+    ref: uploadMenuRef,
+    enabled: showUploadMenu,
+    event: 'click',
+    onOutside: () => setShowUploadMenu(false),
+  })
 
   const handleRefresh = async () => {
     try {
@@ -98,7 +90,7 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
 
   return (
     <div className="flex items-center gap-0.5 ml-auto">
-      <ToolButton onClick={() => void handleRefresh()} title={`${t('action.refresh')} (F5)`}>
+      <ToolButton onClick={() => void handleRefresh()} title={`${t('common.action.refresh')} (F5)`}>
         <svg className="w-4 h-4 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
           <polyline points="23 4 23 10 17 10" />
           <polyline points="1 20 1 14 7 14" />
@@ -128,7 +120,7 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
         {showUploadMenu && (
           <div className="absolute right-0 top-full mt-1 bg-bg rounded-md shadow-dropdown border border-border p-1 min-w-40 z-1000 animate-menu-in">
             <button
-              className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
+              className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
               onClick={() => {
                 setShowUploadMenu(false)
                 void openFilePicker()
@@ -142,7 +134,7 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
               {t('file.action.uploadFiles')}
             </button>
             <button
-              className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
+              className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
               onClick={() => {
                 setShowUploadMenu(false)
                 void openFolderPicker()
@@ -165,7 +157,7 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
         onSubmit={folderName => void handleNewFolder(folderName)}
         title={t('file.action.newFolder')}
         placeholder={t('textInputDialog.newFolderPlaceholder')}
-        submitText={t('action.confirm')}
+        submitText={t('common.action.confirm')}
       />
     </div>
   )

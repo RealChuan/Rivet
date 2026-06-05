@@ -1,4 +1,7 @@
 export { ConfirmationDialog } from './ConfirmationDialog.js'
+export { ConflictDialogBase, CONFLICT_STRATEGY } from './ConflictDialogBase.js'
+export type { ConflictStrategy } from './ConflictDialogBase.js'
+export { ErrorBoundary } from './ErrorBoundary.js'
 export { FileIcon } from './FileIcon.js'
 export { RetryIcon } from './RetryIcon.js'
 export { TextInputDialog } from './TextInputDialog.js'

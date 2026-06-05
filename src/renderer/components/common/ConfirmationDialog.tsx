@@ -99,10 +99,10 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
         <div className="flex justify-end gap-2.5 w-full">
           <Button variant="secondary" onClick={() => void handleCancel()}>
-            {cancelText ?? t('action.cancel')}
+            {cancelText ?? t('common.action.cancel')}
           </Button>
           <Button variant={config.buttonVariant} onClick={() => void handleConfirm()}>
-            {confirmText ?? t('action.confirm')}
+            {confirmText ?? t('common.action.confirm')}
           </Button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import FileIcon from '@renderer/components/common/FileIcon.js'
+import { cn } from '@renderer/utils/index.js'
 import { FILE_TYPE } from '@shared/constants/index.js'
 import { type FileInfo } from '@shared/types/index.js'
 import { formatDate, formatFileSize } from '@shared/utils/index.js'
@@ -59,26 +60,19 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
   const sizeContent = file.type === FILE_TYPE.FILE ? formatFileSize(file.size ?? 0, lng) : '-'
   const modifyTimeContent = formatDate(file.modifyTime ?? 0, lng)
 
-  const getBgColor = () => {
-    if (isSelected || isPending) return 'bg-selected border-l border-l-accent'
-    if (isHovered) return 'bg-hover border-l border-l-border'
-    return 'bg-transparent border-l border-l-border'
-  }
-
-  const getTextColor = () => {
-    return isSelected ? 'text-accent' : 'text-text'
-  }
-
   return (
     <div
       key={file.name}
       data-file-item={file.name}
-      className={`
-        flex items-center h-10 cursor-pointer
-        border-b border-border min-w-full box-border
-        relative select-none transition-all duration-150
-        ${getBgColor()} ${getTextColor()}
-      `}
+      className={cn(
+        'flex items-center h-10 cursor-pointer border-b border-border min-w-full box-border relative select-none transition-all duration-150',
+        isSelected || isPending
+          ? 'bg-selected border-l border-l-accent'
+          : isHovered
+            ? 'bg-hover border-l border-l-border'
+            : 'bg-transparent border-l border-l-border',
+        isSelected ? 'text-accent' : 'text-text'
+      )}
       style={{ ...style, minWidth: totalWidth }}
       onMouseEnter={() => onHover(file.name)}
       onMouseLeave={() => onHover(null)}

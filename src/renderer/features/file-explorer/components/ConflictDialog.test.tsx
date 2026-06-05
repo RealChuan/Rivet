@@ -11,6 +11,7 @@ vi.mock('react-i18next', () => ({
 }))
 
 vi.mock('@renderer/utils/index.js', () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), catch: vi.fn() },
 }))
 
@@ -76,7 +77,7 @@ describe('ConflictDialog', () => {
   it('should call onClose when cancel button is clicked', () => {
     const onClose = vi.fn()
     render(<ConflictDialog {...defaultProps} onClose={onClose} />)
-    const cancelButton = screen.getByText('action.cancel')
+    const cancelButton = screen.getByText('common.action.cancel')
     fireEvent.click(cancelButton)
     expect(onClose).toHaveBeenCalledTimes(1)
   })
@@ -84,7 +85,7 @@ describe('ConflictDialog', () => {
   it('should call onConfirm when confirm button is clicked', () => {
     const onConfirm = vi.fn()
     render(<ConflictDialog {...defaultProps} onConfirm={onConfirm} />)
-    const confirmButton = screen.getByText('action.confirm')
+    const confirmButton = screen.getByText('common.action.confirm')
     fireEvent.click(confirmButton)
     expect(onConfirm).toHaveBeenCalledTimes(1)
   })

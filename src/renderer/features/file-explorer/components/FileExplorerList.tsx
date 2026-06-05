@@ -5,18 +5,13 @@ import VirtualList from '@renderer/components/ui/VirtualList.js'
 import {
   useColumnResizing,
   useDirectoryNavigation,
-  useFileCopyMove,
-  useFileDeletion,
   useFileDragSelect,
   useFileListState,
-  useFileRenaming,
   useFileSort,
-  useFolderCreation,
-  useUploadDialog,
 } from '@renderer/features/file-explorer/hooks/index.js'
 import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useTransferActions } from '@renderer/features/transfer/hooks/useTransferActions.js'
+import { useTransferActions } from '@renderer/features/transfer/hooks/use-transfer-actions.js'
 import { PROTOCOL } from '@shared/constants/index.js'
 import { type FileInfo } from '@shared/types/index.js'
 import FileExplorerDialogs from './FileExplorerDialogs.js'
@@ -44,32 +39,22 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
   const connection = connections.find(c => c.id === session?.connectionId)
   const isWebdav = connection?.protocol === PROTOCOL.WEBDAV
   const { startMixedUpload } = useTransferActions()
-  const { openFilePicker, openFolderPicker } = useUploadDialog({ sessionId, currentPath })
   const [isDragOver, setIsDragOver] = useState(false)
 
+  const listState = useFileListState()
   const {
-    selectedFile,
     selectedFiles,
     setSelectedFile,
     setSelectedFiles,
-    deleteDialogOpen,
-    renameDialogOpen,
-    fileToDelete,
-    newFolderDialogOpen,
-    setNewFolderDialogOpen,
     hoveredFile,
     setHoveredFile,
-    contextMenu,
     handleSelectFile,
     handleMultiSelect,
+    handleSelectAll,
     clearSelection,
-    openDeleteDialog,
-    closeDeleteDialog,
-    openRenameDialog,
-    closeRenameDialog,
     openContextMenu,
     closeContextMenu,
-  } = useFileListState()
+  } = listState
 
   const { columnWidths, actualColumnWidths, handleResizeStart, containerRef, resetColumnWidths } =
     useColumnResizing({ isWebdav })
@@ -101,11 +86,6 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
         }
       },
     })
-
-  const { handleDelete } = useFileDeletion(sessionId)
-  const { handleRename } = useFileRenaming(sessionId)
-  const { handleCreateFolder } = useFolderCreation(sessionId)
-  const fileCopyMoveState = useFileCopyMove(sessionId)
 
   const handleFileClick = (file: FileInfo, e: React.MouseEvent) => {
     if (hasStartedDrag) return
@@ -141,28 +121,17 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
     }
   }
 
-  const handleRenameWrapper = (newName: string) => {
-    if (selectedFile) {
-      void handleRename(selectedFile, newName)
-      closeRenameDialog()
-    }
-  }
-
-  const handleCreateFolderWrapper = (folderName: string) => {
-    void handleCreateFolder(currentPath, folderName)
-  }
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragOver(true)
-  }, [])
+  }
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragOver(false)
-  }, [])
+  }
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -206,6 +175,17 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
     document.addEventListener('click', handleGlobalClick)
     return () => document.removeEventListener('click', handleGlobalClick)
   }, [closeContextMenu])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault()
+        handleSelectAll(sortedFiles)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleSelectAll, sortedFiles])
 
   const renderFileExplorerItem = (file: FileInfo, _index: number, style: React.CSSProperties) => (
     <FileExplorerItem
@@ -257,7 +237,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
     <div className="flex flex-col h-full" style={{ width: '100%' }}>
       {(session.isLoading || session.isOperating) && files.length > 0 && (
         <div className="h-0.5 bg-accent/10 shrink-0 overflow-hidden">
-          <div className="h-full bg-accent animate-[loading-bar_1.5s_ease-in-out_infinite]" />
+          <div className="h-full bg-accent animate-progress-indeterminate" />
         </div>
       )}
       <div
@@ -321,27 +301,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
 
       <ParentDirectoryButton currentPath={currentPath} onNavigate={handleParentDirectory} />
 
-      <FileExplorerDialogs
-        sessionId={sessionId}
-        selectedFile={selectedFile}
-        deleteDialogOpen={deleteDialogOpen}
-        closeDeleteDialog={closeDeleteDialog}
-        fileToDelete={fileToDelete}
-        handleDelete={handleDelete}
-        renameDialogOpen={renameDialogOpen}
-        closeRenameDialog={closeRenameDialog}
-        handleRenameWrapper={handleRenameWrapper}
-        newFolderDialogOpen={newFolderDialogOpen}
-        setNewFolderDialogOpen={setNewFolderDialogOpen}
-        handleCreateFolderWrapper={handleCreateFolderWrapper}
-        fileCopyMoveState={fileCopyMoveState}
-        contextMenu={contextMenu}
-        closeContextMenu={closeContextMenu}
-        openDeleteDialog={openDeleteDialog}
-        openRenameDialog={openRenameDialog}
-        onUploadFiles={() => void openFilePicker()}
-        onUploadFolder={() => void openFolderPicker()}
-      />
+      <FileExplorerDialogs sessionId={sessionId} currentPath={currentPath} listState={listState} />
     </div>
   )
 }

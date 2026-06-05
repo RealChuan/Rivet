@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 import type { FileInfo } from '@shared/types/index.js'
-import { useFileDragSelect } from './useFileDragSelect.js'
+import { useFileDragSelect } from './use-file-drag-select.js'
 
 const mockFiles: FileInfo[] = [
   {

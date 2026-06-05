@@ -177,5 +177,3 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     }))
   },
 }))
-
-export default useSessionStore

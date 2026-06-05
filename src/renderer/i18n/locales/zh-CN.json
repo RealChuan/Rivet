@@ -1,13 +1,5 @@
 {
   "translation": {
-    "action": {
-      "cancel": "取消",
-      "close": "关闭",
-      "confirm": "确认",
-      "create": "创建",
-      "delete": "删除",
-      "refresh": "刷新"
-    },
     "activityBar": {
       "connections": "连接",
       "transfers": "传输"
@@ -15,6 +7,23 @@
     "app": {
       "name": "Rivet",
       "subtitle": "SFTP / WebDAV"
+    },
+    "common": {
+      "action": {
+        "cancel": "取消",
+        "close": "关闭",
+        "confirm": "确认",
+        "create": "创建",
+        "delete": "删除",
+        "refresh": "刷新"
+      },
+      "sort": {
+        "asc": "升序",
+        "desc": "降序"
+      },
+      "test": {
+        "key": "测试"
+      }
     },
     "confirmationDialog": {
       "confirmDeleteMessage": "确定要删除此项吗？",
@@ -29,6 +38,7 @@
       "connections": "连接列表",
       "disconnect": "断开连接",
       "edit": "编辑",
+      "moreActions": "更多操作",
       "newConnection": "新建连接",
       "newConnectionHint": "创建您的第一个连接",
       "noConnections": "暂无连接"
@@ -75,15 +85,8 @@
         "uploadFolder": "上传文件夹..."
       },
       "conflict": {
-        "applyToAll": "应用到所有",
-        "cannotOverwrite": "无法将文件覆盖到同名文件夹，或反之",
-        "globalAction": "全部操作",
-        "keepBoth": "保留两者",
-        "overwrite": "覆盖",
-        "skip": "跳过",
         "source": "源文件",
-        "target": "目标位置",
-        "title": "文件冲突"
+        "target": "目标位置"
       },
       "dropToUpload": "拖放以上传"
     },
@@ -117,18 +120,11 @@
       "lightMode": "浅色模式",
       "system": "系统"
     },
-    "sort": {
-      "asc": "升序",
-      "desc": "降序"
-    },
     "sortButton": {
       "sortConnections": "排序连接"
     },
     "targetFolderDialog": {
       "title": "选择目标文件夹"
-    },
-    "test": {
-      "key": "测试"
     },
     "textInputDialog": {
       "folderNamePlaceholder": "文件夹名称",
@@ -185,15 +181,8 @@
         "title": "上传任务进行中"
       },
       "conflict": {
-        "applyToAll": "应用到所有",
-        "cannotOverwrite": "无法将文件覆盖到同名文件夹，或反之",
-        "globalAction": "全部操作",
-        "keepBoth": "保留两者",
-        "overwrite": "覆盖",
-        "skip": "跳过",
         "source": "本地",
-        "target": "远程",
-        "title": "上传冲突"
+        "target": "远程"
       },
       "download": "下载",
       "downloadDisabled": "即将推出",

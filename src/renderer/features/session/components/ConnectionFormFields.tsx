@@ -4,6 +4,7 @@ import { Checkbox } from '@renderer/components/ui/Checkbox.js'
 import Input from '@renderer/components/ui/Input.js'
 import PasswordInput from '@renderer/components/ui/PasswordInput.js'
 import Select from '@renderer/components/ui/Select.js'
+import { cn } from '@renderer/utils/index.js'
 import {
   PORT_SFTP,
   PORT_WEBDAV_HTTPS,
@@ -123,18 +124,19 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
               <button
                 type="button"
                 onClick={() => onSchemeChange(SCHEME.HTTP)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 ${
+                className={cn(
+                  'flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
                   scheme === SCHEME.HTTP
                     ? 'border border-accent bg-accent-light text-accent'
                     : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg'
-                }`}
+                )}
               >
                 HTTP
               </button>
               <button
                 type="button"
                 onClick={() => onSchemeChange(SCHEME.HTTPS)}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 ${
+                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2 ${
                   scheme === SCHEME.HTTPS
                     ? 'border border-accent bg-accent-light text-accent'
                     : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg'

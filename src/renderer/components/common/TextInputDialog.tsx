@@ -58,10 +58,10 @@ export const TextInputDialog: React.FC<TextInputDialogProps> = ({
         />
         <div className="flex justify-end gap-2.5">
           <Button type="button" variant="secondary" onClick={onClose}>
-            {t('action.cancel')}
+            {t('common.action.cancel')}
           </Button>
           <Button type="submit" variant="primary" disabled={!value.trim()}>
-            {submitText ?? t('action.confirm')}
+            {submitText ?? t('common.action.confirm')}
           </Button>
         </div>
       </form>

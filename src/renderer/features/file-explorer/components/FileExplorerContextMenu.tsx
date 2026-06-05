@@ -1,6 +1,7 @@
 import type React from 'react'
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useClickOutside } from '@renderer/hooks/index.js'
 import { type FileInfo } from '@shared/types/index.js'
 
 interface FileExplorerContextMenuProps {
@@ -35,27 +36,11 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
   const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose()
-      }
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    document.addEventListener('click', handleClick)
-    document.addEventListener('keydown', handleKeyDown)
-
-    return () => {
-      document.removeEventListener('click', handleClick)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [onClose])
+  useClickOutside({
+    ref: menuRef,
+    event: 'click',
+    onOutside: onClose,
+  })
 
   const menuClass = `
     fixed bg-bg rounded-md shadow-dropdown border border-border
@@ -66,6 +51,7 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
     w-full px-3 py-2 text-left text-xs text-text
     bg-transparent border-none rounded cursor-pointer
     flex items-center gap-2 hover:bg-hover transition-colors
+    focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
   `
 
   const separatorClass = 'h-px bg-border my-1'
@@ -149,7 +135,7 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
               <polyline points="3 6 5 6 21 6" />
               <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
             </svg>
-            {t('action.delete')} {files.length > 1 ? `(${files.length})` : ''}
+            {t('common.action.delete')} {files.length > 1 ? `(${files.length})` : ''}
           </button>
         </>
       )}

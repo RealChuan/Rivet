@@ -75,9 +75,9 @@ export interface DialogAPI {
     properties: string[]
     defaultPath?: string | undefined
   }) => Promise<Result<{ canceled: boolean; filePaths: string[] } | undefined, ErrorInfo>>
-  showSaveDialog: (
-    options: unknown
-  ) => Promise<Result<{ canceled: boolean; filePath?: string } | undefined, ErrorInfo>>
+  showSaveDialog: (options: {
+    defaultPath?: string | undefined
+  }) => Promise<Result<{ canceled: boolean; filePath?: string } | undefined, ErrorInfo>>
 }
 
 export interface HostKeyAPI {

@@ -40,7 +40,7 @@ export class TransferService {
   private operationsByTask = new Map<string, UploadOperation[]>()
   private runningTasks = 0
   private folderRunningOps = new Map<string, number>()
-  private maxConcurrency: number = TRANSFER_CONFIG.MAX_CONCURRENCY
+  private maxConcurrency: number = TRANSFER_CONFIG.DEFAULT_CONCURRENCY
   private abortControllers = new Map<string, AbortController>()
   private lastProgressTime = new Map<string, number>()
   private lastOpProgressTime = new Map<string, number>()
