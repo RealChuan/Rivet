@@ -7,7 +7,6 @@ import {
   hasConfigChanged,
   markConfigChanged,
   resetConfigChanged,
-  setDefaultUiSettings,
   setInMemoryConfig,
   setToMemory,
 } from './store.js'
@@ -61,17 +60,6 @@ describe('config store', () => {
       }
       setInMemoryConfig(newConfig as never)
       expect(getInMemoryConfig()).toEqual(newConfig)
-    })
-
-    it('should set default ui settings', () => {
-      const newSettings = {
-        appearance: 'light',
-        locale: 'zh',
-        connectionSortOrder: 'name-desc',
-      }
-      setDefaultUiSettings(newSettings as never)
-      const config = getInMemoryConfig()
-      expect(config.uiSettings).toEqual(newSettings)
     })
   })
 })

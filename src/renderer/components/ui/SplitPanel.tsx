@@ -46,8 +46,8 @@ export const SplitPanel: React.FC<SplitPanelProps> = ({
   }, [isDragging, setPanelWidth])
 
   return (
-    <div className="flex-1 flex overflow-hidden">
-      <div className="shrink-0 bg-bg" style={{ width: panelWidth }}>
+    <div className="flex-1 flex overflow-hidden h-full">
+      <div className="shrink-0 h-full border-r border-border bg-bg" style={{ width: panelWidth }}>
         {left}
       </div>
 

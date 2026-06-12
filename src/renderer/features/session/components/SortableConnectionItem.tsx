@@ -1,6 +1,5 @@
 import type React from 'react'
 import { useSortable } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'
 import ConnectionItem from './ConnectionItem.js'
 
@@ -13,6 +12,13 @@ interface SortableConnectionItemProps {
   onReconnect: () => void
   onEdit: () => void
   onDelete: () => void
+}
+
+function transformToString(
+  transform: { x: number; y: number; scaleX: number; scaleY: number } | null
+): string | undefined {
+  if (!transform) return undefined
+  return `translate3d(${transform.x}px, ${transform.y}px, 0)`
 }
 
 export const SortableConnectionItem: React.FC<SortableConnectionItemProps> = ({
@@ -30,7 +36,7 @@ export const SortableConnectionItem: React.FC<SortableConnectionItemProps> = ({
   })
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: transformToString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
     cursor: isDragging ? 'grabbing' : 'grab',

@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { logger } from '@renderer/utils/index.js'
 import { DEFAULT_LANGUAGE, DEFAULT_THEME_VALUE, STORE_KEY } from '@shared/constants/index.js'
 import { isErr, type UiSettings } from '@shared/types/index.js'
 import { useConnectionStore } from '../features/session/stores/connection.js'
 import { useUiStore } from '../stores/index.js'
-import logger from '../utils/logger.js'
 
 export const useApplicationInitialization = () => {
   const { i18n } = useTranslation()
@@ -23,7 +23,7 @@ export const useApplicationInitialization = () => {
         return
       }
 
-      const savedSettings = result.value as UiSettings | null
+      const savedSettings = result.value as UiSettings | null // IPC 返回值，主进程保证类型
       const appearance = savedSettings?.appearance ?? DEFAULT_THEME_VALUE
       const locale = savedSettings?.locale ?? DEFAULT_LANGUAGE
 

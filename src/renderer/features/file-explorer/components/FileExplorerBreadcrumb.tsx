@@ -1,4 +1,6 @@
+import { Home, ChevronRight } from 'lucide-react'
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { cn } from '@renderer/utils/index.js'
 import { ROOT_PATH } from '@shared/constants/index.js'
@@ -14,6 +16,7 @@ export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
   sessionId,
   onNavigate,
 }) => {
+  const { t } = useTranslation()
   const updateCurrentPath = useSessionStore(state => state.updateCurrentPath)
   const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
 
@@ -32,17 +35,15 @@ export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
     <nav className="flex items-center gap-1 text-sm overflow-x-auto flex-1">
       <button
         onClick={() => void handleNavigate(ROOT_PATH)}
+        aria-label={t('fileExplorerList.parentDirectory')}
         className={`
           flex items-center gap-1 px-2 py-1 rounded text-text
           bg-transparent border-none cursor-pointer whitespace-nowrap font-medium
           hover:bg-hover transition-colors
+          focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
         `}
       >
-        <svg className="w-3.5 h-3.5 stroke-accent stroke-2" viewBox="0 0 24 24" fill="none">
-          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-        /
+        <Home className="w-3.5 h-3.5 stroke-accent stroke-2" />/
       </button>
       {pathParts.map((part, index) => {
         const fullPath = '/' + pathParts.slice(0, index + 1).join('/')
@@ -50,13 +51,7 @@ export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
 
         return (
           <React.Fragment key={fullPath}>
-            <svg
-              className="w-3 h-3 stroke-text-muted stroke-2 shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <ChevronRight className="w-3 h-3 stroke-text-muted stroke-2 shrink-0" />
             <button
               onClick={() => void handleNavigate(fullPath)}
               className={cn(

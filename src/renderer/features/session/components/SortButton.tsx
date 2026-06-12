@@ -1,4 +1,5 @@
 import type React from 'react'
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/utils/index.js'
 import { SORT_ORDER, type SortOrder } from '@shared/constants/index.js'
@@ -21,18 +22,13 @@ export const SortButton: React.FC<SortButtonProps> = ({ sortOrder, onClick }) =>
       title={t('sortButton.sortConnections')}
       aria-label={t('sortButton.sortConnections')}
     >
-      <svg className="w-4 h-4 stroke-current" viewBox="0 0 24 24" fill="none">
-        {sortOrder === SORT_ORDER.ASC ? (
-          <polyline points="18 9 12 3 6 9" strokeWidth={2} />
-        ) : sortOrder === SORT_ORDER.DESC ? (
-          <polyline points="6 15 12 21 18 15" strokeWidth={2} />
-        ) : (
-          <>
-            <polyline points="18 9 12 3 6 9" strokeWidth={1.5} />
-            <polyline points="6 15 12 21 18 15" strokeWidth={1.5} />
-          </>
-        )}
-      </svg>
+      {sortOrder === SORT_ORDER.ASC ? (
+        <ArrowUp className="w-4 h-4 stroke-current" aria-hidden="true" />
+      ) : sortOrder === SORT_ORDER.DESC ? (
+        <ArrowDown className="w-4 h-4 stroke-current" aria-hidden="true" />
+      ) : (
+        <ArrowUpDown className="w-4 h-4 stroke-current" aria-hidden="true" />
+      )}
     </button>
   )
 }

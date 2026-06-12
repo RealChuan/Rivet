@@ -1,4 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react'
+import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import { type ResolvedTheme, THEME, type Theme, THEME_VALUES } from '@shared/constants/index.js'
 import { useUiStore } from '../stores/index.js'
 
@@ -15,6 +16,7 @@ function getSystemThemeSnapshot(): ResolvedTheme {
 export function useApplicationTheme() {
   const appearance = useUiStore(state => state.appearance)
   const setAppearance = useUiStore(state => state.setAppearance)
+  const sortOrder = useConnectionStore(state => state.sortOrder)
 
   const systemTheme = useSyncExternalStore(
     subscribeSystemTheme,
@@ -39,13 +41,13 @@ export function useApplicationTheme() {
     const currentIndex = THEME_VALUES.indexOf(currentTheme)
     const nextIndex = (currentIndex + 1) % THEME_VALUES.length
     const nextTheme = THEME_VALUES[nextIndex] ?? THEME.SYSTEM
-    setAppearance(nextTheme)
+    setAppearance(nextTheme, sortOrder)
   }
 
   return {
     theme: appearance,
     resolvedTheme,
-    setTheme: setAppearance,
+    setTheme: (theme: Theme) => setAppearance(theme, sortOrder),
     cycleTheme,
   }
 }

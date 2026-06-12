@@ -1,4 +1,4 @@
-import { ERROR_CODE, STORE_KEY } from '@shared/constants/index.js'
+import { ERROR_CODE, STORE_KEY, TIMEOUTS, TRANSFER_CONFIG } from '@shared/constants/index.js'
 import {
   type ConnectionConfig,
   createErrorInfo,
@@ -7,6 +7,7 @@ import {
   isErr,
   ok,
   type Result,
+  type TransferSettings,
   type UiSettings,
 } from '@shared/types/index.js'
 import { logger } from '../../utils/index.js'
@@ -21,39 +22,67 @@ import {
 import { defaultUiSettings } from './ui-settings.js'
 import { detectSystemLanguage, isValidConnection, isValidUiSettings } from './validation.js'
 
+function loadUiSettings(): UiSettings {
+  const saved = store.get(STORE_KEY.UI_SETTINGS)
+  if (isValidUiSettings(saved)) {
+    if (!saved.locale) {
+      const systemLang = detectSystemLanguage()
+      logger.info(`First launch: language auto-detected as ${systemLang}`)
+      return { ...saved, locale: systemLang }
+    }
+    return { ...saved }
+  }
+  const systemLang = detectSystemLanguage()
+  logger.warn('Invalid UI settings detected, reset to defaults')
+  return { ...defaultUiSettings, locale: systemLang }
+}
+
+function loadConnections(): ConnectionConfig[] {
+  const saved = store.get(STORE_KEY.SAVED_CONNECTIONS)
+  if (Array.isArray(saved)) {
+    const validConnections = saved.filter(isValidConnection)
+    if (validConnections.length !== saved.length) {
+      const removedCount = saved.length - validConnections.length
+      logger.warn(`Filtered ${removedCount} invalid connection(s)`)
+    }
+    return validConnections
+  }
+  logger.warn('Invalid connections format, reset to empty array')
+  return []
+}
+
+function loadTransferSettings(): TransferSettings {
+  const saved = store.get(STORE_KEY.TRANSFER_SETTINGS)
+  if (
+    saved &&
+    typeof saved === 'object' &&
+    typeof saved.maxUploadConcurrency === 'number' &&
+    typeof saved.maxDownloadConcurrency === 'number'
+  ) {
+    return {
+      maxUploadConcurrency: Math.min(
+        TRANSFER_CONFIG.MAX_CONCURRENCY,
+        Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, saved.maxUploadConcurrency)
+      ),
+      maxDownloadConcurrency: Math.min(
+        TRANSFER_CONFIG.MAX_CONCURRENCY,
+        Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, saved.maxDownloadConcurrency)
+      ),
+    }
+  }
+  return {
+    maxUploadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
+    maxDownloadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
+  }
+}
+
 export function initializeConfig(): void {
   try {
-    const savedUiSettings = store.get(STORE_KEY.UI_SETTINGS)
-    const savedConnections = store.get(STORE_KEY.SAVED_CONNECTIONS)
-
-    const uiSettings = (() => {
-      if (isValidUiSettings(savedUiSettings)) {
-        if (!savedUiSettings.locale) {
-          const systemLang = detectSystemLanguage()
-          logger.info(`First launch: language auto-detected as ${systemLang}`)
-          return { ...savedUiSettings, locale: systemLang }
-        }
-        return { ...savedUiSettings }
-      }
-      const systemLang = detectSystemLanguage()
-      logger.warn('Invalid UI settings detected, reset to defaults')
-      return { ...defaultUiSettings, locale: systemLang }
-    })()
-
-    let connections: ConnectionConfig[] = []
-
-    if (Array.isArray(savedConnections)) {
-      const validConnections = savedConnections.filter(isValidConnection)
-      connections = validConnections
-      if (validConnections.length !== savedConnections.length) {
-        const removedCount = savedConnections.length - validConnections.length
-        logger.warn(`Filtered ${removedCount} invalid connection(s)`)
-      }
-    } else {
-      logger.warn('Invalid connections format, reset to empty array')
-    }
-
-    setInMemoryConfig({ savedConnections: connections, uiSettings })
+    setInMemoryConfig({
+      uiSettings: loadUiSettings(),
+      savedConnections: loadConnections(),
+      transferSettings: loadTransferSettings(),
+    })
     logger.info('Config loaded successfully')
   } catch (error) {
     logger.catch(error, { action: 'load-config' })
@@ -61,6 +90,10 @@ export function initializeConfig(): void {
     setInMemoryConfig({
       savedConnections: [],
       uiSettings: { ...defaultUiSettings, locale: systemLang },
+      transferSettings: {
+        maxUploadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
+        maxDownloadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
+      },
     })
   }
 }
@@ -73,8 +106,17 @@ export function flushConfigToDisk(): Result<void, ErrorInfo> {
 
   try {
     const config = getInMemoryConfig()
-    store.set(STORE_KEY.SAVED_CONNECTIONS, config.savedConnections)
+    // savePassword=false 的连接不将密码写入磁盘
+    const connectionsToSave = config.savedConnections.map(connection => {
+      if (!connection.savePassword) {
+        const { password: _, ...rest } = connection
+        return rest
+      }
+      return connection
+    })
+    store.set(STORE_KEY.SAVED_CONNECTIONS, connectionsToSave)
     store.set(STORE_KEY.UI_SETTINGS, config.uiSettings)
+    store.set(STORE_KEY.TRANSFER_SETTINGS, config.transferSettings)
     resetConfigChanged()
     logger.info('Config flushed to disk')
     return ok(undefined)
@@ -85,15 +127,12 @@ export function flushConfigToDisk(): Result<void, ErrorInfo> {
 }
 
 export function saveConfig(): void {
-  const result = flushConfigToDisk()
-  if (isErr(result)) {
-    logger.error(`Failed to save config: ${result.error.message}`)
-  }
+  void flushConfigToDisk()
 }
 
 let autoSaveTimer: ReturnType<typeof setInterval> | null = null
 
-export function startAutoSave(intervalMs: number = 300000): void {
+export function startAutoSave(intervalMs: number = TIMEOUTS.AUTO_SAVE_INTERVAL): void {
   if (autoSaveTimer) {
     stopAutoSave()
   }
@@ -137,16 +176,36 @@ export function setUserInterfaceSettings(settings: UiSettings): Result<void, Err
   }
 }
 
+const configGetHandlers: Record<string, () => Result<unknown, ErrorInfo>> = {
+  [STORE_KEY.SAVED_CONNECTIONS]: () => {
+    const config = getInMemoryConfig()
+    return ok([...config.savedConnections])
+  },
+  [STORE_KEY.UI_SETTINGS]: () => {
+    const config = getInMemoryConfig()
+    return ok({ ...config.uiSettings })
+  },
+}
+
+const configSetHandlers: Record<string, (value: unknown) => Result<void, ErrorInfo>> = {
+  [STORE_KEY.SAVED_CONNECTIONS]: value => {
+    const connections = (value as ConnectionConfig[]).filter(isValidConnection)
+    setToMemory(STORE_KEY.SAVED_CONNECTIONS, connections)
+    return ok(undefined)
+  },
+  [STORE_KEY.UI_SETTINGS]: value => {
+    if (!isValidUiSettings(value)) {
+      return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Invalid UI settings value'))
+    }
+    setToMemory(STORE_KEY.UI_SETTINGS, { ...value })
+    return ok(undefined)
+  },
+}
+
 export function getConfigurationValue(key: string): Result<unknown, ErrorInfo> {
   try {
-    if (key === STORE_KEY.SAVED_CONNECTIONS) {
-      const config = getInMemoryConfig()
-      return ok([...config.savedConnections])
-    }
-    if (key === STORE_KEY.UI_SETTINGS) {
-      const config = getInMemoryConfig()
-      return ok({ ...config.uiSettings })
-    }
+    const handler = configGetHandlers[key]
+    if (handler) return handler()
     const config = getInMemoryConfig()
     return ok(config[key as keyof typeof config])
   } catch (error) {
@@ -157,14 +216,10 @@ export function getConfigurationValue(key: string): Result<unknown, ErrorInfo> {
 
 export function setConfigurationValue(key: string, value: unknown): Result<void, ErrorInfo> {
   try {
-    if (key === STORE_KEY.SAVED_CONNECTIONS) {
-      const connections = (value as ConnectionConfig[]).filter(isValidConnection)
-      setToMemory(STORE_KEY.SAVED_CONNECTIONS, connections)
-    } else if (key === STORE_KEY.UI_SETTINGS) {
-      if (!isValidUiSettings(value)) {
-        return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Invalid UI settings value'))
-      }
-      setToMemory(STORE_KEY.UI_SETTINGS, { ...value })
+    const handler = configSetHandlers[key]
+    if (handler) {
+      const result = handler(value)
+      if (isErr(result)) return result
     } else {
       const config = getInMemoryConfig()
       setInMemoryConfig({ ...config, [key]: value })
@@ -174,19 +229,5 @@ export function setConfigurationValue(key: string, value: unknown): Result<void,
   } catch (error) {
     logger.catch(error, { action: 'set-config-value', key })
     return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to set config value'))
-  }
-}
-
-export function removeConfigurationValue(key: string): Result<void, ErrorInfo> {
-  try {
-    if (key === STORE_KEY.SAVED_CONNECTIONS) {
-      setToMemory(STORE_KEY.SAVED_CONNECTIONS, [])
-    } else if (key === STORE_KEY.UI_SETTINGS) {
-      setToMemory(STORE_KEY.UI_SETTINGS, { ...defaultUiSettings })
-    }
-    return ok(undefined)
-  } catch (error) {
-    logger.catch(error, { action: 'remove-config-value', key })
-    return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to delete config value'))
   }
 }

@@ -13,4 +13,3 @@ export {
 export { ParentDirectoryButton } from './components/ParentDirectoryButton.js'
 export { TargetFolderDialog } from './components/TargetFolderDialog.js'
 export * from './hooks/index.js'
-export { useFileExplorerStore } from './stores/file-explorer.js'

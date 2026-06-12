@@ -67,5 +67,3 @@ export const windowAPI = {
     }
   },
 }
-
-export type WindowAPI = typeof windowAPI

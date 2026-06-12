@@ -23,6 +23,7 @@ class TestableProtocol extends AbstractProtocol<{ id: string }> {
   copyImpl = vi.fn()
   moveImpl = vi.fn()
   uploadImpl = vi.fn()
+  downloadImpl = vi.fn()
   pingImpl = vi.fn()
 
   protected getSessionInfo(sessionId: string): SessionInfo | null {

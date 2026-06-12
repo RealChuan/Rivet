@@ -19,13 +19,6 @@ export const TOAST_TYPE = {
 
 export type ToastType = (typeof TOAST_TYPE)[keyof typeof TOAST_TYPE]
 
-export const VIEW_MODE = {
-  LIST: 'list',
-  GRID: 'grid',
-} as const
-
-export type ViewMode = (typeof VIEW_MODE)[keyof typeof VIEW_MODE]
-
 export const FILE_TYPE = {
   FILE: 'file',
   DIRECTORY: 'directory',
@@ -39,3 +32,10 @@ export const HOST_KEY_DIALOG_TYPE = {
 } as const
 
 export type HostKeyDialogType = (typeof HOST_KEY_DIALOG_TYPE)[keyof typeof HOST_KEY_DIALOG_TYPE]
+
+export const DIALOG_SIZE = {
+  STANDARD: { width: 420, height: 400 },
+  MEDIUM: { width: 500, height: 360 },
+  LARGE: { width: 550, height: 500 },
+  EXTRA_LARGE: { width: 700, height: 550 },
+} as const

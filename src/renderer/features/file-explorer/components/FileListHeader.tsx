@@ -1,5 +1,7 @@
 import type React from 'react'
+import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { cn } from '@renderer/utils/index.js'
 import {
   type FileExplorerSortField,
   SORT_ORDER,
@@ -34,16 +36,12 @@ interface SortIconProps {
 const SortIcon = ({ sortBy, sortOrder, column }: SortIconProps) => {
   if (sortBy !== column) return null
   return (
-    <svg
-      className={`
-        w-4 h-4 stroke-accent stroke-2
-        ${sortOrder === SORT_ORDER.DESC ? 'rotate-180' : ''}
-      `}
-      viewBox="0 0 24 24"
-      fill="none"
-    >
-      <polyline points="18 9 12 15 6 9" />
-    </svg>
+    <ChevronDown
+      className={cn(
+        'w-4 h-4 stroke-accent stroke-2',
+        sortOrder === SORT_ORDER.DESC && 'rotate-180'
+      )}
+    />
   )
 }
 

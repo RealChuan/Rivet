@@ -10,6 +10,7 @@ const mockAddToast = vi.fn()
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
+  initReactI18next: vi.fn(),
 }))
 
 vi.mock('@renderer/features/session/stores/session.js', () => ({
@@ -17,6 +18,7 @@ vi.mock('@renderer/features/session/stores/session.js', () => ({
     selector({
       refreshCurrentDirectory: mockRefreshCurrentDirectory,
       setOperating: mockSetOperating,
+      sessions: [],
     }),
 }))
 

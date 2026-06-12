@@ -1,4 +1,5 @@
 import type React from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/utils/index.js'
 import { PROTOCOL } from '@shared/constants/index.js'
 
@@ -13,6 +14,7 @@ interface TransferServerItemProps {
   total: number
   isSelected: boolean
   onSelect: () => void
+  style?: React.CSSProperties
 }
 
 export const TransferServerItem: React.FC<TransferServerItemProps> = ({
@@ -25,13 +27,15 @@ export const TransferServerItem: React.FC<TransferServerItemProps> = ({
   total,
   isSelected,
   onSelect,
+  style,
 }) => {
+  const { t } = useTranslation()
   const isRunning = running > 0
   const hasFailed = failed > 0
   const isSftp = protocol === PROTOCOL.SFTP
 
   return (
-    <li>
+    <div style={style}>
       <button
         type="button"
         onClick={onSelect}
@@ -59,7 +63,7 @@ export const TransferServerItem: React.FC<TransferServerItemProps> = ({
 
           {/* 文字信息 */}
           <div className="min-w-0">
-            <div className="truncate text-[15px] font-normal leading-snug text-text">{name}</div>
+            <div className="truncate text-sm font-medium leading-snug text-text">{name}</div>
             <div className="truncate text-xs leading-snug text-text-muted mt-0.5">
               {host}:{port}
             </div>
@@ -75,11 +79,13 @@ export const TransferServerItem: React.FC<TransferServerItemProps> = ({
           >
             {running}/{total}
           </span>
-          {hasFailed && <span className="text-xs text-danger leading-none">{failed} failed</span>}
+          {hasFailed && (
+            <span className="text-xs text-danger leading-none">
+              {t('transfer.status.failedCount', { count: failed })}
+            </span>
+          )}
         </div>
       </button>
-    </li>
+    </div>
   )
 }
-
-export default TransferServerItem

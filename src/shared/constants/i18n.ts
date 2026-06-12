@@ -5,9 +5,4 @@ export const SUPPORTED_LANGUAGE = {
 
 export type SupportedLanguageLiteral = (typeof SUPPORTED_LANGUAGE)[keyof typeof SUPPORTED_LANGUAGE]
 
-export const SUPPORTED_LANGUAGES: readonly string[] = [
-  SUPPORTED_LANGUAGE.ZH_CN,
-  SUPPORTED_LANGUAGE.EN_US,
-]
-
 export const DEFAULT_LANGUAGE = SUPPORTED_LANGUAGE.EN_US

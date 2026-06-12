@@ -1,108 +1,41 @@
+import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { FileInfo } from '@shared/types/index.js'
-import type { ConflictResolution, TransferTask } from '@shared/types/transfer.js'
+import type { ConflictAction } from '@shared/constants/transfer.js'
+import type { FileType } from '@shared/constants/ui.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import logger from '@renderer/utils/logger.js'
 import { TOAST_TYPE } from '@shared/constants/index.js'
+import { SIDEBAR_VIEW, TRANSFER_DIRECTION } from '@shared/constants/transfer.js'
+import { FILE_TYPE } from '@shared/constants/ui.js'
+import { useTransferStore } from '../stores/transfer.js'
 import {
-  SIDEBAR_VIEW,
-  TRANSFER_ITEM_TYPE,
-  TRANSFER_TASK_STATUS,
-  type ConflictAction,
-  type TransferItemType,
-} from '@shared/constants/transfer.js'
-import { isProtocolResponseErr } from '@shared/types/index.js'
-import { joinPaths, pathBasename } from '@shared/utils/index.js'
-import { useTransferConflictStore } from '../stores/transfer-conflict.js'
-import { applyResolutions, detectConflicts } from './transfer-conflict.js'
-
-interface ResolvedTask {
-  localPath: string
-  remotePath: string
-  itemName: string
-  conflictAction?: ConflictAction
-  renamedName?: string
-}
-
-const buildTransferTask = (
-  localPath: string,
-  sessionId: string,
-  remoteDir: string,
-  itemType: TransferItemType,
-  conflictAction?: ConflictAction,
-  renamedName?: string
-): TransferTask => {
-  const name = pathBasename(localPath)
-  const itemName = renamedName ?? name
-  const remotePath = renamedName ? joinPaths(remoteDir, renamedName) : joinPaths(remoteDir, name)
-
-  return {
-    id: crypto.randomUUID(),
-    sessionId,
-    localPath,
-    remotePath,
-    itemName,
-    itemType,
-    status: TRANSFER_TASK_STATUS.WAITING,
-    ...(conflictAction !== undefined ? { conflictAction } : {}),
-    ...(renamedName !== undefined ? { renamedName } : {}),
-    fileSize: 0,
-    transferredSize: 0,
-    createdAt: Date.now(),
-  }
-}
-
-async function fetchRemoteFiles(sessionId: string, remoteDir: string): Promise<FileInfo[]> {
-  const response = await window.electronAPI.protocol.list(sessionId, remoteDir)
-  if (!isProtocolResponseErr(response)) {
-    return response.value
-  }
-  return []
-}
-
-interface ResolveParams {
-  localPaths: string[]
-  remoteFiles: FileInfo[]
-  remoteDir: string
-  itemType: TransferItemType
-}
-
-async function resolveConflictsAndBuildTasks(
-  params: ResolveParams
-): Promise<ResolvedTask[] | null> {
-  const { localPaths, remoteFiles, remoteDir, itemType } = params
-
-  const conflicts = detectConflicts(localPaths, remoteFiles, remoteDir, itemType)
-
-  if (conflicts.length > 0) {
-    const resolutions = await new Promise<ConflictResolution[] | null>(resolve => {
-      useTransferConflictStore.getState().openDialog(conflicts, resolve)
-    })
-
-    if (!resolutions) return null
-
-    return applyResolutions(localPaths, resolutions, remoteDir, itemType)
-  }
-
-  return localPaths.map(p => ({
-    localPath: p,
-    remotePath: joinPaths(remoteDir, pathBasename(p)),
-    itemName: pathBasename(p),
-  }))
-}
+  resolveConflictsAndBuildTasks,
+  resolveMixedConflicts,
+} from '../utils/transfer-conflict-resolver.js'
+import {
+  buildDownloadTask,
+  buildTransferTask,
+  fetchRemoteFiles,
+} from '../utils/transfer-task-builder.js'
 
 interface UseTransferActionsReturn {
   startUpload: (
     localPaths: string[],
     sessionId: string,
     remoteDir: string,
-    itemType?: TransferItemType
+    itemType?: FileType
   ) => Promise<void>
   startMixedUpload: (
     filePaths: string[],
     folderPaths: string[],
     sessionId: string,
     remoteDir: string
+  ) => Promise<void>
+  startDownload: (
+    remoteItems: { path: string; name: string; type: FileType; size: number }[],
+    sessionId: string,
+    localDir: string,
+    itemType?: FileType
   ) => Promise<void>
   cancelTask: (taskId: string) => Promise<void>
   cancelAll: (sessionId?: string) => Promise<void>
@@ -114,35 +47,127 @@ export function useTransferActions(): UseTransferActionsReturn {
   const { t } = useTranslation()
   const addToast = useUiStore(state => state.addToast)
   const setActiveView = useUiStore(state => state.setActiveView)
+  const setActiveTab = useTransferStore(state => state.setActiveTab)
 
-  const startUpload = async (
-    localPaths: string[],
+  const startMixedUpload = useCallback(
+    async (filePaths: string[], folderPaths: string[], sessionId: string, remoteDir: string) => {
+      if (filePaths.length === 0 && folderPaths.length === 0) return
+
+      try {
+        const remoteFiles = await fetchRemoteFiles(sessionId, remoteDir)
+
+        const result = await resolveMixedConflicts({
+          filePaths,
+          folderPaths,
+          remoteFiles,
+          remoteDir,
+        })
+
+        if (!result) return
+
+        const tasks = [
+          ...result.resolvedFilePaths.map(p =>
+            buildTransferTask(
+              p.localPath,
+              sessionId,
+              remoteDir,
+              FILE_TYPE.FILE,
+              p.conflictAction,
+              p.renamedName
+            )
+          ),
+          ...result.resolvedFolderPaths.map(p =>
+            buildTransferTask(
+              p.localPath,
+              sessionId,
+              remoteDir,
+              FILE_TYPE.DIRECTORY,
+              p.conflictAction,
+              p.renamedName
+            )
+          ),
+        ]
+
+        const addResult = await window.electronAPI.transfer.add(tasks)
+
+        if (addResult.duplicates.length > 0) {
+          addToast({
+            type: TOAST_TYPE.WARNING,
+            message: t('toast.uploadDuplicates', { count: addResult.duplicates.length }),
+          })
+        }
+
+        setActiveTab(TRANSFER_DIRECTION.UPLOAD)
+        setActiveView(SIDEBAR_VIEW.TRANSFERS)
+      } catch (error) {
+        logger.catch(error, { action: 'startMixedUpload' })
+        addToast({
+          type: TOAST_TYPE.ERROR,
+          message: `${t('toast.uploadFailed')}: ${error instanceof Error ? error.message : String(error)}`,
+        })
+      }
+    },
+    [addToast, setActiveTab, setActiveView, t]
+  )
+
+  const startUpload = useCallback(
+    async (
+      localPaths: string[],
+      sessionId: string,
+      remoteDir: string,
+      itemType: FileType = FILE_TYPE.FILE
+    ) => {
+      const filePaths = itemType === FILE_TYPE.FILE ? localPaths : []
+      const folderPaths = itemType === FILE_TYPE.DIRECTORY ? localPaths : []
+      return startMixedUpload(filePaths, folderPaths, sessionId, remoteDir)
+    },
+    [startMixedUpload]
+  )
+
+  const startDownload = async (
+    remoteItems: { path: string; name: string; type: FileType; size: number }[],
     sessionId: string,
-    remoteDir: string,
-    itemType: TransferItemType = TRANSFER_ITEM_TYPE.FILE
+    localDir: string,
+    itemType: FileType = FILE_TYPE.FILE
   ) => {
-    if (localPaths.length === 0) return
+    if (remoteItems.length === 0) return
 
     try {
-      const remoteFiles = await fetchRemoteFiles(sessionId, remoteDir)
+      const remotePaths = remoteItems.map(item => item.path)
+      const localFiles = await window.electronAPI.transfer.checkLocalFiles(localDir)
 
       const resolvedPaths = await resolveConflictsAndBuildTasks({
-        localPaths,
-        remoteFiles,
-        remoteDir,
+        localPaths: remotePaths,
+        remoteFiles: localFiles,
+        remoteDir: localDir,
         itemType,
       })
 
       if (!resolvedPaths) return
 
-      const tasks = resolvedPaths.map(p =>
-        buildTransferTask(
-          p.localPath,
+      const sizeMap = new Map(remoteItems.map(item => [item.path, item.size]))
+
+      const resolvedItems: {
+        path: string
+        size: number
+        conflictAction?: ConflictAction
+        renamedName?: string
+      }[] = resolvedPaths.map(r => ({
+        path: r.localPath,
+        size: sizeMap.get(r.localPath) ?? 0,
+        ...(r.conflictAction ? { conflictAction: r.conflictAction } : {}),
+        ...(r.renamedName ? { renamedName: r.renamedName } : {}),
+      }))
+
+      const tasks = resolvedItems.map(item =>
+        buildDownloadTask(
+          item.path,
           sessionId,
-          remoteDir,
+          localDir,
           itemType,
-          p.conflictAction,
-          p.renamedName
+          item.size,
+          item.conflictAction,
+          item.renamedName
         )
       )
 
@@ -151,119 +176,17 @@ export function useTransferActions(): UseTransferActionsReturn {
       if (result.duplicates.length > 0) {
         addToast({
           type: TOAST_TYPE.WARNING,
-          message: t('toast.uploadDuplicates', { count: result.duplicates.length }),
+          message: t('toast.downloadDuplicates', { count: result.duplicates.length }),
         })
       }
 
+      setActiveTab(TRANSFER_DIRECTION.DOWNLOAD)
       setActiveView(SIDEBAR_VIEW.TRANSFERS)
     } catch (error) {
-      logger.catch(error, { action: 'startUpload' })
+      logger.catch(error, { action: 'startDownload' })
       addToast({
         type: TOAST_TYPE.ERROR,
-        message: `${t('toast.uploadFailed')}: ${error instanceof Error ? error.message : String(error)}`,
-      })
-    }
-  }
-
-  const startMixedUpload = async (
-    filePaths: string[],
-    folderPaths: string[],
-    sessionId: string,
-    remoteDir: string
-  ) => {
-    if (filePaths.length === 0 && folderPaths.length === 0) return
-
-    try {
-      const remoteFiles = await fetchRemoteFiles(sessionId, remoteDir)
-
-      // Detect conflicts for both types and merge into a single dialog
-      const fileConflicts = detectConflicts(
-        filePaths,
-        remoteFiles,
-        remoteDir,
-        TRANSFER_ITEM_TYPE.FILE
-      )
-      const folderConflicts = detectConflicts(
-        folderPaths,
-        remoteFiles,
-        remoteDir,
-        TRANSFER_ITEM_TYPE.FOLDER
-      )
-      const allConflicts = [...fileConflicts, ...folderConflicts]
-
-      let resolvedFilePaths: ResolvedTask[]
-      let resolvedFolderPaths: ResolvedTask[]
-
-      if (allConflicts.length > 0) {
-        const resolutions = await new Promise<ConflictResolution[] | null>(resolve => {
-          useTransferConflictStore.getState().openDialog(allConflicts, resolve)
-        })
-
-        if (!resolutions) return
-
-        resolvedFilePaths = applyResolutions(
-          filePaths,
-          resolutions,
-          remoteDir,
-          TRANSFER_ITEM_TYPE.FILE
-        )
-        resolvedFolderPaths = applyResolutions(
-          folderPaths,
-          resolutions,
-          remoteDir,
-          TRANSFER_ITEM_TYPE.FOLDER
-        )
-      } else {
-        resolvedFilePaths = filePaths.map(p => ({
-          localPath: p,
-          remotePath: joinPaths(remoteDir, pathBasename(p)),
-          itemName: pathBasename(p),
-        }))
-        resolvedFolderPaths = folderPaths.map(p => ({
-          localPath: p,
-          remotePath: joinPaths(remoteDir, pathBasename(p)),
-          itemName: pathBasename(p),
-        }))
-      }
-
-      const tasks = [
-        ...resolvedFilePaths.map(p =>
-          buildTransferTask(
-            p.localPath,
-            sessionId,
-            remoteDir,
-            TRANSFER_ITEM_TYPE.FILE,
-            p.conflictAction,
-            p.renamedName
-          )
-        ),
-        ...resolvedFolderPaths.map(p =>
-          buildTransferTask(
-            p.localPath,
-            sessionId,
-            remoteDir,
-            TRANSFER_ITEM_TYPE.FOLDER,
-            p.conflictAction,
-            p.renamedName
-          )
-        ),
-      ]
-
-      const result = await window.electronAPI.transfer.add(tasks)
-
-      if (result.duplicates.length > 0) {
-        addToast({
-          type: TOAST_TYPE.WARNING,
-          message: t('toast.uploadDuplicates', { count: result.duplicates.length }),
-        })
-      }
-
-      setActiveView(SIDEBAR_VIEW.TRANSFERS)
-    } catch (error) {
-      logger.catch(error, { action: 'startMixedUpload' })
-      addToast({
-        type: TOAST_TYPE.ERROR,
-        message: `${t('toast.uploadFailed')}: ${error instanceof Error ? error.message : String(error)}`,
+        message: `${t('toast.downloadFailed')}: ${error instanceof Error ? error.message : String(error)}`,
       })
     }
   }
@@ -284,5 +207,13 @@ export function useTransferActions(): UseTransferActionsReturn {
     await window.electronAPI.transfer.retryAll(sessionId)
   }
 
-  return { startUpload, startMixedUpload, cancelTask, cancelAll, retryTask, retryAll }
+  return {
+    startUpload,
+    startMixedUpload,
+    startDownload,
+    cancelTask,
+    cancelAll,
+    retryTask,
+    retryAll,
+  }
 }

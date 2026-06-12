@@ -1,4 +1,6 @@
 import { ipcMain } from 'electron'
+import type { TransferDirection } from '@shared/constants/index.js'
+import type { LastDirKey } from '@shared/constants/index.js'
 import type { TransferTask } from '@shared/types/transfer.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
 import { transferService } from '../services/transfer/index.js'
@@ -28,7 +30,26 @@ export function setupTransferIpcHandlers(): void {
     return transferService.getTasks(sessionId)
   })
 
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.SET_CONCURRENCY, (_, max: number) => {
-    transferService.setConcurrency(max)
+  ipcMain.handle(IPC_CHANNELS.TRANSFER.GET_CONCURRENCY, (_, direction: TransferDirection) => {
+    return transferService.getConcurrency(direction)
+  })
+
+  ipcMain.handle(
+    IPC_CHANNELS.TRANSFER.SET_CONCURRENCY,
+    (_, max: number, direction: TransferDirection) => {
+      transferService.setConcurrency(max, direction)
+    }
+  )
+
+  ipcMain.handle(IPC_CHANNELS.TRANSFER.CHECK_LOCAL_FILES, (_event, localDir: string) => {
+    return transferService.checkLocalFiles(localDir)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TRANSFER.GET_LAST_DIR, (_, key: LastDirKey) => {
+    return transferService.getLastDir(key)
+  })
+
+  ipcMain.handle(IPC_CHANNELS.TRANSFER.SET_LAST_DIR, (_, key: LastDirKey, dir: string) => {
+    transferService.setLastDir(key, dir)
   })
 }

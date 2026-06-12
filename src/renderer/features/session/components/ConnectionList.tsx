@@ -13,6 +13,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { Plug } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { type SortOrder } from '@shared/constants/index.js'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'
@@ -71,14 +72,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
     return (
       <div className="px-4 py-6 text-center h-full flex flex-col items-center justify-center gap-2">
         <div className="w-10 h-10 rounded-lg bg-hover flex items-center justify-center">
-          <svg
-            className="w-4 h-4 stroke-text-muted stroke-[1.5]"
-            viewBox="0 0 24 24"
-            fill="none"
-            strokeWidth="1.5"
-          >
-            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-          </svg>
+          <Plug className="w-4 h-4 stroke-text-muted stroke-[1.5]" />
         </div>
         <div>
           <p className="text-xs text-text-muted">{t('connection.noConnections')}</p>
@@ -96,7 +90,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
         </span>
         <SortButton sortOrder={sortOrder} onClick={onSortClick} />
       </div>
-      <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
+      <div className="flex-1 overflow-y-auto overflow-x-auto px-2 pb-2 space-y-2">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
             items={connections.map(c => c.id)}

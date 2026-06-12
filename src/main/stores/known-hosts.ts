@@ -1,5 +1,5 @@
-import crypto from 'crypto'
 import Store from 'electron-store'
+import crypto from 'node:crypto'
 import { ERROR_CODE, STORE_KEY, STORE_NAME } from '@shared/constants/index.js'
 import {
   createErrorInfo,

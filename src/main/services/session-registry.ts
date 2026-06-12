@@ -32,18 +32,6 @@ export class SessionRegistry {
     return this.sessions.has(sessionId)
   }
 
-  getByProtocol(
-    protocolType: ProtocolType
-  ): Array<{ sessionId: string; handle: SessionHandle<unknown> }> {
-    const result: Array<{ sessionId: string; handle: SessionHandle<unknown> }> = []
-    for (const [sessionId, handle] of this.sessions) {
-      if (handle.protocolType === protocolType) {
-        result.push({ sessionId, handle })
-      }
-    }
-    return result
-  }
-
   getAllIds(): string[] {
     return Array.from(this.sessions.keys())
   }

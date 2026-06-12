@@ -11,7 +11,7 @@ const saveSortOrderToSettings = async (order: SortOrder) => {
   const currentSettings = await window.electronAPI.config.get(STORE_KEY.UI_SETTINGS)
   if (isOk(currentSettings)) {
     await window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
-      ...(currentSettings.value as UiSettings),
+      ...(currentSettings.value as UiSettings), // IPC 返回值经过 isOk() 验证，主进程保证类型
       connectionSortOrder: order,
     })
   }
@@ -74,13 +74,13 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
   loadSavedConnections: async () => {
     const result = await window.electronAPI.config.get(STORE_KEY.SAVED_CONNECTIONS)
     if (isOk(result) && Array.isArray(result.value)) {
-      set({ connections: result.value as ConnectionConfig[] })
+      set({ connections: result.value as ConnectionConfig[] }) // IPC 返回值经过 isOk() + Array.isArray 验证
     }
 
     const uiSettingsResult = await window.electronAPI.config.get(STORE_KEY.UI_SETTINGS)
     if (isOk(uiSettingsResult)) {
       set({
-        sortOrder: (uiSettingsResult.value as UiSettings).connectionSortOrder || SORT_ORDER.NONE,
+        sortOrder: (uiSettingsResult.value as UiSettings).connectionSortOrder || SORT_ORDER.NONE, // IPC 返回值经过 isOk() 验证
       })
     }
   },

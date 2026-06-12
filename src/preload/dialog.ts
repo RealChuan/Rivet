@@ -13,5 +13,3 @@ export const dialogAPI = {
       Result<{ canceled: boolean; filePath?: string } | undefined, ErrorInfo>
     >,
 }
-
-export type DialogAPI = typeof dialogAPI

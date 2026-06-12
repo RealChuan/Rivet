@@ -18,7 +18,7 @@ const mockSessions: Array<{
   error: string | null
 }> = []
 
-vi.mock('./use-host-key-connect.js', () => ({
+vi.mock('./host-key-connect.js', () => ({
   handleConnectWithHostKey: (...args: unknown[]): Promise<unknown> =>
     mockHandleConnectWithHostKey(...(args as [ConnectionConfig])) as Promise<unknown>,
 }))
@@ -45,6 +45,7 @@ vi.mock('../stores/connection.js', () => ({
 
 vi.mock('@shared/constants/index.js', () => ({
   ROOT_PATH: '/',
+  HOST_KEY_DIALOG_TYPE: { FIRST_CONNECT: 'first-connect', CHANGED: 'changed' },
 }))
 
 const mockConfig: ConnectionConfig = {
@@ -59,7 +60,6 @@ const mockConfig: ConnectionConfig = {
 describe('useSessionConnect', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.useFakeTimers()
     mockSessions.length = 0
     mockSetState.mockImplementation(
       (
@@ -82,18 +82,11 @@ describe('useSessionConnect', () => {
     mockGetConnectionById.mockReturnValue({ ...mockConfig })
   })
 
-  afterEach(() => {
-    vi.useRealTimers()
-  })
-
   describe('connectSession', () => {
     it('should add session to store and return true on successful connection', async () => {
       const { result } = renderHook(() => useSessionConnect())
 
-      const connectPromise = result.current.connectSession(mockConfig)
-
-      await vi.advanceTimersByTimeAsync(100)
-      const success = await connectPromise
+      const success = await result.current.connectSession(mockConfig)
 
       expect(success).toBe(true)
       expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith(mockConfig)
@@ -124,10 +117,7 @@ describe('useSessionConnect', () => {
 
       const { result } = renderHook(() => useSessionConnect())
 
-      const connectPromise = result.current.connectSession(mockConfig)
-
-      await vi.advanceTimersByTimeAsync(100)
-      const success = await connectPromise
+      const success = await result.current.connectSession(mockConfig)
 
       expect(success).toBe(true)
       expect(mockHandleConnectWithHostKey).toHaveBeenCalledTimes(2)
@@ -164,10 +154,7 @@ describe('useSessionConnect', () => {
     it('should call connectSession with the connection config on successful reconnect', async () => {
       const { result } = renderHook(() => useSessionConnect())
 
-      const reconnectPromise = result.current.reconnectSession('conn-1')
-
-      await vi.advanceTimersByTimeAsync(100)
-      const success = await reconnectPromise
+      const success = await result.current.reconnectSession('conn-1')
 
       expect(success).toBe(true)
       expect(mockGetConnectionById).toHaveBeenCalledWith('conn-1')
@@ -179,10 +166,7 @@ describe('useSessionConnect', () => {
 
       const { result } = renderHook(() => useSessionConnect())
 
-      const reconnectPromise = result.current.reconnectSession('conn-1', passwordConfig)
-
-      await vi.advanceTimersByTimeAsync(100)
-      const success = await reconnectPromise
+      const success = await result.current.reconnectSession('conn-1', passwordConfig)
 
       expect(success).toBe(true)
       expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith({

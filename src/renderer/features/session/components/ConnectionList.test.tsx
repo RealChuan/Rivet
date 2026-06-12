@@ -8,6 +8,7 @@ vi.mock('react-i18next', () => ({
     t: (key: string) => key,
     i18n: { language: 'en-US' },
   }),
+  initReactI18next: vi.fn(),
 }))
 
 vi.mock('@dnd-kit/core', () => ({
@@ -33,14 +34,6 @@ vi.mock('@dnd-kit/sortable', () => ({
     transition: '',
     isDragging: false,
   }),
-}))
-
-vi.mock('@dnd-kit/utilities', () => ({
-  CSS: {
-    Transform: {
-      toString: vi.fn(() => ''),
-    },
-  },
 }))
 
 const mockConnection1: ConnectionConfig = {
@@ -140,5 +133,17 @@ describe('ConnectionList', () => {
     const parent = nameElement.closest('div')
     if (!parent) throw new Error('Parent not found')
     expect(parent.className).toContain('text-accent')
+  })
+
+  it('should not cause infinite re-renders with dnd-kit sortable context', () => {
+    // Verifies that rendering a SortableContext with a connections array
+    // does not trigger infinite re-renders. If the connections prop or
+    // internal selectors returned unstable references, React would throw
+    // "Maximum update depth exceeded".
+    const { container } = render(
+      <ConnectionList {...defaultProps} connections={[mockConnection1, mockConnection2]} />
+    )
+    expect(container.textContent).toContain('Server 1')
+    expect(container.textContent).toContain('Server 2')
   })
 })

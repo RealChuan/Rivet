@@ -1,16 +1,22 @@
 import { create } from 'zustand'
+import type { TransferDirection } from '@shared/constants/transfer.js'
 import type {
   OperationProgressInfo,
   TransferProgressData,
   TransferTask,
 } from '@shared/types/transfer.js'
-import { SORT_ORDER, type SortOrderWithDirection } from '@shared/constants/sort.js'
+import { logger } from '@renderer/utils/index.js'
 import {
+  OPERATION_STATUS,
   TRANSFER_CONFIG,
-  TRANSFER_SORT_FIELD,
-  TRANSFER_TASK_STATUS,
-  type TransferSortField,
-} from '@shared/constants/transfer.js'
+  TRANSFER_DIRECTION,
+  TIMEOUTS,
+} from '@shared/constants/index.js'
+import {
+  createProgressBatchState,
+  applyProgressBatch,
+  flushProgressBatch,
+} from './transfer-progress-batch.js'
 
 interface SessionTaskSummary {
   sessionId: string
@@ -25,29 +31,39 @@ function computeSessionSummaries(tasks: TransferTask[]): SessionTaskSummary[] {
     const existing = map.get(task.sessionId)
     if (existing) {
       existing.total++
-      if (
-        task.status === TRANSFER_TASK_STATUS.RUNNING ||
-        task.status === TRANSFER_TASK_STATUS.WAITING
-      ) {
+      if (task.status === OPERATION_STATUS.RUNNING || task.status === OPERATION_STATUS.WAITING) {
         existing.running++
       }
-      if (task.status === TRANSFER_TASK_STATUS.FAILED) {
+      if (task.status === OPERATION_STATUS.FAILED) {
         existing.failed++
       }
     } else {
       map.set(task.sessionId, {
         sessionId: task.sessionId,
         running:
-          task.status === TRANSFER_TASK_STATUS.RUNNING ||
-          task.status === TRANSFER_TASK_STATUS.WAITING
+          task.status === OPERATION_STATUS.RUNNING || task.status === OPERATION_STATUS.WAITING
             ? 1
             : 0,
-        failed: task.status === TRANSFER_TASK_STATUS.FAILED ? 1 : 0,
+        failed: task.status === OPERATION_STATUS.FAILED ? 1 : 0,
         total: 1,
       })
     }
   }
   return [...map.values()]
+}
+
+function computeSessionIds(tasks: TransferTask[]): string[] {
+  return [...new Set(tasks.map(t => t.sessionId))]
+}
+
+function computeDerivedState(tasks: TransferTask[]) {
+  return {
+    sessionTaskSummaries: computeSessionSummaries(tasks),
+    sessionIds: computeSessionIds(tasks),
+    runningTaskCount: tasks.filter(
+      t => t.status === OPERATION_STATUS.RUNNING || t.status === OPERATION_STATUS.WAITING
+    ).length,
+  }
 }
 
 /** Progress data separated from task list to avoid triggering list re-renders */
@@ -65,16 +81,20 @@ interface TransferState {
   tasks: TransferTask[]
   taskProgress: Map<string, TaskProgress>
   sessionTaskSummaries: SessionTaskSummary[]
+  sessionIds: string[]
   runningTaskCount: number
-  sortBy: TransferSortField
-  sortOrder: SortOrderWithDirection
-  maxConcurrency: number
   selectedSessionId: string | null
   activeOperations: Map<string, OperationProgressInfo[]>
+  isVisible: boolean
+  activeTab: TransferDirection
+  maxUploadConcurrency: number
+  maxDownloadConcurrency: number
 
-  setSort: (sortBy: TransferSortField, sortOrder: SortOrderWithDirection) => void
   setSelectedSessionId: (sessionId: string | null) => void
-  setConcurrency: (max: number) => void
+  setVisible: (visible: boolean) => void
+  setActiveTab: (direction: TransferDirection) => void
+  setMaxUploadConcurrency: (value: number) => void
+  setMaxDownloadConcurrency: (value: number) => void
 
   handleTasksEnqueued: (tasks: TransferTask[]) => void
   handleProgress: (data: TransferProgressData) => void
@@ -87,154 +107,65 @@ interface TransferState {
   handleTaskRemoved: (data: { taskId: string }) => void
 
   loadExistingTasks: () => Promise<void>
+  loadConcurrency: () => Promise<void>
   startListening: () => () => void
 }
 
-// Progress batch buffer: accumulate progress updates and flush on a time-based throttle
-let progressBuffer: TransferProgressData[] = []
-let progressTimerId: ReturnType<typeof setTimeout> | null = null
-const PROGRESS_FLUSH_MS = 250
-
-function hasProgressChanged(
-  current: TaskProgress | undefined,
-  data: TransferProgressData
-): boolean {
-  if (current === undefined) return true
-  return (
-    data.transferredSize !== current.transferredSize ||
-    (data.speed !== undefined && data.speed !== current.speed) ||
-    (data.fileSize !== undefined && data.fileSize !== current.fileSize) ||
-    (data.totalFileCount !== undefined && data.totalFileCount !== current.totalFileCount) ||
-    (data.completedFileCount !== undefined &&
-      data.completedFileCount !== current.completedFileCount) ||
-    (data.activeFileCount !== undefined && data.activeFileCount !== current.activeFileCount) ||
-    (data.waitingFileCount !== undefined && data.waitingFileCount !== current.waitingFileCount)
-  )
-}
-
-function hasOperationsChanged(
-  currentOps: OperationProgressInfo[] | undefined,
-  incomingOps: OperationProgressInfo[]
-): boolean {
-  if (currentOps === undefined) return true
-  if (incomingOps.length !== currentOps.length) return true
-  return !incomingOps.every(
-    (incoming, i) =>
-      incoming.id === currentOps[i]?.id &&
-      incoming.transferredSize === currentOps[i]?.transferredSize &&
-      incoming.status === currentOps[i]?.status &&
-      incoming.fileSize === currentOps[i]?.fileSize
-  )
-}
-
-function buildUpdatedProgress(
-  current: TaskProgress | undefined,
-  data: TransferProgressData
-): TaskProgress {
-  return {
-    transferredSize: data.transferredSize,
-    speed: data.speed ?? current?.speed,
-    fileSize: data.fileSize ?? current?.fileSize,
-    totalFileCount: data.totalFileCount ?? current?.totalFileCount,
-    completedFileCount: data.completedFileCount ?? current?.completedFileCount,
-    activeFileCount: data.activeFileCount ?? current?.activeFileCount,
-    waitingFileCount: data.waitingFileCount ?? current?.waitingFileCount,
-  }
-}
-
-function applyProgressBatch(
-  state: TransferState,
-  batch: TransferProgressData[]
-): Partial<TransferState> | null {
-  let taskProgress = state.taskProgress
-  let activeOperations = state.activeOperations
-  let tasks = state.tasks
-  let progressChanged = false
-  let opsChanged = false
-  let statusChanged = false
-
-  for (const data of batch) {
-    const taskIndex = state.tasks.findIndex(t => t.id === data.taskId)
-    if (taskIndex === -1) continue
-
-    const current = taskProgress.get(data.taskId)
-    const progressUnchanged = !hasProgressChanged(current, data)
-
-    const incomingOps = data.activeOperations ?? []
-    const currentOps = activeOperations.get(data.taskId)
-    const opsUnchanged = !hasOperationsChanged(currentOps, incomingOps)
-
-    if (progressUnchanged && opsUnchanged) continue
-
-    if (!progressUnchanged) {
-      if (taskProgress === state.taskProgress) {
-        taskProgress = new Map(state.taskProgress)
-      }
-      taskProgress.set(data.taskId, buildUpdatedProgress(current, data))
-      progressChanged = true
-    }
-
-    if (!opsUnchanged) {
-      if (activeOperations === state.activeOperations) {
-        activeOperations = new Map(state.activeOperations)
-      }
-      activeOperations.set(data.taskId, incomingOps)
-      opsChanged = true
-    }
-
-    // Sync task status: receiving progress means the task is RUNNING
-    const task = state.tasks[taskIndex]
-    if (task?.status === TRANSFER_TASK_STATUS.WAITING) {
-      if (tasks === state.tasks) {
-        tasks = state.tasks.map(t =>
-          t.id === data.taskId ? { ...t, status: TRANSFER_TASK_STATUS.RUNNING } : t
-        )
-      } else {
-        tasks = tasks.map(t =>
-          t.id === data.taskId ? { ...t, status: TRANSFER_TASK_STATUS.RUNNING } : t
-        )
-      }
-      statusChanged = true
-    }
-  }
-
-  if (!progressChanged && !opsChanged && !statusChanged) return null
-
-  const result: Partial<TransferState> = {}
-  if (progressChanged) result.taskProgress = taskProgress
-  if (opsChanged) result.activeOperations = activeOperations
-  if (statusChanged) {
-    result.tasks = tasks
-    result.sessionTaskSummaries = computeSessionSummaries(tasks)
-    result.runningTaskCount = tasks.filter(
-      t => t.status === TRANSFER_TASK_STATUS.RUNNING || t.status === TRANSFER_TASK_STATUS.WAITING
-    ).length
-  }
-  return result
-}
+const progressBatch = createProgressBatchState()
 
 export const useTransferStore = create<TransferState>((set, get) => ({
   tasks: [],
   taskProgress: new Map(),
   sessionTaskSummaries: [],
+  sessionIds: [],
   runningTaskCount: 0,
-  sortBy: TRANSFER_SORT_FIELD.CREATED_AT,
-  sortOrder: SORT_ORDER.DESC,
-  maxConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
   selectedSessionId: null,
+  activeTab: TRANSFER_DIRECTION.UPLOAD,
   activeOperations: new Map(),
+  isVisible: true,
+  maxUploadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
+  maxDownloadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
 
-  setSort: (sortBy, sortOrder) => {
-    set({ sortBy, sortOrder })
+  setActiveTab: direction => {
+    set({ activeTab: direction })
   },
 
   setSelectedSessionId: sessionId => {
     set({ selectedSessionId: sessionId })
   },
 
-  setConcurrency: concurrency => {
-    set({ maxConcurrency: concurrency })
-    void window.electronAPI.transfer.setConcurrency(concurrency)
+  setVisible: visible => {
+    set({ isVisible: visible })
+    // When becoming visible, flush any buffered progress updates immediately
+    if (visible && progressBatch.buffer.length > 0) {
+      flushProgressBatch(progressBatch, batch => {
+        useTransferStore.setState(state => {
+          const result = applyProgressBatch(state, batch)
+          if (result === null) return state
+          const derived =
+            result.statusChanged && result.tasks ? computeDerivedState(result.tasks) : {}
+          return { ...result, ...derived }
+        })
+      })
+    }
+  },
+
+  setMaxUploadConcurrency: value => {
+    set({ maxUploadConcurrency: value })
+    void window.electronAPI.transfer
+      .setConcurrency(value, TRANSFER_DIRECTION.UPLOAD)
+      .catch(error => {
+        logger.catch(error, { action: 'set-concurrency', direction: TRANSFER_DIRECTION.UPLOAD })
+      })
+  },
+
+  setMaxDownloadConcurrency: value => {
+    set({ maxDownloadConcurrency: value })
+    void window.electronAPI.transfer
+      .setConcurrency(value, TRANSFER_DIRECTION.DOWNLOAD)
+      .catch(error => {
+        logger.catch(error, { action: 'set-concurrency', direction: TRANSFER_DIRECTION.DOWNLOAD })
+      })
   },
 
   handleTasksEnqueued: tasks => {
@@ -252,37 +183,52 @@ export const useTransferStore = create<TransferState>((set, get) => ({
         tasks: updatedTasks,
         taskProgress,
         selectedSessionId,
-        sessionTaskSummaries: computeSessionSummaries(updatedTasks),
-        runningTaskCount: updatedTasks.filter(
-          t =>
-            t.status === TRANSFER_TASK_STATUS.RUNNING || t.status === TRANSFER_TASK_STATUS.WAITING
-        ).length,
+        ...computeDerivedState(updatedTasks),
       }
     })
   },
 
   handleProgress: data => {
-    progressBuffer.push(data)
+    progressBatch.buffer.push(data)
 
-    if (
-      (progressTimerId ??= setTimeout(() => {
-        const batch = progressBuffer
-        progressBuffer = []
-        progressTimerId = null
+    // When not visible, only buffer — skip flush to avoid re-renders on hidden page.
+    // Progress will be flushed when the page becomes visible again (setVisible(true)).
+    if (!get().isVisible) return
 
-        if (batch.length === 0) return
+    progressBatch.timerId ??= setTimeout(() => {
+      const batch = progressBatch.buffer
+      progressBatch.buffer = []
+      progressBatch.timerId = null
 
-        set(state => {
-          const result = applyProgressBatch(state, batch)
-          return result ?? state
-        })
-      }, PROGRESS_FLUSH_MS)) !== null
-    ) {
-      // Timer already running, no action needed
-    }
+      if (batch.length === 0) return
+
+      set(state => {
+        const result = applyProgressBatch(state, batch)
+        if (result === null) return state
+        const derived =
+          result.statusChanged && result.tasks ? computeDerivedState(result.tasks) : {}
+        return { ...result, ...derived }
+      })
+    }, TIMEOUTS.PROGRESS_FLUSH_MS)
   },
 
   handleTaskCompleted: data => {
+    // Flush pending progress batch before removing the task.
+    // Without this, the final progress update (100%) arrives via
+    // handleProgress and sits in the batch buffer, but handleTaskCompleted
+    // removes the task immediately — so when the batch timer fires,
+    // the task is already gone and the progress update is silently dropped.
+    // The user sees the task jump from partial progress to "done" instantly.
+    flushProgressBatch(progressBatch, batch => {
+      useTransferStore.setState(state => {
+        const result = applyProgressBatch(state, batch)
+        if (result === null) return state
+        const derived =
+          result.statusChanged && result.tasks ? computeDerivedState(result.tasks) : {}
+        return { ...result, ...derived }
+      })
+    })
+
     set(state => {
       const tasks = state.tasks.filter(t => t.id !== data.taskId)
       const taskProgress = new Map(state.taskProgress)
@@ -293,11 +239,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
         tasks,
         taskProgress,
         activeOperations,
-        sessionTaskSummaries: computeSessionSummaries(tasks),
-        runningTaskCount: tasks.filter(
-          t =>
-            t.status === TRANSFER_TASK_STATUS.RUNNING || t.status === TRANSFER_TASK_STATUS.WAITING
-        ).length,
+        ...computeDerivedState(tasks),
       }
     })
   },
@@ -306,16 +248,12 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     set(state => {
       const tasks = state.tasks.map(task =>
         task.id === data.taskId
-          ? { ...task, status: TRANSFER_TASK_STATUS.FAILED, errorMessage: data.errorMessage }
+          ? { ...task, status: OPERATION_STATUS.FAILED, errorMessage: data.errorMessage }
           : task
       )
       return {
         tasks,
-        sessionTaskSummaries: computeSessionSummaries(tasks),
-        runningTaskCount: tasks.filter(
-          t =>
-            t.status === TRANSFER_TASK_STATUS.RUNNING || t.status === TRANSFER_TASK_STATUS.WAITING
-        ).length,
+        ...computeDerivedState(tasks),
       }
     })
   },
@@ -331,11 +269,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
         tasks,
         taskProgress,
         activeOperations,
-        sessionTaskSummaries: computeSessionSummaries(tasks),
-        runningTaskCount: tasks.filter(
-          t =>
-            t.status === TRANSFER_TASK_STATUS.RUNNING || t.status === TRANSFER_TASK_STATUS.WAITING
-        ).length,
+        ...computeDerivedState(tasks),
       }
     })
   },
@@ -358,14 +292,21 @@ export const useTransferStore = create<TransferState>((set, get) => ({
         return {
           tasks,
           taskProgress,
-          sessionTaskSummaries: computeSessionSummaries(tasks),
-          runningTaskCount: tasks.filter(
-            t =>
-              t.status === TRANSFER_TASK_STATUS.RUNNING || t.status === TRANSFER_TASK_STATUS.WAITING
-          ).length,
+          ...computeDerivedState(tasks),
         }
       })
     }
+  },
+
+  loadConcurrency: async () => {
+    const [uploadConcurrency, downloadConcurrency] = await Promise.all([
+      window.electronAPI.transfer.getConcurrency(TRANSFER_DIRECTION.UPLOAD),
+      window.electronAPI.transfer.getConcurrency(TRANSFER_DIRECTION.DOWNLOAD),
+    ])
+    set({
+      maxUploadConcurrency: uploadConcurrency,
+      maxDownloadConcurrency: downloadConcurrency,
+    })
   },
 
   startListening: () => {
@@ -381,58 +322,8 @@ export const useTransferStore = create<TransferState>((set, get) => ({
   },
 }))
 
-export const selectSessionIds = (state: TransferState): string[] => [
-  ...new Set(state.tasks.map(t => t.sessionId)),
-]
-
-export const selectTasksBySession = (state: TransferState): Map<string, TransferTask[]> => {
-  const map = new Map<string, TransferTask[]>()
-  for (const task of state.tasks) {
-    const list = map.get(task.sessionId)
-    if (list) {
-      list.push(task)
-    } else {
-      map.set(task.sessionId, [task])
-    }
-  }
-  return map
-}
-
-export const selectSortedTasks = (state: TransferState): TransferTask[] => {
-  const { tasks, sortBy, sortOrder } = state
-  const sorted = [...tasks].sort((a, b) => {
-    let cmp = 0
-    switch (sortBy) {
-      case TRANSFER_SORT_FIELD.NAME:
-        cmp = a.itemName.localeCompare(b.itemName)
-        break
-      case TRANSFER_SORT_FIELD.CREATED_AT:
-        cmp = a.createdAt - b.createdAt
-        break
-      case TRANSFER_SORT_FIELD.STATUS:
-        cmp = a.status.localeCompare(b.status)
-        break
-      case TRANSFER_SORT_FIELD.REMAINING_TIME: {
-        const aProgress = state.taskProgress.get(a.id)
-        const bProgress = state.taskProgress.get(b.id)
-        const aRemaining =
-          aProgress?.totalFileCount && aProgress.completedFileCount !== undefined
-            ? aProgress.totalFileCount - aProgress.completedFileCount
-            : 0
-        const bRemaining =
-          bProgress?.totalFileCount && bProgress.completedFileCount !== undefined
-            ? bProgress.totalFileCount - bProgress.completedFileCount
-            : 0
-        cmp = aRemaining - bRemaining
-        break
-      }
-    }
-    return sortOrder === SORT_ORDER.ASC ? cmp : -cmp
-  })
-  return sorted
-}
-
-export const selectRunningTaskCount = (state: TransferState): number =>
-  state.tasks.filter(
-    t => t.status === TRANSFER_TASK_STATUS.RUNNING || t.status === TRANSFER_TASK_STATUS.WAITING
-  ).length
+export const selectTasksForSessionByDirection = (
+  state: TransferState,
+  sessionId: string,
+  direction: TransferDirection
+): TransferTask[] => state.tasks.filter(t => t.sessionId === sessionId && t.direction === direction)

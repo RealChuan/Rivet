@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import i18n from '@renderer/i18n/config.js'
+import { logger } from '@renderer/utils/index.js'
 import { FILE_TYPE } from '@shared/constants/index.js'
 import { type FileInfo, isProtocolResponseErr, type Session } from '@shared/types/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
@@ -13,7 +15,6 @@ export interface SessionStore {
   setFiles: (sessionId: string, files: FileInfo[]) => void
   setLoading: (sessionId: string, loading: boolean) => void
   setOperating: (sessionId: string, operating: boolean) => void
-  setError: (sessionId: string, error: string | null) => void
   refreshCurrentDirectory: (sessionId: string) => Promise<void>
   addSession: (session: Session) => void
   removeSession: (sessionId: string) => void
@@ -29,7 +30,7 @@ const sanitizeFiles = (files: unknown): FileInfo[] => {
   return files
     .filter((file): file is FileInfo => {
       if (!file || typeof file !== 'object') return false
-      const f = file as Record<string, unknown>
+      const f = file as Record<string, unknown> // 类型守卫内中间转换，用于安全属性访问
       const size = typeof f.size === 'number' ? f.size : NaN
       return (
         typeof f.name === 'string' &&
@@ -103,23 +104,17 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     }))
   },
 
-  setError: (sessionId, error) => {
-    set(state => ({
-      sessions: state.sessions.map(s =>
-        s.sessionId === sessionId ? { ...s, error, isConnected: !error } : s
-      ),
-    }))
-  },
-
   refreshCurrentDirectory: async sessionId => {
     const session = get().sessions.find(s => s.sessionId === sessionId)
     if (!session) return
 
-    const requestId = window.electronAPI.generateUuid()
+    const requestId = window.electronAPI.system.generateUuid()
 
     const oldRequestId = get().currentListRequestId
     if (oldRequestId) {
-      void window.electronAPI.protocol.cancel(oldRequestId)
+      void window.electronAPI.protocol.cancel(oldRequestId).catch(() => {
+        logger.debug('Failed to cancel previous request', { requestId: oldRequestId })
+      })
     }
 
     set(state => ({
@@ -145,7 +140,7 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
           s.sessionId === sessionId
             ? {
                 ...s,
-                error: formatErrorMessage(response.error) || 'Failed to list directory',
+                error: formatErrorMessage(response.error) || i18n.t('error.listDirectoryFailed'),
                 isLoading: false,
                 files: [],
               }

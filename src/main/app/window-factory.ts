@@ -8,6 +8,14 @@
 import { app, BrowserWindow, type BrowserWindowConstructorOptions } from 'electron'
 import path from 'node:path'
 import { fileURLToPath, URL } from 'node:url'
+import {
+  DEFAULT_CHILD_WINDOW_HEIGHT,
+  DEFAULT_CHILD_WINDOW_MIN_HEIGHT,
+  DEFAULT_CHILD_WINDOW_MIN_WIDTH,
+  DEFAULT_CHILD_WINDOW_WIDTH,
+  DEV_SERVER_URL,
+  MACOS_TRAFFIC_LIGHT_POSITION,
+} from '@shared/constants/app.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
 import { registerWindowMeta, unregisterWindowMeta } from '../utils/window-meta.js'
 
@@ -55,16 +63,16 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
   const isMac = process.platform === 'darwin'
 
   const browserOptions: BrowserWindowConstructorOptions = {
-    width: options.width ?? 1200,
-    height: options.height ?? 800,
-    minWidth: options.minWidth ?? 800,
-    minHeight: options.minHeight ?? 600,
+    width: options.width ?? DEFAULT_CHILD_WINDOW_WIDTH,
+    height: options.height ?? DEFAULT_CHILD_WINDOW_HEIGHT,
+    minWidth: options.minWidth ?? DEFAULT_CHILD_WINDOW_MIN_WIDTH,
+    minHeight: options.minHeight ?? DEFAULT_CHILD_WINDOW_MIN_HEIGHT,
     title: options.title ?? 'Rivet',
 
     // ========== 无边框核心配置 ==========
     titleBarStyle: 'hidden',
     frame: isMac,
-    ...(isMac ? { trafficLightPosition: { x: 16, y: 14 } } : {}),
+    ...(isMac ? { trafficLightPosition: MACOS_TRAFFIC_LIGHT_POSITION } : {}),
 
     // 窗口行为
     show: options.show ?? false,
@@ -106,7 +114,7 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
   const route = options.route ?? '/'
 
   if (!app.isPackaged) {
-    void win.loadURL(`http://localhost:5173${route ? `#${route}` : ''}`)
+    void win.loadURL(`${DEV_SERVER_URL}${route ? `#${route}` : ''}`)
   } else {
     void win.loadFile(path.join(__dirname, '../../renderer/index.html'), {
       hash: route,

@@ -18,6 +18,7 @@ import {
   err,
   type ErrorInfo,
   type FileInfo,
+  isErr,
   ok,
   type OperationResult,
   type Result,
@@ -29,6 +30,10 @@ import { AbstractProtocol, type HostVerifier, type SessionInfo } from './abstrac
 
 export class SftpProtocol extends AbstractProtocol<Client> {
   readonly protocolType = PROTOCOL.SFTP
+
+  private static readonly MIN_CHUNK_SIZE = 32 * 1024 // 32 KB
+  private static readonly MAX_CHUNK_SIZE = 4 * 1024 * 1024 // 4 MB
+  private static readonly TARGET_CHUNKS = 200
 
   protected getSessionInfo(sessionId: string): SessionInfo | null {
     const handle = sessionRegistry.get<Client>(sessionId)
@@ -110,7 +115,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
   async disconnect(sessionId: string): Promise<Result<void, ErrorInfo>> {
     try {
       const clientResult = this.getClient(sessionId)
-      if (clientResult.error) {
+      if (isErr(clientResult)) {
         return clientResult
       }
 
@@ -288,12 +293,9 @@ export class SftpProtocol extends AbstractProtocol<Client> {
   }
 
   private computeChunkSize(fileSize: number): number {
-    const MIN_CHUNK_SIZE = 32768
-    const MAX_CHUNK_SIZE = 1024 * 1024
-    const TARGET_CHUNKS = 25
-    let chunkSize = Math.ceil(fileSize / TARGET_CHUNKS)
-    chunkSize = Math.ceil(chunkSize / MIN_CHUNK_SIZE) * MIN_CHUNK_SIZE
-    return Math.max(MIN_CHUNK_SIZE, Math.min(MAX_CHUNK_SIZE, chunkSize))
+    let chunkSize = Math.ceil(fileSize / SftpProtocol.TARGET_CHUNKS)
+    chunkSize = Math.ceil(chunkSize / SftpProtocol.MIN_CHUNK_SIZE) * SftpProtocol.MIN_CHUNK_SIZE
+    return Math.max(SftpProtocol.MIN_CHUNK_SIZE, Math.min(SftpProtocol.MAX_CHUNK_SIZE, chunkSize))
   }
 
   protected async uploadImpl(
@@ -344,6 +346,40 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     }
   }
 
+  protected async downloadImpl(
+    client: Client,
+    remotePath: string,
+    localPath: string,
+    _basePath: string,
+    onProgress: (transferred: number) => void,
+    signal: AbortSignal
+  ): Promise<Result<void, ErrorInfo>> {
+    if (signal.aborted) {
+      return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ABORTED, ERROR_MESSAGE.DOWNLOAD_ABORTED))
+    }
+
+    try {
+      await client.fastGet(remotePath, localPath, {
+        step: (totalTransferred: number) => {
+          if (!signal.aborted) {
+            onProgress(totalTransferred)
+          }
+        },
+      })
+
+      if (signal.aborted) {
+        return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ABORTED, ERROR_MESSAGE.DOWNLOAD_ABORTED))
+      }
+
+      return ok(undefined)
+    } catch (e) {
+      if (signal.aborted) {
+        return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ABORTED, ERROR_MESSAGE.DOWNLOAD_ABORTED))
+      }
+      return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ERROR, formatErrorMessage(e)))
+    }
+  }
+
   protected async pingImpl(client: Client, _basePath: string): Promise<Result<void, ErrorInfo>> {
     try {
       await client.stat('/')
@@ -353,5 +389,3 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     }
   }
 }
-
-export default SftpProtocol

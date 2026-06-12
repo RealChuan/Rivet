@@ -11,7 +11,11 @@ export const generateUniqueFilename = (basename: string): string => {
   }
 
   const now = new Date()
-  const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}_${String(now.getMilliseconds()).padStart(3, '0')}`
+  const timestamp = now
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace('T', '_')
+    .replace(/\.\d{3}Z$/, m => `_${m.slice(1, 4)}`)
   const newName = `${name}_${timestamp}${ext}`
 
   return newName

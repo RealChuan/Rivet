@@ -12,5 +12,3 @@ export const cryptoAPI = {
       Result<string, ErrorInfo>
     >,
 }
-
-export type CryptoAPI = typeof cryptoAPI

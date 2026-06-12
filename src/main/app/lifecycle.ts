@@ -127,6 +127,7 @@ export function setupAppLifecycle(): void {
   })
 
   process.on('uncaughtException', (error: Error) => {
+    // 不保存配置：崩溃时避免写入可能损坏的数据
     logger.catch(error, { action: 'uncaught-exception' })
     void cleanupAndExit('uncaughtException', false, 1)
   })

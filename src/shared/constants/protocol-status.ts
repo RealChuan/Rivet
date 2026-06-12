@@ -26,26 +26,11 @@ export const SftpStatus = {
 } as const
 
 /**
- * 内部错误状态码
- */
-export const InternalStatus = {
-  /** 存储操作失败 */
-  STORE_ERROR: 5000,
-} as const
-
-/**
- * 所有状态码的联合枚举
- */
-export const StatusCodeEnum = {
-  ...ProtocolStatus,
-  ...SftpStatus,
-  ...InternalStatus,
-} as const
-
-/**
  * 状态码类型定义
  */
-export type StatusCode = (typeof StatusCodeEnum)[keyof typeof StatusCodeEnum]
+export type StatusCode =
+  | (typeof ProtocolStatus)[keyof typeof ProtocolStatus]
+  | (typeof SftpStatus)[keyof typeof SftpStatus]
 
 /**
  * 获取状态码对应的国际化消息键
@@ -53,11 +38,10 @@ export type StatusCode = (typeof StatusCodeEnum)[keyof typeof StatusCodeEnum]
  * @returns 国际化消息键
  */
 export function getStatusMessage(code: StatusCode): string {
-  const messages: Record<number, string> = {
-    2000: 'connection.ok',
-    2001: 'connection.firstConnect',
-    3000: 'connection.hostKeyMismatch',
-    5000: 'connection.storeError',
+  const messages: Record<StatusCode, string> = {
+    [ProtocolStatus.OK]: 'connection.ok',
+    [ProtocolStatus.FIRST_CONNECT]: 'connection.firstConnect',
+    [SftpStatus.HOST_KEY_MISMATCH]: 'connection.hostKeyMismatch',
   }
   return messages[code] ?? `Unknown status: ${code}`
 }

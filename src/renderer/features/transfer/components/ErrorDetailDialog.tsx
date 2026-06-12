@@ -1,10 +1,13 @@
 import type React from 'react'
-import { useState } from 'react'
+import { X } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { XIcon } from '@renderer/components/common/XIcon.js'
 import GlassDialog from '@renderer/components/ui/GlassDialog.js'
 import { useUiStore } from '@renderer/stores/index.js'
-import { TOAST_TYPE } from '@shared/constants/index.js'
+import { DIALOG_SIZE, TOAST_TYPE } from '@shared/constants/index.js'
+
+/** 剪贴板复制按钮反馈显示时长 */
+const COPY_FEEDBACK_DURATION = 2000
 
 interface ErrorDetailDialogProps {
   open: boolean
@@ -20,26 +23,39 @@ export const ErrorDetailDialog: React.FC<ErrorDetailDialogProps> = ({
   const { t } = useTranslation()
   const addToast = useUiStore(state => state.addToast)
   const [copied, setCopied] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleCopy = () => {
     void navigator.clipboard.writeText(errorMessage).then(() => {
       setCopied(true)
       addToast({ type: TOAST_TYPE.SUCCESS, message: t('transfer.errorDetail.copied') })
-      setTimeout(() => setCopied(false), 2000)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION)
     })
   }
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
   return (
-    <GlassDialog open={open} onClose={onClose} width={500} height={360}>
+    <GlassDialog
+      open={open}
+      onClose={onClose}
+      width={DIALOG_SIZE.MEDIUM.width}
+      height={DIALOG_SIZE.MEDIUM.height}
+    >
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-text">{t('transfer.errorDetail.title')}</h2>
           <button
             onClick={onClose}
             className="p-1 rounded text-text-muted hover:text-text hover:bg-hover transition-colors"
-            aria-label="Close"
+            aria-label={t('common.close')}
           >
-            <XIcon className="w-4 h-4" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 

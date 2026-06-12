@@ -2,6 +2,7 @@ import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 
 import { cn } from '@renderer/utils/index.js'
+import { DIALOG_SIZE } from '@shared/constants/index.js'
 
 interface GlassDialogProps {
   open: boolean
@@ -15,8 +16,8 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
   open,
   onClose,
   children,
-  width = 420,
-  height = 400,
+  width = DIALOG_SIZE.STANDARD.width,
+  height = DIALOG_SIZE.STANDARD.height,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
@@ -25,6 +26,7 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
   const [shouldRender, setShouldRender] = useState(open)
   const [isVisible, setIsVisible] = useState(false)
 
+  // 渲染期间同步 state：当 open 变化时重置对话框状态
   const [prevOpen, setPrevOpen] = useState(open)
   if (open !== prevOpen) {
     if (open) {
@@ -97,8 +99,6 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
 
     const handleMouseUp = () => {
       setIsDragging(false)
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
     }
 
     document.addEventListener('mousemove', handleMouseMove)

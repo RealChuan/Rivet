@@ -1,4 +1,5 @@
 import type React from 'react'
+import { ChevronDown, ListFilter } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useClickOutside } from '@renderer/hooks/index.js'
@@ -14,7 +15,7 @@ const SORT_FIELDS: TransferSortField[] = [
 ]
 
 interface SortDropdownProps {
-  sortBy: TransferSortField | undefined
+  sortBy: TransferSortField
   sortOrder: SortOrderWithDirection
   onSort: (field: TransferSortField) => void
 }
@@ -55,30 +56,8 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
         className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-text-muted hover:text-text border border-border bg-bg hover:bg-hover transition-colors cursor-default"
         aria-label={t('transfer.action.sort')}
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <line x1="4" y1="6" x2="20" y2="6" />
-          <line x1="4" y1="12" x2="16" y2="12" />
-          <line x1="4" y1="18" x2="12" y2="18" />
-        </svg>
-        <svg
-          width="10"
-          height="10"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <ListFilter className="w-3.5 h-3.5" />
+        <ChevronDown className="w-2.5 h-2.5" />
       </button>
 
       {open && (

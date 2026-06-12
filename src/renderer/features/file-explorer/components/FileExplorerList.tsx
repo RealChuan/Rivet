@@ -1,5 +1,7 @@
 import type React from 'react'
-import { useCallback, useEffect, useState } from 'react'
+import type { ListImperativeAPI } from 'react-window'
+import { Upload } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
 import {
@@ -9,10 +11,11 @@ import {
   useFileListState,
   useFileSort,
 } from '@renderer/features/file-explorer/hooks/index.js'
+import { computeTotalWidth } from '@renderer/features/file-explorer/hooks/use-column-resizing.js'
 import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { useTransferActions } from '@renderer/features/transfer/hooks/use-transfer-actions.js'
-import { PROTOCOL } from '@shared/constants/index.js'
+import { PROTOCOL, FILE_ITEM_HEIGHT } from '@shared/constants/index.js'
 import { type FileInfo } from '@shared/types/index.js'
 import FileExplorerDialogs from './FileExplorerDialogs.js'
 import FileExplorerItem from './FileExplorerItem.js'
@@ -27,9 +30,14 @@ import ParentDirectoryButton from './ParentDirectoryButton.js'
 interface FileExplorerListProps {
   sessionId: string
   currentPath: string
+  onSelectedFilesChange?: (files: FileInfo[]) => void
 }
 
-export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, currentPath }) => {
+export const FileExplorerList: React.FC<FileExplorerListProps> = ({
+  sessionId,
+  currentPath,
+  onSelectedFilesChange,
+}) => {
   const { t } = useTranslation()
   const sessions = useSessionStore(state => state.sessions)
   const updateCurrentPath = useSessionStore(state => state.updateCurrentPath)
@@ -68,12 +76,20 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
     clearSelection
   )
 
+  const listRef = useRef<ListImperativeAPI>(null)
+  const scrollContainerRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (listRef.current) {
+      scrollContainerRef.current = listRef.current.element
+    }
+  })
+
   const { dragSelection, isDragging, hasStartedDrag, handleMouseDown, getDragStyle } =
     useFileDragSelect({
       items: sortedFiles,
-      itemHeight: 40,
-      headerHeight: 32,
-      containerRef,
+      itemHeight: FILE_ITEM_HEIGHT,
+      scrollContainerRef,
       onDragStart: () => {
         clearSelection()
       },
@@ -109,12 +125,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
       if (!isSelected) {
         handleSelectFile(file)
       }
-      openContextMenu(
-        e.clientX,
-        e.clientY,
-        selectedFiles.length > 0 ? selectedFiles : [file],
-        false
-      )
+      openContextMenu(e.clientX, e.clientY, isSelected ? selectedFiles : [file], false)
     } else {
       clearSelection()
       openContextMenu(e.clientX, e.clientY, [], true)
@@ -133,42 +144,43 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
     setIsDragOver(false)
   }
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setIsDragOver(false)
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
 
-      const filePaths: string[] = []
-      const folderPaths: string[] = []
+    const filePaths: string[] = []
+    const folderPaths: string[] = []
 
-      for (const item of Array.from(e.dataTransfer.items)) {
-        const entry = item.webkitGetAsEntry?.()
-        const file = item.getAsFile()
-        if (!file) continue
+    for (const item of Array.from(e.dataTransfer.items)) {
+      const entry = item.webkitGetAsEntry?.()
+      const file = item.getAsFile()
+      if (!file) continue
 
-        const filePath = window.electronAPI.dialog.getPathForFile(file)
-        if (!filePath) continue
+      const filePath = window.electronAPI.dialog.getPathForFile(file)
+      if (!filePath) continue
 
-        if (entry?.isDirectory) {
-          folderPaths.push(filePath)
-        } else {
-          filePaths.push(filePath)
-        }
+      if (entry?.isDirectory) {
+        folderPaths.push(filePath)
+      } else {
+        filePaths.push(filePath)
       }
+    }
 
-      if (filePaths.length === 0 && folderPaths.length === 0) return
+    if (filePaths.length === 0 && folderPaths.length === 0) return
 
-      if (filePaths.length > 0 || folderPaths.length > 0) {
-        void startMixedUpload(filePaths, folderPaths, sessionId, currentPath)
-      }
-    },
-    [sessionId, currentPath, startMixedUpload]
-  )
+    if (filePaths.length > 0 || folderPaths.length > 0) {
+      void startMixedUpload(filePaths, folderPaths, sessionId, currentPath)
+    }
+  }
 
   useEffect(() => {
     if (!session?.isLoading) resetColumnWidths()
   }, [session?.isLoading, resetColumnWidths])
+
+  useEffect(() => {
+    onSelectedFilesChange?.(selectedFiles)
+  }, [selectedFiles, onSelectedFilesChange])
 
   useEffect(() => {
     const handleGlobalClick = () => closeContextMenu()
@@ -223,15 +235,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
     )
   }
 
-  const gapWidth = 6
-  const numGaps = isWebdav ? 3 : 5
-  const totalWidth =
-    columnWidths.name +
-    columnWidths.permissions +
-    columnWidths.owner +
-    columnWidths.size +
-    columnWidths.modifyTime +
-    gapWidth * numGaps
+  const totalWidth = computeTotalWidth(columnWidths, isWebdav)
 
   return (
     <div className="flex flex-col h-full" style={{ width: '100%' }}>
@@ -242,7 +246,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
       )}
       <div
         ref={containerRef}
-        className="flex-1 min-h-10 relative overflow-auto"
+        className="flex-1 min-h-10 relative overflow-hidden"
         onContextMenu={e => {
           const target = e.target as HTMLElement
           const fileItem = target.closest('[data-file-item]')
@@ -258,11 +262,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
         {isDragOver && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-accent/5 border-2 border-dashed border-accent rounded pointer-events-none">
             <div className="flex flex-col items-center gap-2 text-accent">
-              <svg className="w-8 h-8 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
+              <Upload className="w-8 h-8 stroke-current stroke-2" />
               <span className="text-sm font-medium">{t('file.dropToUpload')}</span>
             </div>
           </div>
@@ -277,23 +277,24 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({ sessionId, c
             isWebdav={isWebdav}
           />
 
-          {isDragging && hasStartedDrag && (
-            <div
-              className="absolute pointer-events-none z-100 rounded-sm border-[1.5px] border-accent bg-accent-light"
-              style={getDragStyle()}
-            />
-          )}
           {sortedFiles.length === 0 ? (
             <FileExplorerListEmpty />
           ) : (
             <div className="flex-1 min-h-0">
               <VirtualList
                 items={sortedFiles}
-                itemHeight={40}
+                itemHeight={FILE_ITEM_HEIGHT}
                 width={totalWidth}
                 renderItem={renderFileExplorerItem}
-                overflowStyle={{ overflow: 'visible' }}
-              />
+                listRef={listRef}
+              >
+                {isDragging && hasStartedDrag && (
+                  <div
+                    className="absolute pointer-events-none z-100 rounded-sm border-[1.5px] border-accent bg-accent-light"
+                    style={getDragStyle()}
+                  />
+                )}
+              </VirtualList>
             </div>
           )}
         </div>

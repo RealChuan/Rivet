@@ -1,5 +1,6 @@
 import type React from 'react'
 
+import { Check } from 'lucide-react'
 import { cn } from '@renderer/utils/index.js'
 
 interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
@@ -45,11 +46,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
             disabled && 'cursor-not-allowed'
           )}
         >
-          {checked && (
-            <svg className="w-2.5 h-2.5 stroke-white stroke-3" viewBox="0 0 24 24" fill="none">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          )}
+          {checked && <Check className="w-2.5 h-2.5 stroke-white stroke-3" />}
         </span>
       </span>
       {label && <span className="text-xs">{label}</span>}

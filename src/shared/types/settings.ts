@@ -29,3 +29,12 @@ export interface UiSettings {
    */
   connectionSortOrder: SortOrder
 }
+
+/**
+ * 传输设置接口
+ * 存储传输任务的并发配置
+ */
+export interface TransferSettings {
+  maxUploadConcurrency: number
+  maxDownloadConcurrency: number
+}

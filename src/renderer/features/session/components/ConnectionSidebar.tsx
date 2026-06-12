@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import ConfirmationDialog from '@renderer/components/common/ConfirmationDialog.js'
 import { HostKeyVerificationDialog } from '@renderer/features/host-key/index.js'
@@ -16,6 +16,7 @@ export const ConnectionSidebar: React.FC = () => {
   const activeSessionId = useSessionStore(state => state.activeSessionId)
   const setActiveSession = useSessionStore(state => state.setActiveSession)
   const getSessionByConnectionId = useSessionStore(state => state.getSessionByConnectionId)
+  useSessionStore(state => state.sessions) // Track sessions for loading state reactivity
   const connections = useConnectionStore(state => state.connections)
   const closeConnectionDialog = useConnectionStore(state => state.closeConnectionDialog)
   const setCloseConnectionDialog = useConnectionStore(state => state.setCloseConnectionDialog)
@@ -63,13 +64,15 @@ export const ConnectionSidebar: React.FC = () => {
     handleEdit,
   } = useConnectionActions()
 
-  const [prevCloseDialog, setPrevCloseDialog] = useState(closeConnectionDialog)
-  if (closeConnectionDialog && closeConnectionDialog !== prevCloseDialog) {
-    setPrevCloseDialog(closeConnectionDialog)
-    setConnectionDialogOpen(false)
-    setEditConfig(null)
-    setCloseConnectionDialog(false)
-  }
+  /* eslint-disable react-hooks/set-state-in-effect -- Reset state when parent signals dialog close */
+  useEffect(() => {
+    if (closeConnectionDialog) {
+      setConnectionDialogOpen(false)
+      setEditConfig(null)
+      setCloseConnectionDialog(false)
+    }
+  }, [closeConnectionDialog, setEditConfig, setCloseConnectionDialog])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleNewConnection = () => {
     setConnectionDialogOpen(true)

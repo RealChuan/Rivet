@@ -1,4 +1,5 @@
 import type React from 'react'
+import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { ConflictStrategy } from '@renderer/components/common/ConflictDialogBase.js'
 import type { FileInfo } from '@shared/types/index.js'
@@ -6,7 +7,7 @@ import {
   CONFLICT_STRATEGY,
   ConflictDialogBase,
 } from '@renderer/components/common/ConflictDialogBase.js'
-import FileIcon from '@renderer/components/common/FileIcon.js'
+import { FileIcon } from '@renderer/components/common/index.js'
 import { logger } from '@renderer/utils/index.js'
 import { FILE_OPERATION } from '@shared/constants/index.js'
 
@@ -80,30 +81,36 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
     if (!conflict) return null
 
     return (
-      <div className="flex items-center gap-3 mb-3">
-        <div className="flex-1">
+      <div className="flex items-center gap-3 mb-3 min-w-0">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <FileIcon type={conflict.sourceFile.type} />
-            <span className="text-sm text-text font-medium">{conflict.sourceFile.name}</span>
+            <span className="text-sm text-text font-medium truncate">
+              {conflict.sourceFile.name}
+            </span>
           </div>
-          <div className="text-xs text-text-muted">
-            {t('file.conflict.source')}: {conflict.sourceFile.absolutePath}
+          <div
+            className="text-xs text-text-muted truncate"
+            title={conflict.sourceFile.absolutePath}
+          >
+            {t('conflict.source')}: {conflict.sourceFile.absolutePath}
           </div>
         </div>
 
-        <svg className="w-4 h-4 stroke-text-muted stroke-2" viewBox="0 0 24 24" fill="none">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        <ChevronRight className="w-4 h-4 stroke-text-muted stroke-2 shrink-0" />
 
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <FileIcon type={conflict.targetFile?.type ?? conflict.sourceFile.type} />
-            <span className="text-sm text-danger font-medium">
+            <span className="text-sm text-danger font-medium truncate">
               {conflict.targetFile?.name ?? conflict.sourceFile.name}
             </span>
           </div>
-          <div className="text-xs text-text-muted">
-            {t('file.conflict.target')}:{' '}
+          <div
+            className="text-xs text-text-muted truncate"
+            title={conflict.targetFile?.absolutePath ?? conflict.sourceFile.absolutePath}
+          >
+            {t('conflict.target')}:{' '}
             {conflict.targetFile?.absolutePath ?? conflict.sourceFile.absolutePath}
           </div>
         </div>
@@ -117,7 +124,6 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
       onClose={onClose}
       onConfirm={handleConfirm}
       conflictCount={conflicts.length}
-      i18nPrefix="file.conflict"
       hideOverwrite={operation === FILE_OPERATION.MOVE}
       canOverwrite={canOverwriteFn}
       renderConflictInfo={renderConflictInfo}

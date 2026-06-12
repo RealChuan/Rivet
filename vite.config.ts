@@ -34,6 +34,13 @@ export default defineConfig({
           ) {
             return 'vendor-ui'
           }
+          if (
+            id.includes('node_modules/zustand/') ||
+            id.includes('node_modules/clsx/') ||
+            id.includes('node_modules/tailwind-merge/')
+          ) {
+            return 'vendor-utils'
+          }
         },
       },
     },

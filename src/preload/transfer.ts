@@ -1,9 +1,11 @@
 import { ipcRenderer } from 'electron'
+import type { LastDirKey, TransferDirection } from '@shared/constants/index.js'
 import type {
   DeduplicateResult,
+  LocalFileInfo,
   TransferProgressData,
   TransferTask,
-} from '@shared/types/transfer.js'
+} from '@shared/types/index.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
 import { listenerManager } from './listener-manager.js'
 
@@ -26,8 +28,21 @@ export const transferAPI = {
   getTasks: (sessionId?: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.TRANSFER.GET_TASKS, sessionId) as Promise<TransferTask[]>,
 
-  setConcurrency: (max: number) =>
-    ipcRenderer.invoke(IPC_CHANNELS.TRANSFER.SET_CONCURRENCY, max) as Promise<void>,
+  getConcurrency: (direction: TransferDirection) =>
+    ipcRenderer.invoke(IPC_CHANNELS.TRANSFER.GET_CONCURRENCY, direction) as Promise<number>,
+
+  setConcurrency: (max: number, direction: TransferDirection) =>
+    ipcRenderer.invoke(IPC_CHANNELS.TRANSFER.SET_CONCURRENCY, max, direction) as Promise<void>,
+
+  checkLocalFiles: (localDir: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.TRANSFER.CHECK_LOCAL_FILES, localDir) as Promise<
+      LocalFileInfo[]
+    >,
+
+  getLastDir: (key: LastDirKey) =>
+    ipcRenderer.invoke(IPC_CHANNELS.TRANSFER.GET_LAST_DIR, key) as Promise<string | null>,
+  setLastDir: (key: LastDirKey, dir: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.TRANSFER.SET_LAST_DIR, key, dir) as Promise<void>,
 
   onTasksEnqueued: (callback: (tasks: TransferTask[]) => void) =>
     listenerManager.on(IPC_CHANNELS.TRANSFER.TASKS_ENQUEUED, (_, tasks: TransferTask[]) =>
@@ -61,5 +76,3 @@ export const transferAPI = {
   onHasActiveTasks: (callback: () => void) =>
     listenerManager.on(IPC_CHANNELS.TRANSFER.HAS_ACTIVE_TASKS, () => callback()),
 }
-
-export type TransferAPI = typeof transferAPI

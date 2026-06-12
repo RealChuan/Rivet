@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method -- vitest expect() 需要分离方法引用 */
 import { ipcMain } from 'electron'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
+import { IPC_CHANNELS, TRANSFER_DIRECTION } from '@shared/constants/index.js'
 
 vi.mock('../services/transfer/index.js', () => ({
   transferService: {
@@ -100,9 +100,9 @@ describe('transfer IPC handlers', () => {
     const setConcurrencyCall = calls.find(c => c[0] === IPC_CHANNELS.TRANSFER.SET_CONCURRENCY)
     const handler = setConcurrencyCall?.[1] as (...args: unknown[]) => unknown
 
-    handler({}, 5)
+    handler({}, 5, TRANSFER_DIRECTION.UPLOAD)
 
     const { transferService } = await import('../services/transfer/index.js')
-    expect(transferService.setConcurrency).toHaveBeenCalledWith(5)
+    expect(transferService.setConcurrency).toHaveBeenCalledWith(5, TRANSFER_DIRECTION.UPLOAD)
   })
 })

@@ -80,29 +80,6 @@ describe('SessionRegistry', () => {
     })
   })
 
-  describe('getByProtocol', () => {
-    it('should return sessions filtered by protocol', () => {
-      registry.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      registry.register('session-2', {}, { ...mockConfig, id: 'conn-2' }, PROTOCOL.WEBDAV)
-      registry.register('session-3', {}, { ...mockConfig, id: 'conn-3' }, PROTOCOL.SFTP)
-
-      const sftpSessions = registry.getByProtocol(PROTOCOL.SFTP)
-      const webdavSessions = registry.getByProtocol(PROTOCOL.WEBDAV)
-
-      expect(sftpSessions.length).toBe(2)
-      expect(sftpSessions.map(s => s.sessionId)).toEqual(['session-1', 'session-3'])
-      expect(webdavSessions.length).toBe(1)
-      expect(webdavSessions[0]).toBeDefined()
-      expect(webdavSessions[0]?.sessionId).toBe('session-2')
-    })
-
-    it('should return empty array when no sessions match', () => {
-      registry.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      const result = registry.getByProtocol('ftp' as never)
-      expect(result).toEqual([])
-    })
-  })
-
   describe('getAllIds', () => {
     it('should return all session ids', () => {
       registry.register('session-1', {}, mockConfig, PROTOCOL.SFTP)

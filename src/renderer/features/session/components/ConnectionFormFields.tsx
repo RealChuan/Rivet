@@ -83,8 +83,8 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
           value={protocol}
           onChange={onProtocolChange}
           options={[
-            { value: PROTOCOL.SFTP, label: 'SFTP' },
-            { value: PROTOCOL.WEBDAV, label: 'WebDAV' },
+            { value: PROTOCOL.SFTP, label: t('connectionDialog.protocolSftp') },
+            { value: PROTOCOL.WEBDAV, label: t('connectionDialog.protocolWebdav') },
           ]}
         />
       </div>
@@ -98,7 +98,7 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
             type="text"
             value={host}
             onChange={e => onHostChange(e.target.value)}
-            placeholder="192.168.1.100"
+            placeholder={t('connectionDialog.hostPlaceholder')}
           />
         </div>
         <div>
@@ -131,7 +131,7 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
                     : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg'
                 )}
               >
-                HTTP
+                {t('connectionDialog.schemeHttp')}
               </button>
               <button
                 type="button"
@@ -142,7 +142,7 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
                     : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg'
                 }`}
               >
-                HTTPS
+                {t('connectionDialog.schemeHttps')}
               </button>
             </div>
           </div>
@@ -166,7 +166,7 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
               type="text"
               value={basePath}
               onChange={e => onBasePathChange(e.target.value)}
-              placeholder="/dav/files"
+              placeholder={t('connectionDialog.basePathPlaceholder')}
             />
           </div>
         </>

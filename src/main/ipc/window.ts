@@ -1,4 +1,8 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
+import {
+  DEFAULT_CHILD_WINDOW_HEIGHT,
+  DEFAULT_CHILD_WINDOW_MIN_WIDTH,
+} from '@shared/constants/app.js'
 import { DEFAULT_ROUTE, IPC_CHANNELS } from '@shared/constants/index.js'
 import { WindowManager } from '../app/window-factory.js'
 import { getWindowMeta } from '../utils/window-meta.js'
@@ -17,10 +21,11 @@ export function setupWindowIpcHandlers(): void {
 
   ipcMain.on(IPC_CHANNELS.WINDOW.MAXIMIZE, event => {
     const win = BrowserWindow.fromWebContents(event.sender)
-    if (win?.isMaximized()) {
+    if (!win) return
+    if (win.isMaximized()) {
       win.unmaximize()
     } else {
-      win?.maximize()
+      win.maximize()
     }
   })
 
@@ -55,8 +60,8 @@ export function setupWindowIpcHandlers(): void {
     ) => {
       WindowManager.create({
         ...options,
-        width: options.width ?? 800,
-        height: options.height ?? 600,
+        width: options.width ?? DEFAULT_CHILD_WINDOW_MIN_WIDTH,
+        height: options.height ?? DEFAULT_CHILD_WINDOW_HEIGHT,
       })
       return options.id
     }

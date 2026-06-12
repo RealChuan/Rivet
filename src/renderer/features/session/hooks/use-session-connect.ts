@@ -2,7 +2,7 @@ import type { ConnectionConfig, Session } from '@shared/types/index.js'
 import { ROOT_PATH } from '@shared/constants/index.js'
 import { useConnectionStore } from '../stores/connection.js'
 import { useSessionStore } from '../stores/session.js'
-import { handleConnectWithHostKey } from './use-host-key-connect.js'
+import { handleConnectWithHostKey } from './host-key-connect.js'
 
 export function useSessionConnect() {
   const connectSession = async (config: ConnectionConfig): Promise<boolean> => {
@@ -32,7 +32,6 @@ export function useSessionConnect() {
       activeSessionId: result.sessionId,
     }))
 
-    await new Promise(resolve => setTimeout(resolve, 100))
     await useSessionStore.getState().refreshCurrentDirectory(result.sessionId)
 
     return true

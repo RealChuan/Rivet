@@ -1,35 +1,28 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TransferTask } from '@shared/types/transfer.js'
-import { SORT_ORDER } from '@shared/constants/sort.js'
-import {
-  TRANSFER_CONFIG,
-  TRANSFER_SORT_FIELD,
-  TRANSFER_TASK_STATUS,
-} from '@shared/constants/transfer.js'
-import {
-  selectRunningTaskCount,
-  selectSessionIds,
-  selectSortedTasks,
-  selectTasksBySession,
-  useTransferStore,
-} from './transfer.js'
+import { OPERATION_STATUS, TRANSFER_DIRECTION } from '@shared/constants/transfer.js'
+import { useTransferStore } from './transfer.js'
 
-const mockSetConcurrency = vi.fn()
 const mockOnTasksEnqueued = vi.fn()
 const mockOnProgress = vi.fn()
 const mockOnTaskCompleted = vi.fn()
 const mockOnTaskFailed = vi.fn()
 const mockOnTaskRemoved = vi.fn()
+const mockGetTasks = vi.fn().mockResolvedValue([])
+const mockGetConcurrency = vi.fn().mockResolvedValue(5)
+const mockSetConcurrency = vi.fn()
 
 vi.stubGlobal('window', {
   electronAPI: {
     transfer: {
-      setConcurrency: mockSetConcurrency,
       onTasksEnqueued: mockOnTasksEnqueued,
       onProgress: mockOnProgress,
       onTaskCompleted: mockOnTaskCompleted,
       onTaskFailed: mockOnTaskFailed,
       onTaskRemoved: mockOnTaskRemoved,
+      getTasks: mockGetTasks,
+      getConcurrency: mockGetConcurrency,
+      setConcurrency: mockSetConcurrency,
     },
   },
 })
@@ -54,11 +47,12 @@ function createTask(overrides: Partial<TransferTask> = {}): TransferTask {
   return {
     id: 'task-1',
     sessionId: 'session-1',
+    direction: TRANSFER_DIRECTION.UPLOAD,
     localPath: '/local/file.txt',
     remotePath: '/remote/file.txt',
     itemName: 'file.txt',
     itemType: 'file',
-    status: TRANSFER_TASK_STATUS.RUNNING,
+    status: OPERATION_STATUS.RUNNING,
     fileSize: 1000,
     transferredSize: 0,
     createdAt: Date.now(),
@@ -69,15 +63,16 @@ function createTask(overrides: Partial<TransferTask> = {}): TransferTask {
 describe('useTransferStore', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockSetConcurrency.mockResolvedValue(undefined)
     timerCallbacks = []
     useTransferStore.setState({
       tasks: [],
       taskProgress: new Map(),
-      sortBy: TRANSFER_SORT_FIELD.CREATED_AT,
-      sortOrder: SORT_ORDER.DESC,
-      maxConcurrency: TRANSFER_CONFIG.MAX_CONCURRENCY,
       selectedSessionId: null,
       activeOperations: new Map(),
+      isVisible: true,
+      maxUploadConcurrency: 5,
+      maxDownloadConcurrency: 5,
     })
   })
 
@@ -88,18 +83,6 @@ describe('useTransferStore', () => {
 
     it('should have empty taskProgress', () => {
       expect(useTransferStore.getState().taskProgress.size).toBe(0)
-    })
-
-    it('should have default sortBy as CREATED_AT', () => {
-      expect(useTransferStore.getState().sortBy).toBe(TRANSFER_SORT_FIELD.CREATED_AT)
-    })
-
-    it('should have default sortOrder as desc', () => {
-      expect(useTransferStore.getState().sortOrder).toBe(SORT_ORDER.DESC)
-    })
-
-    it('should have default maxConcurrency', () => {
-      expect(useTransferStore.getState().maxConcurrency).toBe(TRANSFER_CONFIG.MAX_CONCURRENCY)
     })
 
     it('should have null selectedSessionId', () => {
@@ -333,7 +316,7 @@ describe('useTransferStore', () => {
 
   describe('handleTaskFailed', () => {
     it('should update task status to FAILED', () => {
-      const task = createTask({ id: 'task-1', status: TRANSFER_TASK_STATUS.RUNNING })
+      const task = createTask({ id: 'task-1', status: OPERATION_STATUS.RUNNING })
       useTransferStore.setState({ tasks: [task] })
 
       useTransferStore.getState().handleTaskFailed({
@@ -341,7 +324,7 @@ describe('useTransferStore', () => {
         errorMessage: 'Connection lost',
       })
 
-      expect(useTransferStore.getState().tasks[0]?.status).toBe(TRANSFER_TASK_STATUS.FAILED)
+      expect(useTransferStore.getState().tasks[0]?.status).toBe(OPERATION_STATUS.FAILED)
     })
 
     it('should set errorMessage on failed task', () => {
@@ -357,8 +340,8 @@ describe('useTransferStore', () => {
     })
 
     it('should not modify other tasks', () => {
-      const task1 = createTask({ id: 'task-1', status: TRANSFER_TASK_STATUS.RUNNING })
-      const task2 = createTask({ id: 'task-2', status: TRANSFER_TASK_STATUS.RUNNING })
+      const task1 = createTask({ id: 'task-1', status: OPERATION_STATUS.RUNNING })
+      const task2 = createTask({ id: 'task-2', status: OPERATION_STATUS.RUNNING })
       useTransferStore.setState({ tasks: [task1, task2] })
 
       useTransferStore.getState().handleTaskFailed({
@@ -366,7 +349,7 @@ describe('useTransferStore', () => {
         errorMessage: 'Error',
       })
 
-      expect(useTransferStore.getState().tasks[1]?.status).toBe(TRANSFER_TASK_STATUS.RUNNING)
+      expect(useTransferStore.getState().tasks[1]?.status).toBe(OPERATION_STATUS.RUNNING)
     })
   })
 
@@ -405,15 +388,6 @@ describe('useTransferStore', () => {
     })
   })
 
-  describe('setSort', () => {
-    it('should update sortBy and sortOrder', () => {
-      useTransferStore.getState().setSort(TRANSFER_SORT_FIELD.NAME, SORT_ORDER.ASC)
-
-      expect(useTransferStore.getState().sortBy).toBe(TRANSFER_SORT_FIELD.NAME)
-      expect(useTransferStore.getState().sortOrder).toBe(SORT_ORDER.ASC)
-    })
-  })
-
   describe('setSelectedSessionId', () => {
     it('should update selectedSessionId', () => {
       useTransferStore.getState().setSelectedSessionId('session-1')
@@ -429,17 +403,89 @@ describe('useTransferStore', () => {
     })
   })
 
-  describe('setConcurrency', () => {
-    it('should update maxConcurrency in state', () => {
-      useTransferStore.getState().setConcurrency(5)
+  describe('setMaxUploadConcurrency', () => {
+    it('should update maxUploadConcurrency and call IPC', () => {
+      useTransferStore.getState().setMaxUploadConcurrency(8)
 
-      expect(useTransferStore.getState().maxConcurrency).toBe(5)
+      expect(useTransferStore.getState().maxUploadConcurrency).toBe(8)
+      expect(mockSetConcurrency).toHaveBeenCalledWith(8, 'upload')
+    })
+  })
+
+  describe('setMaxDownloadConcurrency', () => {
+    it('should update maxDownloadConcurrency and call IPC', () => {
+      useTransferStore.getState().setMaxDownloadConcurrency(3)
+
+      expect(useTransferStore.getState().maxDownloadConcurrency).toBe(3)
+      expect(mockSetConcurrency).toHaveBeenCalledWith(3, 'download')
+    })
+  })
+
+  describe('loadConcurrency', () => {
+    it('should load concurrency from main process', async () => {
+      mockGetConcurrency.mockResolvedValueOnce(7).mockResolvedValueOnce(3)
+
+      await useTransferStore.getState().loadConcurrency()
+
+      expect(useTransferStore.getState().maxUploadConcurrency).toBe(7)
+      expect(useTransferStore.getState().maxDownloadConcurrency).toBe(3)
+    })
+  })
+
+  describe('setVisible', () => {
+    it('should update isVisible state', () => {
+      useTransferStore.getState().setVisible(false)
+      expect(useTransferStore.getState().isVisible).toBe(false)
+
+      useTransferStore.getState().setVisible(true)
+      expect(useTransferStore.getState().isVisible).toBe(true)
     })
 
-    it('should call window.electronAPI.transfer.setConcurrency', () => {
-      useTransferStore.getState().setConcurrency(5)
+    it('should skip progress flush when not visible', () => {
+      const task = createTask({ id: 'task-1', transferredSize: 0 })
+      useTransferStore.setState({ tasks: [task] })
+      useTransferStore.getState().setVisible(false)
 
-      expect(mockSetConcurrency).toHaveBeenCalledWith(5)
+      useTransferStore.getState().handleProgress({
+        taskId: 'task-1',
+        transferredSize: 500,
+      })
+      flushTimers()
+
+      // Progress should NOT be applied when not visible
+      expect(useTransferStore.getState().taskProgress.has('task-1')).toBe(false)
+    })
+
+    it('should flush buffered progress when becoming visible', () => {
+      const task = createTask({ id: 'task-1', transferredSize: 0 })
+      useTransferStore.setState({ tasks: [task] })
+      useTransferStore.getState().setVisible(false)
+
+      useTransferStore.getState().handleProgress({
+        taskId: 'task-1',
+        transferredSize: 500,
+      })
+      flushTimers()
+
+      // Still not visible, progress not applied
+      expect(useTransferStore.getState().taskProgress.has('task-1')).toBe(false)
+
+      // Becoming visible flushes the buffer
+      useTransferStore.getState().setVisible(true)
+      expect(useTransferStore.getState().taskProgress.get('task-1')?.transferredSize).toBe(500)
+    })
+
+    it('should apply progress normally when visible', () => {
+      const task = createTask({ id: 'task-1', transferredSize: 0 })
+      useTransferStore.setState({ tasks: [task] })
+
+      useTransferStore.getState().handleProgress({
+        taskId: 'task-1',
+        transferredSize: 500,
+      })
+      flushTimers()
+
+      expect(useTransferStore.getState().taskProgress.get('task-1')?.transferredSize).toBe(500)
     })
   })
 
@@ -475,90 +521,6 @@ describe('useTransferStore', () => {
       expect(unsub3).toHaveBeenCalled()
       expect(unsub4).toHaveBeenCalled()
       expect(unsub5).toHaveBeenCalled()
-    })
-  })
-
-  describe('selectors', () => {
-    describe('selectSessionIds', () => {
-      it('should return unique session IDs', () => {
-        const task1 = createTask({ id: 'task-1', sessionId: 'session-1' })
-        const task2 = createTask({ id: 'task-2', sessionId: 'session-2' })
-        const task3 = createTask({ id: 'task-3', sessionId: 'session-1' })
-        useTransferStore.setState({ tasks: [task1, task2, task3] })
-
-        const ids = selectSessionIds(useTransferStore.getState())
-
-        expect(ids).toEqual(['session-1', 'session-2'])
-      })
-
-      it('should return empty array when no tasks', () => {
-        expect(selectSessionIds(useTransferStore.getState())).toEqual([])
-      })
-    })
-
-    describe('selectTasksBySession', () => {
-      it('should group tasks by sessionId', () => {
-        const task1 = createTask({ id: 'task-1', sessionId: 'session-1' })
-        const task2 = createTask({ id: 'task-2', sessionId: 'session-2' })
-        const task3 = createTask({ id: 'task-3', sessionId: 'session-1' })
-        useTransferStore.setState({ tasks: [task1, task2, task3] })
-
-        const map = selectTasksBySession(useTransferStore.getState())
-
-        expect(map.get('session-1')).toEqual([task1, task3])
-        expect(map.get('session-2')).toEqual([task2])
-      })
-
-      it('should return empty map when no tasks', () => {
-        const map = selectTasksBySession(useTransferStore.getState())
-        expect(map.size).toBe(0)
-      })
-    })
-
-    describe('selectSortedTasks', () => {
-      it('should sort by createdAt descending by default', () => {
-        const task1 = createTask({ id: 'task-1', createdAt: 100 })
-        const task2 = createTask({ id: 'task-2', createdAt: 200 })
-        useTransferStore.setState({ tasks: [task1, task2] })
-
-        const sorted = selectSortedTasks(useTransferStore.getState())
-
-        expect(sorted[0]?.id).toBe('task-2')
-        expect(sorted[1]?.id).toBe('task-1')
-      })
-
-      it('should sort by name ascending', () => {
-        const task1 = createTask({ id: 'task-1', itemName: 'zebra.txt' })
-        const task2 = createTask({ id: 'task-2', itemName: 'apple.txt' })
-        useTransferStore.setState({
-          tasks: [task1, task2],
-          sortBy: TRANSFER_SORT_FIELD.NAME,
-          sortOrder: SORT_ORDER.ASC,
-        })
-
-        const sorted = selectSortedTasks(useTransferStore.getState())
-
-        expect(sorted[0]?.id).toBe('task-2')
-        expect(sorted[1]?.id).toBe('task-1')
-      })
-    })
-
-    describe('selectRunningTaskCount', () => {
-      it('should count tasks with RUNNING or WAITING status', () => {
-        const task1 = createTask({ id: 'task-1', status: TRANSFER_TASK_STATUS.RUNNING })
-        const task2 = createTask({ id: 'task-2', status: TRANSFER_TASK_STATUS.WAITING })
-        const task3 = createTask({ id: 'task-3', status: TRANSFER_TASK_STATUS.FAILED })
-        useTransferStore.setState({ tasks: [task1, task2, task3] })
-
-        expect(selectRunningTaskCount(useTransferStore.getState())).toBe(2)
-      })
-
-      it('should return 0 when no active tasks', () => {
-        const task = createTask({ status: TRANSFER_TASK_STATUS.FAILED })
-        useTransferStore.setState({ tasks: [task] })
-
-        expect(selectRunningTaskCount(useTransferStore.getState())).toBe(0)
-      })
     })
   })
 })

@@ -1,10 +1,15 @@
-import type { StoreKey } from '@shared/constants/index.js'
+import type { StoreKey, LastDirKey, TransferDirection } from '@shared/constants/index.js'
 import type { ConnectionConfig } from './connection.js'
 import type { FileInfo } from './file.js'
 import type { OperationResult } from './operation-result.js'
 import type { ProtocolResponse } from './protocol-request.js'
 import type { ErrorInfo, Result } from './result.js'
-import type { DeduplicateResult, TransferProgressData, TransferTask } from './transfer.js'
+import type {
+  DeduplicateResult,
+  LocalFileInfo,
+  TransferProgressData,
+  TransferTask,
+} from './transfer.js'
 
 export interface WindowAPI {
   minimize: () => void
@@ -88,6 +93,7 @@ export interface HostKeyAPI {
 export interface SystemAPI {
   getTempDir: () => Promise<Result<string, ErrorInfo>>
   getDownloadDir: () => Promise<Result<string, ErrorInfo>>
+  generateUuid: () => string
 }
 
 export interface CryptoAPI {
@@ -102,7 +108,11 @@ export interface TransferAPI {
   retry: (taskId: string) => Promise<void>
   retryAll: (sessionId?: string) => Promise<void>
   getTasks: (sessionId?: string) => Promise<TransferTask[]>
-  setConcurrency: (max: number) => Promise<void>
+  getConcurrency: (direction: TransferDirection) => Promise<number>
+  setConcurrency: (max: number, direction: TransferDirection) => Promise<void>
+  checkLocalFiles: (localDir: string) => Promise<LocalFileInfo[]>
+  getLastDir: (key: LastDirKey) => Promise<string | null>
+  setLastDir: (key: LastDirKey, dir: string) => Promise<void>
   onTasksEnqueued: (callback: (tasks: TransferTask[]) => void) => () => void
   onProgress: (callback: (data: TransferProgressData) => void) => () => void
   onTaskCompleted: (
@@ -122,7 +132,6 @@ export interface ElectronAPI {
   system: SystemAPI
   crypto: CryptoAPI
   transfer: TransferAPI
-  generateUuid: () => string
   windowMeta: { windowId: string; route: string }
 }
 

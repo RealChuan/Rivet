@@ -1,10 +1,12 @@
 import type React from 'react'
+import { AlertCircle, TriangleAlert, Check, Info, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-
+import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/utils/index.js'
 import { useUiStore } from '../../stores/ui.js'
 
 export const Toast: React.FC = () => {
+  const { t } = useTranslation()
   const toasts = useUiStore(state => state.toasts)
   const removeToast = useUiStore(state => state.removeToast)
   const [visibleToasts, setVisibleToasts] = useState<Set<string>>(new Set())
@@ -31,41 +33,19 @@ export const Toast: React.FC = () => {
   const toastConfig = {
     success: {
       bgClass: 'bg-toast-success',
-      icon: (
-        <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      ),
+      icon: <Check className="w-4 h-4 stroke-white stroke-2" />,
     },
     error: {
       bgClass: 'bg-toast-error',
-      icon: (
-        <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-      ),
+      icon: <AlertCircle className="w-4 h-4 stroke-white stroke-2" />,
     },
     info: {
       bgClass: 'bg-toast-info',
-      icon: (
-        <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-      ),
+      icon: <Info className="w-4 h-4 stroke-white stroke-2" />,
     },
     warning: {
       bgClass: 'bg-toast-warning',
-      icon: (
-        <svg className="w-4 h-4 stroke-white stroke-2" viewBox="0 0 24 24" fill="none">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-          <line x1="12" y1="9" x2="12" y2="13" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-      ),
+      icon: <TriangleAlert className="w-4 h-4 stroke-white stroke-2" />,
     },
   }
 
@@ -92,7 +72,7 @@ export const Toast: React.FC = () => {
             <span className="flex-1 text-sm font-medium text-white">{toast.message}</span>
             <button
               onClick={() => removeToast(toast.id)}
-              aria-label="Close"
+              aria-label={t('common.close')}
               className={`
                 p-0.5 rounded bg-transparent border-none cursor-pointer
                 text-white/70 hover:text-white transition-colors
@@ -100,10 +80,7 @@ export const Toast: React.FC = () => {
                 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
               `}
             >
-              <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <X className="w-3.5 h-3.5 stroke-current stroke-2" />
             </button>
           </div>
         )

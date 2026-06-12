@@ -1,24 +1,27 @@
 import type React from 'react'
+import { Info, RotateCcw, Trash, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { OperationProgressInfo, TransferTask } from '@shared/types/transfer.js'
-import FileIcon from '@renderer/components/common/FileIcon.js'
-import { RetryIcon } from '@renderer/components/common/RetryIcon.js'
-import { TrashIcon } from '@renderer/components/common/TrashIcon.js'
-import { XIcon } from '@renderer/components/common/XIcon.js'
+import { FileIcon } from '@renderer/components/common/index.js'
 import { useTransferStore } from '@renderer/features/transfer/stores/transfer.js'
 import { useClickOutside } from '@renderer/hooks/index.js'
+import { FILE_TYPE } from '@shared/constants/index.js'
 import {
   TRANSFER_CONFIG,
-  TRANSFER_ITEM_TYPE,
-  TRANSFER_TASK_STATUS,
-  UPLOAD_OPERATION_STATUS,
-  UPLOAD_OPERATION_TYPE,
+  OPERATION_STATUS,
+  TRANSFER_OPERATION_TYPE,
 } from '@shared/constants/transfer.js'
 import { formatFileSize } from '@shared/utils/index.js'
 import { TransferProgressBar } from './TransferProgressBar.js'
 
 const EMPTY_OPERATIONS: OperationProgressInfo[] = []
+
+// Grid columns: [name 1fr] [size 7rem] [progress 7rem] [speed 4rem] [time 3rem] [actions 2rem]
+// Fixed 2rem for actions ensures alignment between main rows (with button) and sub-rows (empty)
+const GRID_COLS = 'grid grid-cols-[1fr_7rem_7rem_4rem_3rem_2rem] gap-x-2'
+// Sub-row grid: adds a 1.25rem indent column before name — fixed columns still align with main row
+const SUB_GRID_COLS = 'grid grid-cols-[1.25rem_1fr_7rem_7rem_4rem_3rem_2rem] gap-x-2'
 
 function formatRemainingTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '-'
@@ -62,74 +65,73 @@ interface InlineOperationRowProps {
 
 const InlineOperationRow: React.FC<InlineOperationRowProps> = ({ op, lng }) => {
   const { t } = useTranslation()
-  const isMkdir = op.type === UPLOAD_OPERATION_TYPE.MKDIR
+  const isMkdir = op.type === TRANSFER_OPERATION_TYPE.MKDIR
 
-  if (isMkdir) {
-    return (
-      <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-xs">
-        <FileIcon type="directory" className="w-3.5 h-3.5 shrink-0" />
-        <span className="truncate flex-1 min-w-0">{op.itemName}</span>
-        <span className="text-text-muted shrink-0">{t('transfer.status.waiting')}</span>
-      </div>
-    )
-  }
-
-  const isFailed = op.status === UPLOAD_OPERATION_STATUS.FAILED
-  const isRunning = op.status === UPLOAD_OPERATION_STATUS.RUNNING
-  const isCompleted = op.status === UPLOAD_OPERATION_STATUS.COMPLETED
-
-  if (isFailed) {
-    return (
-      <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-xs">
-        <FileIcon type="file" className="w-3.5 h-3.5 shrink-0" />
-        <span className="truncate flex-1 min-w-0">{op.itemName}</span>
-        <span className="text-danger shrink-0">{t('transfer.status.failed')}</span>
-      </div>
-    )
-  }
-
-  if (isCompleted) {
-    return (
-      <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-xs">
-        <FileIcon type="file" className="w-3.5 h-3.5 shrink-0" />
-        <span className="truncate flex-1 min-w-0">{op.itemName}</span>
-        {op.fileSize !== undefined && op.fileSize > 0 && (
-          <span className="text-text-muted tabular-nums shrink-0 whitespace-nowrap w-28 text-right">
-            {formatFileSize(op.fileSize, lng)}
-          </span>
-        )}
-        <div className="w-24 shrink-0">
-          <TransferProgressBar
-            transferred={op.fileSize ?? 0}
-            total={op.fileSize ?? 0}
-            status={TRANSFER_TASK_STATUS.COMPLETED}
-          />
-        </div>
-      </div>
-    )
-  }
-
-  const remainingSeconds = computeOpRemainingSeconds(op)
+  const isFailed = op.status === OPERATION_STATUS.FAILED
+  const isRunning = op.status === OPERATION_STATUS.RUNNING
+  const isCompleted = op.status === OPERATION_STATUS.COMPLETED
+  const isWaiting = op.status === OPERATION_STATUS.WAITING || isMkdir
 
   return (
-    <div className="flex items-center h-8 pl-8 pr-3 gap-3 text-xs">
-      <FileIcon type="file" className="w-3.5 h-3.5 shrink-0" />
-      <span className="truncate flex-1 min-w-0">{op.itemName}</span>
-      <span className="text-text-muted tabular-nums shrink-0 whitespace-nowrap w-28 text-right">
-        {formatFileSize(op.transferredSize, lng)}/{formatFileSize(op.fileSize ?? 0, lng)}
-      </span>
-      <div className="w-24 shrink-0">
-        <TransferProgressBar
-          transferred={op.transferredSize}
-          total={op.fileSize ?? 0}
-          status={TRANSFER_TASK_STATUS.RUNNING}
+    <div className={`${SUB_GRID_COLS} items-center h-8 px-3 text-xs`}>
+      {/* Indent spacer column */}
+      <div />
+
+      {/* Name column */}
+      <div className="flex items-center gap-2 min-w-0">
+        <FileIcon
+          type={isMkdir ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE}
+          className="w-4 h-4 shrink-0"
         />
+        <span className="truncate">{op.itemName}</span>
       </div>
-      {isRunning && (
-        <span className="text-text-muted tabular-nums w-12 text-right shrink-0 whitespace-nowrap">
-          {formatRemainingTime(remainingSeconds)}
-        </span>
-      )}
+
+      {/* Size column */}
+      <span className="tabular-nums text-right whitespace-nowrap">
+        {!isWaiting && !isFailed
+          ? isCompleted
+            ? op.fileSize !== undefined && op.fileSize > 0
+              ? formatFileSize(op.fileSize, lng)
+              : null
+            : `${formatFileSize(op.transferredSize, lng)}/${formatFileSize(op.fileSize ?? 0, lng)}`
+          : null}
+      </span>
+
+      {/* Progress column */}
+      <div>
+        {isFailed ? (
+          <TransferProgressBar
+            transferred={op.transferredSize}
+            total={op.fileSize ?? 0}
+            status={OPERATION_STATUS.FAILED}
+          />
+        ) : (
+          <TransferProgressBar
+            transferred={isCompleted ? (op.fileSize ?? 0) : op.transferredSize}
+            total={op.fileSize ?? 0}
+            status={op.status}
+          />
+        )}
+      </div>
+
+      {/* Speed column — empty for sub-rows */}
+      <span />
+
+      {/* Time/status column */}
+      <span
+        className={`whitespace-nowrap text-right ${isFailed ? 'text-danger' : 'text-text-muted tabular-nums'}`}
+      >
+        {isFailed
+          ? t('transfer.status.failed')
+          : isWaiting
+            ? t('transfer.status.waiting')
+            : isRunning
+              ? formatRemainingTime(computeOpRemainingSeconds(op))
+              : null}
+      </span>
+
+      {/* Actions column — empty for sub-rows */}
+      <span />
     </div>
   )
 }
@@ -164,12 +166,13 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
   const progress = useTransferStore(state => state.taskProgress.get(task.id))
   const [rotationOffset, setRotationOffset] = useState(0)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  const [showErrorDetail, setShowErrorDetail] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  const isFolder = task.itemType === TRANSFER_ITEM_TYPE.FOLDER
-  const isFailed = task.status === TRANSFER_TASK_STATUS.FAILED
-  const isRunning = task.status === TRANSFER_TASK_STATUS.RUNNING
-  const isWaiting = task.status === TRANSFER_TASK_STATUS.WAITING
+  const isFolder = task.itemType === FILE_TYPE.DIRECTORY
+  const isFailed = task.status === OPERATION_STATUS.FAILED
+  const isRunning = task.status === OPERATION_STATUS.RUNNING
+  const isWaiting = task.status === OPERATION_STATUS.WAITING
 
   const transferredSize = progress?.transferredSize ?? task.transferredSize
   const fileSize = progress?.fileSize ?? task.fileSize
@@ -183,12 +186,6 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
     fileSize,
     speed,
   })
-
-  const statusText = isFailed
-    ? t('transfer.status.failed')
-    : isWaiting
-      ? t('transfer.status.waiting')
-      : formatRemainingTime(remainingSeconds)
 
   const shouldRotate = activeOperations.length > TRANSFER_CONFIG.MAX_INLINE_OPERATIONS
 
@@ -239,89 +236,110 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
     const itemHeight = 36
     const maxX = window.innerWidth - menuWidth - 8
     const maxY = window.innerHeight - menuHeight * itemHeight - 8
-    return { x: Math.min(x, maxX), y: Math.min(y, maxY) }
+    return { left: Math.min(x, maxX), top: Math.min(y, maxY) }
   }
+
+  // Folder status text: show file count or running
+  const folderStatusText = isFailed
+    ? t('transfer.status.failed')
+    : isWaiting
+      ? t('transfer.status.waiting')
+      : totalFileCount
+        ? t('transfer.folderStats.fileCount', {
+            completed: completedFileCount ?? 0,
+            total: totalFileCount,
+          })
+        : t('transfer.status.running')
 
   return (
     <div style={style} className="overflow-hidden">
       <div
-        className="flex items-center h-10 px-3 gap-2 hover:bg-hover transition-colors cursor-default border-b border-border group"
+        className={`${GRID_COLS} items-center h-10 px-3 hover:bg-hover transition-colors cursor-default border-b border-border group`}
         onContextMenu={handleContextMenu}
         data-transfer-task={task.id}
       >
-        <FileIcon type={isFolder ? 'directory' : 'file'} className="w-4 h-4 shrink-0" />
-        <span
-          className="truncate flex-1 min-w-0 text-sm"
-          title={`${task.localPath} → ${task.remotePath}`}
-        >
-          {task.itemName}
-        </span>
+        {/* Name column */}
+        <div className="flex items-center gap-2 min-w-0">
+          <FileIcon
+            type={isFolder ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE}
+            className="w-4 h-4 shrink-0"
+          />
+          <span className="truncate text-sm" title={`${task.localPath} → ${task.remotePath}`}>
+            {task.itemName}
+          </span>
+        </div>
 
+        {/* Size column */}
         {isFailed && errorText ? (
-          <span
-            className="text-danger text-xs truncate max-w-40 shrink-0"
-            title={task.errorMessage}
-          >
+          <span className="text-danger text-xs truncate" title={task.errorMessage}>
             {errorText}
           </span>
         ) : isFolder ? (
-          <span className="text-text-muted text-xs tabular-nums shrink-0 whitespace-nowrap">
-            {t('transfer.folderStats.fileCount', {
-              completed: completedFileCount ?? 0,
-              total: totalFileCount ?? 0,
-            })}
+          <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
+            {folderStatusText}
           </span>
         ) : (
-          <>
-            <span className="text-text-muted text-xs tabular-nums shrink-0 whitespace-nowrap">
-              {formatFileSize(transferredSize, lng)}/{formatFileSize(fileSize, lng)}
-            </span>
-            <div className="w-28 shrink-0">
-              <TransferProgressBar
-                transferred={transferredSize}
-                total={fileSize}
-                status={task.status}
-              />
-            </div>
-            {(isRunning || isWaiting) && (
-              <span className="text-text-muted text-xs tabular-nums w-16 text-right shrink-0 whitespace-nowrap">
-                {formatSpeed(speed, lng)}
-              </span>
-            )}
-          </>
+          <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
+            {formatFileSize(transferredSize, lng)}/{formatFileSize(fileSize, lng)}
+          </span>
         )}
 
-        <span className="text-text-muted text-xs tabular-nums w-12 text-right shrink-0 whitespace-nowrap">
-          {statusText}
+        {/* Progress column */}
+        <div>
+          {!isFolder && !isFailed && (
+            <TransferProgressBar
+              transferred={transferredSize}
+              total={fileSize}
+              status={task.status}
+            />
+          )}
+        </div>
+
+        {/* Speed column */}
+        <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
+          {!isFolder && !isFailed && (isRunning || isWaiting) ? formatSpeed(speed, lng) : ''}
         </span>
 
-        {(isRunning || isWaiting) && (
-          <button
-            type="button"
-            onClick={e => {
-              e.stopPropagation()
-              onCancel?.(task.id)
-            }}
-            className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-danger hover:bg-danger-light transition-colors shrink-0"
-            aria-label={t('transfer.action.cancel')}
-          >
-            <XIcon />
-          </button>
-        )}
+        {/* Time/status column */}
+        <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
+          {isFailed
+            ? t('transfer.status.failed')
+            : isWaiting
+              ? t('transfer.status.waiting')
+              : isFolder
+                ? ''
+                : formatRemainingTime(remainingSeconds)}
+        </span>
 
-        {isFailed && (
-          <button
-            type="button"
-            onClick={e => {
-              e.stopPropagation()
-              onRemove?.(task.id)
-            }}
-            className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors shrink-0 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-            aria-label={t('transfer.action.remove')}
-          >
-            <XIcon />
-          </button>
-        )}
+        {/* Actions column */}
+        <div className="flex items-center justify-end">
+          {(isRunning || isWaiting) && (
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation()
+                onCancel?.(task.id)
+              }}
+              className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-danger hover:bg-danger-light transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+              aria-label={t('transfer.action.cancel')}
+            >
+              <X />
+            </button>
+          )}
+          {isFailed && (
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation()
+                onRemove?.(task.id)
+              }}
+              className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+              aria-label={t('transfer.action.remove')}
+            >
+              <X />
+            </button>
+          )}
+        </div>
       </div>
 
       {isFolder &&
@@ -336,42 +354,92 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
           {isFailed && (
             <button
               type="button"
-              className="w-full px-3 py-2 text-left text-sm text-text bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
+              className="w-full px-3 py-2 text-left text-sm text-text bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
               onClick={() => {
                 onRetry?.(contextMenu.taskId)
                 setContextMenu(null)
               }}
             >
-              <RetryIcon />
+              <RotateCcw />
               {t('transfer.action.retry')}
+            </button>
+          )}
+          {isFailed && task.errorMessage && (
+            <button
+              type="button"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-text-muted hover:bg-hover transition-colors cursor-default focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+              onClick={() => {
+                setShowErrorDetail(true)
+                setContextMenu(null)
+              }}
+            >
+              <Info className="w-3.5 h-3.5" />
+              {t('transfer.action.viewErrorDetails')}
             </button>
           )}
           {(isRunning || isWaiting) && (
             <button
               type="button"
-              className="w-full px-3 py-2 text-left text-sm text-danger bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
+              className="w-full px-3 py-2 text-left text-sm text-danger bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
               onClick={() => {
                 onCancel?.(contextMenu.taskId)
                 setContextMenu(null)
               }}
             >
-              <XIcon />
+              <X />
               {t('transfer.action.cancel')}
             </button>
           )}
           {isFailed && (
             <button
               type="button"
-              className="w-full px-3 py-2 text-left text-sm text-text-muted bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors"
+              className="w-full px-3 py-2 text-left text-sm text-text-muted bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
               onClick={() => {
                 onRemove?.(contextMenu.taskId)
                 setContextMenu(null)
               }}
             >
-              <TrashIcon />
+              <Trash />
               {t('transfer.action.remove')}
             </button>
           )}
+        </div>
+      )}
+
+      {showErrorDetail && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowErrorDetail(false)}
+        >
+          <div
+            className="bg-surface rounded-lg shadow-lg p-4 max-w-md w-full mx-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-sm font-medium text-text mb-2">
+              {t('transfer.action.viewErrorDetails')}
+            </h3>
+            <p className="text-sm text-text-muted break-all whitespace-pre-wrap">
+              {task.errorMessage}
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-md text-sm bg-transparent border border-border text-text-muted hover:bg-hover transition-colors cursor-default"
+                onClick={() => {
+                  void navigator.clipboard.writeText(task.errorMessage ?? '')
+                }}
+              >
+                {t('transfer.errorDetail.copy')}
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-md text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-default"
+                onClick={() => setShowErrorDetail(false)}
+              >
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

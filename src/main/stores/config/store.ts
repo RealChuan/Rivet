@@ -1,13 +1,14 @@
 import Store from 'electron-store'
-import { SORT_ORDER, THEME } from '@shared/constants/index.js'
+import { TRANSFER_CONFIG } from '@shared/constants/index.js'
 import type { StoreSchema } from './types.js'
+import { defaultUiSettings } from './ui-settings.js'
 
 export const defaultStore: StoreSchema = {
   savedConnections: [],
-  uiSettings: {
-    appearance: THEME.SYSTEM,
-    locale: '',
-    connectionSortOrder: SORT_ORDER.NONE,
+  uiSettings: defaultUiSettings,
+  transferSettings: {
+    maxUploadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
+    maxDownloadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
   },
 }
 
@@ -15,14 +16,7 @@ export const store = new Store<StoreSchema>({
   defaults: defaultStore,
 })
 
-let inMemoryConfig: StoreSchema = {
-  savedConnections: [],
-  uiSettings: {
-    appearance: THEME.SYSTEM,
-    locale: '',
-    connectionSortOrder: SORT_ORDER.NONE,
-  },
-}
+let inMemoryConfig: StoreSchema = structuredClone(defaultStore)
 
 let configChanged = false
 
@@ -53,8 +47,4 @@ export function getInMemoryConfig(): StoreSchema {
 
 export function setInMemoryConfig(config: StoreSchema): void {
   inMemoryConfig = config
-}
-
-export function setDefaultUiSettings(settings: StoreSchema['uiSettings']): void {
-  inMemoryConfig.uiSettings = { ...settings }
 }

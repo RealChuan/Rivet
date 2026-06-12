@@ -1,4 +1,5 @@
 import type React from 'react'
+import { Plug } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { cn } from '@renderer/utils/index.js'
@@ -16,12 +17,10 @@ export const FileExplorerContainer: React.FC = () => {
           <div
             className={`
               w-16 h-16 mx-auto mb-4 rounded-xl
-              bg-hover flex items-center justify-center
+              bg-hover border border-border flex items-center justify-center
             `}
           >
-            <svg className="w-7 h-7 stroke-text-muted stroke-[1.5]" viewBox="0 0 24 24" fill="none">
-              <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-            </svg>
+            <Plug className="w-7 h-7 stroke-text-muted stroke-[1.5]" />
           </div>
           <h3 className="text-sm font-medium text-text mb-1.5">{t('connection.noConnections')}</h3>
           <p className="text-xs text-text-muted">{t('connection.newConnectionHint')}</p>

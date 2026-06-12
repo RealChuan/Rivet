@@ -46,11 +46,13 @@ export const useConnectionActions = () => {
     onSuccess?: () => void
   ) => {
     let encryptedPassword: string | undefined
-    if (config.password && config.savePassword) {
+    if (config.password) {
       const encryptResult = await window.electronAPI.crypto.encryptPassword(config.password)
-      if (isOk(encryptResult)) {
-        encryptedPassword = encryptResult.value
+      if (!isOk(encryptResult)) {
+        addToast({ type: TOAST_TYPE.ERROR, message: t('connectionDialog.encryptFailed') })
+        throw new Error(t('connectionDialog.encryptFailed'))
       }
+      encryptedPassword = encryptResult.value
     }
 
     const connectionId = editConfig?.id ?? uuidv4()
@@ -163,8 +165,8 @@ export const useConnectionActions = () => {
           // 连接失败，打开重连对话框让用户重新输入密码
         }
         // 解密失败（HMAC 不匹配等），打开重连对话框
-      } catch {
-        // 解密异常，打开重连对话框
+      } catch (error) {
+        logger.catch(error, { action: 'decrypt-password' })
       }
     }
     setReconnectConfig(connection)
@@ -178,11 +180,13 @@ export const useConnectionActions = () => {
     try {
       let encryptedPassword: string | undefined
 
-      if (config.password && config.savePassword) {
+      if (config.password) {
         const result = await window.electronAPI.crypto.encryptPassword(config.password)
-        if (isOk(result)) {
-          encryptedPassword = result.value
+        if (!isOk(result)) {
+          addToast({ type: TOAST_TYPE.ERROR, message: t('connectionDialog.encryptFailed') })
+          throw new Error(t('connectionDialog.encryptFailed'))
         }
+        encryptedPassword = result.value
       }
 
       const passwordConfig: { password?: string; savePassword?: boolean } = {}
@@ -218,8 +222,8 @@ export const useConnectionActions = () => {
       try {
         await window.electronAPI.protocol.disconnect(session.sessionId)
         removeSession(session.sessionId)
-      } catch {
-        // ignore disconnect errors
+      } catch (err) {
+        logger.catch(err, { action: 'edit-disconnect', connectionId: connection.id })
       }
     }
     setEditConfig(connection)

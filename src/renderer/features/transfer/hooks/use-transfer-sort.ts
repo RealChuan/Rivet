@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { TransferTask } from '@shared/types/transfer.js'
-import { useTransferStore } from '@renderer/features/transfer/stores/transfer.js'
+import { toggleSortOrder } from '@renderer/utils/sort-utils.js'
 import { SORT_ORDER, type SortOrderWithDirection } from '@shared/constants/sort.js'
 import { TRANSFER_SORT_FIELD, type TransferSortField } from '@shared/constants/transfer.js'
 
@@ -46,32 +46,23 @@ function sortTasks(
   return sorted
 }
 
-export function useTransferSort(): UseTransferSortReturn {
-  const sortBy = useTransferStore(state => state.sortBy)
-  const sortOrder = useTransferStore(state => state.sortOrder)
-  const storeSetSort = useTransferStore(state => state.setSort)
-  const tasks = useTransferStore(state => state.tasks)
-  const selectedSessionId = useTransferStore(state => state.selectedSessionId)
+/**
+ * Per-session transfer sort hook.
+ *
+ * Sort state is local to each TransferSessionArea instance,
+ * so sorting one server's tasks does not affect others.
+ */
+export function useTransferSort(tasks: TransferTask[]): UseTransferSortReturn {
+  const [sortBy, setSortByState] = useState<TransferSortField>(TRANSFER_SORT_FIELD.CREATED_AT)
+  const [sortOrder, setSortOrderState] = useState<SortOrderWithDirection>(SORT_ORDER.DESC)
 
-  const filteredTasks = useMemo(
-    () => (selectedSessionId ? tasks.filter(t => t.sessionId === selectedSessionId) : tasks),
-    [tasks, selectedSessionId]
-  )
-
-  const sortedTasks = useMemo(
-    () => sortTasks(filteredTasks, sortBy, sortOrder),
-    [filteredTasks, sortBy, sortOrder]
-  )
+  const sortedTasks = useMemo(() => sortTasks(tasks, sortBy, sortOrder), [tasks, sortBy, sortOrder])
 
   const setSort = (field: TransferSortField) => {
-    if (field === sortBy) {
-      storeSetSort(field, sortOrder === SORT_ORDER.ASC ? SORT_ORDER.DESC : SORT_ORDER.ASC)
-    } else {
-      storeSetSort(field, SORT_ORDER.ASC)
-    }
+    const { sortField, sortOrder: newOrder } = toggleSortOrder(sortBy, sortOrder, field)
+    setSortByState(sortField)
+    setSortOrderState(newOrder)
   }
 
   return { sortBy, sortOrder, setSort, sortedTasks }
 }
-
-export { computeRemainingTime }

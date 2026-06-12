@@ -6,7 +6,7 @@
     },
     "app": {
       "name": "Rivet",
-      "subtitle": "SFTP / WebDAV"
+      "subtitle": "SFTP / WebDAV 文件浏览器"
     },
     "common": {
       "action": {
@@ -17,21 +17,31 @@
         "delete": "删除",
         "refresh": "刷新"
       },
+      "close": "关闭",
+      "selectPlaceholder": "请选择...",
       "sort": {
         "asc": "升序",
         "desc": "降序"
-      },
-      "test": {
-        "key": "测试"
       }
     },
     "confirmationDialog": {
       "confirmDeleteMessage": "确定要删除此项吗？",
-      "confirmDeleteMultipleMessage": "确定要删除 {{count}} 项吗？",
+      "confirmDeleteMultipleMessage": "确定要删除 {{count}} 个项目吗？",
       "confirmDeleteMultipleTitle": "删除项目",
       "confirmDeleteTitle": "删除项目",
       "deleteConnectionMessage": "确定要删除此连接吗？",
       "deleteConnectionTitle": "删除连接"
+    },
+    "conflict": {
+      "applyToAll": "应用到全部",
+      "cannotOverwrite": "无法覆盖（目标为目录）",
+      "globalAction": "统一策略",
+      "keepBoth": "保留两者",
+      "overwrite": "覆盖",
+      "skip": "跳过",
+      "source": "源文件",
+      "target": "目标位置",
+      "title": "文件冲突"
     },
     "connection": {
       "connect": "连接",
@@ -45,14 +55,17 @@
     },
     "connectionDialog": {
       "basePath": "基础路径",
+      "basePathPlaceholder": "/dav/files",
       "certWarningMessage": "您正在连接到一个证书无效的服务器。请自行承担风险继续。",
       "certWarningTitle": "证书警告",
       "connectFailed": "连接失败",
       "connecting": "连接中...",
       "continue": "继续",
       "editTitle": "编辑连接",
+      "encryptFailed": "密码加密失败，无法连接",
       "fillRequired": "请填写所有必填字段",
       "host": "主机",
+      "hostPlaceholder": "192.168.1.100",
       "invalidPort": "无效端口号",
       "name": "名称",
       "namePlaceholder": "输入连接名称",
@@ -60,15 +73,20 @@
       "passwordPlaceholder": "输入密码",
       "port": "端口",
       "protocol": "协议",
+      "protocolSftp": "SFTP",
+      "protocolWebdav": "WebDAV",
       "rejectUnauthorized": "拒绝未授权证书",
       "save": "保存",
       "savePassword": "保存密码",
       "scheme": "协议类型",
+      "schemeHttp": "HTTP",
+      "schemeHttps": "HTTPS",
       "subtitle": "创建新连接",
       "username": "用户名",
       "usernamePlaceholder": "输入用户名"
     },
     "error": {
+      "listDirectoryFailed": "列出目录失败",
       "noOperationPending": "没有待处理的操作",
       "unknown": "未知错误",
       "unknownName": "未知",
@@ -77,16 +95,13 @@
     "file": {
       "action": {
         "copy": "复制",
+        "download": "下载",
         "move": "移动",
         "newFolder": "新建文件夹",
         "rename": "重命名",
         "upload": "上传",
         "uploadFiles": "上传文件...",
         "uploadFolder": "上传文件夹..."
-      },
-      "conflict": {
-        "source": "源文件",
-        "target": "目标位置"
       },
       "dropToUpload": "拖放以上传"
     },
@@ -115,10 +130,20 @@
       "trustAndSave": "信任并连接",
       "trustNew": "信任新密钥"
     },
+    "language": {
+      "chinese": "中文",
+      "english": "English",
+      "enShort": "EN",
+      "zhShort": "中文"
+    },
     "mainLayout": {
       "darkMode": "深色模式",
       "lightMode": "浅色模式",
       "system": "系统"
+    },
+    "passwordInput": {
+      "hidePassword": "隐藏密码",
+      "showPassword": "显示密码"
     },
     "sortButton": {
       "sortConnections": "排序连接"
@@ -153,12 +178,14 @@
       "deleteSuccess": "删除成功",
       "disconnectFailed": "断开 {{protocol}} 连接 \"{{name}}\" 失败",
       "disconnectSuccess": "已断开 {{protocol}} 连接 \"{{name}}\"",
+      "downloadDuplicates": "{{count}} 个文件已存在于下载队列",
+      "downloadFailed": "下载失败",
       "moveFailed": "移动失败",
       "moveSuccess": "移动成功",
       "refreshFailed": "刷新失败",
       "renameFailed": "重命名失败",
       "renameSuccess": "重命名成功",
-      "uploadDuplicates": "已跳过 {{count}} 个重复上传任务",
+      "uploadDuplicates": "{{count}} 个文件已存在于上传队列",
       "uploadFailed": "上传失败"
     },
     "transfer": {
@@ -167,9 +194,12 @@
         "cancelAll": "全部取消",
         "remove": "移除",
         "retry": "重试",
-        "sort": "排序"
+        "sort": "排序",
+        "viewErrorDetails": "查看错误详情"
       },
+      "cancelFailed": "取消传输任务失败",
       "concurrency": {
+        "download": "下载并发",
         "upload": "上传并发"
       },
       "confirmDisconnect": {
@@ -180,12 +210,7 @@
         "message": "有正在进行的上传任务。是否取消上传并退出？",
         "title": "上传任务进行中"
       },
-      "conflict": {
-        "source": "本地",
-        "target": "远程"
-      },
       "download": "下载",
-      "downloadDisabled": "即将推出",
       "empty": "暂无传输任务",
       "errorDetail": {
         "copied": "已复制",
@@ -195,8 +220,8 @@
       "folderStats": {
         "fileCount": "{{completed}}/{{total}} 文件"
       },
-      "noActiveTasks": "暂无传输任务",
-      "runningCount": "共 {{count}} 个任务正在传输",
+      "retryFailed": "重试传输任务失败",
+      "runningCount": "{{count}} 个任务进行中",
       "sort": {
         "name": "名称",
         "size": "大小",
@@ -205,6 +230,8 @@
       },
       "status": {
         "failed": "失败",
+        "failedCount": "{{count}} 失败",
+        "running": "传输中",
         "waiting": "等待中"
       },
       "upload": "上传"

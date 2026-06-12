@@ -8,6 +8,7 @@ vi.mock('react-i18next', () => ({
     t: (key: string) => key,
     i18n: { language: 'en-US' },
   }),
+  initReactI18next: vi.fn(),
 }))
 
 const mockConnection: ConnectionConfig = {

@@ -7,6 +7,7 @@ import {
   ok,
   type Result,
 } from '@shared/types/index.js'
+import { formatErrorMessage } from '@shared/utils/index.js'
 import { logger } from '../utils/logger.js'
 import { sessionRegistry } from './session-registry.js'
 import { transferService } from './transfer/index.js'
@@ -65,9 +66,10 @@ class SessionManager {
         ),
       ])
     } catch (e) {
-      const error = e as Error
       sessionRegistry.unregister(sessionId)
-      return err(createErrorInfo('DISCONNECT_ERROR', 'Disconnect failed', error.message))
+      return err(
+        createErrorInfo(ERROR_CODE.DISCONNECT_ERROR, 'Disconnect failed', formatErrorMessage(e))
+      )
     }
 
     sessionRegistry.unregister(sessionId)
@@ -104,7 +106,7 @@ class SessionManager {
       return ok(allSucceeded)
     } catch (error) {
       logger.catch(error, { action: 'safe-unregister-all' })
-      return err(createErrorInfo('CLEANUP_ERROR', 'Cleanup failed', String(error)))
+      return err(createErrorInfo(ERROR_CODE.CLEANUP_ERROR, 'Cleanup failed', String(error)))
     }
   }
 
@@ -136,7 +138,9 @@ class SessionManager {
             ),
           ])
         } catch (_error) {
-          this.safeUnregister(sessionId).catch(() => {})
+          this.safeUnregister(sessionId).catch(err => {
+            logger.catch(err, { action: 'heartbeat-unregister', sessionId })
+          })
         }
       })
     )

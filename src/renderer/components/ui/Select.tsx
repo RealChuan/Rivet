@@ -1,6 +1,7 @@
 import type React from 'react'
+import { ChevronDown } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-
+import { useTranslation } from 'react-i18next'
 import { useClickOutside } from '@renderer/hooks/index.js'
 import { cn } from '@renderer/utils/index.js'
 
@@ -17,6 +18,7 @@ interface SelectProps {
 }
 
 export const Select: React.FC<SelectProps> = ({ value, onChange, options, className = '' }) => {
+  const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -65,21 +67,15 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
           focus-visible:ring-2 focus-visible:ring-ring text-[13px] box-border min-h-8.25 m-0
         `}
       >
-        <span className="flex-1 truncate">{selectedOption?.label ?? 'Select...'}</span>
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
+        <span className="flex-1 truncate">
+          {selectedOption?.label ?? t('common.selectPlaceholder')}
+        </span>
+        <ChevronDown
           className={cn(
-            'absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-150',
+            'w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-150',
             isOpen && 'rotate-180'
           )}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        />
       </button>
 
       {isOpen && (

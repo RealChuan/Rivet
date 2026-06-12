@@ -7,7 +7,7 @@ import { useFileDeletion } from '@renderer/features/file-explorer/hooks/use-file
 import { type UseFileListStateReturn } from '@renderer/features/file-explorer/hooks/use-file-list-state.js'
 import { useFileRenaming } from '@renderer/features/file-explorer/hooks/use-file-renaming.js'
 import { useFolderCreation } from '@renderer/features/file-explorer/hooks/use-folder-creation.js'
-import { useUploadDialog } from '@renderer/features/file-explorer/hooks/use-upload-dialog.js'
+import { useTransferDialog } from '@renderer/features/file-explorer/hooks/use-transfer-dialog.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import { TOAST_TYPE } from '@shared/constants/index.js'
 import { isOk } from '@shared/types/index.js'
@@ -33,7 +33,10 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
   const { handleRename } = useFileRenaming(sessionId)
   const { handleCreateFolder } = useFolderCreation(sessionId)
   const fileCopyMoveState = useFileCopyMove(sessionId)
-  const { openFilePicker, openFolderPicker } = useUploadDialog({ sessionId, currentPath })
+  const { openFilePicker, openFolderPicker, openDownloadDialog } = useTransferDialog({
+    sessionId,
+    currentPath,
+  })
 
   const {
     selectedFile,
@@ -48,6 +51,7 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
     closeContextMenu,
     openDeleteDialog,
     openRenameDialog,
+    clearSelection,
   } = listState
 
   const {
@@ -94,7 +98,9 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
         type="danger"
         onConfirm={() => {
           if (fileToDelete) {
-            void handleDelete(fileToDelete)
+            void handleDelete(fileToDelete).then(() => {
+              clearSelection()
+            })
           }
           closeDeleteDialog()
         }}
@@ -160,6 +166,16 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
           }}
           onUploadFiles={() => void openFilePicker()}
           onUploadFolder={() => void openFolderPicker()}
+          onDownload={files => {
+            void openDownloadDialog(
+              files.map(f => ({
+                path: f.absolutePath,
+                name: f.name,
+                type: f.type,
+                size: f.size,
+              }))
+            )
+          }}
         />
       )}
     </>

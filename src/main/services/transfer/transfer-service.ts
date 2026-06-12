@@ -1,57 +1,74 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import type { LastDirKey, TransferDirection } from '@shared/constants/index.js'
 import { logger } from '@main/utils/index.js'
 import {
   TRANSFER_CONFIG,
-  TRANSFER_ITEM_TYPE,
-  TRANSFER_TASK_STATUS,
-  UPLOAD_OPERATION_STATUS,
-  UPLOAD_OPERATION_TYPE,
-  ERROR_CODE,
+  OPERATION_STATUS,
+  TRANSFER_OPERATION_TYPE,
+  TRANSFER_DIRECTION,
   TRANSFER_CHANNELS,
+  FILE_TYPE,
+  STORE_KEY,
 } from '@shared/constants/index.js'
-import { type ErrorInfo, isErr } from '@shared/types/index.js'
 import {
   type DeduplicateResult,
+  type LocalFileInfo,
   type OperationProgressInfo,
-  type TransferProgressData,
   type TransferTask,
   type UploadOperation,
 } from '@shared/types/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
-import { joinPaths } from '@shared/utils/index.js'
-import { protocolService } from '../protocol/protocol-service.js'
+import type { TransferContext } from './transfer-context.js'
+import { getFromMemory, setToMemory } from '../../stores/config/store.js'
+import { deleteLocalFile, cleanupDownloadFolder } from './download-executor.js'
+import { cancel, cancelAll, retry, retryAll } from './transfer-cancellation.js'
+import { TEMP_FILE_SUFFIX } from './transfer-context.js'
+import {
+  type SpeedSample,
+  computeSpeed,
+  shouldThrottle,
+  markProgressSent,
+  buildProgressData,
+  getActiveOperationInfos,
+} from './transfer-progress.js'
+import {
+  scheduleTasks,
+  scheduleFolderOps,
+  createInitialOperations,
+  onFileProgress,
+  onOperationProgress,
+} from './transfer-scheduler.js'
 
-function isAbortError(error: ErrorInfo): boolean {
-  return error.code === ERROR_CODE.UPLOAD_ABORTED || error.code === ERROR_CODE.REQUEST_ABORTED
-}
-
-interface SpeedSample {
-  timestamp: number
-  transferredSize: number
-}
-
-const SPEED_WINDOW_MS = 3000
-const SPEED_MIN_SAMPLES = 2
-
-export class TransferService {
-  private tasks: TransferTask[] = []
-  private operations: UploadOperation[] = []
-  private operationsByTask = new Map<string, UploadOperation[]>()
-  private runningTasks = 0
-  private folderRunningOps = new Map<string, number>()
-  private maxConcurrency: number = TRANSFER_CONFIG.DEFAULT_CONCURRENCY
-  private abortControllers = new Map<string, AbortController>()
-  private lastProgressTime = new Map<string, number>()
-  private lastOpProgressTime = new Map<string, number>()
-  private speedSamples = new Map<string, SpeedSample[]>()
-  private opSpeedSamples = new Map<string, SpeedSample[]>()
-  private cancelledTaskIds = new Set<string>()
+export class TransferService implements TransferContext {
+  tasks: TransferTask[] = []
+  operations: UploadOperation[] = []
+  operationsByTask = new Map<string, UploadOperation[]>()
+  runningUploadTasks = 0
+  runningDownloadTasks = 0
+  folderRunningOps = new Map<string, number>()
+  abortControllers = new Map<string, AbortController>()
+  lastProgressTime = new Map<string, number>()
+  lastOpProgressTime = new Map<string, number>()
+  speedSamples = new Map<string, SpeedSample[]>()
+  opSpeedSamples = new Map<string, SpeedSample[]>()
+  lastDirs = new Map<LastDirKey, string>()
+  cancelledTaskIds = new Set<string>()
   private mainWindow: Electron.BrowserWindow | null = null
+
+  decrementRunningTasks(direction: TransferDirection): void {
+    if (direction === TRANSFER_DIRECTION.UPLOAD) {
+      this.runningUploadTasks--
+    } else {
+      this.runningDownloadTasks--
+    }
+  }
 
   setMainWindow(window: Electron.BrowserWindow): void {
     this.mainWindow = window
   }
+
+  // ── Task management ──
 
   async addTasks(tasks: TransferTask[]): Promise<DeduplicateResult> {
     const added: TransferTask[] = []
@@ -67,14 +84,17 @@ export class TransferService {
       if (isDuplicate) {
         duplicates.push(task)
       } else {
-        task.status = TRANSFER_TASK_STATUS.WAITING
+        task.status = OPERATION_STATUS.WAITING
 
-        if (task.itemType === TRANSFER_ITEM_TYPE.FILE && task.fileSize === 0) {
+        if (task.itemType === FILE_TYPE.FILE && task.fileSize === 0) {
           try {
             const stat = await fs.promises.stat(task.localPath)
             task.fileSize = stat.size
-          } catch {
-            // ignore stat errors
+          } catch (err) {
+            logger.debug('Failed to stat file for size detection', {
+              path: task.localPath,
+              error: formatErrorMessage(err),
+            })
           }
         }
 
@@ -97,7 +117,74 @@ export class TransferService {
     return { added, duplicates }
   }
 
-  private addOperation(op: UploadOperation): void {
+  hasActiveTasks(sessionId?: string): boolean {
+    const tasks = sessionId ? this.tasks.filter(t => t.sessionId === sessionId) : this.tasks
+    return tasks.some(
+      t => t.status === OPERATION_STATUS.WAITING || t.status === OPERATION_STATUS.RUNNING
+    )
+  }
+
+  getTasks(sessionId?: string): TransferTask[] {
+    return sessionId ? this.tasks.filter(t => t.sessionId === sessionId) : [...this.tasks]
+  }
+
+  getActiveOperations(taskId: string): OperationProgressInfo[] {
+    return getActiveOperationInfos(this.operationsByTask, this.opSpeedSamples, taskId)
+  }
+
+  checkLocalFiles(localDir: string): Promise<LocalFileInfo[]> {
+    return fs.promises
+      .readdir(localDir, { withFileTypes: true })
+      .then(entries =>
+        entries
+          .filter(entry => entry.isFile() || entry.isDirectory())
+          .map(entry => ({
+            name: entry.name,
+            size: 0,
+            type: entry.isDirectory() ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE,
+          }))
+      )
+      .catch(err => {
+        logger.debug('Failed to read local directory', { localDir, error: formatErrorMessage(err) })
+        return []
+      })
+  }
+
+  // ── Concurrency ──
+
+  getConcurrency(direction: TransferDirection): number {
+    const settings = getFromMemory(STORE_KEY.TRANSFER_SETTINGS)
+    return direction === TRANSFER_DIRECTION.UPLOAD
+      ? settings.maxUploadConcurrency
+      : settings.maxDownloadConcurrency
+  }
+
+  setConcurrency(max: number, direction: TransferDirection): void {
+    const clamped = Math.min(
+      TRANSFER_CONFIG.MAX_CONCURRENCY,
+      Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, max)
+    )
+
+    const settings = { ...getFromMemory(STORE_KEY.TRANSFER_SETTINGS) }
+    if (direction === TRANSFER_DIRECTION.UPLOAD) {
+      settings.maxUploadConcurrency = clamped
+    } else {
+      settings.maxDownloadConcurrency = clamped
+    }
+    setToMemory(STORE_KEY.TRANSFER_SETTINGS, settings)
+
+    this.scheduleTasks()
+
+    for (const task of this.tasks) {
+      if (task.status === OPERATION_STATUS.RUNNING && task.itemType === FILE_TYPE.DIRECTORY) {
+        this.scheduleFolderOps(task.id)
+      }
+    }
+  }
+
+  // ── Operations CRUD ──
+
+  addOperation(op: UploadOperation): void {
     this.operations.push(op)
     const list = this.operationsByTask.get(op.parentTaskId)
     if (list) {
@@ -107,285 +194,105 @@ export class TransferService {
     }
   }
 
-  private createInitialOperations(task: TransferTask): void {
-    if (task.itemType === TRANSFER_ITEM_TYPE.FOLDER) {
-      this.addOperation({
-        id: crypto.randomUUID(),
-        parentTaskId: task.id,
-        type: UPLOAD_OPERATION_TYPE.MKDIR,
-        remotePath: task.remotePath,
-        itemName: task.itemName,
-        status: UPLOAD_OPERATION_STATUS.WAITING,
-        transferredSize: 0,
-      })
+  removeOperation(operationId: string, parentTaskId: string): void {
+    this.operations = this.operations.filter(op => op.id !== operationId)
+    const taskOpList = this.operationsByTask.get(parentTaskId)
+    if (taskOpList) {
+      const idx = taskOpList.findIndex(op => op.id === operationId)
+      if (idx !== -1) taskOpList.splice(idx, 1)
     }
   }
 
-  private scheduleTasks(): void {
-    while (this.runningTasks < this.maxConcurrency) {
-      const task = this.tasks.find(t => t.status === TRANSFER_TASK_STATUS.WAITING)
-      if (!task) break
+  // ── Delegated: Scheduling ──
 
-      task.status = TRANSFER_TASK_STATUS.RUNNING
-      task.startedAt = Date.now()
-      this.runningTasks++
-
-      if (task.itemType === TRANSFER_ITEM_TYPE.FILE) {
-        void this.executeFileTask(task)
-      } else {
-        this.folderRunningOps.set(task.id, 0)
-        this.scheduleFolderOps(task.id)
-      }
-    }
+  scheduleTasks(): void {
+    scheduleTasks(this)
   }
 
-  private scheduleFolderOps(taskId: string): void {
-    if (this.cancelledTaskIds.has(taskId)) return
-
-    const runningOps = this.folderRunningOps.get(taskId) ?? 0
-    if (runningOps >= this.maxConcurrency) return
-
-    const pendingOps = (this.operationsByTask.get(taskId) ?? []).filter(
-      op => op.status === UPLOAD_OPERATION_STATUS.WAITING
-    )
-
-    let currentRunning = runningOps
-    for (const op of pendingOps) {
-      if (currentRunning >= this.maxConcurrency) break
-      if (this.cancelledTaskIds.has(taskId)) return
-      currentRunning++
-      this.folderRunningOps.set(taskId, currentRunning)
-      void this.executeFolderOp(op)
-    }
+  scheduleFolderOps(taskId: string): void {
+    scheduleFolderOps(this, taskId)
   }
 
-  private isTaskCancelled(taskId: string): boolean {
+  createInitialOperations(task: TransferTask): void {
+    createInitialOperations(this, task)
+  }
+
+  isTaskCancelled(taskId: string): boolean {
     return this.cancelledTaskIds.has(taskId)
   }
 
-  private async executeFileTask(task: TransferTask): Promise<void> {
-    const controller = new AbortController()
-    this.abortControllers.set(task.id, controller)
+  onFileProgress(task: TransferTask, transferred: number): void {
+    onFileProgress(this, task, transferred)
+  }
 
-    this.sendProgress(task)
+  onOperationProgress(op: UploadOperation, task: TransferTask, transferred: number): void {
+    onOperationProgress(this, op, task, transferred)
+  }
 
-    try {
-      const result = await protocolService.upload(
-        task.sessionId,
-        task.localPath,
-        task.remotePath,
-        transferred => this.onFileProgress(task, transferred),
-        controller.signal
-      )
+  // ── Task stats / completion ──
 
-      if (this.isTaskCancelled(task.id)) return
+  updateTaskStats(task: TransferTask): void {
+    const taskOps = this.operationsByTask.get(task.id) ?? []
+    const completedOps = taskOps.filter(op => op.status === OPERATION_STATUS.COMPLETED)
+    const runningOps = taskOps.filter(op => op.status === OPERATION_STATUS.RUNNING)
+    const waitingOps = taskOps.filter(op => op.status === OPERATION_STATUS.WAITING)
 
-      if (isErr(result)) {
-        if (isAbortError(result.error)) {
-          this.removeTask(task.id)
-          this.sendTaskRemoved(task)
-        } else {
-          task.status = TRANSFER_TASK_STATUS.FAILED
-          task.errorMessage = result.error.message
-          this.speedSamples.delete(task.id)
-          this.lastProgressTime.delete(task.id)
-          this.sendTaskFailed(task)
-        }
-      } else {
-        task.transferredSize = task.fileSize
-        task.status = TRANSFER_TASK_STATUS.COMPLETED
-        this.speedSamples.delete(task.id)
-        this.lastProgressTime.delete(task.id)
-        this.sendProgress(task)
-        this.sendTaskCompleted(task)
-        this.removeTask(task.id)
-      }
-    } catch (_error) {
-      if (this.isTaskCancelled(task.id)) return
-      task.status = TRANSFER_TASK_STATUS.FAILED
-      task.errorMessage = formatErrorMessage(_error)
+    const isFileOp = (op: UploadOperation) =>
+      op.type === TRANSFER_OPERATION_TYPE.UPLOAD || op.type === TRANSFER_OPERATION_TYPE.DOWNLOAD
+
+    task.completedFileCount = completedOps.filter(isFileOp).length
+    task.activeFileCount = runningOps.filter(isFileOp).length
+    task.waitingFileCount = waitingOps.filter(isFileOp).length
+
+    task.transferredSize =
+      completedOps.reduce((sum, op) => sum + op.transferredSize, 0) +
+      runningOps.reduce((sum, op) => sum + op.transferredSize, 0)
+  }
+
+  checkTaskCompletion(task: TransferTask): void {
+    if (task.status === OPERATION_STATUS.FAILED) return
+
+    const taskOps = this.operationsByTask.get(task.id) ?? []
+    const allDone = taskOps.every(
+      op => op.status === OPERATION_STATUS.COMPLETED || op.status === OPERATION_STATUS.FAILED
+    )
+
+    if (!allDone) return
+
+    const hasFailed = taskOps.some(op => op.status === OPERATION_STATUS.FAILED)
+
+    if (hasFailed) {
+      task.status = OPERATION_STATUS.FAILED
       this.speedSamples.delete(task.id)
       this.lastProgressTime.delete(task.id)
       this.sendTaskFailed(task)
-    } finally {
-      if (!this.isTaskCancelled(task.id)) {
-        this.runningTasks--
-      }
-      this.abortControllers.delete(task.id)
-      this.cancelledTaskIds.delete(task.id)
-      this.scheduleTasks()
+    } else {
+      task.status = OPERATION_STATUS.COMPLETED
+      this.sendTaskCompleted(task)
+      this.removeTask(task.id)
     }
+
+    this.folderRunningOps.delete(task.id)
+    this.decrementRunningTasks(task.direction)
+    this.scheduleTasks()
   }
 
-  private async executeFolderOp(op: UploadOperation): Promise<void> {
-    if (this.isTaskCancelled(op.parentTaskId)) return
-
-    op.status = UPLOAD_OPERATION_STATUS.RUNNING
-    op.startedAt = Date.now()
-    const task = this.tasks.find(t => t.id === op.parentTaskId)
-    if (task) this.updateTaskStats(task)
-
-    try {
-      if (op.type === UPLOAD_OPERATION_TYPE.MKDIR) {
-        const sessionId = task?.sessionId ?? ''
-        const result = await protocolService.mkdir(sessionId, op.remotePath)
-
-        if (this.isTaskCancelled(op.parentTaskId)) return
-
-        if (!result.success) {
-          this.failOperation(op, result.error?.message ?? 'Mkdir failed')
-          return
-        }
-
-        op.status = UPLOAD_OPERATION_STATUS.COMPLETED
-
-        if (task) {
-          await this.expandDirectory(task, op.remotePath, task.localPath)
-        }
-      } else if (op.type === UPLOAD_OPERATION_TYPE.UPLOAD) {
-        const controller = new AbortController()
-        this.abortControllers.set(op.id, controller)
-
-        try {
-          const sessionId = task?.sessionId ?? ''
-          const result = await protocolService.upload(
-            sessionId,
-            op.localPath ?? '',
-            op.remotePath,
-            transferred => {
-              if (task) this.onOperationProgress(op, task, transferred)
-            },
-            controller.signal
-          )
-
-          if (this.isTaskCancelled(op.parentTaskId)) return
-
-          if (isErr(result)) {
-            if (isAbortError(result.error)) {
-              this.operations = this.operations.filter(o => o.id !== op.id)
-              const taskOpList = this.operationsByTask.get(op.parentTaskId)
-              if (taskOpList) {
-                const idx = taskOpList.findIndex(o => o.id === op.id)
-                if (idx !== -1) taskOpList.splice(idx, 1)
-              }
-            } else {
-              this.failOperation(op, result.error.message)
-              return
-            }
-          } else {
-            op.status = UPLOAD_OPERATION_STATUS.COMPLETED
-            op.transferredSize = op.fileSize ?? 0
-          }
-        } finally {
-          this.abortControllers.delete(op.id)
-        }
-      }
-    } catch (error) {
-      if (this.isTaskCancelled(op.parentTaskId)) return
-      this.failOperation(op, formatErrorMessage(error))
-      return
-    }
-
-    if (task && !this.isTaskCancelled(op.parentTaskId)) {
-      this.lastOpProgressTime.delete(op.id)
-      this.opSpeedSamples.delete(op.id)
-      const runningOps = this.folderRunningOps.get(task.id) ?? 1
-      this.folderRunningOps.set(task.id, Math.max(0, runningOps - 1))
-      this.updateTaskStats(task)
-      this.throttledSendProgress(task)
-      this.checkTaskCompletion(task)
-      this.scheduleFolderOps(task.id)
-    }
-  }
-
-  private async expandDirectory(
-    task: TransferTask,
-    remoteDir: string,
-    _localBaseDir: string
-  ): Promise<void> {
-    if (this.isTaskCancelled(task.id)) return
-
-    const relativePath = path.posix.relative(task.remotePath, remoteDir)
-    const localDir = relativePath === '' ? task.localPath : path.join(task.localPath, relativePath)
-
-    let entries: fs.Dirent[]
-    try {
-      entries = await fs.promises.readdir(localDir, { withFileTypes: true })
-    } catch (_error) {
-      const errorMessage = _error instanceof Error ? _error.message : String(_error)
-      logger.error(`Failed to read directory: ${localDir}`, { errorMessage })
-      task.status = TRANSFER_TASK_STATUS.FAILED
-      task.errorMessage = `Failed to read directory: ${errorMessage}`
-      this.cancelTaskWaitingOperations(task.id)
-      this.folderRunningOps.delete(task.id)
-      this.runningTasks--
-      this.speedSamples.delete(task.id)
-      this.lastProgressTime.delete(task.id)
-      this.sendTaskFailed(task)
-      this.scheduleTasks()
-      return
-    }
-
-    for (const entry of entries) {
-      const childRemotePath = joinPaths(remoteDir, entry.name)
-      const childLocalPath = path.join(localDir, entry.name)
-
-      if (entry.isDirectory()) {
-        this.addOperation({
-          id: crypto.randomUUID(),
-          parentTaskId: task.id,
-          type: UPLOAD_OPERATION_TYPE.MKDIR,
-          remotePath: childRemotePath,
-          itemName: entry.name,
-          status: UPLOAD_OPERATION_STATUS.WAITING,
-          transferredSize: 0,
-        })
-      } else if (entry.isFile()) {
-        let fileSize = 0
-        try {
-          const stat = await fs.promises.stat(childLocalPath)
-          fileSize = stat.size
-        } catch {
-          // ignore stat errors
-        }
-
-        task.totalFileCount = (task.totalFileCount ?? 0) + 1
-
-        this.addOperation({
-          id: crypto.randomUUID(),
-          parentTaskId: task.id,
-          type: UPLOAD_OPERATION_TYPE.UPLOAD,
-          localPath: childLocalPath,
-          remotePath: childRemotePath,
-          itemName: entry.name,
-          status: UPLOAD_OPERATION_STATUS.WAITING,
-          fileSize,
-          transferredSize: 0,
-        })
-      }
-    }
-
-    this.updateTaskStats(task)
-    this.scheduleFolderOps(task.id)
-    this.throttledSendProgress(task)
-  }
-
-  private failOperation(op: UploadOperation, errorMessage: string): void {
-    op.status = UPLOAD_OPERATION_STATUS.FAILED
+  failOperation(op: UploadOperation, errorMessage: string): void {
+    op.status = OPERATION_STATUS.FAILED
     op.errorMessage = errorMessage
     this.opSpeedSamples.delete(op.id)
 
     const task = this.tasks.find(t => t.id === op.parentTaskId)
     if (!task) return
 
-    task.status = TRANSFER_TASK_STATUS.FAILED
+    task.status = OPERATION_STATUS.FAILED
     task.errorMessage = errorMessage
 
     this.cancelTaskWaitingOperations(task.id)
     this.abortTaskRunningOperations(task.id)
 
     this.folderRunningOps.delete(task.id)
-    this.runningTasks--
+    this.decrementRunningTasks(task.direction)
     this.abortControllers.delete(op.id)
     this.speedSamples.delete(task.id)
     this.lastProgressTime.delete(task.id)
@@ -394,258 +301,59 @@ export class TransferService {
     this.scheduleTasks()
   }
 
-  private cancelTaskWaitingOperations(taskId: string): void {
+  failTaskAndCleanup(task: TransferTask, errorMessage: string): void {
+    task.status = OPERATION_STATUS.FAILED
+    task.errorMessage = errorMessage
+    this.cancelTaskWaitingOperations(task.id)
+    this.folderRunningOps.delete(task.id)
+    this.decrementRunningTasks(task.direction)
+    this.speedSamples.delete(task.id)
+    this.lastProgressTime.delete(task.id)
+    this.sendTaskFailed(task)
+    this.scheduleTasks()
+  }
+
+  cancelTaskWaitingOperations(taskId: string): void {
     for (const op of this.operationsByTask.get(taskId) ?? []) {
-      if (op.status === UPLOAD_OPERATION_STATUS.WAITING) {
-        op.status = UPLOAD_OPERATION_STATUS.FAILED
+      if (op.status === OPERATION_STATUS.WAITING) {
+        op.status = OPERATION_STATUS.FAILED
       }
     }
   }
 
-  private abortTaskRunningOperations(taskId: string): void {
+  abortTaskRunningOperations(taskId: string): void {
     for (const op of this.operationsByTask.get(taskId) ?? []) {
-      if (op.status === UPLOAD_OPERATION_STATUS.RUNNING) {
+      if (op.status === OPERATION_STATUS.RUNNING) {
         const controller = this.abortControllers.get(op.id)
         if (controller) {
           controller.abort()
         }
-        op.status = UPLOAD_OPERATION_STATUS.FAILED
+        op.status = OPERATION_STATUS.FAILED
       }
     }
   }
 
-  private updateTaskStats(task: TransferTask): void {
-    const taskOps = this.operationsByTask.get(task.id) ?? []
-    const completedOps = taskOps.filter(op => op.status === UPLOAD_OPERATION_STATUS.COMPLETED)
-    const runningOps = taskOps.filter(op => op.status === UPLOAD_OPERATION_STATUS.RUNNING)
-    const waitingOps = taskOps.filter(op => op.status === UPLOAD_OPERATION_STATUS.WAITING)
-
-    task.completedFileCount = completedOps.filter(
-      op => op.type === UPLOAD_OPERATION_TYPE.UPLOAD
-    ).length
-    task.activeFileCount = runningOps.filter(op => op.type === UPLOAD_OPERATION_TYPE.UPLOAD).length
-    task.waitingFileCount = waitingOps.filter(op => op.type === UPLOAD_OPERATION_TYPE.UPLOAD).length
-
-    task.transferredSize =
-      completedOps.reduce((sum, op) => sum + op.transferredSize, 0) +
-      runningOps.reduce((sum, op) => sum + op.transferredSize, 0)
-  }
-
-  private checkTaskCompletion(task: TransferTask): void {
-    if (task.status === TRANSFER_TASK_STATUS.FAILED) return
-
-    const taskOps = this.operationsByTask.get(task.id) ?? []
-    const allDone = taskOps.every(
-      op =>
-        op.status === UPLOAD_OPERATION_STATUS.COMPLETED ||
-        op.status === UPLOAD_OPERATION_STATUS.FAILED
-    )
-
-    if (!allDone) return
-
-    const hasFailed = taskOps.some(op => op.status === UPLOAD_OPERATION_STATUS.FAILED)
-
-    if (hasFailed) {
-      task.status = TRANSFER_TASK_STATUS.FAILED
-      this.speedSamples.delete(task.id)
-      this.lastProgressTime.delete(task.id)
-      this.sendTaskFailed(task)
-    } else {
-      task.status = TRANSFER_TASK_STATUS.COMPLETED
-      this.sendTaskCompleted(task)
-      this.removeTask(task.id)
-    }
-
-    this.folderRunningOps.delete(task.id)
-    this.runningTasks--
-    this.scheduleTasks()
-  }
-
-  private onFileProgress(task: TransferTask, transferred: number): void {
-    task.transferredSize = transferred
-    this.addSpeedSample(task.id, transferred)
-
-    const now = Date.now()
-    const lastTime = this.lastProgressTime.get(task.id) ?? 0
-    if (now - lastTime >= TRANSFER_CONFIG.PROGRESS_THROTTLE_MS) {
-      this.lastProgressTime.set(task.id, now)
-      this.sendProgress(task)
-    }
-  }
-
-  private onOperationProgress(op: UploadOperation, task: TransferTask, transferred: number): void {
-    op.transferredSize = transferred
-    this.addOpSpeedSample(op.id, transferred)
-    this.updateTaskStats(task)
-    this.addSpeedSample(task.id, task.transferredSize)
-
-    const now = Date.now()
-    const lastTime = this.lastProgressTime.get(task.id) ?? 0
-    if (now - lastTime >= TRANSFER_CONFIG.PROGRESS_THROTTLE_MS) {
-      this.lastProgressTime.set(task.id, now)
-      this.sendProgress(task)
-    }
-  }
+  // ── Delegated: Cancellation / Retry ──
 
   cancel(taskId: string): void {
-    const taskIndex = this.tasks.findIndex(t => t.id === taskId)
-    if (taskIndex === -1) return
-
-    const task = this.tasks[taskIndex]
-    if (!task) return
-
-    this.cancelledTaskIds.add(taskId)
-
-    if (task.status === TRANSFER_TASK_STATUS.WAITING) {
-      this.removeTask(task.id)
-      this.sendTaskRemoved(task)
-      this.scheduleTasks()
-      return
-    }
-
-    if (task.status === TRANSFER_TASK_STATUS.RUNNING) {
-      if (task.itemType === TRANSFER_ITEM_TYPE.FILE) {
-        const controller = this.abortControllers.get(task.id)
-        if (controller) controller.abort()
-      } else {
-        for (const op of this.operationsByTask.get(taskId) ?? []) {
-          if (op.status === UPLOAD_OPERATION_STATUS.RUNNING) {
-            const controller = this.abortControllers.get(op.id)
-            if (controller) controller.abort()
-          }
-        }
-        const taskOps = this.operationsByTask.get(taskId) ?? []
-        for (const op of taskOps) {
-          this.opSpeedSamples.delete(op.id)
-        }
-        this.operationsByTask.delete(taskId)
-        this.operations = this.operations.filter(op => op.parentTaskId !== taskId)
-        this.folderRunningOps.delete(taskId)
-      }
-
-      this.removeTask(task.id)
-      this.runningTasks--
-      this.sendTaskRemoved(task)
-      this.scheduleTasks()
-      return
-    }
-
-    if (
-      task.status === TRANSFER_TASK_STATUS.FAILED ||
-      task.status === TRANSFER_TASK_STATUS.COMPLETED
-    ) {
-      this.removeTask(task.id)
-      this.sendTaskRemoved(task)
-    }
+    cancel(this, taskId)
   }
 
   cancelAll(sessionId?: string): void {
-    const tasksToCancel = sessionId
-      ? this.tasks.filter(t => t.sessionId === sessionId)
-      : [...this.tasks]
-
-    for (const task of tasksToCancel) {
-      this.cancel(task.id)
-    }
-  }
-
-  setConcurrency(max: number): void {
-    this.maxConcurrency = Math.min(
-      TRANSFER_CONFIG.MAX_CONCURRENCY,
-      Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, max)
-    )
-    this.scheduleTasks()
-
-    for (const task of this.tasks) {
-      if (
-        task.status === TRANSFER_TASK_STATUS.RUNNING &&
-        task.itemType === TRANSFER_ITEM_TYPE.FOLDER
-      ) {
-        this.scheduleFolderOps(task.id)
-      }
-    }
+    cancelAll(this, sessionId)
   }
 
   retry(taskId: string): void {
-    const task = this.tasks.find(t => t.id === taskId)
-    if (task?.status !== TRANSFER_TASK_STATUS.FAILED) return
-
-    this.cancelledTaskIds.delete(taskId)
-    this.operationsByTask.delete(taskId)
-    this.operations = this.operations.filter(op => op.parentTaskId !== taskId)
-    this.folderRunningOps.delete(taskId)
-
-    task.status = TRANSFER_TASK_STATUS.WAITING
-    task.errorMessage = undefined
-    task.transferredSize = 0
-    task.startedAt = undefined
-    task.completedFileCount = undefined
-    task.activeFileCount = undefined
-    task.waitingFileCount = undefined
-
-    this.createInitialOperations(task)
-    this.scheduleTasks()
+    retry(this, taskId)
   }
 
   retryAll(sessionId?: string): void {
-    const tasksToRetry = sessionId
-      ? this.tasks.filter(
-          t => t.sessionId === sessionId && t.status === TRANSFER_TASK_STATUS.FAILED
-        )
-      : this.tasks.filter(t => t.status === TRANSFER_TASK_STATUS.FAILED)
-
-    for (const task of tasksToRetry) {
-      this.retry(task.id)
-    }
+    retryAll(this, sessionId)
   }
 
-  hasActiveTasks(sessionId?: string): boolean {
-    const tasks = sessionId ? this.tasks.filter(t => t.sessionId === sessionId) : this.tasks
-    return tasks.some(
-      t => t.status === TRANSFER_TASK_STATUS.WAITING || t.status === TRANSFER_TASK_STATUS.RUNNING
-    )
-  }
+  // ── Cleanup ──
 
-  getTasks(sessionId?: string): TransferTask[] {
-    return sessionId ? this.tasks.filter(t => t.sessionId === sessionId) : [...this.tasks]
-  }
-
-  getActiveOperations(taskId: string): OperationProgressInfo[] {
-    const taskOps = this.operationsByTask.get(taskId) ?? []
-
-    const runningOps = taskOps.filter(op => op.status === UPLOAD_OPERATION_STATUS.RUNNING)
-
-    const completedUploadOps = taskOps
-      .filter(
-        op =>
-          op.status === UPLOAD_OPERATION_STATUS.COMPLETED &&
-          op.type === UPLOAD_OPERATION_TYPE.UPLOAD
-      )
-      .slice(-TRANSFER_CONFIG.MAX_INLINE_OPERATIONS)
-
-    return [...runningOps, ...completedUploadOps].map(op => {
-      const opSpeed = this.computeOpSpeed(op)
-      const info: OperationProgressInfo = {
-        id: op.id,
-        itemName: op.itemName,
-        type: op.type,
-        transferredSize: op.transferredSize,
-        status: op.status,
-      }
-      if (op.fileSize !== undefined) {
-        info.fileSize = op.fileSize
-      }
-      if (op.startedAt !== undefined) {
-        info.startedAt = op.startedAt
-      }
-      if (opSpeed > 0) {
-        info.speed = opSpeed
-      }
-      return info
-    })
-  }
-
-  private removeTask(taskId: string): void {
+  removeTask(taskId: string): void {
     const taskOps = this.operationsByTask.get(taskId) ?? []
     for (const op of taskOps) {
       this.lastOpProgressTime.delete(op.id)
@@ -658,125 +366,108 @@ export class TransferService {
     this.speedSamples.delete(taskId)
   }
 
-  private sendTasksEnqueued(tasks: TransferTask[]): void {
-    this.send(TRANSFER_CHANNELS.TASKS_ENQUEUED, tasks)
-  }
-
-  private addSpeedSample(taskId: string, transferredSize: number): void {
-    let samples = this.speedSamples.get(taskId)
-    if (!samples) {
-      samples = []
-      this.speedSamples.set(taskId, samples)
-    }
-
-    const now = Date.now()
-    samples.push({ timestamp: now, transferredSize })
-
-    const cutoff = now - SPEED_WINDOW_MS
-    while (samples.length > SPEED_MIN_SAMPLES && samples[0] && samples[0].timestamp < cutoff) {
-      samples.shift()
-    }
-  }
-
-  private addOpSpeedSample(opId: string, transferredSize: number): void {
-    let samples = this.opSpeedSamples.get(opId)
-    if (!samples) {
-      samples = []
-      this.opSpeedSamples.set(opId, samples)
-    }
-    const now = Date.now()
-    samples.push({ timestamp: now, transferredSize })
-    const cutoff = now - SPEED_WINDOW_MS
-    while (samples.length > SPEED_MIN_SAMPLES && samples[0] && samples[0].timestamp < cutoff) {
-      samples.shift()
-    }
-  }
-
-  private computeSpeed(taskId: string): number {
-    const samples = this.speedSamples.get(taskId)
-
-    if (samples && samples.length >= SPEED_MIN_SAMPLES) {
-      const oldest = samples[0]
-      const latest = samples[samples.length - 1]
-      if (oldest && latest) {
-        const elapsed = (latest.timestamp - oldest.timestamp) / 1000
-        if (elapsed > 0) {
-          return (latest.transferredSize - oldest.transferredSize) / elapsed
-        }
+  cleanupDownloadTempFiles(task: TransferTask): void {
+    if (task.direction === TRANSFER_DIRECTION.DOWNLOAD && task.localDir) {
+      if (task.itemType === FILE_TYPE.FILE) {
+        const tempPath = path.join(task.localDir, task.itemName + TEMP_FILE_SUFFIX)
+        void deleteLocalFile(tempPath)
+      } else {
+        void cleanupDownloadFolder(task)
       }
     }
-
-    return 0
   }
 
-  private computeOpSpeed(op: UploadOperation): number {
-    const samples = this.opSpeedSamples.get(op.id)
-    if (samples && samples.length >= SPEED_MIN_SAMPLES) {
-      const oldest = samples[0]
-      const latest = samples[samples.length - 1]
-      if (oldest && latest) {
-        const elapsed = (latest.timestamp - oldest.timestamp) / 1000
-        if (elapsed > 0) {
-          return (latest.transferredSize - oldest.transferredSize) / elapsed
+  cleanupSessionTasks(sessionId?: string): void {
+    const tasksToClean = sessionId
+      ? this.tasks.filter(t => t.sessionId === sessionId)
+      : [...this.tasks]
+
+    for (const task of tasksToClean) {
+      if (task.direction === TRANSFER_DIRECTION.DOWNLOAD) {
+        if (task.status === OPERATION_STATUS.RUNNING) {
+          if (task.itemType === FILE_TYPE.FILE) {
+            const controller = this.abortControllers.get(task.id)
+            if (controller) controller.abort()
+          } else {
+            for (const op of this.operationsByTask.get(task.id) ?? []) {
+              if (op.status === OPERATION_STATUS.RUNNING) {
+                const controller = this.abortControllers.get(op.id)
+                if (controller) controller.abort()
+              }
+            }
+          }
+        }
+        if (task.itemType === FILE_TYPE.FILE && task.localDir) {
+          const tempPath = path.join(task.localDir, task.itemName + TEMP_FILE_SUFFIX)
+          void deleteLocalFile(tempPath)
+        } else {
+          void cleanupDownloadFolder(task)
         }
       }
+      this.removeTask(task.id)
     }
-    return 0
+
+    this.runningUploadTasks = this.tasks.filter(
+      t => t.status === OPERATION_STATUS.RUNNING && t.direction === TRANSFER_DIRECTION.UPLOAD
+    ).length
+    this.runningDownloadTasks = this.tasks.filter(
+      t => t.status === OPERATION_STATUS.RUNNING && t.direction === TRANSFER_DIRECTION.DOWNLOAD
+    ).length
   }
 
-  private sendProgress(task: TransferTask): void {
-    const speed = this.computeSpeed(task.id)
-    const data: TransferProgressData = {
-      taskId: task.id,
-      transferredSize: task.transferredSize,
-    }
-    if (task.fileSize > 0) data.fileSize = task.fileSize
-    if (speed > 0) data.speed = speed
-    if (task.totalFileCount !== undefined) data.totalFileCount = task.totalFileCount
-    if (task.completedFileCount !== undefined) data.completedFileCount = task.completedFileCount
-    if (task.activeFileCount !== undefined) data.activeFileCount = task.activeFileCount
-    if (task.waitingFileCount !== undefined) data.waitingFileCount = task.waitingFileCount
+  // ── IPC send ──
 
-    if (task.itemType === TRANSFER_ITEM_TYPE.FOLDER) {
-      data.activeOperations = this.getActiveOperations(task.id)
+  send(channel: string, data: unknown): void {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send(channel, data)
     }
+  }
 
+  sendProgress(task: TransferTask): void {
+    const speed = computeSpeed(this.speedSamples, task.id)
+    const activeOperations =
+      task.itemType === FILE_TYPE.DIRECTORY ? this.getActiveOperations(task.id) : undefined
+    const data = buildProgressData(task, speed, activeOperations)
     this.send(TRANSFER_CHANNELS.PROGRESS, data)
   }
 
-  private throttledSendProgress(task: TransferTask): void {
-    const now = Date.now()
-    const lastTime = this.lastProgressTime.get(task.id) ?? 0
-    if (now - lastTime >= TRANSFER_CONFIG.PROGRESS_THROTTLE_MS) {
-      this.lastProgressTime.set(task.id, now)
+  throttledSendProgress(task: TransferTask): void {
+    if (!shouldThrottle(this.lastProgressTime, task.id)) {
+      markProgressSent(this.lastProgressTime, task.id)
       this.sendProgress(task)
     }
   }
 
-  private sendTaskCompleted(task: TransferTask): void {
-    const data = {
+  private sendTasksEnqueued(tasks: TransferTask[]): void {
+    this.send(TRANSFER_CHANNELS.TASKS_ENQUEUED, tasks)
+  }
+
+  sendTaskCompleted(task: TransferTask): void {
+    this.send(TRANSFER_CHANNELS.TASK_COMPLETED, {
       taskId: task.id,
       transferredSize: task.transferredSize,
       fileSize: task.fileSize,
-    }
-    this.send(TRANSFER_CHANNELS.TASK_COMPLETED, data)
+    })
   }
 
-  private sendTaskFailed(task: TransferTask): void {
-    const data = {
+  sendTaskFailed(task: TransferTask): void {
+    this.send(TRANSFER_CHANNELS.TASK_FAILED, {
       taskId: task.id,
       errorMessage: task.errorMessage ?? 'Unknown error',
-    }
-    this.send(TRANSFER_CHANNELS.TASK_FAILED, data)
+    })
   }
 
-  private sendTaskRemoved(task: TransferTask): void {
+  sendTaskRemoved(task: TransferTask): void {
     this.send(TRANSFER_CHANNELS.TASK_REMOVED, { taskId: task.id })
   }
 
-  private send(channel: string, data: unknown): void {
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.webContents.send(channel, data)
-    }
+  // ── Last dir ──
+
+  getLastDir(key: LastDirKey): string | null {
+    return this.lastDirs.get(key) ?? null
+  }
+
+  setLastDir(key: LastDirKey, dir: string): void {
+    this.lastDirs.set(key, dir)
   }
 }

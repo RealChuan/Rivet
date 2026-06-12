@@ -1,6 +1,6 @@
 import type React from 'react'
 import { cn } from '@renderer/utils/index.js'
-import { TRANSFER_TASK_STATUS } from '@shared/constants/transfer.js'
+import { OPERATION_STATUS } from '@shared/constants/transfer.js'
 
 interface TransferProgressBarProps {
   transferred: number
@@ -14,8 +14,8 @@ export const TransferProgressBar: React.FC<TransferProgressBarProps> = ({
   status,
 }) => {
   const percentage = total > 0 ? Math.min(Math.round((transferred / total) * 100), 100) : 0
-  const isRunning = status === TRANSFER_TASK_STATUS.RUNNING
-  const isFailed = status === TRANSFER_TASK_STATUS.FAILED
+  const isRunning = status === OPERATION_STATUS.RUNNING
+  const isFailed = status === OPERATION_STATUS.FAILED
   const showIndeterminate = isRunning && percentage === 0
 
   return (

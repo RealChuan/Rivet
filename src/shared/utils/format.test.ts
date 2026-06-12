@@ -7,8 +7,8 @@ describe('format utilities', () => {
       expect(formatFileSize(-1)).toBe('-')
     })
 
-    it('should return - for zero', () => {
-      expect(formatFileSize(0)).toBe('-')
+    it("should return '0 B' for zero", () => {
+      expect(formatFileSize(0)).toBe('0 B')
     })
 
     it('should return - for NaN', () => {
@@ -47,7 +47,7 @@ describe('format utilities', () => {
 
     it('returns - for invalid input', () => {
       expect(formatFileSize(NaN)).toBe('-')
-      expect(formatFileSize(0)).toBe('-')
+      expect(formatFileSize(0)).toBe('0 B')
     })
   })
 

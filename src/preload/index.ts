@@ -15,7 +15,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   hostKey: hostKeyAPI,
   system: systemAPI,
   crypto: cryptoAPI,
-  generateUuid: () => crypto.randomUUID(),
   window: windowAPI,
   transfer: transferAPI,
 })

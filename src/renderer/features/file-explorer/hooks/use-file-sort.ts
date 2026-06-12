@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toggleSortOrder } from '@renderer/utils/sort-utils.js'
 import {
   FILE_TYPE,
   type FileExplorerSortField,
@@ -41,12 +42,9 @@ export const useFileSort = (files: FileInfo[]) => {
   })()
 
   const handleSort = (column: FileExplorerSortField) => {
-    if (sortBy === column) {
-      setSortOrder(prev => (prev === SORT_ORDER.ASC ? SORT_ORDER.DESC : SORT_ORDER.ASC))
-    } else {
-      setSortBy(column)
-      setSortOrder(SORT_ORDER.ASC)
-    }
+    const { sortField, sortOrder: newOrder } = toggleSortOrder(sortBy, sortOrder, column)
+    setSortBy(sortField)
+    setSortOrder(newOrder)
   }
 
   return {

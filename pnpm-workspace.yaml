@@ -1,0 +1,12 @@
+overrides:
+  eslint-plugin-react-compiler>zod: '^3.24.4'
+  app-builder-lib>@electron/get: '^5.0.0'
+  ssh2>cpu-features: 'npm:empty-npm-package@1.0.0'
+allowBuilds:
+  '@swc/core': true
+  cpu-features: true
+  electron-winstaller: true
+  ssh2: true
+minimumReleaseAgeExclude:
+  - '@types/node@25.9.3'
+  - i18next-cli@1.63.1

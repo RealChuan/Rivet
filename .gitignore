@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# pnpm
+.pnpm-store/
+
 # Build outputs
 dist/
 release/
@@ -8,6 +11,7 @@ release/
 # Logs
 *.log
 npm-debug.log*
+pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 

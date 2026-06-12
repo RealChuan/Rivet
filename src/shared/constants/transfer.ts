@@ -1,18 +1,18 @@
-export const TRANSFER_TASK_STATUS = {
+export const OPERATION_STATUS = {
   WAITING: 'waiting',
   RUNNING: 'running',
   COMPLETED: 'completed',
   FAILED: 'failed',
 } as const
 
-export type TransferTaskStatus = (typeof TRANSFER_TASK_STATUS)[keyof typeof TRANSFER_TASK_STATUS]
+export type OperationStatus = (typeof OPERATION_STATUS)[keyof typeof OPERATION_STATUS]
 
-export const TRANSFER_ITEM_TYPE = {
-  FILE: 'file',
-  FOLDER: 'folder',
+export const TRANSFER_DIRECTION = {
+  UPLOAD: 'upload',
+  DOWNLOAD: 'download',
 } as const
 
-export type TransferItemType = (typeof TRANSFER_ITEM_TYPE)[keyof typeof TRANSFER_ITEM_TYPE]
+export type TransferDirection = (typeof TRANSFER_DIRECTION)[keyof typeof TRANSFER_DIRECTION]
 
 export const CONFLICT_ACTION = {
   SKIP: 'skip',
@@ -38,22 +38,14 @@ export const SIDEBAR_VIEW = {
 
 export type SidebarView = (typeof SIDEBAR_VIEW)[keyof typeof SIDEBAR_VIEW]
 
-export const UPLOAD_OPERATION_TYPE = {
+export const TRANSFER_OPERATION_TYPE = {
   MKDIR: 'mkdir',
   UPLOAD: 'upload',
+  DOWNLOAD: 'download',
 } as const
 
-export type UploadOperationType = (typeof UPLOAD_OPERATION_TYPE)[keyof typeof UPLOAD_OPERATION_TYPE]
-
-export const UPLOAD_OPERATION_STATUS = {
-  WAITING: 'waiting',
-  RUNNING: 'running',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-} as const
-
-export type UploadOperationStatus =
-  (typeof UPLOAD_OPERATION_STATUS)[keyof typeof UPLOAD_OPERATION_STATUS]
+export type TransferOperationType =
+  (typeof TRANSFER_OPERATION_TYPE)[keyof typeof TRANSFER_OPERATION_TYPE]
 
 export const TRANSFER_CONFIG = {
   PROGRESS_THROTTLE_MS: 500,
@@ -63,3 +55,10 @@ export const TRANSFER_CONFIG = {
   MAX_CONCURRENCY: 10,
   MAX_INLINE_OPERATIONS: 3,
 } as const
+
+export const LAST_DIR_KEY = {
+  UPLOAD: 'lastUploadDir',
+  DOWNLOAD: 'lastDownloadDir',
+} as const
+
+export type LastDirKey = (typeof LAST_DIR_KEY)[keyof typeof LAST_DIR_KEY]

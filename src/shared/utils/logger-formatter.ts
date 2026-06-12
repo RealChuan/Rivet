@@ -22,3 +22,15 @@ export const getCallerInfo = (skipFrames: number = 3): string => {
 export const formatMessage = (message: string, isDev: boolean, callerInfo: string) => {
   return isDev ? `${callerInfo} ${message}` : message
 }
+
+export function catchLog(
+  logFn: (message: string, ...args: unknown[]) => void,
+  error: unknown,
+  context?: Record<string, unknown>
+): void {
+  const callerInfo = getCallerInfo(4)
+  const errorObj = error instanceof Error ? error : new Error(String(error))
+  const contextStr = context ? ` | Context: ${JSON.stringify(context)}` : ''
+  const logMessage = `[${callerInfo}] ${errorObj.message}${contextStr}\nStack: ${errorObj.stack ?? ''}`
+  logFn(logMessage)
+}

@@ -1,5 +1,5 @@
-import crypto from 'crypto'
 import { safeStorage } from 'electron'
+import crypto from 'node:crypto'
 import { ERROR_CODE } from '@shared/constants/index.js'
 import { createErrorInfo, err, type ErrorInfo, ok, type Result } from '@shared/types/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
@@ -92,8 +92,4 @@ export function decryptPassword(encrypted: string): Result<string, ErrorInfo> {
       )
     )
   }
-}
-
-export function isEncryptionAvailable(): boolean {
-  return safeStorage.isEncryptionAvailable()
 }

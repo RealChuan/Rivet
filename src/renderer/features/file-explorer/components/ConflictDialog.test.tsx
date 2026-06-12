@@ -8,6 +8,7 @@ vi.mock('react-i18next', () => ({
     t: (key: string) => key,
     i18n: { language: 'en-US' },
   }),
+  initReactI18next: vi.fn(),
 }))
 
 vi.mock('@renderer/utils/index.js', () => ({
@@ -51,7 +52,7 @@ const defaultProps = {
 describe('ConflictDialog', () => {
   it('should not render when open is false', () => {
     render(<ConflictDialog {...defaultProps} open={false} />)
-    expect(screen.queryByText('file.conflict.title')).toBeNull()
+    expect(screen.queryByText('conflict.title')).toBeNull()
   })
 
   it('should show source file info', () => {
@@ -92,27 +93,27 @@ describe('ConflictDialog', () => {
 
   it('should render skip radio button', () => {
     render(<ConflictDialog {...defaultProps} />)
-    expect(screen.getByText('file.conflict.skip')).not.toBeNull()
+    expect(screen.getByText('conflict.skip')).not.toBeNull()
   })
 
   it('should render keep both radio button', () => {
     render(<ConflictDialog {...defaultProps} />)
-    expect(screen.getByText('file.conflict.keepBoth')).not.toBeNull()
+    expect(screen.getByText('conflict.keepBoth')).not.toBeNull()
   })
 
   it('should render overwrite radio button for copy operation', () => {
     render(<ConflictDialog {...defaultProps} operation="copy" />)
-    expect(screen.getByText('file.conflict.overwrite')).not.toBeNull()
+    expect(screen.getByText('conflict.overwrite')).not.toBeNull()
   })
 
   it('should not render overwrite radio button for move operation', () => {
     render(<ConflictDialog {...defaultProps} operation="move" />)
-    expect(screen.queryByText('file.conflict.overwrite')).toBeNull()
+    expect(screen.queryByText('conflict.overwrite')).toBeNull()
   })
 
   it('should render apply to all checkbox', () => {
     render(<ConflictDialog {...defaultProps} />)
-    expect(screen.getByText('file.conflict.applyToAll')).not.toBeNull()
+    expect(screen.getByText('conflict.applyToAll')).not.toBeNull()
   })
 
   it('should show global action panel when apply to all is checked', () => {
@@ -120,7 +121,7 @@ describe('ConflictDialog', () => {
     const checkbox = document.querySelector('input[type="checkbox"]') as HTMLInputElement
     if (!checkbox) throw new Error('Checkbox not found')
     fireEvent.click(checkbox)
-    expect(screen.getByText(/file\.conflict\.globalAction/)).not.toBeNull()
+    expect(screen.getByText(/conflict\.globalAction/)).not.toBeNull()
   })
 
   it('should handle conflict without target file', () => {

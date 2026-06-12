@@ -32,19 +32,19 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: latest
-          cache: 'npm'
 
-      - name: Remove package-lock.json to force fresh install from official registry
-        shell: bash
-        run: rm -f package-lock.json
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          cache: true
 
       - name: Install dependencies
         shell: bash
-        run: npm install
+        run: pnpm install
 
       - name: Run CI checks
         shell: bash
-        run: npm run ci
+        run: pnpm run ci
 
   build:
     name: Build ${{ matrix.os }}
@@ -55,22 +55,20 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            build-command: npm run package:win
+            build-command: pnpm run package:win
             artifact-name: windows-build
             artifact-paths: release/*.7z
           - os: ubuntu-latest
-            build-command: npm run package:linux
+            build-command: pnpm run package:linux
             artifact-name: linux-build
             artifact-paths: |
               release/*.7z
               release/*.AppImage
               release/*.deb
           - os: macos-latest
-            build-command: npm run package:mac
+            build-command: pnpm run package:mac
             artifact-name: macos-build
-            artifact-paths: |
-              release/*.7z
-              release/*.dmg
+            artifact-paths: release/*.dmg
 
     steps:
       - uses: actions/checkout@v6
@@ -81,15 +79,15 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: latest
-          cache: 'npm'
 
-      - name: Remove package-lock.json to force fresh install from official registry
-        shell: bash
-        run: rm -f package-lock.json
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          cache: true
 
       - name: Install dependencies
         shell: bash
-        run: npm install
+        run: pnpm install
 
       - name: Build ${{ matrix.os }} package
         shell: bash

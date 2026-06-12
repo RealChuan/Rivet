@@ -45,7 +45,7 @@ export class ProtocolService {
     }
   }
 
-  private getProtocol(protocol: ProtocolType): FileProtocol {
+  private getProtocol(protocol: ProtocolType): Result<FileProtocol, ErrorInfo> {
     if (!this.protocols.has(protocol)) {
       const instance = protocol === PROTOCOL.SFTP ? new SftpProtocol() : new WebdavProtocol()
       this.protocols.set(protocol, instance)
@@ -53,10 +53,12 @@ export class ProtocolService {
 
     const instance = this.protocols.get(protocol)
     if (!instance) {
-      throw new Error(`Protocol not initialized: ${protocol}`)
+      return err(
+        createErrorInfo(ERROR_CODE.SESSION_NOT_FOUND, `Protocol not initialized: ${protocol}`)
+      )
     }
 
-    return instance
+    return ok(instance)
   }
 
   private getProtocolBySessionId(sessionId: string): Result<FileProtocol, ErrorInfo> {
@@ -64,12 +66,12 @@ export class ProtocolService {
     if (!handle) {
       return err(createErrorInfo(ERROR_CODE.CONN_NOT_FOUND, `Connection not found: ${sessionId}`))
     }
-    return ok(this.getProtocol(handle.protocolType))
+    return this.getProtocol(handle.protocolType)
   }
 
   private executeWithRequest<T>(
     sessionId: string,
-    timeout: number,
+    timeout: number | undefined,
     operation: (signal: AbortSignal) => Promise<Result<T, ErrorInfo>>,
     providedRequestId?: string
   ): Promise<ProtocolResponse<T>> {
@@ -77,7 +79,8 @@ export class ProtocolService {
     const controller = new AbortController()
     const signal = controller.signal
 
-    const timeoutId = setTimeout(() => controller.abort(), timeout)
+    const timeoutId =
+      timeout !== undefined ? setTimeout(() => controller.abort(), timeout) : undefined
 
     this.activeRequests.set(requestId, { controller, sessionId })
 
@@ -114,10 +117,30 @@ export class ProtocolService {
         }
         throw error
       } finally {
-        clearTimeout(timeoutId)
+        if (timeoutId !== undefined) clearTimeout(timeoutId)
         this.activeRequests.delete(requestId)
       }
     })()
+  }
+
+  private async executeWithProtocol<R>(
+    sessionId: string,
+    operation: (protocol: FileProtocol, signal: AbortSignal) => Promise<Result<R, ErrorInfo>>,
+    timeout: number | undefined = undefined,
+    requestId?: string
+  ): Promise<ProtocolResponse<R>> {
+    return this.executeWithRequest(
+      sessionId,
+      timeout,
+      async signal => {
+        const protocolResult = this.getProtocolBySessionId(sessionId)
+        if (isErr(protocolResult)) {
+          return protocolResult
+        }
+        return operation(protocolResult.value, signal)
+      },
+      requestId
+    )
   }
 
   async connect(config: ConnectionConfig): Promise<ProtocolResponse<OperationResult>> {
@@ -142,7 +165,17 @@ export class ProtocolService {
         }
       }
 
-      const protocol = this.getProtocol(config.protocol)
+      const protocolResult = this.getProtocol(config.protocol)
+      if (isErr(protocolResult)) {
+        return {
+          requestId,
+          success: false,
+          value: undefined,
+          error: protocolResult.error,
+        }
+      }
+
+      const protocol = protocolResult.value
 
       const hostVerifier =
         config.protocol === PROTOCOL.SFTP
@@ -220,13 +253,13 @@ export class ProtocolService {
         requestId: requestId ?? uuidv4(),
         success: false,
         value: undefined,
-        error: createErrorInfo(ERROR_CODE.UPLOAD_IN_PROGRESS, 'Upload in progress'),
+        error: createErrorInfo(ERROR_CODE.UPLOAD_IN_PROGRESS, 'Transfer in progress'),
       }
     }
 
     return this.executeWithRequest(
       sessionId,
-      TIMEOUTS.LIST,
+      TIMEOUTS.DISCONNECT,
       async () => {
         const protocolResult = this.getProtocolBySessionId(sessionId)
         if (isErr(protocolResult)) {
@@ -247,18 +280,10 @@ export class ProtocolService {
     remotePath: string,
     requestId?: string
   ): Promise<ProtocolResponse<FileInfo[]>> {
-    return this.executeWithRequest(
+    return this.executeWithProtocol(
       sessionId,
+      (protocol, signal) => protocol.list(sessionId, remotePath, signal),
       TIMEOUTS.LIST,
-      async signal => {
-        const protocolResult = this.getProtocolBySessionId(sessionId)
-        if (isErr(protocolResult)) {
-          return protocolResult
-        }
-
-        const protocol = protocolResult.value
-        return protocol.list(sessionId, remotePath, signal)
-      },
       requestId
     )
   }
@@ -268,18 +293,10 @@ export class ProtocolService {
     remotePath: string,
     requestId?: string
   ): Promise<ProtocolResponse<void>> {
-    return this.executeWithRequest(
+    return this.executeWithProtocol(
       sessionId,
+      (protocol, signal) => protocol.mkdir(sessionId, remotePath, signal),
       TIMEOUTS.MKDIR,
-      async signal => {
-        const protocolResult = this.getProtocolBySessionId(sessionId)
-        if (isErr(protocolResult)) {
-          return protocolResult
-        }
-
-        const protocol = protocolResult.value
-        return protocol.mkdir(sessionId, remotePath, signal)
-      },
       requestId
     )
   }
@@ -290,18 +307,10 @@ export class ProtocolService {
     newName: string,
     requestId?: string
   ): Promise<ProtocolResponse<void>> {
-    return this.executeWithRequest(
+    return this.executeWithProtocol(
       sessionId,
+      (protocol, signal) => protocol.rename(sessionId, file, newName, signal),
       TIMEOUTS.RENAME,
-      async signal => {
-        const protocolResult = this.getProtocolBySessionId(sessionId)
-        if (isErr(protocolResult)) {
-          return protocolResult
-        }
-
-        const protocol = protocolResult.value
-        return protocol.rename(sessionId, file, newName, signal)
-      },
       requestId
     )
   }
@@ -311,18 +320,10 @@ export class ProtocolService {
     file: FileInfo,
     requestId?: string
   ): Promise<ProtocolResponse<void>> {
-    return this.executeWithRequest(
+    return this.executeWithProtocol(
       sessionId,
+      (protocol, signal) => protocol.delete(sessionId, file, signal),
       TIMEOUTS.DELETE,
-      async signal => {
-        const protocolResult = this.getProtocolBySessionId(sessionId)
-        if (isErr(protocolResult)) {
-          return protocolResult
-        }
-
-        const protocol = protocolResult.value
-        return protocol.delete(sessionId, file, signal)
-      },
       requestId
     )
   }
@@ -333,18 +334,10 @@ export class ProtocolService {
     targetPath: string,
     requestId?: string
   ): Promise<ProtocolResponse<void>> {
-    return this.executeWithRequest(
+    return this.executeWithProtocol(
       sessionId,
-      TIMEOUTS.COPY,
-      async signal => {
-        const protocolResult = this.getProtocolBySessionId(sessionId)
-        if (isErr(protocolResult)) {
-          return protocolResult
-        }
-
-        const protocol = protocolResult.value
-        return protocol.copy(sessionId, file, targetPath, signal)
-      },
+      (protocol, signal) => protocol.copy(sessionId, file, targetPath, signal),
+      undefined,
       requestId
     )
   }
@@ -355,18 +348,10 @@ export class ProtocolService {
     targetPath: string,
     requestId?: string
   ): Promise<ProtocolResponse<void>> {
-    return this.executeWithRequest(
+    return this.executeWithProtocol(
       sessionId,
-      TIMEOUTS.MOVE,
-      async signal => {
-        const protocolResult = this.getProtocolBySessionId(sessionId)
-        if (isErr(protocolResult)) {
-          return protocolResult
-        }
-
-        const protocol = protocolResult.value
-        return protocol.move(sessionId, file, targetPath, signal)
-      },
+      (protocol, signal) => protocol.move(sessionId, file, targetPath, signal),
+      undefined,
       requestId
     )
   }
@@ -385,6 +370,22 @@ export class ProtocolService {
 
     const protocol = protocolResult.value
     return protocol.upload(sessionId, localPath, remotePath, onProgress, signal)
+  }
+
+  async download(
+    sessionId: string,
+    remotePath: string,
+    localPath: string,
+    onProgress: (transferred: number) => void,
+    signal: AbortSignal
+  ): Promise<Result<void, ErrorInfo>> {
+    const protocolResult = this.getProtocolBySessionId(sessionId)
+    if (isErr(protocolResult)) {
+      return err(protocolResult.error)
+    }
+
+    const protocol = protocolResult.value
+    return protocol.download(sessionId, remotePath, localPath, onProgress, signal)
   }
 
   async ping(sessionId: string): Promise<Result<void, ErrorInfo>> {

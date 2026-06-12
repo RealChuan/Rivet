@@ -6,7 +6,6 @@ import {
   getConfigurationValue,
   getUserInterfaceSettings,
   initializeConfig,
-  removeConfigurationValue,
   saveConfig,
   setConfigurationValue,
   setUserInterfaceSettings,
@@ -59,8 +58,11 @@ vi.mock('@shared/constants/index.js', () => ({
   STORE_KEY: {
     SAVED_CONNECTIONS: 'savedConnections',
     UI_SETTINGS: 'uiSettings',
+    TRANSFER_SETTINGS: 'transferSettings',
   },
   ERROR_CODE: { CONFIG_ERROR: 'CONFIG_ERROR' },
+  TRANSFER_CONFIG: { DEFAULT_CONCURRENCY: 5, MIN_CONCURRENCY: 1, MAX_CONCURRENCY: 10 },
+  TIMEOUTS: { AUTO_SAVE_INTERVAL: 300000 },
 }))
 
 vi.mock('@shared/types/index.js', () => ({
@@ -115,6 +117,7 @@ describe('persistence', () => {
       expect(setInMemoryConfig).toHaveBeenCalledWith({
         savedConnections: [],
         uiSettings: savedSettings,
+        transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
       })
       expect(logger.info).toHaveBeenCalledWith('Config loaded successfully')
     })
@@ -135,6 +138,7 @@ describe('persistence', () => {
       expect(setInMemoryConfig).toHaveBeenCalledWith({
         savedConnections: [],
         uiSettings: { ...savedSettings, locale: 'en-US' },
+        transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
       })
       expect(logger.info).toHaveBeenCalledWith('First launch: language auto-detected as en-US')
     })
@@ -154,6 +158,7 @@ describe('persistence', () => {
       expect(setInMemoryConfig).toHaveBeenCalledWith({
         savedConnections: [],
         uiSettings: { ...defaultUiSettings, locale: 'zh-CN' },
+        transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
       })
       expect(logger.warn).toHaveBeenCalledWith('Invalid UI settings detected, reset to defaults')
     })
@@ -180,7 +185,10 @@ describe('persistence', () => {
       initializeConfig()
 
       expect(setInMemoryConfig).toHaveBeenCalledWith(
-        expect.objectContaining({ savedConnections: [validConn] })
+        expect.objectContaining({
+          savedConnections: [validConn],
+          transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
+        })
       )
       expect(logger.warn).toHaveBeenCalledWith('Filtered 1 invalid connection(s)')
     })
@@ -197,7 +205,10 @@ describe('persistence', () => {
       initializeConfig()
 
       expect(setInMemoryConfig).toHaveBeenCalledWith(
-        expect.objectContaining({ savedConnections: [] })
+        expect.objectContaining({
+          savedConnections: [],
+          transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
+        })
       )
       expect(logger.warn).toHaveBeenCalledWith('Invalid connections format, reset to empty array')
     })
@@ -214,6 +225,7 @@ describe('persistence', () => {
       expect(setInMemoryConfig).toHaveBeenCalledWith({
         savedConnections: [],
         uiSettings: { ...defaultUiSettings, locale: 'en-US' },
+        transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
       })
     })
   })
@@ -246,6 +258,10 @@ describe('persistence', () => {
           locale: 'en-US' as const,
           connectionSortOrder: 'none' as const,
         },
+        transferSettings: {
+          maxUploadConcurrency: 5,
+          maxDownloadConcurrency: 5,
+        },
       }
       vi.mocked(hasConfigChanged).mockReturnValue(true)
       vi.mocked(getInMemoryConfig).mockReturnValue(mockConfig)
@@ -258,6 +274,10 @@ describe('persistence', () => {
         mockConfig.savedConnections
       )
       expect(mockStoreSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, mockConfig.uiSettings)
+      expect(mockStoreSet).toHaveBeenCalledWith(
+        STORE_KEY.TRANSFER_SETTINGS,
+        mockConfig.transferSettings
+      )
       expect(resetConfigChanged).toHaveBeenCalled()
       expect(logger.info).toHaveBeenCalledWith('Config flushed to disk')
     })
@@ -276,23 +296,10 @@ describe('persistence', () => {
   })
 
   describe('saveConfig', () => {
-    it('should call flushConfigToDisk and succeed silently', () => {
+    it('should not throw when config has not changed', () => {
       vi.mocked(hasConfigChanged).mockReturnValue(false)
 
-      saveConfig()
-
-      expect(logger.error).not.toHaveBeenCalled()
-    })
-
-    it('should log error when flushConfigToDisk fails', () => {
-      vi.mocked(hasConfigChanged).mockReturnValue(true)
-      vi.mocked(getInMemoryConfig).mockImplementation(() => {
-        throw new Error('flush fail')
-      })
-
-      saveConfig()
-
-      expect(logger.error).toHaveBeenCalled()
+      expect(() => saveConfig()).not.toThrow()
     })
   })
 
@@ -359,6 +366,7 @@ describe('persistence', () => {
       vi.mocked(getInMemoryConfig).mockReturnValue({
         savedConnections: [],
         uiSettings: mockSettings,
+        transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
       })
 
       const result = getUserInterfaceSettings()
@@ -376,6 +384,7 @@ describe('persistence', () => {
       vi.mocked(getInMemoryConfig).mockReturnValue({
         savedConnections: [],
         uiSettings: mockSettings,
+        transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
       })
 
       const result = getUserInterfaceSettings()
@@ -458,6 +467,10 @@ describe('persistence', () => {
         appearance: 'dark' as const,
         locale: 'en-US' as const,
         connectionSortOrder: 'none' as const,
+      },
+      transferSettings: {
+        maxUploadConcurrency: 5,
+        maxDownloadConcurrency: 5,
       },
     }
 
@@ -562,6 +575,10 @@ describe('persistence', () => {
           locale: 'en-US' as const,
           connectionSortOrder: 'none' as const,
         },
+        transferSettings: {
+          maxUploadConcurrency: 5,
+          maxDownloadConcurrency: 5,
+        },
       }
       vi.mocked(getInMemoryConfig).mockReturnValue(existingConfig)
 
@@ -601,43 +618,6 @@ describe('persistence', () => {
       expect(result.success).toBe(false)
       expect(logger.catch).toHaveBeenCalledWith(expect.any(Error), {
         action: 'set-config-value',
-        key: STORE_KEY.SAVED_CONNECTIONS,
-      })
-    })
-  })
-
-  describe('removeConfigurationValue', () => {
-    it('should reset saved connections to empty array', () => {
-      const result = removeConfigurationValue(STORE_KEY.SAVED_CONNECTIONS)
-
-      expect(result.success).toBe(true)
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, [])
-    })
-
-    it('should reset UI settings to defaults', () => {
-      const result = removeConfigurationValue(STORE_KEY.UI_SETTINGS)
-
-      expect(result.success).toBe(true)
-      expect(setToMemory).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, { ...defaultUiSettings })
-    })
-
-    it('should return ok for other keys (no-op)', () => {
-      const result = removeConfigurationValue('unknownKey')
-
-      expect(result.success).toBe(true)
-      expect(setToMemory).not.toHaveBeenCalled()
-    })
-
-    it('should return error when remove throws', () => {
-      vi.mocked(setToMemory).mockImplementation(() => {
-        throw new Error('remove fail')
-      })
-
-      const result = removeConfigurationValue(STORE_KEY.SAVED_CONNECTIONS)
-
-      expect(result.success).toBe(false)
-      expect(logger.catch).toHaveBeenCalledWith(expect.any(Error), {
-        action: 'remove-config-value',
         key: STORE_KEY.SAVED_CONNECTIONS,
       })
     })

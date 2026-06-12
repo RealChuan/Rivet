@@ -1,31 +1,33 @@
-import type { FileInfo } from '@shared/types/index.js'
+import type { ConflictAction } from '@shared/constants/transfer.js'
+import type { FileType } from '@shared/constants/ui.js'
 import type { ConflictItem, ConflictResolution } from '@shared/types/transfer.js'
-import {
-  CONFLICT_ACTION,
-  type ConflictAction,
-  type TransferItemType,
-} from '@shared/constants/transfer.js'
+import { CONFLICT_ACTION } from '@shared/constants/transfer.js'
 import { joinPaths, pathBasename } from '@shared/utils/index.js'
 
+export interface TargetFileEntry {
+  name: string
+  type: FileType
+}
+
 export function detectConflicts(
-  localPaths: string[],
-  remoteFiles: FileInfo[],
-  remoteDir: string,
-  itemType: TransferItemType
+  sourcePaths: string[],
+  targetFiles: TargetFileEntry[],
+  targetDir: string,
+  itemType: FileType
 ): ConflictItem[] {
-  const remoteFileMap = new Map(remoteFiles.map(f => [f.name, f]))
+  const targetFileMap = new Map(targetFiles.map(f => [f.name, f]))
   const detected: ConflictItem[] = []
 
-  for (const localPath of localPaths) {
-    const name = pathBasename(localPath)
-    const remoteFile = remoteFileMap.get(name)
-    if (remoteFile) {
+  for (const sourcePath of sourcePaths) {
+    const name = pathBasename(sourcePath)
+    const targetFile = targetFileMap.get(name)
+    if (targetFile) {
       detected.push({
-        localPath,
-        remotePath: joinPaths(remoteDir, name),
+        localPath: sourcePath,
+        remotePath: joinPaths(targetDir, name),
         itemName: name,
         itemType,
-        remoteFileType: remoteFile.type,
+        remoteFileType: targetFile.type,
       })
     }
   }
@@ -34,10 +36,10 @@ export function detectConflicts(
 }
 
 export function applyResolutions(
-  localPaths: string[],
+  sourcePaths: string[],
   resolutions: ConflictResolution[],
-  remoteDir: string,
-  _itemType: TransferItemType
+  targetDir: string,
+  _itemType: FileType
 ): {
   localPath: string
   remotePath: string
@@ -54,25 +56,25 @@ export function applyResolutions(
     }
   }
 
-  return localPaths
+  return sourcePaths
     .filter(p => !skipSet.has(p))
-    .map(localPath => {
-      const name = pathBasename(localPath)
-      const resolution = resolutionMap.get(localPath)
+    .map(sourcePath => {
+      const name = pathBasename(sourcePath)
+      const resolution = resolutionMap.get(sourcePath)
 
       if (resolution) {
         if (resolution.action === CONFLICT_ACTION.OVERWRITE) {
           return {
-            localPath,
-            remotePath: joinPaths(remoteDir, name),
+            localPath: sourcePath,
+            remotePath: joinPaths(targetDir, name),
             itemName: name,
-            conflictAction: CONFLICT_ACTION.OVERWRITE as ConflictAction,
+            conflictAction: CONFLICT_ACTION.OVERWRITE,
           }
         }
         if (resolution.action === CONFLICT_ACTION.KEEP_BOTH && resolution.newName) {
           return {
-            localPath,
-            remotePath: joinPaths(remoteDir, resolution.newName),
+            localPath: sourcePath,
+            remotePath: joinPaths(targetDir, resolution.newName),
             itemName: resolution.newName,
             renamedName: resolution.newName,
           }
@@ -80,8 +82,8 @@ export function applyResolutions(
       }
 
       return {
-        localPath,
-        remotePath: joinPaths(remoteDir, name),
+        localPath: sourcePath,
+        remotePath: joinPaths(targetDir, name),
         itemName: name,
       }
     })

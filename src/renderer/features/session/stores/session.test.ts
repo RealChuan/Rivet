@@ -5,7 +5,7 @@ import { useSessionStore } from './session.js'
 // ---------------------------------------------------------------------------
 // Mock: window.electronAPI
 // ---------------------------------------------------------------------------
-const mockProtocolCancel = vi.fn()
+const mockProtocolCancel = vi.fn().mockResolvedValue(undefined)
 const mockProtocolList = vi.fn()
 const mockGenerateUuid = vi.fn()
 
@@ -15,7 +15,9 @@ vi.stubGlobal('window', {
       cancel: mockProtocolCancel,
       list: mockProtocolList,
     },
-    generateUuid: mockGenerateUuid,
+    system: {
+      generateUuid: mockGenerateUuid,
+    },
   },
 })
 
@@ -65,6 +67,7 @@ const errResponse = (message: string) => ({
 describe('useSessionStore', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockProtocolCancel.mockResolvedValue(undefined)
     mockGenerateUuid.mockReturnValue('uuid-1')
     useSessionStore.setState({
       sessions: [],
@@ -346,31 +349,6 @@ describe('useSessionStore', () => {
       const s = useSessionStore.getState().getSessionById('sess-1')
       if (!s) throw new Error('session not found')
       expect(s.isLoading).toBe(false)
-    })
-  })
-
-  // =========================================================================
-  // setError
-  // =========================================================================
-  describe('setError', () => {
-    it('should set error and mark session as disconnected', () => {
-      const session = makeSession({ isConnected: true, error: null })
-      useSessionStore.setState({ sessions: [session] })
-      useSessionStore.getState().setError('sess-1', 'Connection lost')
-      const s = useSessionStore.getState().getSessionById('sess-1')
-      if (!s) throw new Error('session not found')
-      expect(s.error).toBe('Connection lost')
-      expect(s.isConnected).toBe(false)
-    })
-
-    it('should clear error and mark session as connected', () => {
-      const session = makeSession({ isConnected: false, error: 'Some error' })
-      useSessionStore.setState({ sessions: [session] })
-      useSessionStore.getState().setError('sess-1', null)
-      const s = useSessionStore.getState().getSessionById('sess-1')
-      if (!s) throw new Error('session not found')
-      expect(s.error).toBeNull()
-      expect(s.isConnected).toBe(true)
     })
   })
 

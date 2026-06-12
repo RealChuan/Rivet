@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+const DEFAULT_NAME_WIDTH = 125
+const DEFAULT_MODIFY_TIME_WIDTH = 150
+const DEFAULT_SIZE_WIDTH = 100
+const FIXED_COLUMNS_WIDTH = DEFAULT_NAME_WIDTH
+const GAP_WIDTH = 6
+const MIN_COLUMN_WIDTH = 50
+const SCROLLBAR_WIDTH = 17
+
 interface ColumnWidths {
   name: number
   permissions: number
@@ -23,11 +31,11 @@ export interface UseColumnResizingReturn {
 }
 
 const DEFAULT_WIDTHS: ColumnWidths = {
-  name: 100,
-  permissions: 125,
-  owner: 125,
-  size: 125,
-  modifyTime: 150,
+  name: DEFAULT_SIZE_WIDTH,
+  permissions: DEFAULT_NAME_WIDTH,
+  owner: DEFAULT_NAME_WIDTH,
+  size: DEFAULT_NAME_WIDTH,
+  modifyTime: DEFAULT_MODIFY_TIME_WIDTH,
 }
 
 function computeColumnWidths(
@@ -35,29 +43,38 @@ function computeColumnWidths(
   scrollbarWidth: number,
   isWebdav: boolean
 ): ColumnWidths {
-  const fixedColumnsWidth = 125
-  const modifyTimeWidth = 150
-  const gapWidth = 6
-
   const { numFixedColumns, numGaps, permissionsWidth, ownerWidth } = isWebdav
     ? { numFixedColumns: 1, numGaps: 3, permissionsWidth: 0, ownerWidth: 0 }
     : {
         numFixedColumns: 3,
         numGaps: 5,
-        permissionsWidth: fixedColumnsWidth,
-        ownerWidth: fixedColumnsWidth,
+        permissionsWidth: FIXED_COLUMNS_WIDTH,
+        ownerWidth: FIXED_COLUMNS_WIDTH,
       }
 
-  const totalFixedWidth = fixedColumnsWidth * numFixedColumns + modifyTimeWidth + gapWidth * numGaps
-  const nameWidth = Math.max(100, containerWidth - totalFixedWidth - scrollbarWidth)
+  const totalFixedWidth =
+    FIXED_COLUMNS_WIDTH * numFixedColumns + DEFAULT_MODIFY_TIME_WIDTH + GAP_WIDTH * numGaps
+  const nameWidth = Math.max(DEFAULT_SIZE_WIDTH, containerWidth - totalFixedWidth - scrollbarWidth)
 
   return {
     name: nameWidth,
     permissions: permissionsWidth,
     owner: ownerWidth,
-    size: fixedColumnsWidth,
-    modifyTime: modifyTimeWidth,
+    size: FIXED_COLUMNS_WIDTH,
+    modifyTime: DEFAULT_MODIFY_TIME_WIDTH,
   }
+}
+
+export function computeTotalWidth(widths: ColumnWidths, isWebdav: boolean): number {
+  const numGaps = isWebdav ? 3 : 5
+  return (
+    widths.name +
+    widths.permissions +
+    widths.owner +
+    widths.size +
+    widths.modifyTime +
+    GAP_WIDTH * numGaps
+  )
 }
 
 export function useColumnResizing(options: UseColumnResizingOptions): UseColumnResizingReturn {
@@ -89,7 +106,7 @@ export function useColumnResizing(options: UseColumnResizingOptions): UseColumnR
       const newWidth = resizeStartWidth + deltaX
       setColumnWidths(prev => ({
         ...prev,
-        [resizingColumn]: Math.max(50, newWidth),
+        [resizingColumn]: Math.max(MIN_COLUMN_WIDTH, newWidth),
       }))
     }
     const onMouseUp = () => {
@@ -110,7 +127,7 @@ export function useColumnResizing(options: UseColumnResizingOptions): UseColumnR
       return columnWidths
     }
 
-    const gapWidth = 6
+    const gapWidth = GAP_WIDTH
     const numGaps = isWebdav ? 3 : 5
     const otherColumnsWidth =
       columnWidths.name +
@@ -138,7 +155,7 @@ export function useColumnResizing(options: UseColumnResizingOptions): UseColumnR
       if (!containerWidth || !container) return
 
       const currentScrollbarWidth = container.offsetWidth - container.clientWidth
-      const scrollbarWidth = Math.max(currentScrollbarWidth, 17)
+      const scrollbarWidth = Math.max(currentScrollbarWidth, SCROLLBAR_WIDTH)
       setColumnWidths(computeColumnWidths(containerWidth, scrollbarWidth, isWebdav))
     }
 

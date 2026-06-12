@@ -27,7 +27,7 @@ const mockFiles: FileInfo[] = [
   },
 ]
 
-function createMockContainerRef() {
+function createMockScrollContainerRef() {
   const mockGetBoundingClientRect = vi.fn(() => ({
     left: 0,
     top: 0,
@@ -41,7 +41,7 @@ function createMockContainerRef() {
       getBoundingClientRect: mockGetBoundingClientRect,
       scrollLeft: 0,
       scrollTop: 0,
-    } as unknown as HTMLDivElement,
+    } as unknown as HTMLElement,
     mockGetBoundingClientRect,
   }
 }
@@ -64,11 +64,11 @@ function dispatchMouseEvent(type: string, props: Record<string, unknown> = {}) {
 }
 
 describe('useFileDragSelect', () => {
-  let mockContainerRef: ReturnType<typeof createMockContainerRef>
+  let mockScrollContainerRef: ReturnType<typeof createMockScrollContainerRef>
   let onDragSelect: Mock<(files: FileInfo[]) => void>
 
   beforeEach(() => {
-    mockContainerRef = createMockContainerRef()
+    mockScrollContainerRef = createMockScrollContainerRef()
     onDragSelect = vi.fn<(files: FileInfo[]) => void>()
   })
 
@@ -77,7 +77,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -92,7 +92,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -105,30 +105,30 @@ describe('useFileDragSelect', () => {
   })
 
   it('should account for scroll offset in mousedown coordinates', () => {
-    const scrolledRef = createMockContainerRef()
-    Object.defineProperty(scrolledRef.current, 'scrollTop', { value: 200, writable: true })
-    Object.defineProperty(scrolledRef.current, 'scrollLeft', { value: 50, writable: true })
+    const scrolledRef = createMockScrollContainerRef()
+    Object.defineProperty(scrolledRef.current, 'scrollTop', { value: 10, writable: true })
+    Object.defineProperty(scrolledRef.current, 'scrollLeft', { value: 30, writable: true })
 
     const { result } = renderHook(() =>
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: scrolledRef,
+        scrollContainerRef: scrolledRef,
         onDragSelect,
       })
     )
 
     act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 50 }))
+      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 10 }))
     })
 
     act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 120, clientY: 70 })
+      dispatchMouseEvent('mousemove', { clientX: 120, clientY: 50 })
     })
 
     const style = result.current.getDragStyle()
-    expect(style.left).toBe(150)
-    expect(style.top).toBe(250)
+    expect(style.left).toBe(130)
+    expect(style.top).toBe(20)
   })
 
   it('should not start drag on non-left button', () => {
@@ -136,7 +136,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -153,7 +153,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -168,14 +168,14 @@ describe('useFileDragSelect', () => {
     expect(result.current.isDragging).toBe(false)
   })
 
-  it('should not start drag when containerRef has no rect', () => {
-    const nullRef = { current: null } as React.RefObject<HTMLDivElement | null>
+  it('should not start drag when scrollContainerRef has no current', () => {
+    const nullRef = { current: null } as React.RefObject<HTMLElement | null>
 
     const { result } = renderHook(() =>
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: nullRef,
+        scrollContainerRef: nullRef,
         onDragSelect,
       })
     )
@@ -192,26 +192,26 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
 
     act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 50 }))
+      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 10 }))
     })
 
-    // Simulate mouse move to (200, 150)
+    // Simulate mouse move to (180, 80) — within content boundary (3 * 30 = 90)
     act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 200, clientY: 150 })
+      dispatchMouseEvent('mousemove', { clientX: 180, clientY: 80 })
     })
 
     const style = result.current.getDragStyle()
-    // dragStart: (100, 50), dragEnd: (200, 150)
+    // dragStart: (100, 10), dragEnd: (180, 80)
     expect(style.left).toBe(100)
-    expect(style.top).toBe(50)
-    expect(style.width).toBe(100)
-    expect(style.height).toBe(100)
+    expect(style.top).toBe(10)
+    expect(style.width).toBe(80)
+    expect(style.height).toBe(70)
   })
 
   it('should not set hasStartedDrag when drag distance < 5px', () => {
@@ -219,7 +219,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -241,7 +241,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -266,7 +266,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -291,7 +291,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -322,7 +322,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -348,7 +348,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -378,8 +378,7 @@ describe('useFileDragSelect', () => {
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        headerHeight: 32,
-        containerRef: mockContainerRef,
+        scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
       })
     )
@@ -396,21 +395,20 @@ describe('useFileDragSelect', () => {
   })
 
   it('should allow drag when scrolled down and clicking first visible row', () => {
-    const scrolledRef = createMockContainerRef()
+    const scrolledRef = createMockScrollContainerRef()
     Object.defineProperty(scrolledRef.current, 'scrollTop', { value: 200, writable: true })
 
     const { result } = renderHook(() =>
       useFileDragSelect({
         items: mockFiles,
         itemHeight: 30,
-        headerHeight: 32,
-        containerRef: scrolledRef,
+        scrollContainerRef: scrolledRef,
         onDragSelect,
       })
     )
 
     act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 5 }))
+      result.current.handleMouseDown(createMouseEvent({ clientY: 10 }))
     })
 
     expect(result.current.isDragging).toBe(true)

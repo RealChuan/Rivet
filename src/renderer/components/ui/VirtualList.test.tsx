@@ -17,6 +17,7 @@ vi.mock('react-window', () => ({
     rowHeight,
     rowProps,
     style,
+    children,
   }: {
     rowHeight: number
     rowProps: {
@@ -25,6 +26,7 @@ vi.mock('react-window', () => ({
       containerWidth: number
     }
     style: React.CSSProperties
+    children?: React.ReactNode
   }) => {
     const items = rowProps.items
     const renderItem = rowProps.renderItem
@@ -38,6 +40,7 @@ vi.mock('react-window', () => ({
           }
           return renderItem(item, index, rowStyle)
         })}
+        {children}
       </div>
     )
   },
@@ -84,20 +87,6 @@ describe('VirtualList', () => {
     ))
     render(<VirtualList items={items} itemHeight={40} width={800} renderItem={mockRenderItem} />)
     expect(mockRenderItem).toHaveBeenCalledTimes(3)
-  })
-
-  it('should apply overflowStyle to the list', () => {
-    render(
-      <VirtualList
-        items={items}
-        itemHeight={40}
-        width={800}
-        renderItem={renderItem}
-        overflowStyle={{ overflow: 'visible' }}
-      />
-    )
-    const list = screen.getByTestId('virtual-list')
-    expect(list.style.overflow).toBe('visible')
   })
 
   it('should render item content correctly', () => {

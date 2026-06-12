@@ -10,84 +10,11 @@
  * - 支持主题切换（通过 CSS 变量）
  */
 
+import { Minus, Square, Maximize2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import logger from '@renderer/utils/logger.js'
-
-// ============================================================
-// 内联 SVG 图标（零外部依赖）
-// ============================================================
-
-const IconMinus = ({ className }: { className?: string }) => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    className={className}
-  >
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-)
-
-const IconSquare = ({ className }: { className?: string }) => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    className={className}
-  >
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-  </svg>
-)
-
-interface IconMaximize2Props {
-  className?: string
-}
-const IconMaximize2 = ({ className }: IconMaximize2Props) => (
-  <svg
-    width="12"
-    height="12"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    className={className}
-  >
-    <polyline points="15 3 21 3 21 9" />
-    <polyline points="9 21 3 21 3 15" />
-    <line x1="21" y1="3" x2="14" y2="10" />
-    <line x1="3" y1="21" x2="10" y2="14" />
-  </svg>
-)
-
-const IconX = ({ className }: { className?: string }) => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    className={className}
-  >
-    <line x1="18" y1="6" x2="6" y2="18" />
-    <line x1="6" y1="6" x2="18" y2="18" />
-  </svg>
-)
-
-// ============================================================
-// Props 定义
-// ============================================================
+import { AppLogo } from './AppLogo.js'
 
 export interface TitleBarProps {
   /**
@@ -119,25 +46,6 @@ export interface TitleBarProps {
 // ============================================================
 // 组件实现
 // ============================================================
-
-const AppLogo = () => (
-  <div className="w-5 h-5 rounded-md flex items-center justify-center bg-accent">
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="17 8 12 3 7 8" />
-      <line x1="12" y1="3" x2="12" y2="15" />
-    </svg>
-  </div>
-)
 
 export function TitleBar({
   childMode = false,
@@ -249,7 +157,7 @@ export function TitleBar({
               title={t('titleBar.minimize')}
               type="button"
             >
-              <IconMinus />
+              <Minus className="w-3.5 h-3.5" />
             </button>
 
             <button
@@ -259,7 +167,7 @@ export function TitleBar({
               title={isMaximized ? t('titleBar.restore') : t('titleBar.maximize')}
               type="button"
             >
-              {isMaximized ? <IconMaximize2 /> : <IconSquare />}
+              {isMaximized ? <Maximize2 className="w-3 h-3" /> : <Square className="w-3 h-3" />}
             </button>
           </>
         )}
@@ -271,7 +179,7 @@ export function TitleBar({
           title={t('titleBar.close')}
           type="button"
         >
-          <IconX />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
     </header>

@@ -21,6 +21,7 @@ import {
   err,
   type ErrorInfo,
   type FileInfo,
+  isErr,
   ok,
   type OperationResult,
   type Result,
@@ -108,24 +109,23 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     })
   }
 
-  async disconnect(sessionId: string): Promise<Result<void, ErrorInfo>> {
+  disconnect(sessionId: string): Promise<Result<void, ErrorInfo>> {
     try {
       const clientResult = this.getClient(sessionId)
-      if (clientResult.error) {
-        return clientResult
+      if (isErr(clientResult)) {
+        return Promise.resolve(clientResult)
       }
 
       const session = clientResult.value
       session.controller.abort()
       session.agent.destroy()
-      await Promise.resolve()
     } catch (e) {
       logger.catch(e, { sessionId, action: LOG_ACTION.DISCONNECT })
     } finally {
       sessionRegistry.unregister(sessionId)
     }
 
-    return ok(undefined)
+    return Promise.resolve(ok(undefined))
   }
 
   protected async listImpl(
@@ -273,6 +273,62 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     }
   }
 
+  protected async downloadImpl(
+    session: WebDAVSession,
+    remotePath: string,
+    localPath: string,
+    _basePath: string,
+    onProgress: (transferred: number) => void,
+    signal: AbortSignal
+  ): Promise<Result<void, ErrorInfo>> {
+    if (signal.aborted) {
+      return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ABORTED, ERROR_MESSAGE.DOWNLOAD_ABORTED))
+    }
+
+    try {
+      const writeStream = fs.createWriteStream(localPath)
+      const readStream = session.client.createReadStream(remotePath, { signal })
+
+      let totalTransferred = 0
+
+      await new Promise<void>((resolve, reject) => {
+        readStream.on('data', (chunk: Buffer) => {
+          if (!signal.aborted) {
+            totalTransferred += chunk.length
+            onProgress(totalTransferred)
+          }
+        })
+
+        readStream.on('error', (error: Error) => {
+          writeStream.end()
+          reject(error)
+        })
+
+        writeStream.on('error', (error: Error) => {
+          readStream.destroy()
+          reject(error)
+        })
+
+        writeStream.on('finish', () => {
+          resolve()
+        })
+
+        readStream.pipe(writeStream)
+      })
+
+      if (signal.aborted) {
+        return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ABORTED, ERROR_MESSAGE.DOWNLOAD_ABORTED))
+      }
+
+      return ok(undefined)
+    } catch (e) {
+      if (signal.aborted) {
+        return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ABORTED, ERROR_MESSAGE.DOWNLOAD_ABORTED))
+      }
+      return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ERROR, formatErrorMessage(e)))
+    }
+  }
+
   protected async pingImpl(
     session: WebDAVSession,
     basePath: string
@@ -285,5 +341,3 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     }
   }
 }
-
-export default WebdavProtocol

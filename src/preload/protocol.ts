@@ -69,5 +69,3 @@ export const protocolAPI = {
     return listenerManager.on(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, handler)
   },
 }
-
-export type ProtocolAPI = typeof protocolAPI

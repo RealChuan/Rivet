@@ -61,5 +61,12 @@ export interface FileProtocol {
     onProgress: (transferred: number) => void,
     signal?: AbortSignal
   ): Promise<Result<void, ErrorInfo>>
+  download(
+    sessionId: string,
+    remotePath: string,
+    localPath: string,
+    onProgress: (transferred: number) => void,
+    signal?: AbortSignal
+  ): Promise<Result<void, ErrorInfo>>
   ping(sessionId: string): Promise<Result<void, ErrorInfo>>
 }

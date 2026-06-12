@@ -8,5 +8,3 @@ export const configAPI = {
   set: (key: StoreKey, value: unknown) =>
     ipcRenderer.invoke(IPC_CHANNELS.CONFIG.SET, key, value) as Promise<Result<void, ErrorInfo>>,
 }
-
-export type ConfigAPI = typeof configAPI

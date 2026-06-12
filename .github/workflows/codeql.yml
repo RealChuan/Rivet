@@ -38,15 +38,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: latest
-          cache: 'npm'
-
-      - name: Remove package-lock.json to force fresh install from official registry
-        shell: bash
-        run: rm -f package-lock.json
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          cache: true
 
       - name: Install dependencies
         shell: bash
-        run: npm install
+        run: pnpm install
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4

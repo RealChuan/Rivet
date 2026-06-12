@@ -5,7 +5,7 @@ import { type TransferSortField } from '@shared/constants/transfer.js'
 import { SortDropdown } from './SortDropdown.js'
 
 interface TransferActionBarProps {
-  sortBy: TransferSortField | undefined
+  sortBy: TransferSortField
   sortOrder: SortOrderWithDirection
   onSort: (field: TransferSortField) => void
   onCancelAll: () => void
@@ -24,7 +24,7 @@ export const TransferActionBar: React.FC<TransferActionBarProps> = ({
       <button
         type="button"
         onClick={onCancelAll}
-        className="px-3 py-1.5 rounded-md text-xs text-danger border border-danger-border bg-danger-light hover:bg-danger/20 transition-colors cursor-default"
+        className="px-3 py-1.5 rounded-md text-xs text-danger border border-danger-border bg-danger-light hover:bg-danger-light/80 transition-colors cursor-default"
         aria-label={t('transfer.action.cancelAll')}
       >
         {t('transfer.action.cancelAll')}

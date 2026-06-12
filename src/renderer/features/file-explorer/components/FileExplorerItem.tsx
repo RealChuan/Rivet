@@ -1,6 +1,7 @@
 import type React from 'react'
 import { useTranslation } from 'react-i18next'
-import FileIcon from '@renderer/components/common/FileIcon.js'
+import { FileIcon } from '@renderer/components/common/index.js'
+import { computeTotalWidth } from '@renderer/features/file-explorer/hooks/use-column-resizing.js'
 import { cn } from '@renderer/utils/index.js'
 import { FILE_TYPE } from '@shared/constants/index.js'
 import { type FileInfo } from '@shared/types/index.js'
@@ -44,15 +45,7 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
 }) => {
   const { i18n } = useTranslation()
   const lng = i18n.language
-  const gapWidth = 6
-  const numGaps = isWebdav ? 3 : 5
-  const totalWidth =
-    columnWidths.name +
-    columnWidths.permissions +
-    columnWidths.owner +
-    columnWidths.size +
-    columnWidths.modifyTime +
-    gapWidth * numGaps
+  const totalWidth = computeTotalWidth(columnWidths, isWebdav)
 
   const nameContent = file.name
   const permissionsContent = file.permissions ?? '-'
@@ -62,15 +55,14 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
 
   return (
     <div
-      key={file.name}
       data-file-item={file.name}
       className={cn(
         'flex items-center h-10 cursor-pointer border-b border-border min-w-full box-border relative select-none transition-all duration-150',
         isSelected || isPending
-          ? 'bg-selected border-l border-l-accent'
+          ? 'bg-selected border-l-2 border-l-accent'
           : isHovered
-            ? 'bg-hover border-l border-l-border'
-            : 'bg-transparent border-l border-l-border',
+            ? 'bg-hover border-l-2 border-l-transparent'
+            : 'bg-transparent border-l-2 border-l-transparent',
         isSelected ? 'text-accent' : 'text-text'
       )}
       style={{ ...style, minWidth: totalWidth }}
@@ -116,7 +108,7 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
         style={{ width: columnWidths.size }}
         title={sizeContent}
       >
-        {file.type === FILE_TYPE.FILE ? formatFileSize(file.size || 0, lng) : '-'}
+        {sizeContent}
       </div>
       <div className="w-1.5" />
       <div
@@ -124,7 +116,7 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
         style={{ width: columnWidths.modifyTime }}
         title={modifyTimeContent}
       >
-        {formatDate(file.modifyTime || 0, lng)}
+        {modifyTimeContent}
       </div>
     </div>
   )

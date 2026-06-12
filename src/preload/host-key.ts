@@ -10,5 +10,3 @@ export const hostKeyAPI = {
       Result<void, ErrorInfo>
     >,
 }
-
-export type HostKeyAPI = typeof hostKeyAPI

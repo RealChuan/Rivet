@@ -1,4 +1,5 @@
 import type React from 'react'
+import { AlertCircle, TriangleAlert, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import Button from '../../components/ui/Button.js'
 import { GlassDialog } from '../ui/index.js'
@@ -35,35 +36,19 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
       bgClass: 'bg-danger-light',
       colorClass: 'text-danger',
       buttonVariant: 'danger' as const,
-      icon: (
-        <svg className="w-5 h-5 stroke-danger stroke-2" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
-      ),
+      icon: <AlertCircle className="w-5 h-5 stroke-danger stroke-2" />,
     },
     warning: {
       bgClass: 'bg-warning-light',
       colorClass: 'text-warning',
       buttonVariant: 'warning' as const,
-      icon: (
-        <svg className="w-5 h-5 stroke-warning stroke-2" viewBox="0 0 24 24" fill="none">
-          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
-      ),
+      icon: <TriangleAlert className="w-5 h-5 stroke-warning stroke-2" />,
     },
     info: {
       bgClass: 'bg-accent-light',
       colorClass: 'text-accent',
       buttonVariant: 'primary' as const,
-      icon: (
-        <svg className="w-5 h-5 stroke-accent stroke-2" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-      ),
+      icon: <Info className="w-5 h-5 stroke-accent stroke-2" />,
     },
   }
 

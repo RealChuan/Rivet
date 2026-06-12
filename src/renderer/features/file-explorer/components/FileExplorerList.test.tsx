@@ -9,6 +9,7 @@ vi.mock('react-i18next', () => ({
     t: (key: string) => key,
     i18n: { language: 'en-US' },
   }),
+  initReactI18next: vi.fn(),
 }))
 
 vi.mock('react-virtualized-auto-sizer', () => ({
@@ -79,7 +80,11 @@ vi.mock('@renderer/features/file-explorer/hooks/index.js', () => ({
   useFileCopyMove: () => ({
     fileCopyMoveState: { conflicts: [], isProcessing: false },
   }),
-  useUploadDialog: () => ({ openFilePicker: vi.fn(), openFolderPicker: vi.fn() }),
+  useTransferDialog: () => ({
+    openFilePicker: vi.fn(),
+    openFolderPicker: vi.fn(),
+    openDownloadDialog: vi.fn(),
+  }),
   useColumnResizing: () => ({
     columnWidths: { name: 300, permissions: 100, owner: 100, size: 100, modifyTime: 150 },
     actualColumnWidths: { name: 300, permissions: 100, owner: 100, size: 100, modifyTime: 150 },
@@ -189,5 +194,25 @@ describe('FileExplorerList', () => {
     mockSessionStore.sessions = [makeSession({ files })]
     render(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
     expect(screen.getByText('fileExplorerList.name')).not.toBeNull()
+  })
+
+  it('should not cause infinite re-renders with store selectors', () => {
+    // Verifies that useSessionStore(state => state.sessions) returns a stable
+    // reference. If sessions were derived via a selector that creates a new
+    // array each call, React would throw "Maximum update depth exceeded".
+    const files: FileInfo[] = [
+      {
+        name: 'stable.txt',
+        type: 'file',
+        size: 50,
+        modifyTime: 2000,
+        permissions: 'rw-r--r--',
+        owner: 'user',
+        absolutePath: '/home/stable.txt',
+      },
+    ]
+    mockSessionStore.sessions = [makeSession({ files })]
+    const { container } = render(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
+    expect(container.querySelector('[data-testid="virtual-list"]')).not.toBeNull()
   })
 })

@@ -14,7 +14,7 @@ export const Resizer: React.FC<ResizerProps> = ({ isDragging, onMouseDown }) => 
 
   return (
     <div
-      className="flex items-center justify-center h-full cursor-col-resize"
+      className="relative flex items-center justify-center h-full cursor-col-resize"
       style={{ width: '5px' }}
       onMouseDown={onMouseDown}
       onMouseEnter={() => setIsHovered(true)}
@@ -28,7 +28,7 @@ export const Resizer: React.FC<ResizerProps> = ({ isDragging, onMouseDown }) => 
       />
       <div
         className={cn(
-          'absolute w-0.5 h-5 rounded-full bg-accent',
+          'absolute left-1/2 -translate-x-1/2 w-0.5 h-5 rounded-full bg-accent',
           'transition-all duration-150',
           isActive ? 'opacity-100' : 'opacity-0'
         )}

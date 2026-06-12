@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TRANSFER_TASK_STATUS } from '@shared/constants/transfer.js'
+import { OPERATION_STATUS } from '@shared/constants/transfer.js'
 import { useTransferStore } from '../features/transfer/stores/transfer.js'
 
 /**
@@ -9,25 +9,27 @@ import { useTransferStore } from '../features/transfer/stores/transfer.js'
  * 统一处理"有活跃任务时弹出确认框"的逻辑，适用于：
  * - 关闭窗口（全局检查）
  * - 断开连接（按 sessionId 检查）
+ *
+ * 使用 getState() 读取 tasks，避免订阅整个数组导致不必要的重渲染。
+ * hasActiveTasks 是命令式调用（用户点击时），不需要响应式订阅。
  */
 export function useActiveTaskGuard() {
   const { t } = useTranslation()
-  const tasks = useTransferStore(state => state.tasks)
+  const runningTaskCount = useTransferStore(state => state.runningTaskCount)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
   const [pendingSessionId, setPendingSessionId] = useState<string | undefined>(undefined)
 
   const hasActiveTasks = (sessionId?: string): boolean => {
+    const { tasks } = useTransferStore.getState()
     if (sessionId) {
       return tasks.some(
         t =>
           t.sessionId === sessionId &&
-          (t.status === TRANSFER_TASK_STATUS.RUNNING || t.status === TRANSFER_TASK_STATUS.WAITING)
+          (t.status === OPERATION_STATUS.RUNNING || t.status === OPERATION_STATUS.WAITING)
       )
     }
-    return tasks.some(
-      t => t.status === TRANSFER_TASK_STATUS.RUNNING || t.status === TRANSFER_TASK_STATUS.WAITING
-    )
+    return runningTaskCount > 0
   }
 
   /**

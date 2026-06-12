@@ -1,7 +1,8 @@
 import type React from 'react'
+import { ChevronLeft, ChevronRight, X, FolderPlus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import FileIcon from '@renderer/components/common/FileIcon.js'
+import { FileIcon } from '@renderer/components/common/index.js'
 import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
 import Button from '@renderer/components/ui/Button.js'
 import GlassDialog from '@renderer/components/ui/GlassDialog.js'
@@ -10,7 +11,7 @@ import FileExplorerBreadcrumb from '@renderer/features/file-explorer/components/
 import { useUiStore } from '@renderer/stores/index.js'
 import { cn } from '@renderer/utils/index.js'
 import logger from '@renderer/utils/logger.js'
-import { FILE_TYPE, ROOT_PATH, TOAST_TYPE } from '@shared/constants/index.js'
+import { FILE_TYPE, ROOT_PATH, TOAST_TYPE, DIALOG_SIZE } from '@shared/constants/index.js'
 import { type FileInfo, isProtocolResponseErr } from '@shared/types/index.js'
 import { formatErrorMessage, getParentPath } from '@shared/utils/index.js'
 
@@ -39,6 +40,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
   const [selectedFolder, setSelectedFolder] = useState<FolderItem | null>(null)
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
   const currentRequestIdRef = useRef<string | null>(null)
+  // 渲染期间同步 state：当 open 变化时重置对话框状态
   const [prevOpen, setPrevOpen] = useState(open)
   const [prevCurrentPath, setPrevCurrentPath] = useState(currentPath)
 
@@ -58,10 +60,12 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
 
     const oldRequestId = currentRequestIdRef.current
     if (oldRequestId) {
-      void window.electronAPI.protocol.cancel(oldRequestId)
+      void window.electronAPI.protocol.cancel(oldRequestId).catch(() => {
+        logger.debug('Failed to cancel previous request', { requestId: oldRequestId })
+      })
     }
 
-    const requestId = window.electronAPI.generateUuid()
+    const requestId = window.electronAPI.system.generateUuid()
     currentRequestIdRef.current = requestId
 
     const load = async () => {
@@ -104,7 +108,9 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
     return () => {
       const requestId = currentRequestIdRef.current
       if (requestId) {
-        void window.electronAPI.protocol.cancel(requestId)
+        void window.electronAPI.protocol.cancel(requestId).catch(() => {
+          logger.debug('Failed to cancel previous request', { requestId })
+        })
       }
     }
   }, [])
@@ -137,10 +143,12 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
 
     const oldRequestId = currentRequestIdRef.current
     if (oldRequestId) {
-      void window.electronAPI.protocol.cancel(oldRequestId)
+      void window.electronAPI.protocol.cancel(oldRequestId).catch(() => {
+        logger.debug('Failed to cancel previous request', { requestId: oldRequestId })
+      })
     }
 
-    const requestId = window.electronAPI.generateUuid()
+    const requestId = window.electronAPI.system.generateUuid()
     currentRequestIdRef.current = requestId
 
     setIsLoading(true)
@@ -201,9 +209,7 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
           style={{ ...style, width: '100%' }}
           title={t('fileExplorerList.parentDirectory')}
         >
-          <svg className="w-4 h-4 stroke-text-muted stroke-2" viewBox="0 0 24 24" fill="none">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <ChevronLeft className="w-4 h-4 stroke-text-muted stroke-2" />
           <span className="text-sm">{t('fileExplorerList.parentDirectory')}</span>
         </button>
       )
@@ -226,16 +232,12 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
         <span className="flex-1 text-sm text-left overflow-hidden text-ellipsis whitespace-nowrap">
           {item.name}
         </span>
-        <svg
+        <ChevronRight
           className={cn(
             'w-4 h-4 stroke-1.5 transition-colors',
             isSelected ? 'stroke-accent' : 'stroke-text-muted'
           )}
-          viewBox="0 0 24 24"
-          fill="none"
-        >
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
+        />
       </button>
     )
   }
@@ -257,26 +259,21 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
 
   return (
     <>
-      <GlassDialog open={open} onClose={onClose} width={550} height={500}>
+      <GlassDialog
+        open={open}
+        onClose={onClose}
+        width={DIALOG_SIZE.LARGE.width}
+        height={DIALOG_SIZE.LARGE.height}
+      >
         <div className="flex flex-col h-113 w-full overflow-hidden">
           <div className="flex items-center justify-between mb-4 shrink-0">
             <h2 className="text-base font-semibold text-text">{t('targetFolderDialog.title')}</h2>
             <button
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t('common.close')}
               className="p-1 rounded bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              <X className="w-4 h-4 stroke-current stroke-2" />
             </button>
           </div>
 
@@ -312,17 +309,15 @@ export const TargetFolderDialog: React.FC<TargetFolderDialogProps> = ({
               <button
                 onClick={() => setNewFolderDialogOpen(true)}
                 title={t('file.action.newFolder')}
+                aria-label={t('file.action.newFolder')}
                 className={`
                   p-1.5 rounded flex items-center justify-center
                   border-none cursor-pointer transition-all duration-150
                   text-text hover:bg-hover
+                  focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
                 `}
               >
-                <svg className="w-4 h-4 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
-                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
-                  <line x1="12" y1="11" x2="12" y2="17" />
-                  <line x1="9" y1="14" x2="15" y2="14" />
-                </svg>
+                <FolderPlus className="w-4 h-4 stroke-current stroke-2" />
               </button>
               <div
                 className="text-xs text-text-muted px-3 py-2 bg-hover rounded max-w-60 overflow-hidden text-ellipsis whitespace-nowrap"

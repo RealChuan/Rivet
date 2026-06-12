@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   type ConflictItem,
   type ConflictResolution,
 } from '@renderer/features/file-explorer/components/ConflictDialog.js'
+import { useFileOperation } from '@renderer/features/file-explorer/hooks/use-file-operation.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import { logger } from '@renderer/utils/index.js'
@@ -51,8 +52,8 @@ export interface UseFileCopyMoveReturn {
 export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
   const { t } = useTranslation()
   const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
-  const setOperating = useSessionStore(state => state.setOperating)
   const addToast = useUiStore(state => state.addToast)
+  const { execute } = useFileOperation(sessionId)
 
   const [targetFolderDialogOpen, setTargetFolderDialogOpen] = useState(false)
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false)
@@ -61,7 +62,6 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
   const [pendingTargetDir, setPendingTargetDir] = useState<FileInfo | null>(null)
   const [conflicts, setConflicts] = useState<ConflictItem[]>([])
   const [targetFilesCache, setTargetFilesCache] = useState<Map<string, FileType>>(new Map())
-  const isHandlingConflictRef = useRef(false)
 
   const handleCopy = (files: FileInfo[]) => {
     setPendingFiles(files)
@@ -120,8 +120,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
 
     logger.info(`[${op?.toUpperCase() ?? 'Unknown'}] Processing ${itemsToProcess.length} items`)
 
-    setOperating(sessionId, true)
-    try {
+    return execute(async () => {
       for (const { file, targetPath } of itemsToProcess) {
         let result
         if (op === FILE_OPERATION.COPY) {
@@ -132,12 +131,11 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
 
         if (isProtocolResponseErr(result)) {
           const errorMsg = formatErrorMessage(result.error) || t('error.unknown')
-          if (op === FILE_OPERATION.COPY) {
-            addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.copyFailed')}: ${errorMsg}` })
-          } else {
-            addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.moveFailed')}: ${errorMsg}` })
-          }
-          return
+          throw new Error(
+            op === FILE_OPERATION.COPY
+              ? `${t('toast.copyFailed')}: ${errorMsg}`
+              : `${t('toast.moveFailed')}: ${errorMsg}`
+          )
         }
       }
 
@@ -148,9 +146,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
       }
 
       await refreshCurrentDirectory(sessionId)
-    } finally {
-      setOperating(sessionId, false)
-    }
+    })
   }
 
   const handleSelectTargetFolder = async (
@@ -199,7 +195,6 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
     if (foundConflicts.length > 0) {
       setConflicts(foundConflicts)
       setPendingTargetDir(targetDir)
-      isHandlingConflictRef.current = true
       setConflictDialogOpen(true)
       setTargetFolderDialogOpen(false)
       return ok(undefined)
@@ -242,16 +237,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
       const resolutionsMap = new Map(resolutions.map(r => [r.sourceFile.absolutePath, r]))
       setConflictDialogOpen(false)
       await executeOperation(pendingFilesList, pendingTargetDirValue, resolutionsMap, cache, op)
-    } catch (error) {
-      logger.catch(error, { action: op === FILE_OPERATION.COPY ? 'copy' : 'move' })
-      const msg = formatErrorMessage(error) || t('error.unknown')
-      if (op === FILE_OPERATION.COPY) {
-        addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.copyFailed')}: ${msg}` })
-      } else {
-        addToast({ type: TOAST_TYPE.ERROR, message: `${t('toast.moveFailed')}: ${msg}` })
-      }
     } finally {
-      isHandlingConflictRef.current = false
       setConflictDialogOpen(false)
       setPendingOperation(null)
       setPendingFiles([])

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig } from '@shared/types/index.js'
 import { ProtocolStatus, SftpStatus, HOST_KEY_DIALOG_TYPE } from '@shared/constants/index.js'
-import { handleConnectWithHostKey } from './use-host-key-connect.js'
+import { handleConnectWithHostKey } from './host-key-connect.js'
 
 const mockConnect = vi.fn()
 const mockDisconnect = vi.fn()

@@ -5,6 +5,7 @@ export const TRANSFER_CHANNELS = {
   RETRY: 'transfer:retry',
   RETRY_ALL: 'transfer:retry-all',
   GET_TASKS: 'transfer:get-tasks',
+  GET_CONCURRENCY: 'transfer:get-concurrency',
   SET_CONCURRENCY: 'transfer:set-concurrency',
 
   TASKS_ENQUEUED: 'transfer:tasks-enqueued',
@@ -13,4 +14,7 @@ export const TRANSFER_CHANNELS = {
   TASK_FAILED: 'transfer:task-failed',
   TASK_REMOVED: 'transfer:task-removed',
   HAS_ACTIVE_TASKS: 'transfer:has-active-tasks',
+  CHECK_LOCAL_FILES: 'transfer:check-local-files',
+  GET_LAST_DIR: 'transfer:get-last-dir',
+  SET_LAST_DIR: 'transfer:set-last-dir',
 } as const

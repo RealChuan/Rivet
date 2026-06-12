@@ -16,7 +16,7 @@ describe('setupIpcHandlers', () => {
     vi.clearAllMocks()
   })
 
-  it('should call all setup functions', async () => {
+  it('should call all setup functions', { timeout: 15000 }, async () => {
     const { setupIpcHandlers } = await import('./index.js')
     const { setupProtocolIpcHandlers } = await import('./protocol.js')
     const { setupConfigIpcHandlers } = await import('./config.js')

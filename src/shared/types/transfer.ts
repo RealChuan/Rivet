@@ -1,19 +1,21 @@
 import type {
-  TransferTaskStatus,
-  TransferItemType,
+  OperationStatus,
   ConflictAction,
-  UploadOperationType,
-  UploadOperationStatus,
+  TransferDirection,
+  TransferOperationType,
 } from '../constants/transfer.js'
+import type { FileType } from '../constants/ui.js'
 
 export interface TransferTask {
   id: string
   sessionId: string
+  direction: TransferDirection
   localPath: string
+  localDir?: string
   remotePath: string
   itemName: string
-  itemType: TransferItemType
-  status: TransferTaskStatus
+  itemType: FileType
+  status: OperationStatus
   conflictAction?: ConflictAction
   renamedName?: string
   fileSize: number
@@ -31,11 +33,11 @@ export interface TransferTask {
 export interface UploadOperation {
   id: string
   parentTaskId: string
-  type: UploadOperationType
+  type: TransferOperationType
   localPath?: string
   remotePath: string
   itemName: string
-  status: UploadOperationStatus
+  status: OperationStatus
   fileSize?: number
   transferredSize: number
   startedAt?: number | undefined
@@ -45,10 +47,10 @@ export interface UploadOperation {
 export interface OperationProgressInfo {
   id: string
   itemName: string
-  type: UploadOperationType
+  type: TransferOperationType
   transferredSize: number
   fileSize?: number
-  status: UploadOperationStatus
+  status: OperationStatus
   startedAt?: number
   speed?: number
 }
@@ -69,8 +71,8 @@ export interface ConflictItem {
   localPath: string
   remotePath: string
   itemName: string
-  itemType: TransferItemType
-  remoteFileType?: string
+  itemType: FileType
+  remoteFileType: FileType
 }
 
 export interface ConflictResolution {
@@ -82,4 +84,10 @@ export interface ConflictResolution {
 export interface DeduplicateResult {
   added: TransferTask[]
   duplicates: TransferTask[]
+}
+
+export interface LocalFileInfo {
+  name: string
+  size: number
+  type: FileType
 }

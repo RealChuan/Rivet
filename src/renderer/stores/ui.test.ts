@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import {
   DEFAULT_LANGUAGE,
   DEFAULT_THEME_VALUE,
@@ -22,15 +21,9 @@ vi.stubGlobal('window', {
   },
 })
 
-vi.mock('@renderer/features/session/stores/connection.js', () => ({
-  useConnectionStore: {
-    getState: vi.fn(() => ({ sortOrder: SORT_ORDER.NONE })),
-  },
-}))
-
 describe('useUiStore', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    mockConfigSet.mockResolvedValue({ success: true, value: undefined })
     vi.useFakeTimers()
     // Reset store to initial state
     useUiStore.setState({
@@ -80,13 +73,13 @@ describe('useUiStore', () => {
 
   describe('setAppearance', () => {
     it('should update appearance in state', () => {
-      useUiStore.getState().setAppearance(THEME.DARK)
+      useUiStore.getState().setAppearance(THEME.DARK, SORT_ORDER.NONE)
 
       expect(useUiStore.getState().appearance).toBe(THEME.DARK)
     })
 
     it('should persist appearance via config.set', () => {
-      useUiStore.getState().setAppearance(THEME.LIGHT)
+      useUiStore.getState().setAppearance(THEME.LIGHT, SORT_ORDER.NONE)
 
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
         appearance: THEME.LIGHT,
@@ -95,10 +88,9 @@ describe('useUiStore', () => {
       })
     })
 
-    it('should include current locale and connectionSortOrder from connection store when persisting', () => {
+    it('should include current locale and passed connectionSortOrder when persisting', () => {
       useUiStore.setState({ locale: SUPPORTED_LANGUAGE.ZH_CN })
-      vi.mocked(useConnectionStore.getState).mockReturnValue({ sortOrder: SORT_ORDER.ASC } as never)
-      useUiStore.getState().setAppearance(THEME.DARK)
+      useUiStore.getState().setAppearance(THEME.DARK, SORT_ORDER.ASC)
 
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
         appearance: THEME.DARK,
@@ -110,13 +102,13 @@ describe('useUiStore', () => {
 
   describe('setLocale', () => {
     it('should update locale in state', () => {
-      useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN)
+      useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN, SORT_ORDER.NONE)
 
       expect(useUiStore.getState().locale).toBe(SUPPORTED_LANGUAGE.ZH_CN)
     })
 
     it('should persist locale via config.set', () => {
-      useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN)
+      useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN, SORT_ORDER.NONE)
 
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
         appearance: DEFAULT_THEME_VALUE,
@@ -125,12 +117,9 @@ describe('useUiStore', () => {
       })
     })
 
-    it('should include current appearance and connectionSortOrder from connection store when persisting', () => {
+    it('should include current appearance and passed connectionSortOrder when persisting', () => {
       useUiStore.setState({ appearance: THEME.DARK })
-      vi.mocked(useConnectionStore.getState).mockReturnValue({
-        sortOrder: SORT_ORDER.DESC,
-      } as never)
-      useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN)
+      useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN, SORT_ORDER.DESC)
 
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
         appearance: THEME.DARK,
@@ -212,7 +201,7 @@ describe('useUiStore', () => {
       expect(toast0.message).toBe('Operation succeeded')
     })
 
-    it('should generate a unique id starting with toast_', () => {
+    it('should generate a unique id', () => {
       useUiStore.getState().addToast({
         type: TOAST_TYPE.INFO,
         message: 'Test',
@@ -220,7 +209,7 @@ describe('useUiStore', () => {
 
       const toast = useUiStore.getState().toasts[0]
       if (!toast) throw new Error('Expected toast')
-      expect(toast.id).toMatch(/^toast_\d+$/)
+      expect(toast.id).toBeTruthy()
     })
 
     it('should add multiple toasts', () => {

@@ -1,4 +1,4 @@
-import React, { type ReactElement } from 'react'
+import React, { type ReactElement, type ReactNode } from 'react'
 import { AutoSizer, type SizeProps } from 'react-virtualized-auto-sizer'
 import { List, type ListImperativeAPI, type RowComponentProps } from 'react-window'
 
@@ -14,7 +14,7 @@ interface VirtualListProps<T> {
   ) => React.ReactNode
   listRef?: React.Ref<ListImperativeAPI>
   overscanCount?: number
-  overflowStyle?: React.CSSProperties
+  children?: ReactNode
 }
 
 interface RowProps<T> {
@@ -52,7 +52,7 @@ export function VirtualList<T>({
   renderItem,
   listRef,
   overscanCount = 5,
-  overflowStyle,
+  children,
 }: VirtualListProps<T>) {
   const items = rawItems ?? []
 
@@ -66,17 +66,18 @@ export function VirtualList<T>({
     return (
       <List
         listRef={listRef ?? null}
-        rowComponent={MemoRow as unknown as (props: unknown) => ReactElement | null}
+        rowComponent={MemoRow as unknown as (props: unknown) => ReactElement | null} // react-window rowComponent 类型与 React.memo 不兼容
         rowCount={items.length}
         rowHeight={itemHeight}
         rowProps={rowProps}
         style={{
           width: typeof width === 'number' ? Math.max(width, containerWidth) : containerWidth,
           height,
-          ...overflowStyle,
         }}
         overscanCount={overscanCount}
-      />
+      >
+        {children}
+      </List>
     )
   }
 

@@ -20,6 +20,7 @@ export const FILE_OPERATION = {
   DELETE: 'delete',
   RENAME: 'rename',
   UPLOAD: 'upload',
+  DOWNLOAD: 'download',
   PING: 'ping',
 } as const
 
@@ -31,6 +32,7 @@ export const LOG_ACTION = {
   CLOSE_CONNECTION: 'close-connection',
   CHECK_TARGET_BEFORE_MOVE: 'check-target-before-move',
   DELETE_ABORTED_UPLOAD_REMNANT: 'delete-aborted-upload-remnant',
+  DELETE_ABORTED_DOWNLOAD_REMNANT: 'delete-aborted-download-remnant',
 } as const
 
 export const PORT_SFTP = 22

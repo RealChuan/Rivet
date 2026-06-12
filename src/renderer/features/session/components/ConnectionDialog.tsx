@@ -1,5 +1,6 @@
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { Pencil, Plus, AlertCircle } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ConfirmationDialog } from '@renderer/components/common/ConfirmationDialog.js'
 import Button from '@renderer/components/ui/Button.js'
@@ -23,6 +24,9 @@ export interface ConnectionDialogProps {
   config?: ConnectionConfig | undefined
 }
 
+const getDefaultPort = (protocol: ProtocolType): string =>
+  protocol === PROTOCOL.WEBDAV ? String(PORT_WEBDAV_HTTPS) : String(PORT_SFTP)
+
 export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   open,
   onClose,
@@ -30,10 +34,13 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   config,
 }) => {
   const { t } = useTranslation()
+  const isMountedRef = useRef(true)
+
+  const initialProtocol = config?.protocol ?? PROTOCOL.SFTP
   const [name, setName] = useState(config?.name ?? '')
-  const [protocol, setProtocol] = useState<ProtocolType>(config?.protocol ?? PROTOCOL.SFTP)
+  const [protocol, setProtocol] = useState<ProtocolType>(initialProtocol)
   const [host, setHost] = useState(config?.host ?? '')
-  const [port, setPort] = useState(config?.port?.toString() ?? String(PORT_SFTP))
+  const [port, setPort] = useState(config?.port?.toString() ?? getDefaultPort(initialProtocol))
   const [username, setUsername] = useState(config?.username ?? '')
   const [password, setPassword] = useState('')
   const [savePassword, setSavePassword] = useState(config?.savePassword ?? false)
@@ -44,38 +51,12 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   const [error, setError] = useState('')
   const [showCertWarning, setShowCertWarning] = useState(false)
 
-  const [prevOpen, setPrevOpen] = useState(open)
-  const [prevConfig, setPrevConfig] = useState(config)
-  if (open && (open !== prevOpen || config !== prevConfig)) {
-    setPrevOpen(open)
-    setPrevConfig(config)
-    setError('')
-    setIsLoading(false)
-    setShowCertWarning(false)
-    if (config) {
-      setName(config.name)
-      setProtocol(config.protocol)
-      setHost(config.host)
-      setPort(config.port?.toString() ?? String(PORT_SFTP))
-      setUsername(config.username)
-      setBasePath(config.basePath ?? '')
-      setScheme(config.scheme ?? SCHEME.HTTPS)
-      setRejectUnauthorized(config.rejectUnauthorized !== false)
-      setSavePassword(config.savePassword ?? false)
-      setPassword('')
-    } else {
-      setName('')
-      setProtocol(PROTOCOL.SFTP)
-      setHost('')
-      setPort(String(PORT_SFTP))
-      setUsername('')
-      setPassword('')
-      setSavePassword(false)
-      setBasePath('')
-      setScheme(SCHEME.HTTPS)
-      setRejectUnauthorized(true)
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
     }
-  }
+  }, [])
 
   useEffect(() => {
     if (open && config?.savePassword && config.password) {
@@ -134,13 +115,13 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         scheme: protocol === PROTOCOL.WEBDAV ? scheme : SCHEME.HTTP,
         rejectUnauthorized: protocol === PROTOCOL.WEBDAV ? rejectUnauthorized : false,
       })
-      onClose()
+      if (isMountedRef.current) onClose()
     } catch (err) {
       logger.catch(err, { action: 'submit-connection' })
       const errorMessage = err instanceof Error ? err.message : String(err)
-      setError(errorMessage)
+      if (isMountedRef.current) setError(errorMessage)
     } finally {
-      setIsLoading(false)
+      if (isMountedRef.current) setIsLoading(false)
     }
   }
 
@@ -156,13 +137,13 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
   const handleProtocolChange = (value: string) => {
     setProtocol(value as ProtocolType)
-    setPort(value === PROTOCOL.WEBDAV ? String(PORT_WEBDAV_HTTPS) : String(PORT_SFTP))
+    setPort(getDefaultPort(value as ProtocolType))
   }
 
   const isEditMode = !!config
 
   return (
-    <GlassDialog open={open} onClose={onClose}>
+    <GlassDialog open={open} onClose={onClose} key={config?.id ?? 'new'}>
       <div className="flex items-center gap-3 mb-5">
         <div
           className={`w-9 h-9 rounded-lg flex items-center justify-center ${
@@ -170,22 +151,9 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
           }`}
         >
           {isEditMode ? (
-            <svg
-              className="w-4.5 h-4.5 stroke-status-connected stroke-2"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 00-3-3.87" />
-              <path d="M16 3.13a4 4 0 010 7.75" />
-            </svg>
+            <Pencil className="w-4.5 h-4.5 stroke-status-connected stroke-2" />
           ) : (
-            <svg className="w-4.5 h-4.5 stroke-accent stroke-2" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
+            <Plus className="w-4.5 h-4.5 stroke-accent stroke-2" />
           )}
         </div>
         <div>
@@ -230,11 +198,7 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
         {error && (
           <div className="flex items-center gap-1.5 px-3 py-2 bg-danger-light rounded-md text-danger text-xs">
-            <svg className="w-3.5 h-3.5 stroke-current stroke-2" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
+            <AlertCircle className="w-3.5 h-3.5 stroke-current stroke-2" />
             <span>{error}</span>
           </div>
         )}

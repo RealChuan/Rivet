@@ -53,10 +53,6 @@ Object.defineProperty(document.documentElement, 'dataset', {
   writable: true,
 })
 
-beforeEach(() => {
-  vi.clearAllMocks()
-})
-
 afterEach(() => {
   vi.resetAllMocks()
 })
