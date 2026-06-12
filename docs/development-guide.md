@@ -94,25 +94,28 @@ features/<feature-name>/
 
 ### 1. 定义 IPC 通道常量
 
-[src/shared/constants/ipc/protocol.ts](file:///c:/demo/Rivet/src/shared/constants/ipc/protocol.ts)：
+[src/shared/constants/ipc/protocol.ts](../src/shared/constants/ipc/protocol.ts)：
 
 ```typescript
 export const PROTOCOL_CHANNELS = {
   // ... 已有通道
   STAT: 'protocol:stat',
 } as const
+
+// 实际项目中，所有 IPC 通道常量通过 IPC_CHANNELS 统一导出
+// 使用方式：IPC_CHANNELS.PROTOCOL.STAT
 ```
 
 ### 2. 定义类型
 
-[src/shared/types/](file:///c:/demo/Rivet/src/shared/types/) 下添加请求/响应类型。
+[src/shared/types/](../src/shared/types/) 下添加请求/响应类型。
 
 ### 3. 主进程 IPC Handler
 
-[src/main/ipc/protocol.ts](file:///c:/demo/Rivet/src/main/ipc/protocol.ts)：
+[src/main/ipc/protocol.ts](../src/main/ipc/protocol.ts)：
 
 ```typescript
-ipcMain.handle(PROTOCOL_CHANNELS.STAT, (_event, sessionId: string, path: string) => {
+ipcMain.handle(IPC_CHANNELS.PROTOCOL.STAT, (_event, sessionId: string, path: string) => {
   return protocolService.stat(sessionId, path)
 })
 ```
@@ -121,22 +124,22 @@ ipcMain.handle(PROTOCOL_CHANNELS.STAT, (_event, sessionId: string, path: string)
 
 ### 4. 主进程 Service 层
 
-在 [AbstractProtocol](file:///c:/demo/Rivet/src/main/services/protocol/abstract-protocol.ts) 添加 `stat` 模板方法和 `statImpl` 抽象方法，在 [SftpProtocol](file:///c:/demo/Rivet/src/main/services/protocol/SftpProtocol.ts) / [WebdavProtocol](file:///c:/demo/Rivet/src/main/services/protocol/WebdavProtocol.ts) 中实现。
+在 [AbstractProtocol](../src/main/services/protocol/abstract-protocol.ts) 添加 `stat` 模板方法和 `statImpl` 抽象方法，在 [SftpProtocol](../src/main/services/protocol/SftpProtocol.ts) / [WebdavProtocol](../src/main/services/protocol/WebdavProtocol.ts) 中实现。
 
-在 [ProtocolService](file:///c:/demo/Rivet/src/main/services/protocol/protocol-service.ts) 添加 `stat()` 方法。
+在 [ProtocolService](../src/main/services/protocol/protocol-service.ts) 添加 `stat()` 方法。
 
 ### 5. Preload API
 
-[src/preload/protocol.ts](file:///c:/demo/Rivet/src/preload/protocol.ts)：
+[src/preload/protocol.ts](../src/preload/protocol.ts)：
 
 ```typescript
 stat: (sessionId: string, path: string, requestId?: string) =>
-  ipcRenderer.invoke(PROTOCOL_CHANNELS.STAT, sessionId, path, requestId),
+  ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.STAT, sessionId, path, requestId),
 ```
 
 ### 6. 类型声明
 
-[electron-api.ts](file:///c:/demo/Rivet/src/shared/types/electron-api.ts) 的 `ProtocolAPI` 接口添加 `stat` 方法。
+[electron-api.ts](../src/shared/types/electron-api.ts) 的 `ProtocolAPI` 接口添加 `stat` 方法。
 
 ### 7. 渲染进程使用
 
@@ -187,7 +190,7 @@ export const useBookmarkStore = create<BookmarkStore>(set => ({
 
 ### 4. 添加 i18n Key
 
-在 [src/renderer/i18n/locales/en-US.json](file:///c:/demo/Rivet/src/renderer/i18n/locales/en-US.json) 和 [zh-CN.json](file:///c:/demo/Rivet/src/renderer/i18n/locales/zh-CN.json) 中添加 `bookmark.*` 相关的翻译。新增页面后必须同步更新所有语言文件，禁止只改一种语言。
+在 [src/renderer/i18n/locales/en-US.json](../src/renderer/i18n/locales/en-US.json) 和 [zh-CN.json](../src/renderer/i18n/locales/zh-CN.json) 中添加 `bookmark.*` 相关的翻译。新增页面后必须同步更新所有语言文件，禁止只改一种语言。
 
 ### 5. 集成到布局
 
@@ -199,30 +202,31 @@ export const useBookmarkStore = create<BookmarkStore>(set => ({
 
 ### 1. 添加协议常量
 
-[src/shared/constants/protocol.ts](file:///c:/demo/Rivet/src/shared/constants/protocol.ts) 下添加 `PROTOCOL.FTP`。
+[src/shared/constants/protocol.ts](../src/shared/constants/protocol.ts) 下添加 `PROTOCOL.FTP`。
 
 ### 2. 实现 AbstractProtocol
 
-[src/main/services/protocol/](file:///c:/demo/Rivet/src/main/services/protocol/) 下新建 `FtpProtocol.ts`：
+[src/main/services/protocol/](../src/main/services/protocol/) 下新建 `FtpProtocol.ts`：
 
 ```typescript
 export class FtpProtocol extends AbstractProtocol<FTPClient> {
   readonly protocolType = PROTOCOL.FTP
 
-  // 实现所有 *Impl 方法
-  protected async listImpl(client, path, basePath) { ... }
-  protected async mkdirImpl(client, path, basePath) { ... }
-  // ...
+  // 实现所有 *Impl 方法，返回 Result<T, ErrorInfo>
+  protected async listImpl(client: FTPClient, path: string, basePath: string): Promise<Result<FileInfo[], ErrorInfo>> { ... }
+  protected async mkdirImpl(client: FTPClient, path: string, basePath: string): Promise<Result<void, ErrorInfo>> { ... }
+  protected async deleteImpl(client: FTPClient, path: string, basePath: string, fileType: string): Promise<Result<void, ErrorInfo>> { ... }
+  // ... 其他 Impl 方法
 }
 ```
 
 ### 3. 注册到 ProtocolService
 
-[protocol-service.ts](file:///c:/demo/Rivet/src/main/services/protocol/protocol-service.ts) 的 `getProtocol()` 中添加 FTP 分支。
+[protocol-service.ts](../src/main/services/protocol/protocol-service.ts) 的 `getProtocol()` 中添加 FTP 分支。
 
 ### 4. 更新类型
 
-[src/shared/types/](file:///c:/demo/Rivet/src/shared/types/) 下更新 `ConnectionConfig` 等类型，添加 FTP 相关字段。
+[src/shared/types/](../src/shared/types/) 下更新 `ConnectionConfig` 等类型，添加 FTP 相关字段。
 
 ### 5. 更新连接对话框
 
@@ -241,7 +245,7 @@ logger.info('message', { data })
 logger.warn('warning', { data })
 logger.error('error', { data })
 logger.debug('debug', { data })
-logger.catch(error, { context }) // 格式化错误日志
+logger.catch(error, { action: 'some-action' }) // 格式化错误日志，第二个参数为上下文对象
 ```
 
 日志文件路径：`app.getPath('userData')/logs/main.log`，文件和控制台级别均为 `info`。
@@ -268,7 +272,7 @@ pnpm run test:shared           # 仅共享层测试
 pnpm run test:coverage         # 生成覆盖率报告
 ```
 
-Electron 依赖通过 [src/shared/test-utils/mocks/](file:///c:/demo/Rivet/src/shared/test-utils/mocks/) 下的 mock 模块处理，Vitest 配置中通过 alias 映射。
+Electron 依赖通过 [src/shared/test-utils/mocks/](../src/shared/test-utils/mocks/) 下的 mock 模块处理，Vitest 配置中通过 alias 映射。
 
 ## 构建与打包
 
@@ -302,7 +306,7 @@ pnpm run package:mac      # macOS
 
 ## 编码规范要点
 
-详细规范见 [.trae/rules/](file:///c:/demo/Rivet/.trae/rules/) 目录，核心要点：
+详细规范见 [.trae/rules/](../.trae/rules/) 目录，核心要点：
 
 - **TypeScript**：`strict: true`，禁止隐式 `any`，禁止裸 `as` 断言，禁止 `enum`（用 `as const` 对象替代），启用 `erasableSyntaxOnly` 和 `verbatimModuleSyntax`
 - **React**：禁止 `forwardRef`（React 19 支持 ref 作为普通 prop），禁止无意义的手动 `useMemo`/`useCallback`

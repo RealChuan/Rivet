@@ -26,23 +26,23 @@ const { theme } = useUiStore() // 任何 state 变化都会触发重渲染
 
 ### useUiStore
 
-文件：[ui.ts](file:///c:/demo/Rivet/src/renderer/stores/ui.ts)
+文件：[ui.ts](../src/renderer/stores/ui.ts)
 
 全局 UI 状态管理。
 
 #### State
 
-| 字段                   | 类型                       | 默认值                         | 说明                                      |
-| ---------------------- | -------------------------- | ------------------------------ | ----------------------------------------- |
-| `appearance`           | `Theme`                    | `THEME.SYSTEM`                 | 主题（`'light'` / `'dark'` / `'system'`） |
-| `locale`               | `SupportedLanguageLiteral` | `DEFAULT_LANGUAGE` (`'en-US'`) | 语言                                      |
-| `connectionPanelWidth` | `number`                   | `260`                          | 连接面板宽度                              |
-| `transferPanelWidth`   | `number`                   | `260`                          | 传输面板宽度                              |
-| `queueDrawerOpen`      | `boolean`                  | `false`                        | 传输队列抽屉是否展开                      |
-| `queueDrawerWidth`     | `number`                   | `360`                          | 传输队列抽屉宽度                          |
-| `initialized`          | `boolean`                  | `false`                        | 是否已初始化                              |
-| `activeView`           | `SidebarView`              | `SIDEBAR_VIEW.CONNECTIONS`     | 当前活动视图                              |
-| `toasts`               | `Toast[]`                  | `[]`                           | Toast 通知列表                            |
+| 字段                   | 类型                             | 默认值                         | 说明                                      |
+| ---------------------- | -------------------------------- | ------------------------------ | ----------------------------------------- |
+| `appearance`           | `Theme`                          | `THEME.SYSTEM`                 | 主题（`'light'` / `'dark'` / `'system'`） |
+| `locale`               | `SupportedLanguageLiteral \| ''` | `DEFAULT_LANGUAGE` (`'en-US'`) | 语言（空字符串表示未初始化）              |
+| `connectionPanelWidth` | `number`                         | `260`                          | 连接面板宽度                              |
+| `transferPanelWidth`   | `number`                         | `260`                          | 传输面板宽度                              |
+| `queueDrawerOpen`      | `boolean`                        | `false`                        | 传输队列抽屉是否展开                      |
+| `queueDrawerWidth`     | `number`                         | `360`                          | 传输队列抽屉宽度                          |
+| `initialized`          | `boolean`                        | `false`                        | 是否已初始化                              |
+| `activeView`           | `SidebarView`                    | `SIDEBAR_VIEW.CONNECTIONS`     | 当前活动视图                              |
+| `toasts`               | `Toast[]`                        | `[]`                           | Toast 通知列表                            |
 
 #### Actions
 
@@ -61,13 +61,13 @@ const { theme } = useUiStore() // 任何 state 变化都会触发重渲染
 
 #### Toast 结构
 
-`Toast` 接口定义在 [ui.ts](file:///c:/demo/Rivet/src/renderer/stores/ui.ts) 中，包含 `id`、`type`（ToastType）、`message`、可选的 `duration`（0 = 不自动关闭）和 `timer` 字段。
+`Toast` 接口定义在 [ui.ts](../src/renderer/stores/ui.ts) 中，包含 `id`、`type`（ToastType）、`message`、可选的 `duration`（0 = 不自动关闭）和 `timer` 字段。
 
 ---
 
 ### useSessionStore
 
-文件：[session.ts](file:///c:/demo/Rivet/src/renderer/features/session/stores/session.ts)
+文件：[session.ts](../src/renderer/features/session/stores/session.ts)
 
 管理活跃会话列表和文件浏览状态。
 
@@ -81,23 +81,22 @@ const { theme } = useUiStore() // 任何 state 变化都会触发重渲染
 
 #### Session 结构
 
-[Session](file:///c:/demo/Rivet/src/shared/types/session.ts) 包含 `sessionId`、`connectionId`、`currentPath`、`files`（FileInfo[]）、`isLoading`、`isOperating`、`isConnected`、`error` 字段。
+[Session](../src/shared/types/session.ts) 包含 `sessionId`、`connectionId`、`currentPath`、`files`（FileInfo[]）、`isLoading`、`isOperating`、`isConnected`、`error` 字段。
 
-> **注意**：`Session` 类型没有 `protocol` 和 `name` 字段。`protocol` 和 `name` 信息在 [ConnectionConfig](file:///c:/demo/Rivet/src/shared/types/connection.ts) 中。
+> **注意**：`Session` 类型没有 `protocol` 和 `name` 字段。`protocol` 和 `name` 信息在 [ConnectionConfig](../src/shared/types/connection.ts) 中。
 
 #### Actions
 
-| 方法                      | 参数                                       | 说明                                      |
-| ------------------------- | ------------------------------------------ | ----------------------------------------- |
-| `setActiveSession`        | `sessionId: string`                        | 设置活跃会话                              |
-| `updateCurrentPath`       | `sessionId: string, path: string`          | 更新当前路径                              |
-| `setFiles`                | `sessionId: string, files: FileInfo[]`     | 设置文件列表（会经过 sanitizeFiles 过滤） |
-| `setLoading`              | `sessionId: string, loading: boolean`      | 设置加载状态                              |
-| `setOperating`            | `sessionId: string, operating: boolean`    | 设置操作中状态                            |
-| `setError`                | `sessionId: string, error: string \| null` | 设置错误（有错误时 isConnected=false）    |
-| `refreshCurrentDirectory` | `sessionId: string`                        | 刷新当前目录（自动取消前一个请求）        |
-| `addSession`              | `session: Session`                         | 添加会话（自动设为活跃）                  |
-| `removeSession`           | `sessionId: string`                        | 移除会话                                  |
+| 方法                      | 参数                                    | 说明                                      |
+| ------------------------- | --------------------------------------- | ----------------------------------------- |
+| `setActiveSession`        | `sessionId: string`                     | 设置活跃会话                              |
+| `updateCurrentPath`       | `sessionId: string, path: string`       | 更新当前路径                              |
+| `setFiles`                | `sessionId: string, files: FileInfo[]`  | 设置文件列表（会经过 sanitizeFiles 过滤） |
+| `setLoading`              | `sessionId: string, loading: boolean`   | 设置加载状态                              |
+| `setOperating`            | `sessionId: string, operating: boolean` | 设置操作中状态                            |
+| `refreshCurrentDirectory` | `sessionId: string`                     | 刷新当前目录（自动取消前一个请求）        |
+| `addSession`              | `session: Session`                      | 添加会话（自动设为活跃）                  |
+| `removeSession`           | `sessionId: string`                     | 移除会话                                  |
 
 #### Getters
 
@@ -110,7 +109,7 @@ const { theme } = useUiStore() // 任何 state 变化都会触发重渲染
 
 ### useConnectionStore
 
-文件：[connection.ts](file:///c:/demo/Rivet/src/renderer/features/session/stores/connection.ts)
+文件：[connection.ts](../src/renderer/features/session/stores/connection.ts)
 
 管理连接配置的 CRUD 和排序。
 
@@ -128,7 +127,7 @@ const { theme } = useUiStore() // 任何 state 变化都会触发重渲染
 
 | 方法                         | 参数                            | 说明                             |
 | ---------------------------- | ------------------------------- | -------------------------------- |
-| `addConnection`              | `config: ConnectionConfig`      | 添加连接配置                     |
+| `addConnection`              | `config: ConnectionConfig`      | 添加连接配置，返回 `config.id`   |
 | `updateConnection`           | `config: ConnectionConfig`      | 更新连接配置                     |
 | `deleteConnection`           | `connectionId: string`          | 删除连接配置（同步删除 hostKey） |
 | `loadSavedConnections`       | —                               | 从主进程加载已保存的连接         |
@@ -147,43 +146,19 @@ const { theme } = useUiStore() // 任何 state 变化都会触发重渲染
 
 ---
 
-### useFileExplorerStore
+### 文件浏览器状态
 
-文件：[file-explorer.ts](file:///c:/demo/Rivet/src/renderer/features/file-explorer/stores/file-explorer.ts)
+文件浏览器功能不使用独立的 Zustand Store，而是通过自定义 Hooks 管理状态：
 
-文件浏览器的 UI 状态。
-
-#### State
-
-| 字段              | 类型                         | 默认值            | 说明             |
-| ----------------- | ---------------------------- | ----------------- | ---------------- |
-| `sortField`       | `FileExplorerSortFieldBasic` | `SORT_FIELD.NAME` | 排序字段         |
-| `sortOrder`       | `SortOrderWithDirection`     | `SORT_ORDER.ASC`  | 排序方向         |
-| `viewMode`        | `ViewMode`                   | `VIEW_MODE.LIST`  | 视图模式         |
-| `showHiddenFiles` | `boolean`                    | `false`           | 是否显示隐藏文件 |
-| `selectedFiles`   | `Set<string>`                | `new Set()`       | 选中的文件名集合 |
-
-#### Actions
-
-| 方法                    | 参数                                | 说明                                 |
-| ----------------------- | ----------------------------------- | ------------------------------------ |
-| `setSortField`          | `field: FileExplorerSortFieldBasic` | 设置排序字段（切换字段时重置为 ASC） |
-| `setSortOrder`          | `order: SortOrderWithDirection`     | 设置排序方向                         |
-| `toggleSortOrder`       | —                                   | 切换排序方向                         |
-| `setViewMode`           | `mode: ViewMode`                    | 设置视图模式                         |
-| `setShowHiddenFiles`    | `show: boolean`                     | 设置是否显示隐藏文件                 |
-| `toggleShowHiddenFiles` | —                                   | 切换隐藏文件显示                     |
-| `setSelectedFiles`      | `files: Set<string>`                | 设置选中文件集合                     |
-| `addSelectedFile`       | `filename: string`                  | 添加选中文件                         |
-| `removeSelectedFile`    | `filename: string`                  | 移除选中文件                         |
-| `clearSelectedFiles`    | —                                   | 清空选中文件                         |
-| `toggleSelectedFile`    | `filename: string`                  | 切换文件选中状态                     |
+- **`useFileSort`**（[use-file-sort.ts](../src/renderer/features/file-explorer/hooks/use-file-sort.ts)）— 排序逻辑，提供 `sortBy`、`sortOrder`、`sortedFiles`、`handleSort`
+- **`useFileListState`**（[use-file-list-state.ts](../src/renderer/features/file-explorer/hooks/use-file-list-state.ts)）— 文件选择和对话框状态
+- **`useDirectoryNavigation`**（[use-directory-navigation.ts](../src/renderer/features/file-explorer/hooks/use-directory-navigation.ts)）— 目录导航逻辑
 
 ---
 
 ### useTransferStore
 
-文件：[transfer.ts](file:///c:/demo/Rivet/src/renderer/features/transfer/stores/transfer.ts)
+文件：[transfer.ts](../src/renderer/features/transfer/stores/transfer.ts)
 
 传输任务状态管理，与主进程 TransferService 通过 IPC 事件同步。
 
@@ -207,11 +182,11 @@ const { theme } = useUiStore() // 任何 state 变化都会触发重渲染
 
 #### TaskProgress 结构
 
-`TaskProgress` 接口定义在 [transfer.ts](file:///c:/demo/Rivet/src/renderer/features/transfer/stores/transfer.ts) 中，包含 `transferredSize`、可选的 `speed`/`fileSize`/`totalFileCount`/`completedFileCount`/`activeFileCount`/`waitingFileCount` 字段。
+`TaskProgress` 接口定义在 [transfer.ts](../src/renderer/features/transfer/stores/transfer.ts) 中，包含 `transferredSize`、可选的 `speed`/`fileSize`/`totalFileCount`/`completedFileCount`/`activeFileCount`/`waitingFileCount` 字段。
 
 #### SessionTaskSummary 结构
 
-`SessionTaskSummary` 接口定义在 [transfer.ts](file:///c:/demo/Rivet/src/renderer/features/transfer/stores/transfer.ts) 中，包含 `sessionId`、`running`、`failed`、`total` 字段。
+`SessionTaskSummary` 接口定义在 [transfer.ts](../src/renderer/features/transfer/stores/transfer.ts) 中，包含 `sessionId`、`running`、`failed`、`total` 字段。
 
 #### Actions
 
@@ -245,7 +220,7 @@ const { theme } = useUiStore() // 任何 state 变化都会触发重渲染
 
 ### useTransferConflictStore
 
-文件：[transfer-conflict.ts](file:///c:/demo/Rivet/src/renderer/features/transfer/stores/transfer-conflict.ts)
+文件：[transfer-conflict.ts](../src/renderer/features/transfer/stores/transfer-conflict.ts)
 
 传输冲突对话框状态，使用 Promise-based 模式。
 
@@ -277,7 +252,7 @@ const resolutions = await new Promise<ConflictResolution[] | null>(resolve => {
 
 ### useHostKeyStore
 
-文件：[host-key.ts](file:///c:/demo/Rivet/src/renderer/features/host-key/stores/host-key.ts)
+文件：[host-key.ts](../src/renderer/features/host-key/stores/host-key.ts)
 
 SSH 主机密钥验证对话框状态。
 
@@ -289,13 +264,13 @@ SSH 主机密钥验证对话框状态。
 
 #### HostKeyVerificationDialogState 结构
 
-[HostKeyVerificationDialogState](file:///c:/demo/Rivet/src/shared/types/host-key-dialog.ts) 包含 `open`（boolean）、`type`（HostKeyDialogType: `'first-connect'` | `'mismatch'`）、`hash`、`previousHash`（string | undefined）、`sessionId`、`connectionId` 字段。
+[HostKeyVerificationDialogState](../src/shared/types/host-key-dialog.ts) 包含 `open`（boolean）、`type`（HostKeyDialogType: `'first-connect'` | `'mismatch'`）、`hash`、`previousHash`（string | undefined）、`sessionId`、`connectionId` 字段。
 
 #### Actions
 
-| 方法                           | 参数                                      | 说明                     |
-| ------------------------------ | ----------------------------------------- | ------------------------ |
-| `setHostKeyVerificationDialog` | `Partial<HostKeyVerificationDialogState>` | 更新对话框状态（浅合并） |
+| 方法                           | 参数                                                                  | 说明                     |
+| ------------------------------ | --------------------------------------------------------------------- | ------------------------ |
+| `setHostKeyVerificationDialog` | `Partial<HostKeyVerificationDialogState & { onConfirm?, onCancel? }>` | 更新对话框状态（浅合并） |
 
 ---
 
@@ -303,21 +278,21 @@ SSH 主机密钥验证对话框状态。
 
 ### electron-store (config)
 
-文件：[store.ts](file:///c:/demo/Rivet/src/main/stores/config/store.ts)
+文件：[store.ts](../src/main/stores/config/store.ts)
 
 使用 `electron-store` 进行持久化存储，配合内存缓存。
 
 #### 存储结构 (StoreSchema)
 
-[StoreSchema](file:///c:/demo/Rivet/src/main/stores/config/types.ts) 包含 `savedConnections`（ConnectionConfig[]）、`uiSettings`（[UiSettings](file:///c:/demo/Rivet/src/shared/types/settings.ts)）、`transferSettings`（[TransferSettings](file:///c:/demo/Rivet/src/shared/types/settings.ts)）三个字段。
+[StoreSchema](../src/main/stores/config/types.ts) 包含 `savedConnections`（ConnectionConfig[]）、`uiSettings`（[UiSettings](../src/shared/types/settings.ts)）、`transferSettings`（[TransferSettings](../src/shared/types/settings.ts)）三个字段。
 
 #### UiSettings 结构
 
-[UiSettings](file:///c:/demo/Rivet/src/shared/types/settings.ts) 包含 `appearance`（Theme）、`locale`（SupportedLanguageLiteral | ''）、`connectionSortOrder`（SortOrder）字段。
+[UiSettings](../src/shared/types/settings.ts) 包含 `appearance`（Theme）、`locale`（SupportedLanguageLiteral | ''）、`connectionSortOrder`（SortOrder）字段。
 
 #### TransferSettings 结构
 
-[TransferSettings](file:///c:/demo/Rivet/src/shared/types/settings.ts) 包含 `maxUploadConcurrency`（number）、`maxDownloadConcurrency`（number）字段。
+[TransferSettings](../src/shared/types/settings.ts) 包含 `maxUploadConcurrency`（number）、`maxDownloadConcurrency`（number）字段。
 
 #### 核心函数
 
@@ -330,7 +305,7 @@ SSH 主机密钥验证对话框状态。
 
 #### 持久化函数
 
-文件：[persistence.ts](file:///c:/demo/Rivet/src/main/stores/config/persistence.ts)
+文件：[persistence.ts](../src/main/stores/config/persistence.ts)
 
 | 函数                                | 说明                                                                      |
 | ----------------------------------- | ------------------------------------------------------------------------- |
@@ -344,7 +319,7 @@ SSH 主机密钥验证对话框状态。
 
 ### known-hosts
 
-文件：[known-hosts.ts](file:///c:/demo/Rivet/src/main/stores/known-hosts.ts)
+文件：[known-hosts.ts](../src/main/stores/known-hosts.ts)
 
 SSH 主机密钥记录存储，使用独立的 `electron-store` 实例（`name: 'known-hosts'`）。
 
@@ -356,7 +331,7 @@ SSH 主机密钥记录存储，使用独立的 `electron-store` 实例（`name: 
 
 #### HostKey 结构
 
-[HostKey](file:///c:/demo/Rivet/src/shared/types/host-key.ts) 包含 `connectionId`（string）、`hash`（string）、`createdAt`（number）、可选的 `checksum`（string）字段。
+[HostKey](../src/shared/types/host-key.ts) 包含 `connectionId`（string）、`hash`（string）、`createdAt`（number）、可选的 `checksum`（string）字段。
 
 ---
 
@@ -381,9 +356,11 @@ useTransferStore
 useTransferConflictStore
   └── 无外部依赖（纯 UI 状态）
 
-useFileExplorerStore
-  └── 无外部依赖（纯 UI 状态）
-
 useHostKeyStore
   └── 无外部依赖（纯 UI 状态）
+
+文件浏览器 Hooks（非 Store）
+  ├── useFileSort — 无外部依赖
+  ├── useFileListState — 无外部依赖
+  └── useDirectoryNavigation — 依赖 useSessionStore
 ```

@@ -132,7 +132,6 @@ export interface ElectronAPI {
   system: SystemAPI
   crypto: CryptoAPI
   transfer: TransferAPI
-  windowMeta: { windowId: string; route: string }
 }
 
 declare global {

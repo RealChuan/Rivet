@@ -48,8 +48,8 @@ Rivet 采用 Electron 的多进程架构，分为三层进程 + 一个共享层�
 │    system / crypto / window                                      │
 │  })                                                              │
 │  + listenerManager (统一监听器管理, beforeunload 自动清理)        │
-│  + generateUuid (crypto.randomUUID, 不经过 IPC)                  │
-│  + windowMeta (读取 location.hash, 不经过 IPC)                   │
+│  + system.generateUuid (crypto.randomUUID, 不经过 IPC)           │
+│  + window.getMeta (读取 location.hash, 不经过 IPC)               │
 └─────────────────────────┬────────────────────────────────────────┘
                           │ ipcMain.handle / ipcMain.on
 ┌─────────────────────────▼────────────────────────────────────────┐
@@ -91,7 +91,7 @@ Rivet 采用 Electron 的多进程架构，分为三层进程 + 一个共享层�
 │                  Shared 层 (src/shared/)                         │
 │                                                                  │
 │  constants/                                                      │
-│    ipc/        — IPC 通道名 (9 个模块文件)                       │
+│    ipc/        — IPC 通道名 (9 个模块文件 + events.ts + index.ts) │
 │    app.ts      — APP_NAME, STORE_KEY, 窗口尺寸                  │
 │    error-code.ts — ERROR_CODE (~50 个错误码)                     │
 │    protocol.ts — PROTOCOL, SCHEME, FILE_OPERATION, LOG_ACTION    │
@@ -142,13 +142,17 @@ src/
 │   │   │   ├── SftpProtocol.ts        # SFTP 协议实现
 │   │   │   ├── WebdavProtocol.ts      # WebDAV 协议实现
 │   │   │   ├── protocol-service.ts    # ProtocolService 门面
-│   │   │   └── protocol-types.ts      # FileProtocol 接口、SessionInfo、HostVerifier 类型
+│   │   │   ├── protocol-types.ts      # FileProtocol 接口、SessionInfo、HostVerifier 类型
+│   │   │   └── index.ts              # 模块导出
 │   │   ├── transfer/            # 传输服务
 │   │   │   ├── transfer-service.ts    # TransferService 传输引擎
 │   │   │   ├── transfer-context.ts    # TransferContext 接口 + TEMP_FILE_SUFFIX
 │   │   │   ├── transfer-progress.ts   # 速度采样、进度节流
+│   │   │   ├── transfer-cancellation.ts # 取消/重试逻辑
+│   │   │   ├── transfer-scheduler.ts  # 任务调度逻辑
 │   │   │   ├── download-executor.ts   # 下载执行器
-│   │   │   └── upload-executor.ts     # 上传执行器
+│   │   │   ├── upload-executor.ts     # 上传执行器
+│   │   │   └── index.ts              # 模块导出
 │   │   ├── session-manager.ts         # SessionManager 心跳/断连
 │   │   └── session-registry.ts        # SessionRegistry 会话注册表
 │   ├── stores/                  # 主进程 Store
@@ -198,7 +202,7 @@ src/
 │   └── utils/                   # 工具函数 (cn.ts, logger.ts, sort-utils.ts)
 └── shared/                      # 共享层
     ├── constants/               # 常量
-    │   ├── ipc/                 # IPC 通道名 (9 个模块文件)
+    │   ├── ipc/                 # IPC 通道名 (9 个模块文件 + events.ts + index.ts)
     │   ├── app.ts               # APP_NAME, STORE_KEY, 窗口尺寸等
     │   ├── error-code.ts        # ERROR_CODE 约 50 个错误码
     │   ├── protocol.ts          # PROTOCOL, SCHEME, FILE_OPERATION, LOG_ACTION
@@ -266,8 +270,8 @@ Preload 是渲染进程与主进程之间的安全桥梁：
 - 通过 `contextBridge.exposeInMainWorld('electronAPI', {...})` 暴露 8 个命名空间 API
 - 每个 IPC 调用包装为独立命名函数，**不暴露原始 `ipcRenderer`**
 - `listener-manager.ts` 统一管理 `ipcRenderer.on` 监听器，`beforeunload` 时自动清理
-- `generateUuid` 直接调用 `crypto.randomUUID()`，不经过 IPC
-- `windowMeta` 直接读取 `window.location.hash`，不经过 IPC
+- `system.generateUuid` 直接调用 `crypto.randomUUID()`，不经过 IPC
+- `window.getMeta` 直接读取 `window.location.hash`，不经过 IPC（`window.refreshMeta` 通过 IPC 刷新）
 
 入口文件：`src/preload/index.ts`
 
@@ -325,9 +329,9 @@ window:minimize     crypto:encrypt-password
 | configAPI   | `config.ts`   | get, set                                                                                                                                                                                                                |
 | dialogAPI   | `dialog.ts`   | showOpenDialog, showSaveDialog, getPathForFile                                                                                                                                                                          |
 | hostKeyAPI  | `host-key.ts` | save, delete                                                                                                                                                                                                            |
-| systemAPI   | `system.ts`   | getTempDir, getDownloadDir                                                                                                                                                                                              |
+| systemAPI   | `system.ts`   | getTempDir, getDownloadDir, generateUuid (crypto.randomUUID, 不经过 IPC)                                                                                                                                                |
 | cryptoAPI   | `crypto.ts`   | encryptPassword, decryptPassword                                                                                                                                                                                        |
-| windowAPI   | `window.ts`   | minimize, maximize, close, quit, getState, onStateChange, createChild, closeChild, getMeta, refreshMeta                                                                                                                 |
+| windowAPI   | `window.ts`   | minimize, maximize, close, quit, getState, onStateChange, createChild, closeChild, getMeta (读取 location.hash, 不经过 IPC), refreshMeta                                                                                |
 
 ## 协议抽象层
 
@@ -401,7 +405,7 @@ WAITING → RUNNING → COMPLETED → (removed)
 
 ### SessionRegistry
 
-[SessionRegistry](file:///c:/demo/Rivet/src/main/services/session-registry.ts) 是会话注册表，维护 `Map<sessionId, SessionHandle>`。`SessionHandle` 接口定义见同文件。
+[SessionRegistry](../src/main/services/session-registry.ts) 是会话注册表，维护 `Map<sessionId, SessionHandle>`。`SessionHandle` 接口定义见同文件。
 
 ### SessionManager
 
@@ -464,19 +468,19 @@ useUiStore.activeView: SidebarView
 
 ### Result 类型
 
-主进程 Service 层使用 [Result](file:///c:/demo/Rivet/src/shared/types/result.ts)`<T, ErrorInfo>` 类型返回结果：成功时 `{ success: true, value: T, error: null }`，失败时 `{ success: false, value: null, error: ErrorInfo }`。完整定义见源文件。
+主进程 Service 层使用 [Result](../src/shared/types/result.ts)`<T, ErrorInfo>` 类型返回结果：成功时 `{ success: true, value: T, error: null }`，失败时 `{ success: false, value: null, error: ErrorInfo }`。完整定义见源文件。
 
 ### ProtocolResponse
 
-IPC 层使用 [ProtocolResponse](file:///c:/demo/Rivet/src/shared/types/protocol-request.ts)`<T>` 包装，额外包含 `requestId`，为 `ProtocolSuccessResponse<T> | ProtocolErrorResponse` 联合类型。完整定义见源文件。
+IPC 层使用 [ProtocolResponse](../src/shared/types/protocol-request.ts)`<T>` 包装，额外包含 `requestId`，为 `ProtocolSuccessResponse<T> | ProtocolErrorResponse` 联合类型。完整定义见源文件。
 
 ### ErrorInfo
 
-[ErrorInfo](file:///c:/demo/Rivet/src/shared/types/result.ts) 包含 `code`、`message`、可选的 `detail` 和 `stack` 字段。
+[ErrorInfo](../src/shared/types/result.ts) 包含 `code`、`message`、可选的 `detail` 和 `stack` 字段。
 
 ### 错误码
 
-所有错误码定义在 [error-code.ts](file:///c:/demo/Rivet/src/shared/constants/error-code.ts)，约 50 个错误码，如 `SESSION_NOT_FOUND`、`PATH_TRAVERSAL`、`UPLOAD_ABORTED` 等。
+所有错误码定义在 [error-code.ts](../src/shared/constants/error-code.ts)，约 50 个错误码，如 `SESSION_NOT_FOUND`、`PATH_TRAVERSAL`、`UPLOAD_ABORTED` 等。
 
 ## 配置持久化
 
@@ -484,21 +488,21 @@ IPC 层使用 [ProtocolResponse](file:///c:/demo/Rivet/src/shared/types/protocol
 
 使用 electron-store + 内存缓存模式：
 
-- **[StoreSchema](file:///c:/demo/Rivet/src/main/stores/config/types.ts)**：`{ savedConnections, uiSettings, transferSettings }`
+- **[StoreSchema](../src/main/stores/config/types.ts)**：`{ savedConnections, uiSettings, transferSettings }`
 - **内存优先策略**：修改先写入内存，定时（`AUTO_SAVE_INTERVAL` = 300000ms）刷盘
-- **密码剥离**：[flushConfigToDisk](file:///c:/demo/Rivet/src/main/stores/config/persistence.ts) 时，`savePassword=false` 的连接密码被剥离
+- **密码剥离**：[flushConfigToDisk](../src/main/stores/config/persistence.ts) 时，`savePassword=false` 的连接密码被剥离
 - **known-hosts**：使用独立的 electron-store 实例（`name: 'known-hosts'`），带 checksum 校验
 
 ### 相关文件
 
-| 文件                                                                          | 职责                           |
-| ----------------------------------------------------------------------------- | ------------------------------ |
-| [store.ts](file:///c:/demo/Rivet/src/main/stores/config/store.ts)             | electron-store 实例 + 内存缓存 |
-| [persistence.ts](file:///c:/demo/Rivet/src/main/stores/config/persistence.ts) | 初始化/刷盘/自动保存           |
-| [types.ts](file:///c:/demo/Rivet/src/main/stores/config/types.ts)             | StoreSchema 接口               |
-| [ui-settings.ts](file:///c:/demo/Rivet/src/main/stores/config/ui-settings.ts) | defaultUiSettings              |
-| [validation.ts](file:///c:/demo/Rivet/src/main/stores/config/validation.ts)   | 校验函数                       |
-| [known-hosts.ts](file:///c:/demo/Rivet/src/main/stores/known-hosts.ts)        | SSH 主机密钥存储               |
+| 文件                                                       | 职责                           |
+| ---------------------------------------------------------- | ------------------------------ |
+| [store.ts](../src/main/stores/config/store.ts)             | electron-store 实例 + 内存缓存 |
+| [persistence.ts](../src/main/stores/config/persistence.ts) | 初始化/刷盘/自动保存           |
+| [types.ts](../src/main/stores/config/types.ts)             | StoreSchema 接口               |
+| [ui-settings.ts](../src/main/stores/config/ui-settings.ts) | defaultUiSettings              |
+| [validation.ts](../src/main/stores/config/validation.ts)   | 校验函数                       |
+| [known-hosts.ts](../src/main/stores/known-hosts.ts)        | SSH 主机密钥存储               |
 
 ## 加密方案
 
