@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { STORE_KEY } from '@shared/constants/index.js'
-import { SORT_ORDER } from '@shared/constants/sort.js'
 import {
   flushConfigToDisk,
   getConfigurationValue,
@@ -40,7 +39,6 @@ vi.mock('./ui-settings.js', () => ({
   defaultUiSettings: {
     appearance: 'system',
     locale: '',
-    connectionSortOrder: 'none',
   },
 }))
 
@@ -59,7 +57,9 @@ vi.mock('@shared/constants/index.js', () => ({
     SAVED_CONNECTIONS: 'savedConnections',
     UI_SETTINGS: 'uiSettings',
     TRANSFER_SETTINGS: 'transferSettings',
+    CONNECTION_SORT_ORDER: 'connectionSortOrder',
   },
+  SORT_ORDER: { NONE: 'none', ASC: 'asc', DESC: 'desc' },
   ERROR_CODE: { CONFIG_ERROR: 'CONFIG_ERROR' },
   TRANSFER_CONFIG: { DEFAULT_CONCURRENCY: 5, MIN_CONCURRENCY: 1, MAX_CONCURRENCY: 10 },
   TIMEOUTS: { AUTO_SAVE_INTERVAL: 300000 },
@@ -103,11 +103,11 @@ describe('persistence', () => {
       const savedSettings = {
         appearance: 'dark',
         locale: 'zh-CN',
-        connectionSortOrder: 'none',
       } as const
       mockStoreGet.mockImplementation((key: unknown) => {
         if (key === STORE_KEY.UI_SETTINGS) return savedSettings
         if (key === STORE_KEY.SAVED_CONNECTIONS) return []
+        if (key === STORE_KEY.CONNECTION_SORT_ORDER) return 'none'
         return undefined
       })
       vi.mocked(isValidUiSettings).mockReturnValue(true)
@@ -118,15 +118,17 @@ describe('persistence', () => {
         savedConnections: [],
         uiSettings: savedSettings,
         transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
+        connectionSortOrder: 'none',
       })
       expect(logger.info).toHaveBeenCalledWith('Config loaded successfully')
     })
 
     it('should auto-detect language when saved UI settings have empty locale', () => {
-      const savedSettings = { appearance: 'dark', locale: '', connectionSortOrder: 'none' } as const
+      const savedSettings = { appearance: 'dark', locale: '' } as const
       mockStoreGet.mockImplementation((key: unknown) => {
         if (key === STORE_KEY.UI_SETTINGS) return savedSettings
         if (key === STORE_KEY.SAVED_CONNECTIONS) return []
+        if (key === STORE_KEY.CONNECTION_SORT_ORDER) return 'none'
         return undefined
       })
       vi.mocked(isValidUiSettings).mockReturnValue(true)
@@ -139,6 +141,7 @@ describe('persistence', () => {
         savedConnections: [],
         uiSettings: { ...savedSettings, locale: 'en-US' },
         transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
+        connectionSortOrder: 'none',
       })
       expect(logger.info).toHaveBeenCalledWith('First launch: language auto-detected as en-US')
     })
@@ -147,6 +150,7 @@ describe('persistence', () => {
       mockStoreGet.mockImplementation((key: unknown) => {
         if (key === STORE_KEY.UI_SETTINGS) return { invalid: true }
         if (key === STORE_KEY.SAVED_CONNECTIONS) return []
+        if (key === STORE_KEY.CONNECTION_SORT_ORDER) return 'none'
         return undefined
       })
       vi.mocked(isValidUiSettings).mockReturnValue(false)
@@ -159,6 +163,7 @@ describe('persistence', () => {
         savedConnections: [],
         uiSettings: { ...defaultUiSettings, locale: 'zh-CN' },
         transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
+        connectionSortOrder: 'none',
       })
       expect(logger.warn).toHaveBeenCalledWith('Invalid UI settings detected, reset to defaults')
     })
@@ -174,9 +179,9 @@ describe('persistence', () => {
       }
       const invalidConn = { id: '2', bad: true }
       mockStoreGet.mockImplementation((key: unknown) => {
-        if (key === STORE_KEY.UI_SETTINGS)
-          return { appearance: 'dark', locale: 'en-US', connectionSortOrder: 'none' }
+        if (key === STORE_KEY.UI_SETTINGS) return { appearance: 'dark', locale: 'en-US' }
         if (key === STORE_KEY.SAVED_CONNECTIONS) return [validConn, invalidConn]
+        if (key === STORE_KEY.CONNECTION_SORT_ORDER) return 'none'
         return undefined
       })
       vi.mocked(isValidUiSettings).mockReturnValue(true)
@@ -195,9 +200,9 @@ describe('persistence', () => {
 
     it('should reset connections to empty array when format is invalid', () => {
       mockStoreGet.mockImplementation((key: unknown) => {
-        if (key === STORE_KEY.UI_SETTINGS)
-          return { appearance: 'dark', locale: 'en-US', connectionSortOrder: 'none' }
+        if (key === STORE_KEY.UI_SETTINGS) return { appearance: 'dark', locale: 'en-US' }
         if (key === STORE_KEY.SAVED_CONNECTIONS) return 'not-an-array'
+        if (key === STORE_KEY.CONNECTION_SORT_ORDER) return 'none'
         return undefined
       })
       vi.mocked(isValidUiSettings).mockReturnValue(true)
@@ -226,6 +231,7 @@ describe('persistence', () => {
         savedConnections: [],
         uiSettings: { ...defaultUiSettings, locale: 'en-US' },
         transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
+        connectionSortOrder: 'none',
       })
     })
   })
@@ -256,12 +262,12 @@ describe('persistence', () => {
         uiSettings: {
           appearance: 'dark' as const,
           locale: 'en-US' as const,
-          connectionSortOrder: 'none' as const,
         },
         transferSettings: {
           maxUploadConcurrency: 5,
           maxDownloadConcurrency: 5,
         },
+        connectionSortOrder: 'none' as const,
       }
       vi.mocked(hasConfigChanged).mockReturnValue(true)
       vi.mocked(getInMemoryConfig).mockReturnValue(mockConfig)
@@ -277,6 +283,10 @@ describe('persistence', () => {
       expect(mockStoreSet).toHaveBeenCalledWith(
         STORE_KEY.TRANSFER_SETTINGS,
         mockConfig.transferSettings
+      )
+      expect(mockStoreSet).toHaveBeenCalledWith(
+        STORE_KEY.CONNECTION_SORT_ORDER,
+        mockConfig.connectionSortOrder
       )
       expect(resetConfigChanged).toHaveBeenCalled()
       expect(logger.info).toHaveBeenCalledWith('Config flushed to disk')
@@ -361,12 +371,12 @@ describe('persistence', () => {
       const mockSettings = {
         appearance: 'dark' as const,
         locale: 'en-US' as const,
-        connectionSortOrder: 'none' as const,
       }
       vi.mocked(getInMemoryConfig).mockReturnValue({
         savedConnections: [],
         uiSettings: mockSettings,
         transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
+        connectionSortOrder: 'none',
       })
 
       const result = getUserInterfaceSettings()
@@ -379,12 +389,12 @@ describe('persistence', () => {
       const mockSettings = {
         appearance: 'dark' as const,
         locale: 'en-US' as const,
-        connectionSortOrder: 'none' as const,
       }
       vi.mocked(getInMemoryConfig).mockReturnValue({
         savedConnections: [],
         uiSettings: mockSettings,
         transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
+        connectionSortOrder: 'none',
       })
 
       const result = getUserInterfaceSettings()
@@ -409,7 +419,6 @@ describe('persistence', () => {
       const settings = {
         appearance: 'dark' as const,
         locale: 'zh-CN' as const,
-        connectionSortOrder: SORT_ORDER.ASC as typeof SORT_ORDER.ASC,
       }
       vi.mocked(isValidUiSettings).mockReturnValue(true)
 
@@ -423,7 +432,6 @@ describe('persistence', () => {
       const invalidSettings = {
         appearance: 'invalid' as unknown as 'dark',
         locale: '' as const,
-        connectionSortOrder: 'none' as const,
       }
       vi.mocked(isValidUiSettings).mockReturnValue(false)
 
@@ -437,7 +445,6 @@ describe('persistence', () => {
       const settings = {
         appearance: 'dark' as const,
         locale: 'en-US' as const,
-        connectionSortOrder: 'none' as const,
       }
       vi.mocked(isValidUiSettings).mockReturnValue(true)
       vi.mocked(setToMemory).mockImplementation(() => {
@@ -466,12 +473,12 @@ describe('persistence', () => {
       uiSettings: {
         appearance: 'dark' as const,
         locale: 'en-US' as const,
-        connectionSortOrder: 'none' as const,
       },
       transferSettings: {
         maxUploadConcurrency: 5,
         maxDownloadConcurrency: 5,
       },
+      connectionSortOrder: 'none' as const,
     }
 
     it('should return a copy of saved connections', () => {
@@ -548,7 +555,6 @@ describe('persistence', () => {
       const settings = {
         appearance: 'dark' as const,
         locale: 'en-US' as const,
-        connectionSortOrder: 'none' as const,
       }
       vi.mocked(isValidUiSettings).mockReturnValue(true)
 
@@ -573,12 +579,12 @@ describe('persistence', () => {
         uiSettings: {
           appearance: 'dark' as const,
           locale: 'en-US' as const,
-          connectionSortOrder: 'none' as const,
         },
         transferSettings: {
           maxUploadConcurrency: 5,
           maxDownloadConcurrency: 5,
         },
+        connectionSortOrder: 'none' as const,
       }
       vi.mocked(getInMemoryConfig).mockReturnValue(existingConfig)
 

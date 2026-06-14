@@ -5,9 +5,10 @@ import { useActiveTaskGuard } from '@renderer/hooks/use-active-task-guard.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import { logger } from '@renderer/utils/index.js'
 import { SCHEME, TOAST_TYPE } from '@shared/constants/index.js'
-import { type ConnectionConfig, isOk } from '@shared/types/index.js'
+import { type ConnectionConfig } from '@shared/types/index.js'
 import { useConnectionStore } from '../stores/connection.js'
 import { useSessionStore } from '../stores/session.js'
+import { decryptPassword, encryptPassword } from '../utils/password-crypto.js'
 import { useSessionConnect } from './use-session-connect.js'
 
 export const useConnectionActions = () => {
@@ -47,12 +48,12 @@ export const useConnectionActions = () => {
   ) => {
     let encryptedPassword: string | undefined
     if (config.password) {
-      const encryptResult = await window.electronAPI.crypto.encryptPassword(config.password)
-      if (!isOk(encryptResult)) {
+      try {
+        encryptedPassword = await encryptPassword(config.password)
+      } catch {
         addToast({ type: TOAST_TYPE.ERROR, message: t('connectionDialog.encryptFailed') })
         throw new Error(t('connectionDialog.encryptFailed'))
       }
-      encryptedPassword = encryptResult.value
     }
 
     const connectionId = editConfig?.id ?? uuidv4()
@@ -153,18 +154,15 @@ export const useConnectionActions = () => {
   const handleReconnect = async (connection: ConnectionConfig, onOpenDialog?: () => void) => {
     if (connection.password) {
       try {
-        const result = await window.electronAPI.crypto.decryptPassword(connection.password)
-        if (isOk(result)) {
-          const success = await reconnectSession(connection.id, {
-            password: connection.password,
-          })
-          if (success) {
-            showConnectionToast(TOAST_TYPE.SUCCESS, connection)
-            return
-          }
-          // 连接失败，打开重连对话框让用户重新输入密码
+        await decryptPassword(connection.password)
+        const success = await reconnectSession(connection.id, {
+          password: connection.password,
+        })
+        if (success) {
+          showConnectionToast(TOAST_TYPE.SUCCESS, connection)
+          return
         }
-        // 解密失败（HMAC 不匹配等），打开重连对话框
+        // 连接失败，打开重连对话框让用户重新输入密码
       } catch (error) {
         logger.catch(error, { action: 'decrypt-password' })
       }
@@ -181,12 +179,12 @@ export const useConnectionActions = () => {
       let encryptedPassword: string | undefined
 
       if (config.password) {
-        const result = await window.electronAPI.crypto.encryptPassword(config.password)
-        if (!isOk(result)) {
+        try {
+          encryptedPassword = await encryptPassword(config.password)
+        } catch {
           addToast({ type: TOAST_TYPE.ERROR, message: t('connectionDialog.encryptFailed') })
           throw new Error(t('connectionDialog.encryptFailed'))
         }
-        encryptedPassword = result.value
       }
 
       const passwordConfig: { password?: string; savePassword?: boolean } = {}

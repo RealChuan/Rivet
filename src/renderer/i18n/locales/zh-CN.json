@@ -197,7 +197,6 @@
         "sort": "排序",
         "viewErrorDetails": "查看错误详情"
       },
-      "cancelFailed": "取消传输任务失败",
       "concurrency": {
         "download": "下载并发",
         "upload": "上传并发"
@@ -220,7 +219,6 @@
       "folderStats": {
         "fileCount": "{{completed}}/{{total}} 文件"
       },
-      "retryFailed": "重试传输任务失败",
       "runningCount": "{{count}} 个任务进行中",
       "sort": {
         "name": "名称",

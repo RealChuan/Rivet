@@ -43,6 +43,7 @@ export const STORE_KEY = {
   UI_SETTINGS: 'uiSettings',
   TRANSFER_SETTINGS: 'transferSettings',
   KNOWN_HOSTS: 'knownHosts',
+  CONNECTION_SORT_ORDER: 'connectionSortOrder',
 } as const
 
 export type StoreKey = (typeof STORE_KEY)[keyof typeof STORE_KEY]

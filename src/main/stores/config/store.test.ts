@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { SORT_ORDER } from '@shared/constants/index.js'
 
 import {
   defaultStore,
@@ -21,7 +22,7 @@ describe('config store', () => {
       expect(defaultStore.savedConnections).toEqual([])
       expect(defaultStore.uiSettings.appearance).toBeDefined()
       expect(defaultStore.uiSettings.locale).toBe('')
-      expect(defaultStore.uiSettings.connectionSortOrder).toBeDefined()
+      expect(defaultStore.connectionSortOrder).toBe(SORT_ORDER.NONE)
     })
   })
 
@@ -55,8 +56,8 @@ describe('config store', () => {
         uiSettings: {
           appearance: 'dark',
           locale: 'en',
-          connectionSortOrder: 'name-asc',
         },
+        connectionSortOrder: 'name-asc' as const,
       }
       setInMemoryConfig(newConfig as never)
       expect(getInMemoryConfig()).toEqual(newConfig)

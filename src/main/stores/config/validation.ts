@@ -3,7 +3,6 @@ import type { ConnectionConfig, UiSettings } from '@shared/types/index.js'
 import {
   PROTOCOL,
   SCHEME,
-  SORT_ORDER,
   SUPPORTED_LANGUAGE,
   type SupportedLanguageLiteral,
   THEME,
@@ -41,10 +40,6 @@ export function isValidUiSettings(settings: unknown): settings is UiSettings {
       s.appearance === THEME.SYSTEM) &&
     (s.locale === SUPPORTED_LANGUAGE.ZH_CN ||
       s.locale === SUPPORTED_LANGUAGE.EN_US ||
-      s.locale === '') &&
-    (s.connectionSortOrder === SORT_ORDER.NONE ||
-      s.connectionSortOrder === SORT_ORDER.ASC ||
-      s.connectionSortOrder === SORT_ORDER.DESC ||
-      s.connectionSortOrder === undefined)
+      s.locale === '')
   )
 }

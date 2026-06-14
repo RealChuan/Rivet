@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { OPERATION_STATUS } from '@shared/constants/transfer.js'
 import { useTransferStore } from '../features/transfer/stores/transfer.js'
@@ -20,32 +20,46 @@ export function useActiveTaskGuard() {
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
   const [pendingSessionId, setPendingSessionId] = useState<string | undefined>(undefined)
 
-  const hasActiveTasks = (sessionId?: string): boolean => {
-    const { tasks } = useTransferStore.getState()
-    if (sessionId) {
-      return tasks.some(
-        t =>
-          t.sessionId === sessionId &&
-          (t.status === OPERATION_STATUS.RUNNING || t.status === OPERATION_STATUS.WAITING)
-      )
-    }
-    return runningTaskCount > 0
-  }
+  const hasActiveTasks = useCallback(
+    (sessionId?: string): boolean => {
+      const { tasks } = useTransferStore.getState()
+      if (sessionId) {
+        return tasks.some(
+          t =>
+            t.sessionId === sessionId &&
+            (t.status === OPERATION_STATUS.RUNNING || t.status === OPERATION_STATUS.WAITING)
+        )
+      }
+      return runningTaskCount > 0
+    },
+    [runningTaskCount]
+  )
 
   /**
    * 守卫函数：检查活跃任务，有则弹窗，无则直接执行
    * @param action 无活跃任务（或用户确认后）要执行的操作
    * @param sessionId 可选，按会话检查；不传则检查全部
    */
-  const guard = (action: () => void, sessionId?: string) => {
-    if (hasActiveTasks(sessionId)) {
-      setPendingAction(() => action)
-      setPendingSessionId(sessionId)
-      setConfirmOpen(true)
-    } else {
-      action()
-    }
-  }
+  const guard = useCallback(
+    (action: () => void, sessionId?: string) => {
+      if (hasActiveTasks(sessionId)) {
+        setPendingAction(() => action)
+        setPendingSessionId(sessionId)
+        setConfirmOpen(true)
+      } else {
+        action()
+      }
+    },
+    [hasActiveTasks]
+  )
+
+  // 监听主进程系统级关闭拦截（Alt+F4 等）
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.transfer.onHasActiveTasks(() => {
+      guard(() => window.electronAPI.window.quit())
+    })
+    return unsubscribe
+  }, [guard])
 
   const handleConfirm = async () => {
     if (!pendingAction) return

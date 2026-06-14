@@ -1,12 +1,10 @@
 import type React from 'react'
 import { Monitor, Moon, Sun } from 'lucide-react'
-import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGE, THEME, type Theme } from '@shared/constants/index.js'
 import { SIDEBAR_VIEW, type SidebarView } from '@shared/constants/transfer.js'
 import { ConfirmationDialog } from '../components/common/index.js'
 import { TitleBar, Toast } from '../components/common/index.js'
-import { useTransferStore } from '../features/transfer/stores/transfer.js'
 import { useActiveTaskGuard, useApplicationTheme, useInternationalization } from '../hooks/index.js'
 import { ConnectionPage } from '../pages/ConnectionPage.js'
 import { TransferPage } from '../pages/TransferPage.js'
@@ -28,11 +26,6 @@ const ThemeIcon = ({ theme }: ThemeIconProps) => {
 
 const PageContent = ({ activeView }: { activeView: SidebarView }) => {
   const isTransferActive = activeView === SIDEBAR_VIEW.TRANSFERS
-  const setVisible = useTransferStore(state => state.setVisible)
-
-  useEffect(() => {
-    setVisible(isTransferActive)
-  }, [isTransferActive, setVisible])
 
   return (
     <div className="flex-1 min-w-0">{isTransferActive ? <TransferPage /> : <ConnectionPage />}</div>
@@ -50,14 +43,6 @@ export const MainLayout: React.FC = () => {
   const handleClose = () => {
     guard(() => window.electronAPI.window.quit())
   }
-
-  // 监听主进程系统级关闭拦截（Alt+F4 等），触发同样的守卫逻辑
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.transfer.onHasActiveTasks(() => {
-      guard(() => window.electronAPI.window.quit())
-    })
-    return unsubscribe
-  }, [guard])
 
   return (
     <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden">

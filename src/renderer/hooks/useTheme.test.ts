@@ -1,18 +1,11 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SORT_ORDER } from '@shared/constants/index.js'
 import { useUiStore } from '../stores/index.js'
 import { useApplicationTheme } from './use-theme.js'
 
 vi.mock('../stores/index.js', () => ({
   useUiStore: vi.fn(),
 }))
-
-vi.mock('@renderer/features/session/stores/connection.js', () => ({
-  useConnectionStore: vi.fn(),
-}))
-
-import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 
 describe('useApplicationTheme', () => {
   const mockSetAppearance = vi.fn()
@@ -28,10 +21,6 @@ describe('useApplicationTheme', () => {
     }
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: typeof mockState) => unknown) => selector(mockState)
-    )
-    ;(useConnectionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { sortOrder: string }) => unknown) =>
-        selector({ sortOrder: SORT_ORDER.NONE })
     )
     vi.stubGlobal('electronAPI', {
       window: { getState: vi.fn().mockResolvedValue({ platform: 'win32' }) },
@@ -51,7 +40,7 @@ describe('useApplicationTheme', () => {
     act(() => {
       result.current.cycleTheme()
     })
-    expect(mockSetAppearance).toHaveBeenCalledWith('dark', SORT_ORDER.NONE)
+    expect(mockSetAppearance).toHaveBeenCalledWith('dark')
   })
 
   it('should cycle theme from dark to system', () => {
@@ -60,7 +49,7 @@ describe('useApplicationTheme', () => {
     act(() => {
       result.current.cycleTheme()
     })
-    expect(mockSetAppearance).toHaveBeenCalledWith('system', SORT_ORDER.NONE)
+    expect(mockSetAppearance).toHaveBeenCalledWith('system')
   })
 
   it('should handle dark mode appearance', () => {
@@ -81,7 +70,7 @@ describe('useApplicationTheme', () => {
     act(() => {
       result.current.setTheme('dark')
     })
-    expect(mockSetAppearance).toHaveBeenCalledWith('dark', SORT_ORDER.NONE)
+    expect(mockSetAppearance).toHaveBeenCalledWith('dark')
   })
 
   it('should add no-glass class on linux', async () => {
@@ -91,10 +80,6 @@ describe('useApplicationTheme', () => {
     }
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: typeof mockState) => unknown) => selector(mockState)
-    )
-    ;(useConnectionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { sortOrder: string }) => unknown) =>
-        selector({ sortOrder: SORT_ORDER.NONE })
     )
     const mockGetState = vi.fn().mockResolvedValue({ platform: 'linux' })
     vi.stubGlobal('electronAPI', {

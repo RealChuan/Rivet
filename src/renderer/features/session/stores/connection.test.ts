@@ -216,9 +216,6 @@ describe('useConnectionStore', () => {
         if (key === STORE_KEY.SAVED_CONNECTIONS) {
           return Promise.resolve(ok(savedConnections))
         }
-        if (key === STORE_KEY.UI_SETTINGS) {
-          return Promise.resolve(ok({ connectionSortOrder: SORT_ORDER.ASC }))
-        }
         return Promise.resolve(err(new Error('not found')))
       })
 
@@ -227,47 +224,12 @@ describe('useConnectionStore', () => {
       expect(useConnectionStore.getState().connections).toEqual(savedConnections)
     })
 
-    it('should load sortOrder from uiSettings', async () => {
-      mockConfigGet.mockImplementation((key: string) => {
-        if (key === STORE_KEY.SAVED_CONNECTIONS) {
-          return Promise.resolve(ok([]))
-        }
-        if (key === STORE_KEY.UI_SETTINGS) {
-          return Promise.resolve(ok({ connectionSortOrder: SORT_ORDER.DESC }))
-        }
-        return Promise.resolve(err(new Error('not found')))
-      })
-
-      await useConnectionStore.getState().loadSavedConnections()
-
-      expect(useConnectionStore.getState().sortOrder).toBe(SORT_ORDER.DESC)
-    })
-
-    it('should default sortOrder to none when uiSettings has no connectionSortOrder', async () => {
-      mockConfigGet.mockImplementation((key: string) => {
-        if (key === STORE_KEY.SAVED_CONNECTIONS) {
-          return Promise.resolve(ok([]))
-        }
-        if (key === STORE_KEY.UI_SETTINGS) {
-          return Promise.resolve(ok({}))
-        }
-        return Promise.resolve(err(new Error('not found')))
-      })
-
-      await useConnectionStore.getState().loadSavedConnections()
-
-      expect(useConnectionStore.getState().sortOrder).toBe(SORT_ORDER.NONE)
-    })
-
     it('should not update connections when config.get returns error', async () => {
       const existing = createConnection({ id: 'conn-1' })
       useConnectionStore.setState({ connections: [existing] })
 
       mockConfigGet.mockImplementation((key: string) => {
         if (key === STORE_KEY.SAVED_CONNECTIONS) {
-          return Promise.resolve(err(new Error('failed')))
-        }
-        if (key === STORE_KEY.UI_SETTINGS) {
           return Promise.resolve(err(new Error('failed')))
         }
         return Promise.resolve(err(new Error('not found')))
@@ -287,9 +249,6 @@ describe('useConnectionStore', () => {
         if (key === STORE_KEY.SAVED_CONNECTIONS) {
           return Promise.resolve(ok('not an array'))
         }
-        if (key === STORE_KEY.UI_SETTINGS) {
-          return Promise.resolve(ok({}))
-        }
         return Promise.resolve(err(new Error('not found')))
       })
 
@@ -298,11 +257,47 @@ describe('useConnectionStore', () => {
       expect(useConnectionStore.getState().connections).toEqual([existing])
     })
 
-    it('should call config.get with correct store keys', async () => {
+    it('should call config.get with SAVED_CONNECTIONS store key', async () => {
       await useConnectionStore.getState().loadSavedConnections()
 
       expect(mockConfigGet).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS)
-      expect(mockConfigGet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS)
+    })
+  })
+
+  describe('loadSortOrderFromSettings', () => {
+    it('should load sortOrder from CONNECTION_SORT_ORDER key', async () => {
+      mockConfigGet.mockImplementation((key: string) => {
+        if (key === STORE_KEY.CONNECTION_SORT_ORDER) {
+          return Promise.resolve(ok(SORT_ORDER.DESC))
+        }
+        return Promise.resolve(err(new Error('not found')))
+      })
+
+      await useConnectionStore.getState().loadSortOrderFromSettings()
+
+      expect(useConnectionStore.getState().sortOrder).toBe(SORT_ORDER.DESC)
+    })
+
+    it('should default sortOrder to none when key has no value', async () => {
+      mockConfigGet.mockImplementation((key: string) => {
+        if (key === STORE_KEY.CONNECTION_SORT_ORDER) {
+          return Promise.resolve(ok(null))
+        }
+        return Promise.resolve(err(new Error('not found')))
+      })
+
+      await useConnectionStore.getState().loadSortOrderFromSettings()
+
+      expect(useConnectionStore.getState().sortOrder).toBe(SORT_ORDER.NONE)
+    })
+
+    it('should not update sortOrder when config.get returns error', async () => {
+      useConnectionStore.setState({ sortOrder: SORT_ORDER.ASC })
+      mockConfigGet.mockResolvedValue(err(new Error('failed')))
+
+      await useConnectionStore.getState().loadSortOrderFromSettings()
+
+      expect(useConnectionStore.getState().sortOrder).toBe(SORT_ORDER.ASC)
     })
   })
 
@@ -371,32 +366,10 @@ describe('useConnectionStore', () => {
       expect(useConnectionStore.getState().sortOrder).toBe(SORT_ORDER.ASC)
     })
 
-    it('should persist sortOrder to uiSettings via config.set', async () => {
-      const existingSettings = {
-        appearance: 'dark',
-        locale: 'zh-CN',
-        connectionSortOrder: SORT_ORDER.NONE,
-      }
-      mockConfigGet.mockResolvedValue(ok(existingSettings))
-
+    it('should persist sortOrder to CONNECTION_SORT_ORDER key via config.set', async () => {
       await useConnectionStore.getState().setSortOrder(SORT_ORDER.DESC)
 
-      expect(mockConfigGet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS)
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
-        ...existingSettings,
-        connectionSortOrder: SORT_ORDER.DESC,
-      })
-    })
-
-    it('should not persist when config.get returns error', async () => {
-      mockConfigGet.mockResolvedValue(err(new Error('failed')))
-
-      await useConnectionStore.getState().setSortOrder(SORT_ORDER.ASC)
-
-      // State should still update
-      expect(useConnectionStore.getState().sortOrder).toBe(SORT_ORDER.ASC)
-      // But config.set should not be called for UI_SETTINGS
-      expect(mockConfigSet).not.toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, expect.anything())
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTION_SORT_ORDER, SORT_ORDER.DESC)
     })
   })
 
@@ -441,19 +414,13 @@ describe('useConnectionStore', () => {
       const conn1 = createConnection({ id: 'conn-1', name: 'A' })
       const conn2 = createConnection({ id: 'conn-2', name: 'B' })
       useConnectionStore.setState({ connections: [conn1, conn2] })
-      mockConfigGet.mockResolvedValue(ok({ connectionSortOrder: SORT_ORDER.ASC }))
 
       await useConnectionStore.getState().reorderConnections('conn-2', 'conn-1')
 
       // saveConnectionConfigs should be called
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, expect.any(Array))
-      // saveSortOrderToSettings should be called
-      expect(mockConfigSet).toHaveBeenCalledWith(
-        STORE_KEY.UI_SETTINGS,
-        expect.objectContaining({
-          connectionSortOrder: SORT_ORDER.NONE,
-        })
-      )
+      // saveSortOrderToSettings should be called with CONNECTION_SORT_ORDER key
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTION_SORT_ORDER, SORT_ORDER.NONE)
     })
 
     it('should not change order when activeId is not found', async () => {
@@ -521,19 +488,13 @@ describe('useConnectionStore', () => {
       const conn1 = createConnection({ id: 'conn-1', name: 'B' })
       const conn2 = createConnection({ id: 'conn-2', name: 'A' })
       useConnectionStore.setState({ connections: [conn1, conn2] })
-      mockConfigGet.mockResolvedValue(ok({ connectionSortOrder: SORT_ORDER.NONE }))
 
       await useConnectionStore.getState().sortConnections(SORT_ORDER.ASC)
 
       // saveConnectionConfigs should be called with sorted connections
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, expect.any(Array))
-      // saveSortOrderToSettings should be called
-      expect(mockConfigSet).toHaveBeenCalledWith(
-        STORE_KEY.UI_SETTINGS,
-        expect.objectContaining({
-          connectionSortOrder: SORT_ORDER.ASC,
-        })
-      )
+      // saveSortOrderToSettings should be called with CONNECTION_SORT_ORDER key
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTION_SORT_ORDER, SORT_ORDER.ASC)
     })
 
     it('should handle empty connections array', async () => {

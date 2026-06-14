@@ -200,7 +200,6 @@
         "sort": "Sort",
         "viewErrorDetails": "View Error Details"
       },
-      "cancelFailed": "Failed to cancel transfer task",
       "concurrency": {
         "download": "Download Concurrency",
         "upload": "Upload Concurrency"
@@ -223,7 +222,6 @@
       "folderStats": {
         "fileCount": "{{completed}}/{{total}} files"
       },
-      "retryFailed": "Failed to retry transfer task",
       "runningCount_one": "{{count}} task in progress",
       "runningCount_other": "{{count}} tasks in progress",
       "sort": {

@@ -12,6 +12,7 @@ export const useApplicationInitialization = () => {
   const initialize = useUiStore(state => state.initialize)
   const initialized = useUiStore(state => state.initialized)
   const loadSavedConnections = useConnectionStore(state => state.loadSavedConnections)
+  const loadSortOrderFromSettings = useConnectionStore(state => state.loadSortOrderFromSettings)
   const startTransferListening = useTransferStore(state => state.startListening)
   const loadExistingTasks = useTransferStore(state => state.loadExistingTasks)
 
@@ -40,14 +41,17 @@ export const useApplicationInitialization = () => {
   useEffect(() => {
     if (!initialized) return
     void loadSavedConnections()
-  }, [initialized, loadSavedConnections])
-
-  useEffect(() => {
-    if (!initialized) return
+    void loadSortOrderFromSettings()
     const unsubscribe = startTransferListening()
     void loadExistingTasks()
     return unsubscribe
-  }, [initialized, startTransferListening, loadExistingTasks])
+  }, [
+    initialized,
+    loadSavedConnections,
+    loadSortOrderFromSettings,
+    startTransferListening,
+    loadExistingTasks,
+  ])
 
   return { initialized }
 }

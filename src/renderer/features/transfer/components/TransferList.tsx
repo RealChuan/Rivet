@@ -4,9 +4,9 @@ import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TransferTask } from '@shared/types/transfer.js'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
-import { useUiStore } from '@renderer/stores/index.js'
-import { FILE_TYPE, TOAST_TYPE } from '@shared/constants/index.js'
+import { FILE_TYPE } from '@shared/constants/index.js'
 import { TRANSFER_CONFIG } from '@shared/constants/transfer.js'
+import { useTransferActions } from '../hooks/use-transfer-actions.js'
 import { useTransferSort } from '../hooks/use-transfer-sort.js'
 import { TransferActionBar } from './TransferActionBar.js'
 import { TransferTaskItem } from './TransferTaskItem.js'
@@ -23,34 +23,20 @@ interface TransferListProps {
 export const TransferList: React.FC<TransferListProps> = ({ tasks, onCancelAll }) => {
   const { t } = useTranslation()
   const { sortBy, sortOrder, setSort, sortedTasks } = useTransferSort(tasks)
-  const addToast = useUiStore(state => state.addToast)
+  const { retryTask, cancelTask } = useTransferActions()
 
   const handleRetry = useCallback(
     (taskId: string) => {
-      void window.electronAPI.transfer.retry(taskId).catch(() => {
-        addToast({ type: TOAST_TYPE.ERROR, message: t('transfer.retryFailed') })
-      })
+      void retryTask(taskId)
     },
-    [addToast, t]
+    [retryTask]
   )
 
   const handleCancel = useCallback(
     (taskId: string) => {
-      void window.electronAPI.transfer.cancel(taskId).catch(() => {
-        addToast({ type: TOAST_TYPE.ERROR, message: t('transfer.cancelFailed') })
-      })
+      void cancelTask(taskId)
     },
-    [addToast, t]
-  )
-
-  // remove 操作通过 cancel 实现
-  const handleCancelRemove = useCallback(
-    (taskId: string) => {
-      void window.electronAPI.transfer.cancel(taskId).catch(() => {
-        addToast({ type: TOAST_TYPE.ERROR, message: t('transfer.cancelFailed') })
-      })
-    },
-    [addToast, t]
+    [cancelTask]
   )
 
   const renderItem = useCallback(
@@ -60,11 +46,11 @@ export const TransferList: React.FC<TransferListProps> = ({ tasks, onCancelAll }
         task={task}
         onRetry={handleRetry}
         onCancel={handleCancel}
-        onRemove={handleCancelRemove}
+        onRemove={handleCancel}
         style={style}
       />
     ),
-    [handleCancel, handleCancelRemove, handleRetry]
+    [handleCancel, handleRetry]
   )
 
   const getItemHeightForIndex = useCallback(

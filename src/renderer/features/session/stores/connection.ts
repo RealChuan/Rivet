@@ -5,16 +5,10 @@ import {
   type SortOrderWithDirection,
   STORE_KEY,
 } from '@shared/constants/index.js'
-import { type ConnectionConfig, isOk, type UiSettings } from '@shared/types/index.js'
+import { type ConnectionConfig, isOk } from '@shared/types/index.js'
 
 const saveSortOrderToSettings = async (order: SortOrder) => {
-  const currentSettings = await window.electronAPI.config.get(STORE_KEY.UI_SETTINGS)
-  if (isOk(currentSettings)) {
-    await window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
-      ...(currentSettings.value as UiSettings), // IPC 返回值经过 isOk() 验证，主进程保证类型
-      connectionSortOrder: order,
-    })
-  }
+  await window.electronAPI.config.set(STORE_KEY.CONNECTION_SORT_ORDER, order)
 }
 
 export interface ConnectionStore {
@@ -28,6 +22,7 @@ export interface ConnectionStore {
   updateConnection: (config: ConnectionConfig) => void
   deleteConnection: (connectionId: string) => Promise<void>
   loadSavedConnections: () => Promise<void>
+  loadSortOrderFromSettings: () => Promise<void>
   saveConnectionConfigs: () => Promise<void>
   setPendingConnectionConfig: (config: ConnectionConfig | null, isEditing: boolean) => void
   setCloseConnectionDialog: (close: boolean) => void
@@ -76,12 +71,12 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
     if (isOk(result) && Array.isArray(result.value)) {
       set({ connections: result.value as ConnectionConfig[] }) // IPC 返回值经过 isOk() + Array.isArray 验证
     }
+  },
 
-    const uiSettingsResult = await window.electronAPI.config.get(STORE_KEY.UI_SETTINGS)
-    if (isOk(uiSettingsResult)) {
-      set({
-        sortOrder: (uiSettingsResult.value as UiSettings).connectionSortOrder || SORT_ORDER.NONE, // IPC 返回值经过 isOk() 验证
-      })
+  loadSortOrderFromSettings: async () => {
+    const result = await window.electronAPI.config.get(STORE_KEY.CONNECTION_SORT_ORDER)
+    if (isOk(result) && result.value) {
+      set({ sortOrder: result.value as SortOrder })
     }
   },
 

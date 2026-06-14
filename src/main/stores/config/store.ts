@@ -1,5 +1,5 @@
 import Store from 'electron-store'
-import { TRANSFER_CONFIG } from '@shared/constants/index.js'
+import { SORT_ORDER, TRANSFER_CONFIG } from '@shared/constants/index.js'
 import type { StoreSchema } from './types.js'
 import { defaultUiSettings } from './ui-settings.js'
 
@@ -10,6 +10,7 @@ export const defaultStore: StoreSchema = {
     maxUploadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
     maxDownloadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
   },
+  connectionSortOrder: SORT_ORDER.NONE,
 }
 
 export const store = new Store<StoreSchema>({

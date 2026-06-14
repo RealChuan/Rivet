@@ -7,7 +7,6 @@ import {
   DEFAULT_THEME_VALUE,
   DEFAULT_TRANSFER_PANEL_WIDTH,
   STORE_KEY,
-  type SortOrder,
   type SupportedLanguageLiteral,
   type Theme,
   TIMEOUTS,
@@ -26,8 +25,8 @@ interface UiStore {
   initialized: boolean
   activeView: SidebarView
   toasts: Toast[]
-  setAppearance: (appearance: Theme, connectionSortOrder: SortOrder) => void
-  setLocale: (locale: SupportedLanguageLiteral, connectionSortOrder: SortOrder) => void
+  setAppearance: (appearance: Theme) => void
+  setLocale: (locale: SupportedLanguageLiteral) => void
   setConnectionPanelWidth: (width: number) => void
   setTransferPanelWidth: (width: number) => void
   setActiveView: (view: SidebarView) => void
@@ -60,23 +59,21 @@ export const useUiStore = create<UiStore>((set, get) => ({
   activeView: SIDEBAR_VIEW.CONNECTIONS,
   toasts: [],
 
-  setAppearance: (appearance, connectionSortOrder) => {
+  setAppearance: appearance => {
     set({ appearance })
     const { locale } = get()
     void window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
       appearance,
       locale,
-      connectionSortOrder,
     })
   },
 
-  setLocale: (locale, connectionSortOrder) => {
+  setLocale: locale => {
     set({ locale })
     const { appearance } = get()
     void window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
       appearance,
       locale,
-      connectionSortOrder,
     })
   },
 

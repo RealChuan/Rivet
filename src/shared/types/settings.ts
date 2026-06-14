@@ -1,4 +1,4 @@
-import type { SortOrder, SupportedLanguageLiteral, Theme } from '@shared/constants/index.js'
+import type { SupportedLanguageLiteral, Theme } from '@shared/constants/index.js'
 
 /**
  * UI 设置接口
@@ -20,14 +20,6 @@ export interface UiSettings {
    * - '': 跟随系统语言
    */
   locale: SupportedLanguageLiteral | ''
-
-  /**
-   * 连接列表排序状态
-   * - 'none': 不排序（按拖拽顺序）
-   * - 'asc': 按名称升序
-   * - 'desc': 按名称降序
-   */
-  connectionSortOrder: SortOrder
 }
 
 /**

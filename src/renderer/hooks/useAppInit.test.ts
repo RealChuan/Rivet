@@ -30,6 +30,7 @@ describe('useApplicationInitialization', () => {
   const mockInitialize = vi.fn()
   const mockChangeLanguage = vi.fn().mockResolvedValue(undefined)
   const mockLoadSavedConnections = vi.fn().mockResolvedValue(undefined)
+  const mockLoadSortOrderFromSettings = vi.fn().mockResolvedValue(undefined)
   const mockStartTransferListening = vi.fn(() => vi.fn())
   const mockLoadExistingTasks = vi.fn().mockResolvedValue(undefined)
   const mockConfigGet = vi.fn()
@@ -47,8 +48,16 @@ describe('useApplicationInitialization', () => {
       (selector: (state: typeof uiState) => unknown) => selector(uiState)
     )
     ;(useConnectionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: { loadSavedConnections: typeof mockLoadSavedConnections }) => unknown) =>
-        selector({ loadSavedConnections: mockLoadSavedConnections })
+      (
+        selector: (state: {
+          loadSavedConnections: typeof mockLoadSavedConnections
+          loadSortOrderFromSettings: typeof mockLoadSortOrderFromSettings
+        }) => unknown
+      ) =>
+        selector({
+          loadSavedConnections: mockLoadSavedConnections,
+          loadSortOrderFromSettings: mockLoadSortOrderFromSettings,
+        })
     )
     ;(useTransferStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (
@@ -161,6 +170,7 @@ describe('useApplicationInitialization', () => {
 
     await waitFor(() => {
       expect(mockLoadSavedConnections).toHaveBeenCalled()
+      expect(mockLoadSortOrderFromSettings).toHaveBeenCalled()
       expect(mockStartTransferListening).toHaveBeenCalled()
       expect(mockLoadExistingTasks).toHaveBeenCalled()
     })

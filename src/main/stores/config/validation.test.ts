@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PROTOCOL, SCHEME, SORT_ORDER, SUPPORTED_LANGUAGE, THEME } from '@shared/constants/index.js'
+import { PROTOCOL, SCHEME, SUPPORTED_LANGUAGE, THEME } from '@shared/constants/index.js'
 import { isValidConnection, isValidUiSettings } from './validation.js'
 
 describe('validation utilities', () => {
@@ -101,7 +101,6 @@ describe('validation utilities', () => {
       const settings = {
         appearance: THEME.DARK,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
-        connectionSortOrder: SORT_ORDER.ASC,
       }
       expect(isValidUiSettings(settings)).toBe(true)
     })
@@ -110,7 +109,6 @@ describe('validation utilities', () => {
       const settings = {
         appearance: THEME.SYSTEM,
         locale: SUPPORTED_LANGUAGE.EN_US,
-        connectionSortOrder: SORT_ORDER.NONE,
       }
       expect(isValidUiSettings(settings)).toBe(true)
     })
@@ -119,7 +117,6 @@ describe('validation utilities', () => {
       const settings = {
         appearance: THEME.LIGHT,
         locale: '',
-        connectionSortOrder: SORT_ORDER.DESC,
       }
       expect(isValidUiSettings(settings)).toBe(true)
     })
@@ -134,7 +131,6 @@ describe('validation utilities', () => {
       const settings = {
         appearance: 'invalid',
         locale: SUPPORTED_LANGUAGE.EN_US,
-        connectionSortOrder: SORT_ORDER.ASC,
       }
       expect(isValidUiSettings(settings as never)).toBe(false)
     })
@@ -143,26 +139,8 @@ describe('validation utilities', () => {
       const settings = {
         appearance: THEME.DARK,
         locale: 'fr-FR',
-        connectionSortOrder: SORT_ORDER.ASC,
       }
       expect(isValidUiSettings(settings as never)).toBe(false)
-    })
-
-    it('should return false for invalid sort order', () => {
-      const settings = {
-        appearance: THEME.DARK,
-        locale: SUPPORTED_LANGUAGE.EN_US,
-        connectionSortOrder: 'invalid',
-      }
-      expect(isValidUiSettings(settings as never)).toBe(false)
-    })
-
-    it('should return true when connectionSortOrder is undefined', () => {
-      const settings = {
-        appearance: THEME.DARK,
-        locale: SUPPORTED_LANGUAGE.EN_US,
-      }
-      expect(isValidUiSettings(settings)).toBe(true)
     })
   })
 })

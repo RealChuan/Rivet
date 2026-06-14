@@ -1,4 +1,11 @@
-import { ERROR_CODE, STORE_KEY, TIMEOUTS, TRANSFER_CONFIG } from '@shared/constants/index.js'
+import type { SortOrder } from '@shared/constants/sort.js'
+import {
+  ERROR_CODE,
+  SORT_ORDER,
+  STORE_KEY,
+  TIMEOUTS,
+  TRANSFER_CONFIG,
+} from '@shared/constants/index.js'
 import {
   type ConnectionConfig,
   createErrorInfo,
@@ -76,12 +83,21 @@ function loadTransferSettings(): TransferSettings {
   }
 }
 
+function loadConnectionSortOrder(): SortOrder {
+  const saved = store.get(STORE_KEY.CONNECTION_SORT_ORDER)
+  if (saved === SORT_ORDER.NONE || saved === SORT_ORDER.ASC || saved === SORT_ORDER.DESC) {
+    return saved
+  }
+  return SORT_ORDER.NONE
+}
+
 export function initializeConfig(): void {
   try {
     setInMemoryConfig({
       uiSettings: loadUiSettings(),
       savedConnections: loadConnections(),
       transferSettings: loadTransferSettings(),
+      connectionSortOrder: loadConnectionSortOrder(),
     })
     logger.info('Config loaded successfully')
   } catch (error) {
@@ -94,6 +110,7 @@ export function initializeConfig(): void {
         maxUploadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
         maxDownloadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
       },
+      connectionSortOrder: SORT_ORDER.NONE,
     })
   }
 }
@@ -117,6 +134,7 @@ export function flushConfigToDisk(): Result<void, ErrorInfo> {
     store.set(STORE_KEY.SAVED_CONNECTIONS, connectionsToSave)
     store.set(STORE_KEY.UI_SETTINGS, config.uiSettings)
     store.set(STORE_KEY.TRANSFER_SETTINGS, config.transferSettings)
+    store.set(STORE_KEY.CONNECTION_SORT_ORDER, config.connectionSortOrder)
     resetConfigChanged()
     logger.info('Config flushed to disk')
     return ok(undefined)

@@ -1,9 +1,18 @@
 import type React from 'react'
+import { useEffect } from 'react'
 import { SplitPanel } from '@renderer/components/ui/index.js'
 import { TransferContainer } from '../features/transfer/components/TransferContainer.js'
 import { TransferServerList } from '../features/transfer/components/TransferServerList.js'
+import { useTransferStore } from '../features/transfer/stores/transfer.js'
 
 export const TransferPage: React.FC = () => {
+  const setVisible = useTransferStore(state => state.setVisible)
+
+  useEffect(() => {
+    setVisible(true)
+    return () => setVisible(false)
+  }, [setVisible])
+
   return (
     <SplitPanel
       left={<TransferServerList />}

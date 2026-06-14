@@ -14,7 +14,8 @@ import {
   SCHEME,
   type SchemeType,
 } from '@shared/constants/index.js'
-import { type ConnectionConfig, isErr } from '@shared/types/index.js'
+import { type ConnectionConfig } from '@shared/types/index.js'
+import { decryptPassword } from '../utils/password-crypto.js'
 import { ConnectionFormFields } from './ConnectionFormFields.js'
 
 export interface ConnectionDialogProps {
@@ -62,13 +63,8 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
     if (open && config?.savePassword && config.password) {
       const loadPassword = async () => {
         try {
-          const encryptedPassword = config.password
-          if (encryptedPassword) {
-            const result = await window.electronAPI.crypto.decryptPassword(encryptedPassword)
-            if (!isErr(result)) {
-              setPassword(result.value)
-            }
-          }
+          const decrypted = await decryptPassword(config.password as string)
+          setPassword(decrypted)
         } catch (error) {
           logger.catch(error, { action: 'load-password', configId: config.id })
         }
