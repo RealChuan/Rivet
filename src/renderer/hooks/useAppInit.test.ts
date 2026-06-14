@@ -2,6 +2,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { useTranslation } from 'react-i18next'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useConnectionStore } from '../features/session/stores/connection.js'
+import { useTransferStore } from '../features/transfer/stores/transfer.js'
 import { useUiStore } from '../stores/index.js'
 import { useApplicationInitialization } from './use-app-init.js'
 
@@ -11,6 +12,10 @@ vi.mock('../stores/index.js', () => ({
 
 vi.mock('../features/session/stores/connection.js', () => ({
   useConnectionStore: vi.fn(),
+}))
+
+vi.mock('../features/transfer/stores/transfer.js', () => ({
+  useTransferStore: vi.fn(),
 }))
 
 vi.mock('react-i18next', () => ({
@@ -25,6 +30,8 @@ describe('useApplicationInitialization', () => {
   const mockInitialize = vi.fn()
   const mockChangeLanguage = vi.fn().mockResolvedValue(undefined)
   const mockLoadSavedConnections = vi.fn().mockResolvedValue(undefined)
+  const mockStartTransferListening = vi.fn(() => vi.fn())
+  const mockLoadExistingTasks = vi.fn().mockResolvedValue(undefined)
   const mockConfigGet = vi.fn()
 
   afterEach(() => {
@@ -42,6 +49,18 @@ describe('useApplicationInitialization', () => {
     ;(useConnectionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: { loadSavedConnections: typeof mockLoadSavedConnections }) => unknown) =>
         selector({ loadSavedConnections: mockLoadSavedConnections })
+    )
+    ;(useTransferStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (
+        selector: (state: {
+          startListening: typeof mockStartTransferListening
+          loadExistingTasks: typeof mockLoadExistingTasks
+        }) => unknown
+      ) =>
+        selector({
+          startListening: mockStartTransferListening,
+          loadExistingTasks: mockLoadExistingTasks,
+        })
     )
     ;(useTranslation as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       i18n: { changeLanguage: mockChangeLanguage },
@@ -125,11 +144,25 @@ describe('useApplicationInitialization', () => {
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: typeof uiState) => unknown) => selector(uiState)
     )
+    ;(useTransferStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      (
+        selector: (state: {
+          startListening: typeof mockStartTransferListening
+          loadExistingTasks: typeof mockLoadExistingTasks
+        }) => unknown
+      ) =>
+        selector({
+          startListening: mockStartTransferListening,
+          loadExistingTasks: mockLoadExistingTasks,
+        })
+    )
 
     rerender()
 
     await waitFor(() => {
       expect(mockLoadSavedConnections).toHaveBeenCalled()
+      expect(mockStartTransferListening).toHaveBeenCalled()
+      expect(mockLoadExistingTasks).toHaveBeenCalled()
     })
   })
 })

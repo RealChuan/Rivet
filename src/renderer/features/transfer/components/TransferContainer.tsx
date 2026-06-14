@@ -11,7 +11,7 @@ export const TransferContainer: React.FC = () => {
 
   if (sessionIds.length === 0 || !selectedSessionId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-bg">
+      <div className="flex-1 flex items-center justify-center bg-transparent">
         <div className="text-center p-8">
           <div
             className={`

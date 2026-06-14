@@ -61,6 +61,7 @@ export interface FramelessWindowOptions {
  */
 export function createFramelessWindow(options: FramelessWindowOptions): BrowserWindow {
   const isMac = process.platform === 'darwin'
+  const isWindows = process.platform === 'win32'
 
   const browserOptions: BrowserWindowConstructorOptions = {
     width: options.width ?? DEFAULT_CHILD_WINDOW_WIDTH,
@@ -73,6 +74,10 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
     titleBarStyle: 'hidden',
     frame: isMac,
     ...(isMac ? { trafficLightPosition: MACOS_TRAFFIC_LIGHT_POSITION } : {}),
+
+    // ========== 毛玻璃效果 ==========
+    ...(isMac ? { vibrancy: 'under-window' } : {}),
+    ...(isWindows ? { backgroundMaterial: 'acrylic' } : {}),
 
     // 窗口行为
     show: options.show ?? false,

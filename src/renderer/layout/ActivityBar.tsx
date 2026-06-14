@@ -39,7 +39,7 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChan
   const { t } = useTranslation()
 
   return (
-    <nav className="w-12 shrink-0 flex flex-col items-center bg-bg border-r border-border pt-1">
+    <nav className="w-12 shrink-0 flex flex-col items-center bg-transparent border-r border-border pt-1">
       <ActivityBarButton
         icon={<Server className="w-5.5 h-5.5 stroke-[1.5]" />}
         isActive={activeView === SIDEBAR_VIEW.CONNECTIONS}

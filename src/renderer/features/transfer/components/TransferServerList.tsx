@@ -92,7 +92,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
 
   return (
     <div
-      className={`flex flex-col h-full bg-bg ${className ?? ''}`}
+      className={`flex flex-col h-full bg-transparent ${className ?? ''}`}
       data-testid="transfer-server-list"
     >
       {/* 并发控制 */}

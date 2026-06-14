@@ -61,7 +61,7 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`
-          w-full px-3 pr-8 py-2 bg-bg border border-border rounded-md
+          w-full px-3 pr-8 py-2 bg-glass-bg border border-border rounded-md
           text-text text-left flex items-center justify-between relative cursor-pointer
           transition-colors duration-150 hover:border-text-muted focus-visible:outline-none
           focus-visible:ring-2 focus-visible:ring-ring text-[13px] box-border min-h-8.25 m-0
@@ -82,7 +82,7 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
         <ul
           ref={listRef}
           className={`
-            absolute top-full left-0 right-0 z-100 bg-bg border border-border
+            absolute top-full left-0 right-0 z-100 bg-glass-bg backdrop-blur-xl border border-border
             rounded-md shadow-dropdown list-none max-h-50 overflow-y-auto p-1 box-border mt-1
           `}
         >

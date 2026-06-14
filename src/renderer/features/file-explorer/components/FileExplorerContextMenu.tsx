@@ -46,7 +46,7 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
   })
 
   const menuClass = `
-    fixed bg-bg rounded-md shadow-dropdown border border-border
+    fixed bg-glass-bg backdrop-blur-xl rounded-md shadow-dropdown border border-border
     p-1 min-w-[160px] z-[1000] animate-menu-in
   `
 

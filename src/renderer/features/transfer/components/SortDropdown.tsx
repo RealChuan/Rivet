@@ -53,7 +53,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
-        className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-text-muted hover:text-text border border-border bg-bg hover:bg-hover transition-colors cursor-default"
+        className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-text-muted hover:text-text border border-border bg-glass-bg hover:bg-hover transition-colors cursor-default"
         aria-label={t('transfer.action.sort')}
       >
         <ListFilter className="w-3.5 h-3.5" />
@@ -61,7 +61,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 min-w-50 p-3 rounded-lg border border-border bg-bg shadow-dropdown">
+        <div className="absolute right-0 top-full mt-1 z-50 min-w-50 p-3 rounded-lg border border-border bg-glass-bg backdrop-blur-xl shadow-dropdown">
           {SORT_FIELDS.map(field => (
             <div key={field} className="mb-3 last:mb-0">
               <div className="text-xs text-text-muted mb-1.5">{getFieldLabel(field)}</div>

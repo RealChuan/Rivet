@@ -4,6 +4,7 @@ import { logger } from '@renderer/utils/index.js'
 import { DEFAULT_LANGUAGE, DEFAULT_THEME_VALUE, STORE_KEY } from '@shared/constants/index.js'
 import { isErr, type UiSettings } from '@shared/types/index.js'
 import { useConnectionStore } from '../features/session/stores/connection.js'
+import { useTransferStore } from '../features/transfer/stores/transfer.js'
 import { useUiStore } from '../stores/index.js'
 
 export const useApplicationInitialization = () => {
@@ -11,6 +12,8 @@ export const useApplicationInitialization = () => {
   const initialize = useUiStore(state => state.initialize)
   const initialized = useUiStore(state => state.initialized)
   const loadSavedConnections = useConnectionStore(state => state.loadSavedConnections)
+  const startTransferListening = useTransferStore(state => state.startListening)
+  const loadExistingTasks = useTransferStore(state => state.loadExistingTasks)
 
   useEffect(() => {
     const initApp = async () => {
@@ -38,6 +41,13 @@ export const useApplicationInitialization = () => {
     if (!initialized) return
     void loadSavedConnections()
   }, [initialized, loadSavedConnections])
+
+  useEffect(() => {
+    if (!initialized) return
+    const unsubscribe = startTransferListening()
+    void loadExistingTasks()
+    return unsubscribe
+  }, [initialized, startTransferListening, loadExistingTasks])
 
   return { initialized }
 }

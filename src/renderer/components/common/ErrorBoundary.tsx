@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   override render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div className="flex h-screen w-full items-center justify-center bg-bg">
+        <div className="flex h-screen w-full items-center justify-center bg-transparent">
           <div className="flex flex-col items-center gap-4">
             <p className="text-danger text-sm">
               {this.state.error?.message ?? i18n.t('error.unknown')}
@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <button
               type="button"
               onClick={this.handleReload}
-              className="rounded-md bg-bg px-3 py-1.5 text-sm text-text border border-border hover:bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="rounded-md bg-glass-bg px-3 py-1.5 text-sm text-text border border-border hover:bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {i18n.t('common.action.refresh')}
             </button>

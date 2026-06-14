@@ -108,7 +108,7 @@ export function TitleBar({
   if (isMac) {
     return (
       <header
-        className="h-9 bg-bg border-b border-border flex items-center justify-center draggable titlebar-text shrink-0"
+        className="h-9 bg-transparent border-b border-border flex items-center justify-center draggable titlebar-text shrink-0"
         data-testid="titlebar-macos"
       >
         <span className="text-xs text-text-muted font-medium tracking-wide">{title}</span>
@@ -119,7 +119,7 @@ export function TitleBar({
   // ==================== Windows / Linux 标题栏 ====================
   return (
     <header
-      className="h-9 bg-bg border-b border-border flex items-center justify-between shrink-0"
+      className="h-9 bg-transparent border-b border-border flex items-center justify-between shrink-0"
       data-testid="titlebar-win32"
     >
       {/* 左侧：拖拽区 + 应用标识（双击可最大化） */}

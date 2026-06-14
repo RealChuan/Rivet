@@ -50,7 +50,7 @@ export const TextInputDialog: React.FC<TextInputDialogProps> = ({
           placeholder={placeholder}
           autoFocus
           className={`
-            w-full px-3 py-2.5 bg-bg border border-border rounded-md
+            w-full px-3 py-2.5 bg-glass-bg border border-border rounded-md
             text-text text-sm mb-4 transition-all duration-150
             focus:border-accent focus:ring-2 focus:ring-ring
             outline-none

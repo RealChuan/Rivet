@@ -94,7 +94,7 @@ export const ConnectionSidebar: React.FC = () => {
 
   return (
     <>
-      <div className="h-full flex flex-col bg-bg">
+      <div className="h-full flex flex-col bg-transparent">
         <SidebarHeader onNewConnection={handleNewConnection} />
 
         <div className="flex-1 overflow-hidden">

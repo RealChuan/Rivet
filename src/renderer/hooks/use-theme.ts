@@ -36,6 +36,17 @@ export function useApplicationTheme() {
     root.dataset.theme = resolvedTheme
   }, [resolvedTheme])
 
+  // 不支持原生毛玻璃的平台（Linux）降级为不透明背景
+  useEffect(() => {
+    const applyGlassSupport = async () => {
+      const state = await window.electronAPI.window.getState()
+      if (state?.platform === 'linux') {
+        document.documentElement.classList.add('no-glass')
+      }
+    }
+    void applyGlassSupport()
+  }, [])
+
   const cycleTheme = () => {
     const currentTheme: Theme = appearance ?? THEME.SYSTEM
     const currentIndex = THEME_VALUES.indexOf(currentTheme)

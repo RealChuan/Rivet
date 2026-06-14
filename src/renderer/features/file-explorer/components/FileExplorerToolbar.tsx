@@ -100,7 +100,7 @@ export const FileExplorerToolbar: React.FC<FileExplorerToolbarProps> = ({ sessio
           <Upload className="w-4 h-4 stroke-current stroke-2" />
         </ToolButton>
         {showUploadMenu && (
-          <div className="absolute right-0 top-full mt-1 bg-bg rounded-md shadow-dropdown border border-border p-1 min-w-40 z-1000 animate-menu-in">
+          <div className="absolute right-0 top-full mt-1 bg-glass-bg backdrop-blur-xl rounded-md shadow-dropdown border border-border p-1 min-w-40 z-1000 animate-menu-in">
             <button
               className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
               onClick={() => {

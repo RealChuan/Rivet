@@ -47,7 +47,10 @@ export const SplitPanel: React.FC<SplitPanelProps> = ({
 
   return (
     <div className="flex-1 flex overflow-hidden h-full">
-      <div className="shrink-0 h-full border-r border-border bg-bg" style={{ width: panelWidth }}>
+      <div
+        className="shrink-0 h-full border-r border-border bg-transparent"
+        style={{ width: panelWidth }}
+      >
         {left}
       </div>
 

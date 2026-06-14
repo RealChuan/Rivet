@@ -348,7 +348,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
       {contextMenu && (
         <div
           ref={menuRef}
-          className="fixed bg-bg rounded-lg shadow-dropdown border border-border p-1 min-w-35 z-9999 animate-menu-in"
+          className="fixed bg-glass-bg backdrop-blur-xl rounded-lg shadow-dropdown border border-border p-1 min-w-35 z-9999 animate-menu-in"
           style={clampPosition(contextMenu.x, contextMenu.y)}
         >
           {isFailed && (

@@ -5,7 +5,7 @@
 /* ========== 主题令牌 ========== */
 @theme {
   /* 颜色 */
-  --color-bg: #ffffff;
+  --color-bg: rgba(255, 255, 255, 0.6);
   --color-border: #e5e5e5;
   --color-text: #171717;
   --color-text-muted: #737373;
@@ -73,7 +73,7 @@
 
 /* ========== Dark 模式覆盖 ========== */
 .dark {
-  --color-bg: #1e1e1e;
+  --color-bg: rgba(30, 30, 30, 0.6);
   --color-border: #2e2e2e;
   --color-text: #e5e5e5;
   --color-text-muted: #a3a3a3;
@@ -116,6 +116,14 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 6px -1px rgba(0, 0, 0, 0.3),
     0 10px 30px -5px rgba(0, 0, 0, 0.5);
   --shadow-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+}
+
+/* ========== 不支持毛玻璃平台的降级 ========== */
+.no-glass {
+  --color-bg: #ffffff;
+}
+.no-glass.dark {
+  --color-bg: #1e1e1e;
 }
 
 /* ========== Base 层 ========== */

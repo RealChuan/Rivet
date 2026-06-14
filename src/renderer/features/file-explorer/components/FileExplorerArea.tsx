@@ -18,7 +18,7 @@ export const FileExplorerArea: React.FC<FileExplorerAreaProps> = ({ sessionId })
 
   if (!activeSession?.isConnected) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-bg">
+      <div className="flex-1 flex items-center justify-center bg-transparent">
         <div className="text-center p-8">
           <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-hover border border-border flex items-center justify-center">
             <Plug className="w-5 h-5 stroke-text-muted stroke-[1.5]" />
@@ -37,8 +37,8 @@ export const FileExplorerArea: React.FC<FileExplorerAreaProps> = ({ sessionId })
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-bg overflow-hidden">
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-bg shrink-0">
+    <div className="flex-1 flex flex-col bg-transparent overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-transparent shrink-0">
         <FileExplorerBreadcrumb
           path={activeSession.currentPath}
           sessionId={activeSession.sessionId}
@@ -46,7 +46,7 @@ export const FileExplorerArea: React.FC<FileExplorerAreaProps> = ({ sessionId })
         <div className="shrink-0 w-px h-4 bg-border" />
         <FileExplorerToolbar sessionId={activeSession.sessionId} />
       </div>
-      <div className="flex-1 overflow-hidden bg-bg">
+      <div className="flex-1 overflow-hidden bg-transparent">
         <FileExplorerList
           sessionId={activeSession.sessionId}
           currentPath={activeSession.currentPath}
