@@ -35,7 +35,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="flex h-screen w-full items-center justify-center bg-bg">
           <div className="flex flex-col items-center gap-4">
-            <p className="text-danger text-sm">{i18n.t('error.unknown')}</p>
+            <p className="text-danger text-sm">
+              {this.state.error?.message ?? i18n.t('error.unknown')}
+            </p>
             <button
               type="button"
               onClick={this.handleReload}

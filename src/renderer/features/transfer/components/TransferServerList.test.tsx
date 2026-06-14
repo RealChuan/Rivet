@@ -100,7 +100,7 @@ describe('TransferServerList', () => {
 
     render(<TransferServerList />)
     expect(screen.getByText('Server 1')).not.toBeNull()
-    expect(screen.getByText(/server1\.com/)).not.toBeNull()
+    expect(screen.getByText('server1.com:22')).not.toBeNull()
   })
 
   it('should not cause infinite re-renders with store selectors', () => {
