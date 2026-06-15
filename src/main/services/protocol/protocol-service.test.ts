@@ -59,8 +59,10 @@ vi.mock('../../stores/index.js', () => ({
 }))
 
 let uuidCounter = 0
-vi.mock('uuid', () => ({
-  v4: vi.fn(() => `test-uuid-${++uuidCounter}`),
+vi.mock('node:crypto', () => ({
+  default: {
+    randomUUID: () => `test-uuid-${++uuidCounter}`,
+  },
 }))
 
 // Import after mocks
@@ -83,12 +85,14 @@ describe('ProtocolService', () => {
   function createAbortAwareMock<T>() {
     return vi.fn((_sid: string, _path: string, signal?: AbortSignal) => {
       return new Promise<Result<T, ErrorInfo>>((_resolve, reject) => {
+        const abortError = new Error('The operation was aborted')
+        abortError.name = 'AbortError'
         if (signal?.aborted) {
-          reject(new DOMException('The operation was aborted', 'AbortError'))
+          reject(abortError)
           return
         }
         signal?.addEventListener('abort', () => {
-          reject(new DOMException('The operation was aborted', 'AbortError'))
+          reject(abortError)
         })
       })
     })

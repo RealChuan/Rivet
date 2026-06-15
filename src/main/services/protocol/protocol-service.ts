@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
+import crypto from 'node:crypto'
 import {
   ERROR_CODE,
   PROTOCOL,
@@ -75,7 +75,7 @@ export class ProtocolService {
     operation: (signal: AbortSignal) => Promise<Result<T, ErrorInfo>>,
     providedRequestId?: string
   ): Promise<ProtocolResponse<T>> {
-    const requestId = providedRequestId ?? uuidv4()
+    const requestId = providedRequestId ?? crypto.randomUUID()
     const controller = new AbortController()
     const signal = controller.signal
 
@@ -104,7 +104,7 @@ export class ProtocolService {
           error: undefined,
         }
       } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           return {
             requestId,
             success: false,
@@ -144,7 +144,7 @@ export class ProtocolService {
   }
 
   async connect(config: ConnectionConfig): Promise<ProtocolResponse<OperationResult>> {
-    const requestId = uuidv4()
+    const requestId = crypto.randomUUID()
 
     try {
       let password: string | undefined
@@ -250,7 +250,7 @@ export class ProtocolService {
   async disconnect(sessionId: string, requestId?: string): Promise<ProtocolResponse<void>> {
     if (transferService.hasActiveTasks(sessionId)) {
       return {
-        requestId: requestId ?? uuidv4(),
+        requestId: requestId ?? crypto.randomUUID(),
         success: false,
         value: undefined,
         error: createErrorInfo(ERROR_CODE.UPLOAD_IN_PROGRESS, 'Transfer in progress'),

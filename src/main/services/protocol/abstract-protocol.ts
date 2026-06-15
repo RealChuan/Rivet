@@ -189,14 +189,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
           if (settled) return
           settled = true
           cleanup()
-          resolve(
-            err(
-              createErrorInfo(
-                timeoutErrorCode ?? abortedErrorCode ?? ERROR_CODE.REQUEST_ABORTED,
-                String(error)
-              )
-            )
-          )
+          resolve(err(createErrorInfo(ERROR_CODE.INVALID_STATE, String(error))))
         })
     })
   }

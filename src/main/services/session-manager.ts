@@ -1,4 +1,4 @@
-import { ERROR_CODE, type ProtocolType, TIMEOUTS } from '@shared/constants/index.js'
+import { ERROR_CODE, IPC_CHANNELS, type ProtocolType, TIMEOUTS } from '@shared/constants/index.js'
 import {
   type ConnectionConfig,
   createErrorInfo,
@@ -8,6 +8,7 @@ import {
   type Result,
 } from '@shared/types/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
+import { WindowManager } from '../app/window-factory.js'
 import { logger } from '../utils/logger.js'
 import { sessionRegistry } from './session-registry.js'
 import { transferService } from './transfer/index.js'
@@ -138,8 +139,13 @@ class SessionManager {
             ),
           ])
         } catch (_error) {
+          const protocolType: ProtocolType | undefined = handle.protocolType
           this.safeUnregister(sessionId).catch(err => {
             logger.catch(err, { action: 'heartbeat-unregister', sessionId })
+          })
+          WindowManager.broadcast(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, {
+            sessionId,
+            protocolType,
           })
         }
       })

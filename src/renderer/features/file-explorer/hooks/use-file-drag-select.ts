@@ -39,7 +39,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
   const hasStartedDragRef = useRef(hasStartedDrag)
   const dragStartRef = useRef(dragStart)
   const dragEndRef = useRef(dragEnd)
-  const itemsRef = useRef(items)
+  const dragItemsRef = useRef<FileInfo[]>(items)
   const onDragStartRef = useRef(onDragStart)
   const onDragSelectRef = useRef(onDragSelect)
   const lastMouseClientRef = useRef<Point>({ x: 0, y: 0 })
@@ -50,7 +50,6 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
     hasStartedDragRef.current = hasStartedDrag
     dragStartRef.current = dragStart
     dragEndRef.current = dragEnd
-    itemsRef.current = items
     onDragStartRef.current = onDragStart
     onDragSelectRef.current = onDragSelect
   })
@@ -82,6 +81,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
     hasStartedDragRef.current = false
     dragStartRef.current = { x, y }
     dragEndRef.current = { x, y }
+    dragItemsRef.current = items
     lastMouseClientRef.current = { x: e.clientX, y: e.clientY }
   }
 
@@ -174,7 +174,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
           const scrollTop = currentScrollEl.scrollTop
           const x = lastMouseClientRef.current.x - rect.left + scrollLeft
 
-          const currentItems = itemsRef.current
+          const currentItems = dragItemsRef.current
           const maxContentY = currentItems.length * itemHeight
           const rawY = lastMouseClientRef.current.y - rect.top + scrollTop
           const y = Math.max(0, Math.min(maxContentY, rawY))
@@ -209,7 +209,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
       const scrollLeft = scrollEl.scrollLeft
       const scrollTop = scrollEl.scrollTop
 
-      const currentItems = itemsRef.current
+      const currentItems = dragItemsRef.current
       const x = e.clientX - rect.left + scrollLeft
       const maxContentY = currentItems.length * itemHeight
       const rawY = e.clientY - rect.top + scrollTop
@@ -269,7 +269,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
         return
       }
 
-      const currentItems = itemsRef.current
+      const currentItems = dragItemsRef.current
       const selectedInBox: FileInfo[] = []
 
       const startY = Math.min(currentDragStart.y, currentDragEnd.y)

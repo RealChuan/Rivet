@@ -1,7 +1,7 @@
 1. 文本规范
    - UI 文本禁止硬编码，必须使用 `t('feature.element')` 或 `<Trans>`
    - Key 命名规范：`feature.subFeature.element` 层级，禁止扁平命名如 `t('submit')`
-   - i18next 26 默认启用 `enableSelector`，TypeScript 项目优先使用 selector API：`t($ => $.feature.subFeature.element)`
+   - i18next 26 支持 selector API（需在 init() 中显式启用 `enableSelector: true`），优先使用 selector API：`t($ => $.feature.subFeature.element)`
 
 2. 格式化
    - 日期/数字/货币必须使用 `Intl.DateTimeFormat` / `Intl.NumberFormat`，配合 `i18next.services.formatter.add()` 注册自定义格式化器，禁止裸 `toLocaleString`

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import type { TransferTask, UploadOperation } from '@shared/types/index.js'
 import { logger } from '@main/utils/index.js'
 import {

@@ -206,7 +206,10 @@ export const WindowManager = {
   /**
    * 向所有存活窗口广播 IPC 消息
    */
-  broadcast(channel: keyof typeof IPC_CHANNELS.EVENTS, ...args: unknown[]): void {
+  broadcast(
+    channel: (typeof IPC_CHANNELS.EVENTS)[keyof typeof IPC_CHANNELS.EVENTS],
+    ...args: unknown[]
+  ): void {
     windowMap.forEach(win => {
       if (!win.isDestroyed()) {
         win.webContents.send(channel, ...(args as Parameters<typeof win.webContents.send>))

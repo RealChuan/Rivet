@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TransferTask } from '@shared/types/transfer.js'
 import { ERROR_CODE } from '@shared/constants/index.js'
@@ -330,7 +331,9 @@ describe('TransferService', () => {
           new Promise((_resolve, reject) => {
             if (signal) {
               signal.addEventListener('abort', () => {
-                reject(new DOMException('The operation was aborted', 'AbortError'))
+                const abortError = new Error('The operation was aborted')
+                abortError.name = 'AbortError'
+                reject(abortError)
               })
             }
           })

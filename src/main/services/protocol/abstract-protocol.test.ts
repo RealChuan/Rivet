@@ -266,6 +266,18 @@ describe('AbstractProtocol', () => {
       expect(result.error.code).toBe('LIST_ABORTED')
     })
 
+    it('should return INVALID_STATE error when operation throws', async () => {
+      protocol.addSession('s1', { id: 'c1' }, '/base')
+      protocol.listImpl.mockImplementation(() => {
+        throw new Error('unexpected failure')
+      })
+      const controller = new AbortController()
+      const result = await protocol.list('s1', '/path', controller.signal)
+      expect(result.success).toBe(false)
+      if (result.success) return
+      expect(result.error.code).toBe('INVALID_STATE')
+    })
+
     it('should return timeout error when operation times out', async () => {
       vi.useFakeTimers()
       protocol.addSession('s1', { id: 'c1' }, '/base')

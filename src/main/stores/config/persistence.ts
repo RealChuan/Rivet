@@ -239,8 +239,7 @@ export function setConfigurationValue(key: string, value: unknown): Result<void,
       const result = handler(value)
       if (isErr(result)) return result
     } else {
-      const config = getInMemoryConfig()
-      setInMemoryConfig({ ...config, [key]: value })
+      return err(createErrorInfo(ERROR_CODE.INVALID_CONFIG, `Unknown config key: ${key}`))
     }
     logger.info(`Config updated: ${key}`)
     return ok(undefined)

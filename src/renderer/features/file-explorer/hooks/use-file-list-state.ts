@@ -39,6 +39,9 @@ export const useFileListState = () => {
       } else if (isShift && prev.length > 0) {
         const currentIndex = sortedFiles.findIndex(f => f.name === file.name)
         const lastSelectedIndex = sortedFiles.findIndex(f => f.name === prev[prev.length - 1]?.name)
+        if (currentIndex === -1 || lastSelectedIndex === -1) {
+          return [file]
+        }
         const start = Math.min(currentIndex, lastSelectedIndex)
         const end = Math.max(currentIndex, lastSelectedIndex)
         return sortedFiles.slice(start, end + 1)

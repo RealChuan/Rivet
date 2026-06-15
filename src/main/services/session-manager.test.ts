@@ -1,7 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { PROTOCOL, TIMEOUTS } from '@shared/constants/index.js'
+import { IPC_CHANNELS, PROTOCOL, TIMEOUTS } from '@shared/constants/index.js'
 import { SessionManager } from './session-manager.js'
 import { sessionRegistry, type SessionHandle } from './session-registry.js'
+
+const mockBroadcast = vi.fn()
+
+vi.mock('../app/window-factory.js', () => ({
+  WindowManager: {
+    broadcast: (...args: unknown[]): unknown => mockBroadcast(...args),
+  },
+}))
 
 vi.mock('../utils/logger.js', () => ({
   logger: {
@@ -238,6 +246,59 @@ describe('SessionManager', () => {
       if (result.success) {
         expect(result.value).toBe(false)
       }
+    })
+  })
+
+  describe('checkAllSessions - heartbeat disconnect', () => {
+    it('should broadcast SESSION_DISCONNECTED when heartbeat detects disconnect', async () => {
+      vi.useFakeTimers()
+      mockPing.mockRejectedValue(new Error('ping failed'))
+
+      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+
+      // Trigger a heartbeat check
+      await vi.advanceTimersByTimeAsync(TIMEOUTS.HEARTBEAT_INTERVAL + 1)
+
+      expect(mockBroadcast).toHaveBeenCalledWith(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, {
+        sessionId: 'session-1',
+        protocolType: PROTOCOL.SFTP,
+      })
+
+      vi.useRealTimers()
+    })
+
+    it('should broadcast SESSION_DISCONNECTED with correct protocolType for each session', async () => {
+      vi.useFakeTimers()
+      mockPing.mockRejectedValue(new Error('ping failed'))
+
+      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      sessionManager.register('session-2', {}, { ...mockConfig, id: 'conn-2' }, PROTOCOL.WEBDAV)
+
+      await vi.advanceTimersByTimeAsync(TIMEOUTS.HEARTBEAT_INTERVAL + 1)
+
+      expect(mockBroadcast).toHaveBeenCalledWith(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, {
+        sessionId: 'session-1',
+        protocolType: PROTOCOL.SFTP,
+      })
+      expect(mockBroadcast).toHaveBeenCalledWith(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, {
+        sessionId: 'session-2',
+        protocolType: PROTOCOL.WEBDAV,
+      })
+
+      vi.useRealTimers()
+    })
+
+    it('should not broadcast SESSION_DISCONNECTED when ping succeeds', async () => {
+      vi.useFakeTimers()
+      mockPing.mockResolvedValue(undefined)
+
+      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+
+      await vi.advanceTimersByTimeAsync(TIMEOUTS.HEARTBEAT_INTERVAL + 1)
+
+      expect(mockBroadcast).not.toHaveBeenCalled()
+
+      vi.useRealTimers()
     })
   })
 

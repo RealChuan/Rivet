@@ -60,7 +60,7 @@ vi.mock('@shared/constants/index.js', () => ({
     CONNECTION_SORT_ORDER: 'connectionSortOrder',
   },
   SORT_ORDER: { NONE: 'none', ASC: 'asc', DESC: 'desc' },
-  ERROR_CODE: { CONFIG_ERROR: 'CONFIG_ERROR' },
+  ERROR_CODE: { CONFIG_ERROR: 'CONFIG_ERROR', INVALID_CONFIG: 'INVALID_CONFIG' },
   TRANSFER_CONFIG: { DEFAULT_CONCURRENCY: 5, MIN_CONCURRENCY: 1, MAX_CONCURRENCY: 10 },
   TIMEOUTS: { AUTO_SAVE_INTERVAL: 300000 },
 }))
@@ -573,28 +573,11 @@ describe('persistence', () => {
       expect(setToMemory).not.toHaveBeenCalled()
     })
 
-    it('should set arbitrary key via setInMemoryConfig for other keys', () => {
-      const existingConfig = {
-        savedConnections: [],
-        uiSettings: {
-          appearance: 'dark' as const,
-          locale: 'en-US' as const,
-        },
-        transferSettings: {
-          maxUploadConcurrency: 5,
-          maxDownloadConcurrency: 5,
-        },
-        connectionSortOrder: 'none' as const,
-      }
-      vi.mocked(getInMemoryConfig).mockReturnValue(existingConfig)
-
+    it('should return error for unknown config key', () => {
       const result = setConfigurationValue('customKey', 'customValue')
 
-      expect(result.success).toBe(true)
-      expect(setInMemoryConfig).toHaveBeenCalledWith({
-        ...existingConfig,
-        customKey: 'customValue',
-      } as unknown as Parameters<typeof setInMemoryConfig>[0])
+      expect(result.success).toBe(false)
+      expect(setInMemoryConfig).not.toHaveBeenCalled()
     })
 
     it('should log info on successful set', () => {
