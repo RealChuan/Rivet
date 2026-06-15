@@ -4,6 +4,7 @@ import { Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
+import { useFileExplorerTransferActions } from '@renderer/features/file-explorer/contexts/transfer-actions.js'
 import {
   useColumnResizing,
   useDirectoryNavigation,
@@ -14,7 +15,6 @@ import {
 import { computeTotalWidth } from '@renderer/features/file-explorer/hooks/use-column-resizing.js'
 import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useTransferActions } from '@renderer/features/transfer/hooks/use-transfer-actions.js'
 import { PROTOCOL, FILE_ITEM_HEIGHT } from '@shared/constants/index.js'
 import { type FileInfo } from '@shared/types/index.js'
 import FileExplorerDialogs from './FileExplorerDialogs.js'
@@ -46,7 +46,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
   const session = sessions.find(s => s.sessionId === sessionId)
   const connection = connections.find(c => c.id === session?.connectionId)
   const isWebdav = connection?.protocol === PROTOCOL.WEBDAV
-  const { startMixedUpload } = useTransferActions()
+  const { startMixedUpload } = useFileExplorerTransferActions()
   const [isDragOver, setIsDragOver] = useState(false)
 
   const listState = useFileListState()

@@ -2,7 +2,14 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig, FileInfo, Session } from '@shared/types/index.js'
 import { SORT_ORDER } from '@shared/constants/sort.js'
+import { TransferActionsContext } from '../contexts/transfer-actions.js'
 import { FileExplorerList } from './FileExplorerList.js'
+
+const mockTransferActions = {
+  startUpload: vi.fn(),
+  startMixedUpload: vi.fn(),
+  startDownload: vi.fn(),
+}
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -154,28 +161,35 @@ const makeSession = (overrides: Partial<Session> = {}): Session => ({
   ...overrides,
 })
 
+const renderWithProvider = (ui: React.ReactElement) =>
+  render(<TransferActionsContext value={mockTransferActions}>{ui}</TransferActionsContext>)
+
 describe('FileExplorerList', () => {
   it('should return null when session is not found', () => {
     mockSessionStore.sessions = []
-    const { container } = render(<FileExplorerList sessionId="nonexistent" currentPath="/home" />)
+    const { container } = renderWithProvider(
+      <FileExplorerList sessionId="nonexistent" currentPath="/home" />
+    )
     expect(container.innerHTML).toBe('')
   })
 
   it('should show loading state', () => {
     mockSessionStore.sessions = [makeSession({ isLoading: true })]
-    const { container } = render(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
+    const { container } = renderWithProvider(
+      <FileExplorerList sessionId="sess-1" currentPath="/home" />
+    )
     expect(container.querySelectorAll('.animate-skeleton-shimmer').length).toBe(8)
   })
 
   it('should show error state', () => {
     mockSessionStore.sessions = [makeSession({ error: 'Connection failed', isConnected: false })]
-    render(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
+    renderWithProvider(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
     expect(screen.getByText('Connection failed')).not.toBeNull()
   })
 
   it('should show empty state when no files', () => {
     mockSessionStore.sessions = [makeSession({ files: [] })]
-    render(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
+    renderWithProvider(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
     expect(screen.getByText('fileExplorerList.empty')).not.toBeNull()
   })
 
@@ -192,14 +206,11 @@ describe('FileExplorerList', () => {
       },
     ]
     mockSessionStore.sessions = [makeSession({ files })]
-    render(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
+    renderWithProvider(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
     expect(screen.getByText('fileExplorerList.name')).not.toBeNull()
   })
 
   it('should not cause infinite re-renders with store selectors', () => {
-    // Verifies that useSessionStore(state => state.sessions) returns a stable
-    // reference. If sessions were derived via a selector that creates a new
-    // array each call, React would throw "Maximum update depth exceeded".
     const files: FileInfo[] = [
       {
         name: 'stable.txt',
@@ -212,7 +223,9 @@ describe('FileExplorerList', () => {
       },
     ]
     mockSessionStore.sessions = [makeSession({ files })]
-    const { container } = render(<FileExplorerList sessionId="sess-1" currentPath="/home" />)
+    const { container } = renderWithProvider(
+      <FileExplorerList sessionId="sess-1" currentPath="/home" />
+    )
     expect(container.querySelector('[data-testid="virtual-list"]')).not.toBeNull()
   })
 })

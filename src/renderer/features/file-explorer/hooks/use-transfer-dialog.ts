@@ -1,7 +1,7 @@
-import { useTransferActions } from '@renderer/features/transfer/hooks/use-transfer-actions.js'
 import { LAST_DIR_KEY } from '@shared/constants/transfer.js'
 import { FILE_TYPE, type FileType } from '@shared/constants/ui.js'
 import { isOk } from '@shared/types/index.js'
+import { useFileExplorerTransferActions } from '../contexts/transfer-actions.js'
 
 interface RemoteItem {
   path: string
@@ -23,7 +23,7 @@ async function getDefaultPath(lastDirKey: 'UPLOAD' | 'DOWNLOAD'): Promise<string
 }
 
 export function useTransferDialog({ sessionId, currentPath }: UseTransferDialogOptions) {
-  const { startUpload, startDownload } = useTransferActions()
+  const { startUpload, startDownload } = useFileExplorerTransferActions()
 
   const openFilePicker = async () => {
     const defaultPath = await getDefaultPath('UPLOAD')
