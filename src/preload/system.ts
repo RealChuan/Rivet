@@ -8,4 +8,5 @@ export const systemAPI = {
   getDownloadDir: () =>
     ipcRenderer.invoke(IPC_CHANNELS.SYSTEM.GET_DOWNLOAD_DIR) as Promise<Result<string, ErrorInfo>>,
   generateUuid: () => crypto.randomUUID(),
+  supportsGlass: () => ipcRenderer.invoke(IPC_CHANNELS.SYSTEM.SUPPORTS_GLASS) as Promise<boolean>,
 }

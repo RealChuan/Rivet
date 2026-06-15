@@ -34,11 +34,11 @@ export function useApplicationTheme() {
     root.dataset.theme = resolvedTheme
   }, [resolvedTheme])
 
-  // 不支持原生毛玻璃的平台（Linux）降级为不透明背景
+  // 不支持原生毛玻璃的平台降级为不透明背景
   useEffect(() => {
     const applyGlassSupport = async () => {
-      const state = await window.electronAPI.window.getState()
-      if (state?.platform === 'linux') {
+      const supported = await window.electronAPI.system.supportsGlass()
+      if (!supported) {
         document.documentElement.classList.add('no-glass')
       }
     }

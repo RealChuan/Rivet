@@ -9,6 +9,96 @@ describe('system utilities', () => {
     vi.resetModules()
   })
 
+  describe('supportsGlassEffect', () => {
+    it('should return true for macOS 26+', async () => {
+      vi.doMock('electron', () => ({
+        app: { getPath: vi.fn() },
+      }))
+      vi.doMock('node:os', () => ({
+        default: { release: vi.fn() },
+      }))
+      vi.doMock('./logger.js', () => ({
+        logger: { catch: vi.fn() },
+      }))
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true })
+      Object.defineProperty(process, 'getSystemVersion', {
+        value: () => '26.0.0',
+        configurable: true,
+      })
+
+      const { supportsGlassEffect } = await import('./system.js')
+      expect(supportsGlassEffect()).toBe(true)
+    })
+
+    it('should return false for macOS 15', async () => {
+      vi.doMock('electron', () => ({
+        app: { getPath: vi.fn() },
+      }))
+      vi.doMock('node:os', () => ({
+        default: { release: vi.fn() },
+      }))
+      vi.doMock('./logger.js', () => ({
+        logger: { catch: vi.fn() },
+      }))
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true })
+      Object.defineProperty(process, 'getSystemVersion', {
+        value: () => '15.0.0',
+        configurable: true,
+      })
+
+      const { supportsGlassEffect } = await import('./system.js')
+      expect(supportsGlassEffect()).toBe(false)
+    })
+
+    it('should return true for Windows 11 (build 22000)', async () => {
+      vi.doMock('electron', () => ({
+        app: { getPath: vi.fn() },
+      }))
+      vi.doMock('node:os', () => ({
+        default: { release: () => '10.0.22000' },
+      }))
+      vi.doMock('./logger.js', () => ({
+        logger: { catch: vi.fn() },
+      }))
+      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true })
+
+      const { supportsGlassEffect } = await import('./system.js')
+      expect(supportsGlassEffect()).toBe(true)
+    })
+
+    it('should return false for Windows 10 (build 19045)', async () => {
+      vi.doMock('electron', () => ({
+        app: { getPath: vi.fn() },
+      }))
+      vi.doMock('node:os', () => ({
+        default: { release: () => '10.0.19045' },
+      }))
+      vi.doMock('./logger.js', () => ({
+        logger: { catch: vi.fn() },
+      }))
+      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true })
+
+      const { supportsGlassEffect } = await import('./system.js')
+      expect(supportsGlassEffect()).toBe(false)
+    })
+
+    it('should return false for Linux', async () => {
+      vi.doMock('electron', () => ({
+        app: { getPath: vi.fn() },
+      }))
+      vi.doMock('node:os', () => ({
+        default: { release: vi.fn() },
+      }))
+      vi.doMock('./logger.js', () => ({
+        logger: { catch: vi.fn() },
+      }))
+      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true })
+
+      const { supportsGlassEffect } = await import('./system.js')
+      expect(supportsGlassEffect()).toBe(false)
+    })
+  })
+
   describe('getTempDir', () => {
     it('should return temp directory path', async () => {
       vi.doMock('electron', () => ({

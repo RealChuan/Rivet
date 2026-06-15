@@ -94,6 +94,7 @@ export interface SystemAPI {
   getTempDir: () => Promise<Result<string, ErrorInfo>>
   getDownloadDir: () => Promise<Result<string, ErrorInfo>>
   generateUuid: () => string
+  supportsGlass: () => Promise<boolean>
 }
 
 export interface CryptoAPI {

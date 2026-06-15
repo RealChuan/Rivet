@@ -15,8 +15,10 @@ import {
   DEFAULT_CHILD_WINDOW_WIDTH,
   DEV_SERVER_URL,
   MACOS_TRAFFIC_LIGHT_POSITION,
-} from '@shared/constants/app.js'
+  APP_NAME,
+} from '@shared/constants/index.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
+import { supportsGlassEffect } from '../utils/index.js'
 import { registerWindowMeta, unregisterWindowMeta } from '../utils/window-meta.js'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -62,22 +64,23 @@ export interface FramelessWindowOptions {
 export function createFramelessWindow(options: FramelessWindowOptions): BrowserWindow {
   const isMac = process.platform === 'darwin'
   const isWindows = process.platform === 'win32'
+  const supportsGlass = supportsGlassEffect()
 
   const browserOptions: BrowserWindowConstructorOptions = {
     width: options.width ?? DEFAULT_CHILD_WINDOW_WIDTH,
     height: options.height ?? DEFAULT_CHILD_WINDOW_HEIGHT,
     minWidth: options.minWidth ?? DEFAULT_CHILD_WINDOW_MIN_WIDTH,
     minHeight: options.minHeight ?? DEFAULT_CHILD_WINDOW_MIN_HEIGHT,
-    title: options.title ?? 'Rivet',
+    title: options.title ?? APP_NAME,
 
     // ========== 无边框核心配置 ==========
     titleBarStyle: 'hidden',
     frame: isMac,
     ...(isMac ? { trafficLightPosition: MACOS_TRAFFIC_LIGHT_POSITION } : {}),
 
-    // ========== 毛玻璃效果 ==========
-    ...(isMac ? { vibrancy: 'under-window' } : {}),
-    ...(isWindows ? { backgroundMaterial: 'acrylic' } : {}),
+    // ========== 毛玻璃效果（仅支持原生毛玻璃的平台） ==========
+    ...(isMac && supportsGlass ? { vibrancy: 'under-window' } : {}),
+    ...(isWindows && supportsGlass ? { backgroundMaterial: 'acrylic' } : {}),
 
     // 窗口行为
     show: options.show ?? false,

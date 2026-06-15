@@ -17,11 +17,11 @@ import { TransferProgressBar } from './TransferProgressBar.js'
 
 const EMPTY_OPERATIONS: OperationProgressInfo[] = []
 
-// Grid columns: [name 1fr] [size 7rem] [progress 7rem] [speed 4rem] [time 3rem] [actions 2rem]
+// Grid columns: [name 1fr] [size 9rem] [progress 8.5rem] [speed 5rem] [time 3.5rem] [actions 2rem]
 // Fixed 2rem for actions ensures alignment between main rows (with button) and sub-rows (empty)
-const GRID_COLS = 'grid grid-cols-[1fr_7rem_7rem_4rem_3rem_2rem] gap-x-2'
+const GRID_COLS = 'grid grid-cols-[1fr_9rem_8.5rem_5rem_3.5rem_2rem] gap-x-3'
 // Sub-row grid: adds a 1.25rem indent column before name — fixed columns still align with main row
-const SUB_GRID_COLS = 'grid grid-cols-[1.25rem_1fr_7rem_7rem_4rem_3rem_2rem] gap-x-2'
+const SUB_GRID_COLS = 'grid grid-cols-[1.25rem_1fr_9rem_8.5rem_5rem_3.5rem_2rem] gap-x-3'
 
 function formatRemainingTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '-'

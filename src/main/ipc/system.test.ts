@@ -6,6 +6,7 @@ import { IPC_CHANNELS } from '@shared/constants/index.js'
 vi.mock('../utils/index.js', () => ({
   getTempDir: vi.fn().mockReturnValue('/tmp'),
   getDownloadDir: vi.fn().mockReturnValue('/downloads'),
+  supportsGlassEffect: vi.fn().mockReturnValue(true),
 }))
 
 describe('system IPC handlers', () => {
@@ -27,6 +28,10 @@ describe('system IPC handlers', () => {
     )
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.SYSTEM.GET_DOWNLOAD_DIR,
+      expect.any(Function)
+    )
+    expect(ipcMain.handle).toHaveBeenCalledWith(
+      IPC_CHANNELS.SYSTEM.SUPPORTS_GLASS,
       expect.any(Function)
     )
   })

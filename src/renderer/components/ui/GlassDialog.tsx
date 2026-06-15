@@ -1,5 +1,6 @@
 import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { cn } from '@renderer/utils/index.js'
 import { DIALOG_SIZE } from '@shared/constants/index.js'
@@ -112,7 +113,7 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
 
   if (!shouldRender) return null
 
-  return (
+  return createPortal(
     <div
       className={cn(
         'fixed inset-0 flex items-center justify-center bg-overlay z-50 p-12 transition-opacity duration-200',
@@ -142,7 +143,8 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

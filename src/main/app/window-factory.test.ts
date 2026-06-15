@@ -12,14 +12,22 @@ vi.mock('../utils/window-meta.js', () => ({
   unregisterWindowMeta: (...args: unknown[]) => mockUnregisterWindowMeta(...args),
 }))
 
-vi.mock('@shared/constants/index.js', () => ({
-  IPC_CHANNELS: {
-    WINDOW: {
-      STATE_CHANGED: 'window-state-changed',
-    },
-    EVENTS: {},
-  },
+vi.mock('../utils/index.js', () => ({
+  supportsGlassEffect: vi.fn(() => false),
 }))
+
+vi.mock('@shared/constants/index.js', async importOriginal => {
+  const actual: Record<string, unknown> = await importOriginal()
+  return {
+    ...actual,
+    IPC_CHANNELS: {
+      WINDOW: {
+        STATE_CHANGED: 'window-state-changed',
+      },
+      EVENTS: {},
+    },
+  }
+})
 
 vi.mock('node:path', () => {
   const path = {

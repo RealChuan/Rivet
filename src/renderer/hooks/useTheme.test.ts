@@ -24,6 +24,7 @@ describe('useApplicationTheme', () => {
     )
     vi.stubGlobal('electronAPI', {
       window: { getState: vi.fn().mockResolvedValue({ platform: 'win32' }) },
+      system: { supportsGlass: vi.fn().mockResolvedValue(true) },
     })
   }
 
@@ -73,7 +74,7 @@ describe('useApplicationTheme', () => {
     expect(mockSetAppearance).toHaveBeenCalledWith('dark')
   })
 
-  it('should add no-glass class on linux', async () => {
+  it('should add no-glass class when supportsGlass is false', async () => {
     const mockState = {
       appearance: 'system',
       setAppearance: mockSetAppearance,
@@ -81,15 +82,15 @@ describe('useApplicationTheme', () => {
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: typeof mockState) => unknown) => selector(mockState)
     )
-    const mockGetState = vi.fn().mockResolvedValue({ platform: 'linux' })
+    const mockSupportsGlass = vi.fn().mockResolvedValue(false)
     vi.stubGlobal('electronAPI', {
-      window: { getState: mockGetState },
+      system: { supportsGlass: mockSupportsGlass },
     })
 
     renderHook(() => useApplicationTheme())
 
     await vi.waitFor(() => {
-      expect(mockGetState).toHaveBeenCalled()
+      expect(mockSupportsGlass).toHaveBeenCalled()
     })
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(document.documentElement.classList.add).toHaveBeenCalledWith('no-glass')
