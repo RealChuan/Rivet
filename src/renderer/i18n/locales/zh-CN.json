@@ -98,6 +98,7 @@
         "download": "下载",
         "move": "移动",
         "newFolder": "新建文件夹",
+        "properties": "属性",
         "rename": "重命名",
         "upload": "上传",
         "uploadFiles": "上传文件...",
@@ -117,6 +118,23 @@
       "permissions": "权限",
       "reconnectHint": "点击重新连接",
       "retry": "重试",
+      "size": "大小"
+    },
+    "folderProperties": {
+      "calculate": "计算",
+      "calculating": "计算中...",
+      "cancelCalculation": "取消",
+      "cancelled": "计算已取消",
+      "completed": "计算完成",
+      "errorCount": "失败目录: {{count}}",
+      "failed": "计算失败",
+      "fileCount": "文件数",
+      "folderCount": "文件夹数",
+      "modifyTime": "修改时间",
+      "owner": "所有者",
+      "permissions": "权限",
+      "recalculate": "重新计算",
+      "scanning": "正在扫描: {{path}}",
       "size": "大小"
     },
     "hostKey": {

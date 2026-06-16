@@ -17,6 +17,8 @@ export const useFileListState = () => {
   const [newFolderDialogOpen, setNewFolderDialogOpen] = useState(false)
   const [hoveredFile, setHoveredFile] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+  const [propertiesDialogOpen, setPropertiesDialogOpen] = useState(false)
+  const [propertiesDialogFile, setPropertiesDialogFile] = useState<FileInfo | null>(null)
 
   const handleSelectFile = (file: FileInfo) => {
     setSelectedFile(file)
@@ -90,6 +92,16 @@ export const useFileListState = () => {
     setContextMenu(null)
   }, [])
 
+  const openPropertiesDialog = (file: FileInfo) => {
+    setPropertiesDialogFile(file)
+    setPropertiesDialogOpen(true)
+  }
+
+  const closePropertiesDialog = () => {
+    setPropertiesDialogOpen(false)
+    setPropertiesDialogFile(null)
+  }
+
   return {
     selectedFile,
     setSelectedFile,
@@ -113,6 +125,10 @@ export const useFileListState = () => {
     closeRenameDialog,
     openContextMenu,
     closeContextMenu,
+    propertiesDialogOpen,
+    propertiesDialogFile,
+    openPropertiesDialog,
+    closePropertiesDialog,
   }
 }
 

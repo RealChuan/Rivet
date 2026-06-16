@@ -1,6 +1,8 @@
 import crypto from 'node:crypto'
+import type { FolderStatsProgress } from '@shared/types/folder-stats.js'
 import {
   ERROR_CODE,
+  IPC_CHANNELS,
   PROTOCOL,
   ProtocolStatus,
   type ProtocolType,
@@ -36,12 +38,24 @@ interface ActiveRequestInfo {
 export class ProtocolService {
   private protocols = new Map<ProtocolType, FileProtocol>()
   private activeRequests = new Map<string, ActiveRequestInfo>()
+  private statsControllers = new Map<string, AbortController>()
+  private mainWindow: Electron.BrowserWindow | null = null
 
   cancel(requestId: string): void {
     const info = this.activeRequests.get(requestId)
     if (info) {
       info.controller.abort()
       this.activeRequests.delete(requestId)
+    }
+  }
+
+  setMainWindow(window: Electron.BrowserWindow): void {
+    this.mainWindow = window
+  }
+
+  private send(channel: string, data: unknown): void {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send(channel, data)
     }
   }
 
@@ -395,6 +409,75 @@ export class ProtocolService {
     }
 
     return protocolResult.value.ping(sessionId)
+  }
+
+  async calculateFolderStats(sessionId: string, path: string): Promise<Result<void, ErrorInfo>> {
+    const protocolResult = this.getProtocolBySessionId(sessionId)
+    if (isErr(protocolResult)) {
+      return err(protocolResult.error)
+    }
+
+    const controller = new AbortController()
+    this.statsControllers.set(sessionId, controller)
+
+    const stats: FolderStatsProgress = {
+      fileCount: 0,
+      folderCount: 0,
+      totalSize: 0,
+      currentPath: path,
+      isComplete: false,
+      isCancelled: false,
+      errorCount: 0,
+    }
+    const stack: string[] = [path]
+
+    try {
+      while (stack.length > 0) {
+        if (controller.signal.aborted) {
+          stats.isCancelled = true
+          this.send(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, { sessionId, ...stats })
+          return ok(undefined)
+        }
+
+        const currentPath = stack.pop()
+        if (!currentPath) break
+        stats.currentPath = currentPath
+
+        const listResult = await protocolResult.value.list(
+          sessionId,
+          currentPath,
+          controller.signal
+        )
+        if (isErr(listResult)) {
+          stats.errorCount++
+          logger.warn(`Folder stats: failed to list ${currentPath}`)
+          continue
+        }
+
+        for (const file of listResult.value) {
+          if (file.type === 'directory') {
+            stats.folderCount++
+            stack.push(file.absolutePath)
+          } else {
+            stats.fileCount++
+            stats.totalSize += file.size
+          }
+        }
+
+        this.send(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, { sessionId, ...stats })
+      }
+
+      stats.isComplete = true
+      stats.currentPath = ''
+      this.send(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, { sessionId, ...stats })
+      return ok(undefined)
+    } finally {
+      this.statsControllers.delete(sessionId)
+    }
+  }
+
+  cancelCalculateFolderStats(sessionId: string): void {
+    this.statsControllers.get(sessionId)?.abort()
   }
 }
 

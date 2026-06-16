@@ -1,6 +1,7 @@
 import type { StoreKey, LastDirKey, TransferDirection } from '@shared/constants/index.js'
 import type { ConnectionConfig } from './connection.js'
 import type { FileInfo } from './file.js'
+import type { FolderStatsProgress } from './folder-stats.js'
 import type { OperationResult } from './operation-result.js'
 import type { ProtocolResponse } from './protocol-request.js'
 import type { ErrorInfo, Result } from './result.js'
@@ -67,6 +68,11 @@ export interface ProtocolAPI {
     requestId?: string
   ) => Promise<ProtocolResponse<void>>
   cancel: (requestId: string) => Promise<void>
+  calculateFolderStats: (sessionId: string, path: string) => Promise<Result<void, ErrorInfo>>
+  cancelCalculateFolderStats: (sessionId: string) => Promise<void>
+  onFolderStatsProgress: (
+    callback: (data: FolderStatsProgress & { sessionId: string }) => void
+  ) => () => void
 }
 
 interface ConfigAPI {

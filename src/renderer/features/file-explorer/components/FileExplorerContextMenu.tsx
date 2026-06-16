@@ -1,8 +1,19 @@
 import type React from 'react'
-import { Plus, Upload, FolderUp, Download, Copy, FolderInput, Pencil, Trash } from 'lucide-react'
+import {
+  Plus,
+  Upload,
+  FolderUp,
+  Download,
+  Copy,
+  FolderInput,
+  Pencil,
+  Trash,
+  FolderCog,
+} from 'lucide-react'
 import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useClickOutside } from '@renderer/hooks/index.js'
+import { FILE_TYPE } from '@shared/constants/index.js'
 import { type FileInfo } from '@shared/types/index.js'
 
 interface FileExplorerContextMenuProps {
@@ -19,6 +30,7 @@ interface FileExplorerContextMenuProps {
   onUploadFiles: () => void
   onUploadFolder: () => void
   onDownload: (files: FileInfo[]) => void
+  onProperties: (file: FileInfo) => void
 }
 
 export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = ({
@@ -35,6 +47,7 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
   onUploadFiles,
   onUploadFolder,
   onDownload,
+  onProperties,
 }) => {
   const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
@@ -119,6 +132,21 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
             <Trash className="w-3.5 h-3.5 stroke-current stroke-2" />
             {t('common.action.delete')} {files.length > 1 ? `(${files.length})` : ''}
           </button>
+          <div className={separatorClass} />
+          {files.length === 1 && files[0]?.type === FILE_TYPE.DIRECTORY && (
+            <button
+              className={itemClass}
+              onClick={() => {
+                const file = files[0]
+                if (file) {
+                  handleItemClick(() => onProperties(file))
+                }
+              }}
+            >
+              <FolderCog className="w-3.5 h-3.5 stroke-current stroke-2" />
+              {t('file.action.properties')}
+            </button>
+          )}
         </>
       )}
     </div>

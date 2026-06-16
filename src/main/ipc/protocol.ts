@@ -60,4 +60,15 @@ export function setupProtocolIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.PROTOCOL.CANCEL, (_, requestId: string) => {
     protocolService.cancel(requestId)
   })
+
+  ipcMain.handle(
+    IPC_CHANNELS.PROTOCOL.CALCULATE_FOLDER_STATS,
+    async (_, sessionId: string, path: string) => {
+      return await protocolService.calculateFolderStats(sessionId, path)
+    }
+  )
+
+  ipcMain.handle(IPC_CHANNELS.PROTOCOL.CANCEL_CALCULATE_FOLDER_STATS, (_, sessionId: string) => {
+    protocolService.cancelCalculateFolderStats(sessionId)
+  })
 }

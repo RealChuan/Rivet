@@ -12,6 +12,7 @@ import {
 import { TRANSFER_CHANNELS } from '@shared/constants/ipc/transfer.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
 import { sessionManager, sessionRegistry } from '../services/index.js'
+import { protocolService } from '../services/protocol/protocol-service.js'
 import { transferService } from '../services/transfer/index.js'
 import { saveConfig, stopAutoSave } from '../stores/index.js'
 import { logger } from '../utils/index.js'
@@ -158,6 +159,7 @@ export function createMainWindow(): void {
   })
 
   transferService.setMainWindow(win)
+  protocolService.setMainWindow(win)
 
   interceptCloseIfActive(win)
 
@@ -169,6 +171,7 @@ export function createMainWindow(): void {
         title: APP_NAME,
       })
       transferService.setMainWindow(newWin)
+      protocolService.setMainWindow(newWin)
 
       interceptCloseIfActive(newWin)
     }

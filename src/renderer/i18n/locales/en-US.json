@@ -99,6 +99,7 @@
         "download": "Download",
         "move": "Move",
         "newFolder": "New Folder",
+        "properties": "Properties",
         "rename": "Rename",
         "upload": "Upload",
         "uploadFiles": "Upload Files...",
@@ -118,6 +119,24 @@
       "permissions": "Permissions",
       "reconnectHint": "Click to reconnect",
       "retry": "Retry",
+      "size": "Size"
+    },
+    "folderProperties": {
+      "calculate": "Calculate",
+      "calculating": "Calculating...",
+      "cancelCalculation": "Cancel",
+      "cancelled": "Calculation cancelled",
+      "completed": "Completed",
+      "errorCount_one": "Failed directory: {{count}}",
+      "errorCount_other": "Failed directories: {{count}}",
+      "failed": "Calculation failed",
+      "fileCount": "Files",
+      "folderCount": "Folders",
+      "modifyTime": "Modified",
+      "owner": "Owner",
+      "permissions": "Permissions",
+      "recalculate": "Recalculate",
+      "scanning": "Scanning: {{path}}",
       "size": "Size"
     },
     "hostKey": {

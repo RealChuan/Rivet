@@ -13,6 +13,7 @@ import { TOAST_TYPE } from '@shared/constants/index.js'
 import { isOk } from '@shared/types/index.js'
 import ConflictDialog from './ConflictDialog.js'
 import FileExplorerContextMenu from './FileExplorerContextMenu.js'
+import FolderPropertiesDialog from './FolderPropertiesDialog.js'
 import TargetFolderDialog from './TargetFolderDialog.js'
 
 interface FileExplorerDialogsProps {
@@ -52,6 +53,10 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
     openDeleteDialog,
     openRenameDialog,
     clearSelection,
+    propertiesDialogOpen,
+    propertiesDialogFile,
+    openPropertiesDialog,
+    closePropertiesDialog,
   } = listState
 
   const {
@@ -149,6 +154,12 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
         files={pendingFiles}
       />
 
+      <FolderPropertiesDialog
+        open={propertiesDialogOpen}
+        onClose={closePropertiesDialog}
+        file={propertiesDialogFile}
+      />
+
       {contextMenu && (
         <FileExplorerContextMenu
           x={contextMenu.x}
@@ -176,6 +187,7 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
               }))
             )
           }}
+          onProperties={openPropertiesDialog}
         />
       )}
     </>

@@ -1,9 +1,12 @@
 import { ipcRenderer } from 'electron'
 import type {
   ConnectionConfig,
+  ErrorInfo,
   FileInfo,
+  FolderStatsProgress,
   OperationResult,
   ProtocolResponse,
+  Result,
 } from '@shared/types/index.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
 import { listenerManager } from './listener-manager.js'
@@ -67,5 +70,20 @@ export const protocolAPI = {
       event: { sessionId: string; connectionId: string; protocol: string; name: string }
     ) => callback(event)
     return listenerManager.on(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, handler)
+  },
+  calculateFolderStats: (sessionId: string, path: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.CALCULATE_FOLDER_STATS, sessionId, path) as Promise<
+      Result<void, ErrorInfo>
+    >,
+  cancelCalculateFolderStats: (sessionId: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.CANCEL_CALCULATE_FOLDER_STATS, sessionId),
+  onFolderStatsProgress: (
+    callback: (data: FolderStatsProgress & { sessionId: string }) => void
+  ): (() => void) => {
+    const handler = (
+      _: Electron.IpcRendererEvent,
+      data: FolderStatsProgress & { sessionId: string }
+    ) => callback(data)
+    return listenerManager.on(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, handler)
   },
 }

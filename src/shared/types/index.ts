@@ -1,6 +1,7 @@
 export * from './connection.js'
 export * from './electron-api.js'
 export * from './file.js'
+export * from './folder-stats.js'
 export * from './host-key-dialog.js'
 export * from './host-key.js'
 export * from './operation-result.js'

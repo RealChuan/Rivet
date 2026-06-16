@@ -23,6 +23,16 @@ const mockFile2: FileInfo = {
   absolutePath: '/test2.txt',
 }
 
+const mockFolder: FileInfo = {
+  name: 'folder',
+  type: 'directory',
+  size: 0,
+  modifyTime: 3000,
+  permissions: 'rwxr-xr-x',
+  owner: 'user',
+  absolutePath: '/folder',
+}
+
 describe('useFileListState', () => {
   it('should have correct initial state', () => {
     const { result } = renderHook(() => useFileListState())
@@ -34,6 +44,8 @@ describe('useFileListState', () => {
     expect(result.current.newFolderDialogOpen).toBe(false)
     expect(result.current.hoveredFile).toBeNull()
     expect(result.current.contextMenu).toBeNull()
+    expect(result.current.propertiesDialogOpen).toBe(false)
+    expect(result.current.propertiesDialogFile).toBeNull()
   })
 
   it('should select a file', () => {
@@ -134,5 +146,19 @@ describe('useFileListState', () => {
       result.current.setHoveredFile('test.txt')
     })
     expect(result.current.hoveredFile).toBe('test.txt')
+  })
+
+  it('should open and close properties dialog', () => {
+    const { result } = renderHook(() => useFileListState())
+    act(() => {
+      result.current.openPropertiesDialog(mockFolder)
+    })
+    expect(result.current.propertiesDialogOpen).toBe(true)
+    expect(result.current.propertiesDialogFile).toEqual(mockFolder)
+    act(() => {
+      result.current.closePropertiesDialog()
+    })
+    expect(result.current.propertiesDialogOpen).toBe(false)
+    expect(result.current.propertiesDialogFile).toBeNull()
   })
 })
