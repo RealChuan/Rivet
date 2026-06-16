@@ -55,7 +55,7 @@ export async function executeDownloadFile(
   return ok(undefined)
 }
 
-export async function expandRemoteDirectory(
+async function expandRemoteDirectory(
   ctx: TransferContext,
   task: TransferTask,
   remoteDir: string

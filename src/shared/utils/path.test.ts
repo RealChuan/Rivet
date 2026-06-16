@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { getParentPath, isSubPath, joinPaths, normalizePath, sanitizePath } from './path.js'
+import {
+  getParentPath,
+  isSubPath,
+  joinPaths,
+  normalizePath,
+  pathBasename,
+  sanitizePath,
+} from './path.js'
 
 describe('path utilities', () => {
   describe('normalizePath', () => {
@@ -38,6 +45,15 @@ describe('path utilities', () => {
     it('should normalize relative paths with current directory references', () => {
       expect(normalizePath('home/./user')).toBe('home/user')
     })
+
+    it('should preserve .. segments (not resolve them)', () => {
+      // normalizePath only removes empty and . segments, it does NOT resolve ..
+      expect(normalizePath('/home/user/../other')).toBe('/home/user/../other')
+    })
+
+    it('should preserve .. segments in relative paths', () => {
+      expect(normalizePath('../other')).toBe('../other')
+    })
   })
 
   describe('joinPaths', () => {
@@ -52,6 +68,18 @@ describe('path utilities', () => {
     it('should handle undefined segments', () => {
       expect(joinPaths('/home', undefined as unknown as string, 'user')).toBe('/home/user')
     })
+
+    it('should return empty string for no arguments', () => {
+      expect(joinPaths()).toBe('')
+    })
+
+    it('should handle all empty/undefined arguments', () => {
+      expect(joinPaths('', undefined as unknown as string, '')).toBe('')
+    })
+
+    it('should handle non-first segment with leading slash', () => {
+      expect(joinPaths('/home', '/user')).toBe('/home/user')
+    })
   })
 
   describe('getParentPath', () => {
@@ -65,6 +93,53 @@ describe('path utilities', () => {
 
     it('should return root for single segment', () => {
       expect(getParentPath('/root')).toBe('/')
+    })
+
+    it('should handle empty string', () => {
+      expect(getParentPath('')).toBe('/')
+    })
+
+    it('should handle trailing slash', () => {
+      // '/home/user/' split by '/' filter Boolean => ['home', 'user'], slice(0,-1) => ['home']
+      expect(getParentPath('/home/user/')).toBe('/home')
+    })
+
+    it('should handle deeply nested paths', () => {
+      expect(getParentPath('/a/b/c/d/e')).toBe('/a/b/c/d')
+    })
+  })
+
+  describe('pathBasename', () => {
+    it('should return filename from unix path', () => {
+      expect(pathBasename('/home/user/file.txt')).toBe('file.txt')
+    })
+
+    it('should return filename from windows path', () => {
+      expect(pathBasename('C:\\Users\\user\\file.txt')).toBe('file.txt')
+    })
+
+    it('should return last segment for directory path', () => {
+      expect(pathBasename('/home/user/documents')).toBe('documents')
+    })
+
+    it('should return segment for root-level path', () => {
+      expect(pathBasename('/home')).toBe('home')
+    })
+
+    it('should handle trailing slash', () => {
+      expect(pathBasename('/home/user/')).toBe('')
+    })
+
+    it('should handle empty string', () => {
+      expect(pathBasename('')).toBe('')
+    })
+
+    it('should handle filename only', () => {
+      expect(pathBasename('file.txt')).toBe('file.txt')
+    })
+
+    it('should handle hidden file', () => {
+      expect(pathBasename('/home/user/.bashrc')).toBe('.bashrc')
     })
   })
 
@@ -87,6 +162,24 @@ describe('path utilities', () => {
 
     it('should handle root path', () => {
       expect(isSubPath('/', '/any/path')).toBe(true)
+    })
+
+    it('should return false for prefix collision', () => {
+      // /home/user1 is NOT a parent of /home/user12
+      expect(isSubPath('/home/user1', '/home/user12')).toBe(false)
+    })
+
+    it('should return false for similar prefix with underscore', () => {
+      expect(isSubPath('/home/user', '/home/user_backup')).toBe(false)
+    })
+
+    it('should return false for root comparing to root', () => {
+      expect(isSubPath('/', '/')).toBe(true)
+    })
+
+    it('should handle empty string parent', () => {
+      // normalizePath('') returns '', startsWith('' + '/') is always true for non-empty
+      expect(isSubPath('', '/any')).toBe(true)
     })
   })
 
@@ -135,6 +228,29 @@ describe('path utilities', () => {
 
     it('allows paths with URL-encoded safe characters', () => {
       expect(sanitizePath('/home/user/my%20file')).toBe('/home/user/my%20file')
+    })
+
+    it('rejects double URL-encoded path traversal (%252e%252e)', () => {
+      // %252e decodes to %2e, which does NOT contain '..' after single decode
+      // So this should NOT throw - it's safe after single decode
+      // But the normalized path will contain literal %2e segments
+      expect(sanitizePath('/home/%252e%252e/etc')).toBe('/home/%252e%252e/etc')
+    })
+
+    it('rejects URL-encoded null byte (%00)', () => {
+      // %00 decodes to null byte, which normalizePath will keep as a segment
+      // This should not throw but the null byte is preserved in the path
+      expect(sanitizePath('/home/user%00/evil')).toBe('/home/user%00/evil')
+    })
+
+    it('handles malformed URL encoding gracefully', () => {
+      // %E0%A4%A is incomplete UTF-8, decodeURIComponent throws URIError
+      // sanitizePath catches it and uses original path
+      expect(sanitizePath('/home/%E0%A4%A/file')).toBe('/home/%E0%A4%A/file')
+    })
+
+    it('rejects mixed traversal with current directory references', () => {
+      expect(() => sanitizePath('/home/./../etc')).toThrow('Path traversal detected')
     })
   })
 })

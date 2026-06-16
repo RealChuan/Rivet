@@ -69,7 +69,7 @@ export interface ProtocolAPI {
   cancel: (requestId: string) => Promise<void>
 }
 
-export interface ConfigAPI {
+interface ConfigAPI {
   get: (key: StoreKey) => Promise<Result<unknown, ErrorInfo>>
   set: (key: StoreKey, value: unknown) => Promise<Result<void, ErrorInfo>>
 }
@@ -85,19 +85,19 @@ export interface DialogAPI {
   }) => Promise<Result<{ canceled: boolean; filePath?: string } | undefined, ErrorInfo>>
 }
 
-export interface HostKeyAPI {
+interface HostKeyAPI {
   save: (record: { connectionId: string; hash: string }) => Promise<Result<void, ErrorInfo>>
   delete: (connectionId: string) => Promise<Result<void, ErrorInfo>>
 }
 
-export interface SystemAPI {
+interface SystemAPI {
   getTempDir: () => Promise<Result<string, ErrorInfo>>
   getDownloadDir: () => Promise<Result<string, ErrorInfo>>
   generateUuid: () => string
   supportsGlass: () => Promise<boolean>
 }
 
-export interface CryptoAPI {
+interface CryptoAPI {
   encryptPassword: (password: string) => Promise<Result<string, ErrorInfo>>
   decryptPassword: (encrypted: string) => Promise<Result<string, ErrorInfo>>
 }

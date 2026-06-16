@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next'
 import logger from '@renderer/utils/logger.js'
 import { AppLogo } from './AppLogo.js'
 
-export interface TitleBarProps {
+interface TitleBarProps {
   /**
    * 子窗口模式
    * - true: 隐藏最小化/最大化，仅显示关闭按钮

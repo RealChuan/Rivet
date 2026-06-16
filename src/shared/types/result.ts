@@ -23,7 +23,7 @@
 /**
  * 成功结果类型
  */
-export interface Ok<T> {
+interface Ok<T> {
   success: true
   value: T
   error: null

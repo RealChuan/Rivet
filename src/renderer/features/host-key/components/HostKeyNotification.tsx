@@ -2,7 +2,7 @@ import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { HOST_KEY_DIALOG_TYPE, type HostKeyDialogType } from '@shared/constants/index.js'
 
-export interface HostKeyNotificationProps {
+interface HostKeyNotificationProps {
   type: HostKeyDialogType
   hash: string
   previousHash?: string | undefined

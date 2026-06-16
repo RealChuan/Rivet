@@ -14,7 +14,7 @@ import type { TransferContext } from './transfer-context.js'
 import { protocolService } from '../protocol/protocol-service.js'
 import { isAbortError } from './transfer-context.js'
 
-export async function expandUploadDirectory(
+async function expandUploadDirectory(
   ctx: TransferContext,
   task: TransferTask,
   remoteDir: string

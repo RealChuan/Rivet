@@ -24,15 +24,12 @@ export const FILE_OPERATION = {
   PING: 'ping',
 } as const
 
-export type FileOperationType = (typeof FILE_OPERATION)[keyof typeof FILE_OPERATION]
-
 export const LOG_ACTION = {
   CONNECT: 'connect',
   DISCONNECT: 'disconnect',
   CLOSE_CONNECTION: 'close-connection',
   CHECK_TARGET_BEFORE_MOVE: 'check-target-before-move',
   DELETE_ABORTED_UPLOAD_REMNANT: 'delete-aborted-upload-remnant',
-  DELETE_ABORTED_DOWNLOAD_REMNANT: 'delete-aborted-download-remnant',
 } as const
 
 export const PORT_SFTP = 22

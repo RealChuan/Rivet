@@ -32,8 +32,6 @@ export const DEFAULT_MAIN_WINDOW_HEIGHT = 700
  */
 export const MIN_MAIN_WINDOW_HEIGHT = 600
 
-export const DEFAULT_PANEL_WIDTH = 240
-
 export const MIN_PANEL_WIDTH = 100
 
 export const MAX_PANEL_WIDTH = 400

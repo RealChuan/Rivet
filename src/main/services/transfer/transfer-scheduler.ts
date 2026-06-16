@@ -17,7 +17,7 @@ import { isAbortError } from './transfer-context.js'
 import { addSpeedSample, shouldThrottle, markProgressSent } from './transfer-progress.js'
 import { executeUploadFolderOp } from './upload-executor.js'
 
-export function scheduleByDirection(
+function scheduleByDirection(
   ctx: TransferContext,
   direction: (typeof TRANSFER_DIRECTION)[keyof typeof TRANSFER_DIRECTION]
 ): void {

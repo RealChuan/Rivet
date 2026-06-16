@@ -13,6 +13,7 @@ import {
   TRANSFER_OPERATION_TYPE,
 } from '@shared/constants/transfer.js'
 import { formatFileSize } from '@shared/utils/index.js'
+import { ErrorDetailDialog } from './ErrorDetailDialog.js'
 import { TransferProgressBar } from './TransferProgressBar.js'
 
 const EMPTY_OPERATIONS: OperationProgressInfo[] = []
@@ -264,7 +265,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
             type={isFolder ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE}
             className="w-4 h-4 shrink-0"
           />
-          <span className="truncate text-sm" title={`${task.localPath} → ${task.remotePath}`}>
+          <span className="truncate text-sm" title={task.itemName}>
             {task.itemName}
           </span>
         </div>
@@ -342,8 +343,25 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
         </div>
       </div>
 
-      {isFolder &&
-        displayedOps.map(op => (op ? <InlineOperationRow key={op.id} op={op} lng={lng} /> : null))}
+      {/* Path rows — span all columns */}
+      <div className="px-3 pb-2 pt-0.5 border-b border-border">
+        <div className="text-[13px] text-text-secondary truncate py-0.5" title={task.localPath}>
+          <span className="text-text-muted mr-1.5">{t('transfer.path.source')}: </span>
+          {task.localPath}
+        </div>
+        <div className="text-[13px] text-text-secondary truncate py-0.5" title={task.remotePath}>
+          <span className="text-text-muted mr-1.5">{t('transfer.path.destination')}: </span>
+          {task.remotePath}
+        </div>
+      </div>
+
+      {isFolder && (
+        <div className={displayedOps.length > 0 ? 'border-b border-border' : ''}>
+          {displayedOps.map(op =>
+            op ? <InlineOperationRow key={op.id} op={op} lng={lng} /> : null
+          )}
+        </div>
+      )}
 
       {contextMenu && (
         <div
@@ -406,42 +424,11 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
         </div>
       )}
 
-      {showErrorDetail && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setShowErrorDetail(false)}
-        >
-          <div
-            className="bg-surface rounded-lg shadow-lg p-4 max-w-md w-full mx-4"
-            onClick={e => e.stopPropagation()}
-          >
-            <h3 className="text-sm font-medium text-text mb-2">
-              {t('transfer.action.viewErrorDetails')}
-            </h3>
-            <p className="text-sm text-text-muted break-all whitespace-pre-wrap">
-              {task.errorMessage}
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded-md text-sm bg-transparent border border-border text-text-muted hover:bg-hover transition-colors cursor-default"
-                onClick={() => {
-                  void navigator.clipboard.writeText(task.errorMessage ?? '')
-                }}
-              >
-                {t('transfer.errorDetail.copy')}
-              </button>
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded-md text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-default"
-                onClick={() => setShowErrorDetail(false)}
-              >
-                {t('common.close')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ErrorDetailDialog
+        open={showErrorDetail}
+        onClose={() => setShowErrorDetail(false)}
+        errorMessage={task.errorMessage ?? ''}
+      />
     </div>
   )
 }

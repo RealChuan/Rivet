@@ -18,7 +18,7 @@ import { type ConnectionConfig } from '@shared/types/index.js'
 import { decryptPassword } from '../utils/password-crypto.js'
 import { ConnectionFormFields } from './ConnectionFormFields.js'
 
-export interface ConnectionDialogProps {
+interface ConnectionDialogProps {
   open: boolean
   onClose: () => void
   onSave: (config: Omit<ConnectionConfig, 'id'> & { password?: string }) => Promise<void>

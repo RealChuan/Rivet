@@ -29,5 +29,3 @@ export const IPC_CHANNELS = {
   EVENTS: EVENTS_CHANNELS,
   TRANSFER: TRANSFER_CHANNELS,
 } as const
-
-export type IpcChannels = typeof IPC_CHANNELS

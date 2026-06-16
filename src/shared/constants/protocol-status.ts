@@ -31,17 +31,3 @@ export const SftpStatus = {
 export type StatusCode =
   | (typeof ProtocolStatus)[keyof typeof ProtocolStatus]
   | (typeof SftpStatus)[keyof typeof SftpStatus]
-
-/**
- * 获取状态码对应的国际化消息键
- * @param code - 状态码
- * @returns 国际化消息键
- */
-export function getStatusMessage(code: StatusCode): string {
-  const messages: Record<StatusCode, string> = {
-    [ProtocolStatus.OK]: 'connection.ok',
-    [ProtocolStatus.FIRST_CONNECT]: 'connection.firstConnect',
-    [SftpStatus.HOST_KEY_MISMATCH]: 'connection.hostKeyMismatch',
-  }
-  return messages[code] ?? `Unknown status: ${code}`
-}

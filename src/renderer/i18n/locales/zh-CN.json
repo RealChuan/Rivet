@@ -219,6 +219,10 @@
       "folderStats": {
         "fileCount": "{{completed}}/{{total}} 文件"
       },
+      "path": {
+        "destination": "目标",
+        "source": "源"
+      },
       "runningCount": "{{count}} 个任务进行中",
       "sort": {
         "name": "名称",

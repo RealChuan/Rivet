@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { type FileInfo } from '@shared/types/index.js'
 
-export interface ContextMenuState {
+interface ContextMenuState {
   x: number
   y: number
   files: FileInfo[]
@@ -117,5 +117,3 @@ export const useFileListState = () => {
 }
 
 export type UseFileListStateReturn = ReturnType<typeof useFileListState>
-
-export default useFileListState

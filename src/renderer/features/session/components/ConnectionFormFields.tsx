@@ -14,7 +14,7 @@ import {
   type SchemeType,
 } from '@shared/constants/index.js'
 
-export interface ConnectionFormFieldsProps {
+interface ConnectionFormFieldsProps {
   name: string
   onNameChange: (value: string) => void
   protocol: ProtocolType

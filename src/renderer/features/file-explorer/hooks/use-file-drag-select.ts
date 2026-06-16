@@ -14,7 +14,7 @@ interface UseFileDragSelectOptions {
   onDragSelect?: (files: FileInfo[]) => void
 }
 
-export interface UseFileDragSelectReturn {
+interface UseFileDragSelectReturn {
   isDragging: boolean
   hasStartedDrag: boolean
   dragSelection: Set<string>

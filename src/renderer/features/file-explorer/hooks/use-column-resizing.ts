@@ -21,7 +21,7 @@ interface UseColumnResizingOptions {
   initialWidths?: Partial<ColumnWidths>
 }
 
-export interface UseColumnResizingReturn {
+interface UseColumnResizingReturn {
   columnWidths: ColumnWidths
   actualColumnWidths: ColumnWidths
   hasUserResized: boolean

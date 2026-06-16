@@ -1,15 +1,15 @@
 import { type ErrorInfo } from './result.js'
 
-export type RequestId = string
+type RequestId = string
 
-export interface ProtocolSuccessResponse<T> {
+interface ProtocolSuccessResponse<T> {
   requestId: RequestId
   success: true
   value: T
   error: undefined
 }
 
-export interface ProtocolErrorResponse {
+interface ProtocolErrorResponse {
   requestId: RequestId
   success: false
   value: undefined

@@ -111,18 +111,58 @@ describe('Result Type', () => {
     })
   })
 
-  describe('ErrorInfo interface', () => {
-    it('should have correct structure', () => {
-      const errorInfo: ErrorInfo = {
-        code: 'CONN_TIMEOUT',
-        message: 'Connection timed out',
-        detail: 'Timeout after 30s',
-        stack: 'Error: timeout\n    at connect()',
-      }
-      expect(errorInfo.code).toBeTypeOf('string')
-      expect(errorInfo.message).toBeTypeOf('string')
-      expect(errorInfo.detail).toBeTypeOf('string')
-      expect(errorInfo.stack).toBeTypeOf('string')
+  describe('err() boundary conditions', () => {
+    it('should handle err(null)', () => {
+      const result = err(null)
+      expect(result.success).toBe(false)
+      expect(result.error).toBeNull()
+      expect(result.value).toBeNull()
+    })
+
+    it('should handle err(0)', () => {
+      const result = err(0)
+      expect(result.success).toBe(false)
+      expect(result.error).toBe(0)
+    })
+
+    it('should handle err(false)', () => {
+      const result = err(false)
+      expect(result.success).toBe(false)
+      expect(result.error).toBe(false)
+    })
+
+    it('should handle err("")', () => {
+      const result = err('')
+      expect(result.success).toBe(false)
+      expect(result.error).toBe('')
+    })
+
+    it('should handle err(undefined)', () => {
+      const result = err(undefined)
+      expect(result.success).toBe(false)
+      expect(result.error).toBeUndefined()
+    })
+  })
+
+  describe('createErrorInfo() boundary conditions', () => {
+    it('should handle empty code and message', () => {
+      const errorInfo = createErrorInfo('', '')
+      expect(errorInfo.code).toBe('')
+      expect(errorInfo.message).toBe('')
+    })
+
+    it('should only include detail and stack when provided', () => {
+      const minimal = createErrorInfo('CODE', 'msg')
+      expect(minimal).not.toHaveProperty('detail')
+      expect(minimal).not.toHaveProperty('stack')
+
+      const withDetail = createErrorInfo('CODE', 'msg', 'detail')
+      expect(withDetail.detail).toBe('detail')
+      expect(withDetail).not.toHaveProperty('stack')
+
+      const withAll = createErrorInfo('CODE', 'msg', 'detail', 'stack')
+      expect(withAll.detail).toBe('detail')
+      expect(withAll.stack).toBe('stack')
     })
   })
 

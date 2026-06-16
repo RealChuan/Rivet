@@ -11,9 +11,6 @@ import { FileIcon } from '@renderer/components/common/index.js'
 import { logger } from '@renderer/utils/index.js'
 import { FILE_OPERATION } from '@shared/constants/index.js'
 
-export { CONFLICT_STRATEGY } from '@renderer/components/common/ConflictDialogBase.js'
-export type { ConflictStrategy } from '@renderer/components/common/ConflictDialogBase.js'
-
 export interface ConflictItem {
   sourceFile: FileInfo
   targetFile: FileInfo | null

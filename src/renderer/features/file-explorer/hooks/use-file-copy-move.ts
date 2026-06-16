@@ -29,7 +29,7 @@ import { formatErrorMessage, generateUniqueFilename, isSubPath } from '@shared/u
 
 type CopyMoveOperation = typeof FILE_OPERATION.COPY | typeof FILE_OPERATION.MOVE
 
-export interface UseFileCopyMoveReturn {
+interface UseFileCopyMoveReturn {
   handleCopy: (files: FileInfo[]) => void
   handleMove: (files: FileInfo[]) => void
   handleSelectTargetFolder: (targetDir: FileInfo) => Promise<Result<void, ErrorInfo>>

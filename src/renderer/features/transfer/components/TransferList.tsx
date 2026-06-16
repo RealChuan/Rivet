@@ -11,9 +11,15 @@ import { useTransferSort } from '../hooks/use-transfer-sort.js'
 import { TransferActionBar } from './TransferActionBar.js'
 import { TransferTaskItem } from './TransferTaskItem.js'
 
-const FILE_ROW_HEIGHT = 44
-const FOLDER_HEADER_HEIGHT = 44
+// Main row: h-10 (40px) + border-b (1px) = 41px
+const FILE_ROW_HEIGHT = 41
+// Path rows: pt-0.5 (2px) + 2 lines (13px font, ~20px line-height + py-0.5*2 = ~24px each) + pb-2 (8px) + border-b (1px) = 59px
+const PATH_ROWS_HEIGHT = 59
+const FOLDER_HEADER_HEIGHT = 41
+// Sub-operation row: h-8 (32px)
 const FOLDER_OP_ROW_HEIGHT = 32
+// Folder sub-ops container border-b (1px)
+const FOLDER_OPS_BORDER = 1
 
 interface TransferListProps {
   tasks: TransferTask[]
@@ -56,9 +62,14 @@ export const TransferList: React.FC<TransferListProps> = ({ tasks, onCancelAll }
   const getItemHeightForIndex = useCallback(
     (index: number) => {
       const task = sortedTasks[index]
-      if (!task) return FILE_ROW_HEIGHT
-      if (task.itemType !== FILE_TYPE.DIRECTORY) return FILE_ROW_HEIGHT
-      return FOLDER_HEADER_HEIGHT + TRANSFER_CONFIG.MAX_INLINE_OPERATIONS * FOLDER_OP_ROW_HEIGHT
+      if (!task) return FILE_ROW_HEIGHT + PATH_ROWS_HEIGHT
+      if (task.itemType !== FILE_TYPE.DIRECTORY) return FILE_ROW_HEIGHT + PATH_ROWS_HEIGHT
+      return (
+        FOLDER_HEADER_HEIGHT +
+        PATH_ROWS_HEIGHT +
+        TRANSFER_CONFIG.MAX_INLINE_OPERATIONS * FOLDER_OP_ROW_HEIGHT +
+        FOLDER_OPS_BORDER
+      )
     },
     [sortedTasks]
   )

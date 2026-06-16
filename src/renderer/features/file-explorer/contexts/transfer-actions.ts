@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { FileType } from '@shared/constants/ui.js'
 
-export interface TransferActions {
+interface TransferActions {
   startUpload: (
     localPaths: string[],
     sessionId: string,

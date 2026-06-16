@@ -16,8 +16,3 @@ export const SORT_FIELD = {
 } as const
 
 export type FileExplorerSortField = (typeof SORT_FIELD)[keyof typeof SORT_FIELD]
-
-export type FileExplorerSortFieldBasic =
-  | typeof SORT_FIELD.NAME
-  | typeof SORT_FIELD.SIZE
-  | typeof SORT_FIELD.MODIFY_TIME

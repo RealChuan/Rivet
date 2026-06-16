@@ -3,7 +3,7 @@ import { OPERATION_STATUS } from '@shared/constants/index.js'
 import type { TaskProgress } from './transfer.js'
 
 /** Progress data separated from task list to avoid triggering list re-renders */
-export interface ProgressBatchState {
+interface ProgressBatchState {
   buffer: TransferProgressData[]
   timerId: ReturnType<typeof setTimeout> | null
 }
@@ -44,7 +44,7 @@ function hasOperationsChanged(
   )
 }
 
-export function buildUpdatedProgress(
+function buildUpdatedProgress(
   current: TaskProgress | undefined,
   data: TransferProgressData
 ): TaskProgress {

@@ -222,6 +222,10 @@
       "folderStats": {
         "fileCount": "{{completed}}/{{total}} files"
       },
+      "path": {
+        "destination": "Destination",
+        "source": "Source"
+      },
       "runningCount_one": "{{count}} task in progress",
       "runningCount_other": "{{count}} tasks in progress",
       "sort": {

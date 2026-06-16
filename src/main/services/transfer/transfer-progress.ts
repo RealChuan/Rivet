@@ -16,8 +16,8 @@ export interface SpeedSample {
   transferredSize: number
 }
 
-export const SPEED_WINDOW_MS = 3000
-export const SPEED_MIN_SAMPLES = 2
+const SPEED_WINDOW_MS = 3000
+const SPEED_MIN_SAMPLES = 2
 
 export function addSpeedSample(
   samples: Map<string, SpeedSample[]>,

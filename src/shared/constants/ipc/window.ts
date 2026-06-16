@@ -1,5 +1,4 @@
 export const WINDOW_CHANNELS = {
-  GET_APP_VERSION: 'window:get-app-version',
   MINIMIZE: 'window:minimize',
   MAXIMIZE: 'window:maximize',
   CLOSE: 'window:close',
