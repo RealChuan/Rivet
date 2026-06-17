@@ -8,7 +8,7 @@ import globals from 'globals'
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', 'release/**', 'out/**', 'coverage/**', '.trae/**'],
+    ignores: ['**/.vite/**', 'node_modules/**', 'out/**', 'coverage/**', '.trae/**'],
   },
 
   js.configs.recommended,
@@ -26,7 +26,7 @@ export default [
     },
     languageOptions: {
       parserOptions: {
-        ecmaVersion: 2025,
+        ecmaVersion: 'latest',
         sourceType: 'module',
         ecmaFeatures: { jsx: true },
         project: ['tsconfig.json', 'tsconfig.main.json'],
@@ -35,7 +35,7 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
-        ...globals.es2025,
+        ...globals.esnext,
       },
     },
     rules: {

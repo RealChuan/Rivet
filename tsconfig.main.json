@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2025",
+    "target": "ESNEXT",
     "module": "NodeNext",
-    "lib": ["ES2025", "DOM"],
+    "lib": ["ESNEXT", "DOM"],
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
     "baseUrl": ".",
@@ -11,8 +11,7 @@
       "@renderer/*": ["./src/renderer/*"],
       "@main/*": ["./src/main/*"],
       "@shared/*": ["./src/shared/*"],
-      "@preload/*": ["./src/preload/*"],
-      "@tests/*": ["./src/tests/*"]
+      "@preload/*": ["./src/preload/*"]
     },
     "strict": true,
     "exactOptionalPropertyTypes": true,
@@ -28,9 +27,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true,
-    "rootDir": "src",
-    "outDir": "dist",
-    "noEmitOnError": true,
+    "noEmit": true,
     "types": ["node"],
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -38,6 +35,6 @@
     "rewriteRelativeImportExtensions": true,
     "ignoreDeprecations": "6.0"
   },
-  "include": ["src/main/**/*", "src/shared/**/*", "src/preload/**/*"],
+  "include": ["src/main/**/*", "src/shared/**/*", "src/preload/**/*", "forge.env.d.ts"],
   "exclude": ["node_modules", "src/shared/test-utils/**/*"]
 }

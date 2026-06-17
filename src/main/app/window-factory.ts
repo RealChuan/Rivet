@@ -5,23 +5,19 @@
  * 自动应用平台适配的无边框配置，复用同一套 Preload 脚本。
  */
 
-import { app, BrowserWindow, type BrowserWindowConstructorOptions } from 'electron'
+import { BrowserWindow, type BrowserWindowConstructorOptions } from 'electron'
 import path from 'node:path'
-import { fileURLToPath, URL } from 'node:url'
 import {
   DEFAULT_CHILD_WINDOW_HEIGHT,
   DEFAULT_CHILD_WINDOW_MIN_HEIGHT,
   DEFAULT_CHILD_WINDOW_MIN_WIDTH,
   DEFAULT_CHILD_WINDOW_WIDTH,
-  DEV_SERVER_URL,
   MACOS_TRAFFIC_LIGHT_POSITION,
   APP_NAME,
 } from '@shared/constants/index.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
 import { supportsGlassEffect } from '../utils/index.js'
 import { registerWindowMeta, unregisterWindowMeta } from '../utils/window-meta.js'
-
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
 // ============================================================
 // 类型定义
@@ -90,7 +86,7 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
     modal: options.modal ?? false,
 
     webPreferences: {
-      preload: path.join(__dirname, '../../preload/index.cjs'),
+      preload: path.join(__dirname, './index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -119,14 +115,10 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
   })
 
   // ========== 加载页面 ==========
-  const route = options.route ?? '/'
-
-  if (!app.isPackaged) {
-    void win.loadURL(`${DEV_SERVER_URL}${route ? `#${route}` : ''}`)
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    void win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
   } else {
-    void win.loadFile(path.join(__dirname, '../../renderer/index.html'), {
-      hash: route,
-    })
+    void win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
   }
 
   // ========== 安全：阻止导航和打开新窗口 ==========

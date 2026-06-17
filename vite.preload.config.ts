@@ -3,8 +3,6 @@ import path from 'node:path'
 
 export default defineConfig({
   build: {
-    outDir: './dist/preload',
-    emptyOutDir: false,
     lib: {
       entry: 'src/preload/index.ts',
       formats: ['cjs'],
@@ -17,6 +15,8 @@ export default defineConfig({
         exports: 'none',
       },
     },
+    outDir: '.vite/build',
+    emptyOutDir: false,
   },
   resolve: {
     alias: {

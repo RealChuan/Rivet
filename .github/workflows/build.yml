@@ -57,18 +57,20 @@ jobs:
           - os: windows-latest
             build-command: pnpm run package:win
             artifact-name: windows-build
-            artifact-paths: release/*.7z
+            artifact-paths: |
+              out/**/*.zip
           - os: ubuntu-latest
             build-command: pnpm run package:linux
             artifact-name: linux-build
             artifact-paths: |
-              release/*.7z
-              release/*.AppImage
-              release/*.deb
+              out/**/*.zip
+              out/**/*.deb
           - os: macos-latest
             build-command: pnpm run package:mac
             artifact-name: macos-build
-            artifact-paths: release/*.dmg
+            artifact-paths: |
+              out/**/*.zip
+              out/**/*.dmg
 
     steps:
       - uses: actions/checkout@v6
@@ -78,7 +80,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: latest
+          node-version: 24.15.0 # https://github.com/electron/forge/issues/4277
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6

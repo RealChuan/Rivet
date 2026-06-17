@@ -57,6 +57,9 @@ describe('window-factory', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks()
+    // Forge Vite 插件注入的全局变量，测试环境中需要手动定义
+    ;(globalThis as Record<string, unknown>).MAIN_WINDOW_VITE_DEV_SERVER_URL = ''
+    ;(globalThis as Record<string, unknown>).MAIN_WINDOW_VITE_NAME = 'main_window'
     const module = await import('./window-factory.js')
     createFramelessWindow = module.createFramelessWindow
     WindowManager = module.WindowManager

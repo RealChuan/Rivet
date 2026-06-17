@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "type": "module",
   "description": "Electron SFTP/WebDAV 文件浏览器",
-  "main": "dist/main/app/main.js",
+  "main": ".vite/build/main.js",
   "author": {
     "name": "RealChuan",
     "url": "https://github.com/RealChuan"
@@ -29,16 +29,11 @@
   ],
   "packageManager": "pnpm@11.7.0",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
-    "dev": "concurrently \"pnpm run dev:vite\" \"pnpm run dev:electron\"",
-    "dev:vite": "vite",
-    "dev:electron": "wait-on http://localhost:5173 && electron .",
-    "build": "pnpm run build:vite && pnpm run build:preload && pnpm run build:electron",
-    "build:vite": "vite build",
-    "build:preload": "vite build --config vite.preload.config.ts",
-    "build:electron": "tsc -p tsconfig.main.json && tsc-alias -p tsconfig.main.json",
+    "dev": "electron-forge start",
+    "build": "electron-forge package",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -52,13 +47,18 @@
     "typecheck:main": "tsc -p tsconfig.main.json --noEmit",
     "typecheck:all": "pnpm run typecheck && pnpm run typecheck:main",
     "i18n:extract": "pnpm exec i18next-cli extract",
-    "package": "pnpm run build && electron-builder --publish never",
-    "package:win": "pnpm run build && electron-builder --win --publish never",
-    "package:linux": "pnpm run build && electron-builder --linux --publish never",
-    "package:mac": "pnpm run build && electron-builder --mac --publish never",
-    "ci": "pnpm run format && pnpm run lint:fix && pnpm run typecheck:all && pnpm run test:run && pnpm run i18n:extract && pnpm run build",
-    "postinstall": "electron-builder install-app-deps",
-    "rebuild": "electron-builder install-app-deps"
+    "package": "electron-forge make",
+    "package:win": "pnpm run package:win:x64 && pnpm run package:win:arm64",
+    "package:win:x64": "electron-forge make --platform=win32 --arch=x64",
+    "package:win:arm64": "electron-forge make --platform=win32 --arch=arm64",
+    "package:linux": "pnpm run package:linux:x64 && pnpm run package:linux:arm64",
+    "package:linux:x64": "electron-forge make --platform=linux --arch=x64",
+    "package:linux:arm64": "electron-forge make --platform=linux --arch=arm64",
+    "package:mac": "pnpm run package:mac:x64 && pnpm run package:mac:arm64 && pnpm run package:mac:universal",
+    "package:mac:x64": "electron-forge make --platform=darwin --arch=x64",
+    "package:mac:arm64": "electron-forge make --platform=darwin --arch=arm64",
+    "package:mac:universal": "electron-forge make --platform=darwin --arch=universal",
+    "ci": "pnpm run format && pnpm run lint:fix && pnpm run typecheck:all && pnpm run test:run && pnpm run i18n:extract && npm run build"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -70,7 +70,7 @@
     "electron-log": "^5.4.4",
     "electron-store": "^11.0.2",
     "i18next": "^26.3.1",
-    "lucide-react": "^1.18.0",
+    "lucide-react": "^1.20.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-i18next": "^17.0.8",
@@ -82,6 +82,11 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^7.11.2",
+    "@electron-forge/maker-deb": "^7.11.2",
+    "@electron-forge/maker-dmg": "^7.11.2",
+    "@electron-forge/maker-zip": "^7.11.2",
+    "@electron-forge/plugin-vite": "^7.11.2",
     "@eslint/js": "^9.39.4",
     "@tailwindcss/vite": "^4.3.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -94,97 +99,20 @@
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.9",
     "babel-plugin-react-compiler": "^1.0.0",
-    "concurrently": "^9.2.1",
-    "electron": "^42.4.0",
-    "electron-builder": "^26.15.3",
+    "electron": "^42.4.1",
     "eslint": "^9.39.4",
     "eslint-plugin-perfectionist": "^5.9.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-compiler": "^19.1.0-rc.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.6.0",
-    "i18next-cli": "^1.64.0",
+    "i18next-cli": "^1.64.1",
     "jsdom": "^29.1.1",
     "prettier": "^3.8.4",
     "tailwindcss": "^4.3.1",
-    "tsc-alias": "^1.8.17",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.1",
     "vite": "^8.0.16",
-    "vitest": "^4.1.9",
-    "wait-on": "^9.0.10"
-  },
-  "desktopName": "rivet.desktop",
-  "build": {
-    "appId": "com.rivet.app",
-    "productName": "Rivet",
-    "asar": true,
-    "asarUnpack": "**/*.{node,dll}",
-    "directories": {
-      "output": "release",
-      "buildResources": "assets"
-    },
-    "files": [
-      "dist/**/*",
-      "package.json"
-    ],
-    "win": {
-      "signAndEditExecutable": false,
-      "target": [
-        {
-          "target": "7z",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ]
-    },
-    "linux": {
-      "target": [
-        {
-          "target": "7z",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ],
-      "category": "Utility",
-      "maintainer": "RealChuan",
-      "syncDesktopName": true
-    },
-    "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64",
-            "universal"
-          ]
-        }
-      ],
-      "identity": null,
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false
-    },
-    "dmg": {
-      "sign": false
-    }
+    "vitest": "^4.1.9"
   }
 }

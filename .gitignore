@@ -5,8 +5,10 @@ node_modules/
 .pnpm-store/
 
 # Build outputs
+.vite/
 dist/
 release/
+out/
 
 # Logs
 *.log

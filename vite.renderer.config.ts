@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
 export default defineConfig({
+  root: 'src/renderer',
+  base: './',
   plugins: [
     react({
       babel: {
@@ -12,13 +14,11 @@ export default defineConfig({
     }),
     tailwindcss(),
   ],
-  base: './',
-  root: 'src/renderer',
   build: {
-    outDir: '../../dist/renderer',
+    outDir: path.resolve(__dirname, '.vite/renderer/main_window'),
     emptyOutDir: true,
     rollupOptions: {
-      external: ['electron', 'electron-store', 'electron-log'],
+      external: ['electron'],
       output: {
         manualChunks(id) {
           if (id.includes('node_modules/react-dom/') || id.includes('node_modules/react/')) {
@@ -49,14 +49,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@renderer': path.resolve(__dirname, './src/renderer'),
-      '@main': path.resolve(__dirname, './src/main'),
       '@shared': path.resolve(__dirname, './src/shared'),
-      '@preload': path.resolve(__dirname, './src/preload'),
-      '@tests': path.resolve(__dirname, './src/tests'),
     },
-  },
-  server: {
-    port: 5173,
-    strictPort: true,
   },
 })

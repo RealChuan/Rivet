@@ -63,9 +63,6 @@ export const DEFAULT_CHILD_WINDOW_MIN_WIDTH = MIN_MAIN_WINDOW_WIDTH
 export const DEFAULT_CHILD_WINDOW_MIN_HEIGHT = MIN_MAIN_WINDOW_HEIGHT
 /** macOS 交通灯位置 */
 export const MACOS_TRAFFIC_LIGHT_POSITION = { x: 16, y: 14 } as const
-/** 开发服务器 URL */
-export const DEV_SERVER_URL = 'http://localhost:5173'
-
 /** 连接面板默认宽度 */
 export const DEFAULT_CONNECTION_PANEL_WIDTH = 260
 /** 传输面板默认宽度 */

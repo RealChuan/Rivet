@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2025",
+    "target": "ESNEXT",
     "module": "NodeNext",
-    "lib": ["ES2025", "DOM"],
+    "lib": ["ESNEXT", "DOM"],
     "jsx": "react-jsx",
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
@@ -12,8 +12,7 @@
       "@/*": ["./src/*"],
       "@renderer/*": ["./src/renderer/*"],
       "@main/*": ["./src/main/*"],
-      "@shared/*": ["./src/shared/*"],
-      "@tests/*": ["./src/tests/*"]
+      "@shared/*": ["./src/shared/*"]
     },
     "strict": true,
     "exactOptionalPropertyTypes": true,
@@ -37,6 +36,6 @@
     "rewriteRelativeImportExtensions": true,
     "ignoreDeprecations": "6.0"
   },
-  "include": ["./src/renderer/**/*", "./src/shared/**/*", "./src/main/**/*"],
+  "include": ["./src/renderer/**/*", "./src/shared/**/*", "./src/main/**/*", "forge.env.d.ts"],
   "exclude": ["node_modules", "dist"]
 }
