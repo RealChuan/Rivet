@@ -75,7 +75,7 @@ export const BrowserWindow = Object.assign(
   {
     getAllWindows: vi.fn(() => []),
     fromWebContents: vi.fn(() => null),
-  }
+  },
 )
 
 // === SafeStorage ===

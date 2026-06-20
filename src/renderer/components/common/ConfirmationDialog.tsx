@@ -17,7 +17,7 @@ interface ConfirmationDialogProps {
   customContent?: React.ReactNode
 }
 
-export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
+export const ConfirmationDialog = ({
   open,
   onClose,
   onConfirm,
@@ -28,7 +28,7 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   cancelText,
   type = 'danger',
   customContent,
-}) => {
+}: ConfirmationDialogProps) => {
   const { t } = useTranslation()
 
   const dialogConfig = {
@@ -84,10 +84,10 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
         <div className="flex justify-end gap-2.5 w-full">
           <Button variant="secondary" onClick={() => void handleCancel()}>
-            {cancelText ?? t('common.action.cancel')}
+            {cancelText ?? t(($) => $.common.action.cancel)}
           </Button>
           <Button variant={config.buttonVariant} onClick={() => void handleConfirm()}>
-            {confirmText ?? t('common.action.confirm')}
+            {confirmText ?? t(($) => $.common.action.confirm)}
           </Button>
         </div>
       </div>

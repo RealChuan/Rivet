@@ -1,4 +1,3 @@
-import type React from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@renderer/utils/index.js'
@@ -22,7 +21,7 @@ interface FileListHeaderProps {
   sortOrder: SortOrderWithDirection
   onSort: (column: FileExplorerSortField) => void
   onResizeStart: (column: string, x: number, width: number) => void
-  isWebdav?: boolean
+  isSftp?: boolean
 }
 
 const RESIZER_GAP = 10
@@ -39,7 +38,7 @@ const SortIcon = ({ sortBy, sortOrder, column }: SortIconProps) => {
     <ChevronDown
       className={cn(
         'w-4 h-4 stroke-accent stroke-2',
-        sortOrder === SORT_ORDER.DESC && 'rotate-180'
+        sortOrder === SORT_ORDER.DESC && 'rotate-180',
       )}
     />
   )
@@ -53,7 +52,7 @@ interface ColumnResizerProps {
 
 const ColumnResizer = ({ column, columnWidths, onResizeStart }: ColumnResizerProps) => (
   <div
-    onMouseDown={e => {
+    onMouseDown={(e) => {
       e.preventDefault()
       onResizeStart(column, e.clientX, columnWidths[column as keyof ColumnWidths])
     }}
@@ -114,14 +113,14 @@ const ColumnHeader = ({
   )
 }
 
-export const FileListHeader: React.FC<FileListHeaderProps> = ({
+export const FileListHeader = ({
   columnWidths,
   sortBy,
   sortOrder,
   onSort,
   onResizeStart,
-  isWebdav = false,
-}) => {
+  isSftp = false,
+}: FileListHeaderProps) => {
   const { t } = useTranslation()
 
   return (
@@ -131,7 +130,7 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
     >
       <ColumnHeader
         column="name"
-        label={t('fileExplorerList.name')}
+        label={t(($) => $.fileExplorerList.name)}
         isFirst
         columnWidths={columnWidths}
         sortBy={sortBy}
@@ -139,11 +138,11 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
         onSort={onSort}
         onResizeStart={onResizeStart}
       />
-      {!isWebdav && (
+      {isSftp && (
         <>
           <ColumnHeader
             column="permissions"
-            label={t('fileExplorerList.permissions')}
+            label={t(($) => $.fileExplorerList.permissions)}
             columnWidths={columnWidths}
             sortBy={sortBy}
             sortOrder={sortOrder}
@@ -152,7 +151,7 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
           />
           <ColumnHeader
             column="owner"
-            label={t('fileExplorerList.owner')}
+            label={t(($) => $.fileExplorerList.owner)}
             columnWidths={columnWidths}
             sortBy={sortBy}
             sortOrder={sortOrder}
@@ -163,7 +162,7 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
       )}
       <ColumnHeader
         column="size"
-        label={t('fileExplorerList.size')}
+        label={t(($) => $.fileExplorerList.size)}
         columnWidths={columnWidths}
         sortBy={sortBy}
         sortOrder={sortOrder}
@@ -172,7 +171,7 @@ export const FileListHeader: React.FC<FileListHeaderProps> = ({
       />
       <ColumnHeader
         column="modifyTime"
-        label={t('fileExplorerList.dateModified')}
+        label={t(($) => $.fileExplorerList.dateModified)}
         isLast
         columnWidths={columnWidths}
         sortBy={sortBy}

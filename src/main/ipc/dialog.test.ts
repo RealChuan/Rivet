@@ -23,11 +23,11 @@ describe('dialog IPC handlers', () => {
 
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.DIALOG.SHOW_SAVE_DIALOG,
-      expect.any(Function)
+      expect.any(Function),
     )
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.DIALOG.SHOW_OPEN_DIALOG,
-      expect.any(Function)
+      expect.any(Function),
     )
   })
 })

@@ -1,4 +1,3 @@
-import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { type SortOrderWithDirection } from '@shared/constants/sort.js'
 import { type TransferSortField } from '@shared/constants/transfer.js'
@@ -11,12 +10,12 @@ interface TransferActionBarProps {
   onCancelAll: () => void
 }
 
-export const TransferActionBar: React.FC<TransferActionBarProps> = ({
+export const TransferActionBar = ({
   sortBy,
   sortOrder,
   onSort,
   onCancelAll,
-}) => {
+}: TransferActionBarProps) => {
   const { t } = useTranslation()
 
   return (
@@ -25,9 +24,9 @@ export const TransferActionBar: React.FC<TransferActionBarProps> = ({
         type="button"
         onClick={onCancelAll}
         className="px-3 py-1.5 rounded-md text-xs text-danger border border-danger-border bg-danger-light hover:bg-danger-light/80 transition-colors cursor-default"
-        aria-label={t('transfer.action.cancelAll')}
+        aria-label={t(($) => $.transfer.action.cancelAll)}
       >
-        {t('transfer.action.cancelAll')}
+        {t(($) => $.transfer.action.cancelAll)}
       </button>
       <div className="flex-1" />
       <SortDropdown sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} />

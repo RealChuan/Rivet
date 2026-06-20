@@ -20,7 +20,7 @@ describe('useApplicationTheme', () => {
       setAppearance: mockSetAppearance,
     }
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: typeof mockState) => unknown) => selector(mockState)
+      (selector: (state: typeof mockState) => unknown) => selector(mockState),
     )
     vi.stubGlobal('electronAPI', {
       window: { getState: vi.fn().mockResolvedValue({ platform: 'win32' }) },
@@ -80,7 +80,7 @@ describe('useApplicationTheme', () => {
       setAppearance: mockSetAppearance,
     }
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: typeof mockState) => unknown) => selector(mockState)
+      (selector: (state: typeof mockState) => unknown) => selector(mockState),
     )
     const mockSupportsGlass = vi.fn().mockResolvedValue(false)
     vi.stubGlobal('electronAPI', {

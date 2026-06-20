@@ -19,7 +19,7 @@ interface ProtocolErrorResponse {
 export type ProtocolResponse<T> = ProtocolSuccessResponse<T> | ProtocolErrorResponse
 
 export const isProtocolResponseErr = <T>(
-  response: ProtocolResponse<T>
+  response: ProtocolResponse<T>,
 ): response is ProtocolErrorResponse => {
   return !response.success
 }

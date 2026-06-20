@@ -13,13 +13,13 @@ interface GlassDialogProps {
   height?: number
 }
 
-export const GlassDialog: React.FC<GlassDialogProps> = ({
+export const GlassDialog = ({
   open,
   onClose,
   children,
   width = DIALOG_SIZE.STANDARD.width,
   height = DIALOG_SIZE.STANDARD.height,
-}) => {
+}: GlassDialogProps) => {
   const dialogRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [startPos, setStartPos] = useState({ mouseX: 0, mouseY: 0, dialogX: 0, dialogY: 0 })
@@ -117,9 +117,9 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
     <div
       className={cn(
         'fixed inset-0 flex items-center justify-center bg-overlay z-50 p-12 transition-opacity duration-200',
-        isVisible ? 'opacity-100' : 'opacity-0'
+        isVisible ? 'opacity-100' : 'opacity-0',
       )}
-      onClick={e => {
+      onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
     >
@@ -130,7 +130,7 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
           'relative box-border overflow-y-auto overflow-x-hidden',
           'bg-glass-bg shadow-dialog',
           'transition-all duration-200 ease-out',
-          isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'
+          isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]',
         )}
         onMouseDown={handleMouseDown}
         style={{
@@ -144,7 +144,7 @@ export const GlassDialog: React.FC<GlassDialogProps> = ({
         {children}
       </div>
     </div>,
-    document.body
+    document.body,
   )
 }
 

@@ -7,9 +7,9 @@ export const useHostKeyStore = create<{
   setHostKeyVerificationDialog: (
     state: Partial<
       HostKeyVerificationDialogState & { onConfirm?: () => void; onCancel?: () => void }
-    >
+    >,
   ) => void
-}>(set => ({
+}>((set) => ({
   hostKeyDialog: {
     open: false,
     type: HOST_KEY_DIALOG_TYPE.FIRST_CONNECT,
@@ -19,8 +19,8 @@ export const useHostKeyStore = create<{
     connectionId: '',
   },
 
-  setHostKeyVerificationDialog: state => {
-    set(prev => ({
+  setHostKeyVerificationDialog: (state) => {
+    set((prev) => ({
       hostKeyDialog: { ...prev.hostKeyDialog, ...state },
     }))
   },

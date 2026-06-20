@@ -10,12 +10,12 @@ interface FileOperationResult {
 }
 
 export function useFileOperation(sessionId: string): FileOperationResult {
-  const addToast = useUiStore(state => state.addToast)
-  const isOperating = useSessionStore(state => {
-    const session = state.sessions.find(s => s.sessionId === sessionId)
+  const addToast = useUiStore((state) => state.addToast)
+  const isOperating = useSessionStore((state) => {
+    const session = state.sessions.find((s) => s.sessionId === sessionId)
     return session?.isOperating ?? false
   })
-  const setOperating = useSessionStore(state => state.setOperating)
+  const setOperating = useSessionStore((state) => state.setOperating)
 
   async function execute<T>(operation: () => Promise<T>): Promise<T | undefined> {
     setOperating(sessionId, true)

@@ -53,7 +53,7 @@ function computeSessionSummaries(tasks: TransferTask[]): SessionTaskSummary[] {
 }
 
 function computeSessionIds(tasks: TransferTask[]): string[] {
-  return [...new Set(tasks.map(t => t.sessionId))]
+  return [...new Set(tasks.map((t) => t.sessionId))]
 }
 
 function computeDerivedState(tasks: TransferTask[]) {
@@ -61,7 +61,7 @@ function computeDerivedState(tasks: TransferTask[]) {
     sessionTaskSummaries: computeSessionSummaries(tasks),
     sessionIds: computeSessionIds(tasks),
     runningTaskCount: tasks.filter(
-      t => t.status === OPERATION_STATUS.RUNNING || t.status === OPERATION_STATUS.WAITING
+      (t) => t.status === OPERATION_STATUS.RUNNING || t.status === OPERATION_STATUS.WAITING,
     ).length,
   }
 }
@@ -126,20 +126,20 @@ export const useTransferStore = create<TransferState>((set, get) => ({
   maxUploadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
   maxDownloadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
 
-  setActiveTab: direction => {
+  setActiveTab: (direction) => {
     set({ activeTab: direction })
   },
 
-  setSelectedSessionId: sessionId => {
+  setSelectedSessionId: (sessionId) => {
     set({ selectedSessionId: sessionId })
   },
 
-  setVisible: visible => {
+  setVisible: (visible) => {
     set({ isVisible: visible })
     // When becoming visible, flush any buffered progress updates immediately
     if (visible && progressBatch.buffer.length > 0) {
-      flushProgressBatch(progressBatch, batch => {
-        useTransferStore.setState(state => {
+      flushProgressBatch(progressBatch, (batch) => {
+        useTransferStore.setState((state) => {
           const result = applyProgressBatch(state, batch)
           if (result === null) return state
           const derived =
@@ -150,26 +150,26 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     }
   },
 
-  setMaxUploadConcurrency: value => {
+  setMaxUploadConcurrency: (value) => {
     set({ maxUploadConcurrency: value })
     void window.electronAPI.transfer
       .setConcurrency(value, TRANSFER_DIRECTION.UPLOAD)
-      .catch(error => {
+      .catch((error) => {
         logger.catch(error, { action: 'set-concurrency', direction: TRANSFER_DIRECTION.UPLOAD })
       })
   },
 
-  setMaxDownloadConcurrency: value => {
+  setMaxDownloadConcurrency: (value) => {
     set({ maxDownloadConcurrency: value })
     void window.electronAPI.transfer
       .setConcurrency(value, TRANSFER_DIRECTION.DOWNLOAD)
-      .catch(error => {
+      .catch((error) => {
         logger.catch(error, { action: 'set-concurrency', direction: TRANSFER_DIRECTION.DOWNLOAD })
       })
   },
 
-  handleTasksEnqueued: tasks => {
-    set(state => {
+  handleTasksEnqueued: (tasks) => {
+    set((state) => {
       const updatedTasks = [...state.tasks, ...tasks]
       const selectedSessionId = state.selectedSessionId ?? tasks[0]?.sessionId ?? null
       const taskProgress = new Map(state.taskProgress)
@@ -188,7 +188,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     })
   },
 
-  handleProgress: data => {
+  handleProgress: (data) => {
     progressBatch.buffer.push(data)
 
     // When not visible, only buffer — skip flush to avoid re-renders on hidden page.
@@ -202,7 +202,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
 
       if (batch.length === 0) return
 
-      set(state => {
+      set((state) => {
         const result = applyProgressBatch(state, batch)
         if (result === null) return state
         const derived =
@@ -212,15 +212,15 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     }, TIMEOUTS.PROGRESS_FLUSH_MS)
   },
 
-  handleTaskCompleted: data => {
+  handleTaskCompleted: (data) => {
     // Flush pending progress batch before removing the task.
     // Without this, the final progress update (100%) arrives via
     // handleProgress and sits in the batch buffer, but handleTaskCompleted
     // removes the task immediately — so when the batch timer fires,
     // the task is already gone and the progress update is silently dropped.
     // The user sees the task jump from partial progress to "done" instantly.
-    flushProgressBatch(progressBatch, batch => {
-      useTransferStore.setState(state => {
+    flushProgressBatch(progressBatch, (batch) => {
+      useTransferStore.setState((state) => {
         const result = applyProgressBatch(state, batch)
         if (result === null) return state
         const derived =
@@ -229,8 +229,8 @@ export const useTransferStore = create<TransferState>((set, get) => ({
       })
     })
 
-    set(state => {
-      const tasks = state.tasks.filter(t => t.id !== data.taskId)
+    set((state) => {
+      const tasks = state.tasks.filter((t) => t.id !== data.taskId)
       const taskProgress = new Map(state.taskProgress)
       taskProgress.delete(data.taskId)
       const activeOperations = new Map(state.activeOperations)
@@ -244,12 +244,12 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     })
   },
 
-  handleTaskFailed: data => {
-    set(state => {
-      const tasks = state.tasks.map(task =>
+  handleTaskFailed: (data) => {
+    set((state) => {
+      const tasks = state.tasks.map((task) =>
         task.id === data.taskId
           ? { ...task, status: OPERATION_STATUS.FAILED, errorMessage: data.errorMessage }
-          : task
+          : task,
       )
       return {
         tasks,
@@ -258,9 +258,9 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     })
   },
 
-  handleTaskRemoved: data => {
-    set(state => {
-      const tasks = state.tasks.filter(t => t.id !== data.taskId)
+  handleTaskRemoved: (data) => {
+    set((state) => {
+      const tasks = state.tasks.filter((t) => t.id !== data.taskId)
       const taskProgress = new Map(state.taskProgress)
       taskProgress.delete(data.taskId)
       const activeOperations = new Map(state.activeOperations)
@@ -277,9 +277,9 @@ export const useTransferStore = create<TransferState>((set, get) => ({
   loadExistingTasks: async () => {
     const existingTasks = await window.electronAPI.transfer.getTasks()
     if (existingTasks.length > 0) {
-      set(state => {
-        const currentIds = new Set(state.tasks.map(t => t.id))
-        const newTasks = existingTasks.filter(t => !currentIds.has(t.id))
+      set((state) => {
+        const currentIds = new Set(state.tasks.map((t) => t.id))
+        const newTasks = existingTasks.filter((t) => !currentIds.has(t.id))
         if (newTasks.length === 0) return state
         const tasks = [...state.tasks, ...newTasks]
         const taskProgress = new Map(state.taskProgress)
@@ -312,18 +312,19 @@ export const useTransferStore = create<TransferState>((set, get) => ({
   startListening: () => {
     const api = window.electronAPI.transfer
     const unsubs = [
-      api.onTasksEnqueued(tasks => get().handleTasksEnqueued(tasks)),
-      api.onProgress(data => get().handleProgress(data)),
-      api.onTaskCompleted(data => get().handleTaskCompleted(data)),
-      api.onTaskFailed(data => get().handleTaskFailed(data)),
-      api.onTaskRemoved(data => get().handleTaskRemoved(data)),
+      api.onTasksEnqueued((tasks) => get().handleTasksEnqueued(tasks)),
+      api.onProgress((data) => get().handleProgress(data)),
+      api.onTaskCompleted((data) => get().handleTaskCompleted(data)),
+      api.onTaskFailed((data) => get().handleTaskFailed(data)),
+      api.onTaskRemoved((data) => get().handleTaskRemoved(data)),
     ]
-    return () => unsubs.forEach(fn => fn())
+    return () => unsubs.forEach((fn) => fn())
   },
 }))
 
 export const selectTasksForSessionByDirection = (
   state: TransferState,
   sessionId: string,
-  direction: TransferDirection
-): TransferTask[] => state.tasks.filter(t => t.sessionId === sessionId && t.direction === direction)
+  direction: TransferDirection,
+): TransferTask[] =>
+  state.tasks.filter((t) => t.sessionId === sessionId && t.direction === direction)

@@ -52,7 +52,7 @@ describe('Button component', () => {
     render(
       <Button disabled onClick={onClick}>
         Disabled
-      </Button>
+      </Button>,
     )
     const button = screen.getByRole('button', { name: 'Disabled' })
     fireEvent.click(button)

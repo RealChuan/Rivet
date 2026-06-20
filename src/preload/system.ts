@@ -7,6 +7,6 @@ export const systemAPI = {
     ipcRenderer.invoke(IPC_CHANNELS.SYSTEM.GET_TEMP_DIR) as Promise<Result<string, ErrorInfo>>,
   getDownloadDir: () =>
     ipcRenderer.invoke(IPC_CHANNELS.SYSTEM.GET_DOWNLOAD_DIR) as Promise<Result<string, ErrorInfo>>,
-  generateUuid: () => crypto.randomUUID(),
+  generateUuid: () => ipcRenderer.invoke(IPC_CHANNELS.SYSTEM.GENERATE_UUID) as Promise<string>,
   supportsGlass: () => ipcRenderer.invoke(IPC_CHANNELS.SYSTEM.SUPPORTS_GLASS) as Promise<boolean>,
 }

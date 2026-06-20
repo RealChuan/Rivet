@@ -30,7 +30,7 @@ export function getTempDir(): Result<string, ErrorInfo> {
   } catch (error) {
     logger.catch(error, { action: 'get-temp-dir' })
     return err(
-      createErrorInfo(ERROR_CODE.PATH_ERROR, 'Failed to get temp directory', String(error))
+      createErrorInfo(ERROR_CODE.PATH_ERROR, 'Failed to get temp directory', String(error)),
     )
   }
 }
@@ -41,7 +41,7 @@ export function getDownloadDir(): Result<string, ErrorInfo> {
   } catch (error) {
     logger.catch(error, { action: 'get-download-dir' })
     return err(
-      createErrorInfo(ERROR_CODE.PATH_ERROR, 'Failed to get download directory', String(error))
+      createErrorInfo(ERROR_CODE.PATH_ERROR, 'Failed to get download directory', String(error)),
     )
   }
 }

@@ -32,7 +32,7 @@ interface ConflictDialogProps {
     resolutions: ConflictResolution[],
     operation?: CopyMoveOperation,
     files?: FileInfo[],
-    targetDir?: FileInfo | null
+    targetDir?: FileInfo | null,
   ) => void | Promise<void>
   conflicts: ConflictItem[]
   operation?: CopyMoveOperation
@@ -40,7 +40,7 @@ interface ConflictDialogProps {
   targetDir?: FileInfo | null
 }
 
-export const ConflictDialog: React.FC<ConflictDialogProps> = ({
+export const ConflictDialog = ({
   open,
   onClose,
   onConfirm,
@@ -48,7 +48,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
   operation,
   files,
   targetDir,
-}) => {
+}: ConflictDialogProps) => {
   const { t } = useTranslation()
 
   const canOverwriteFn = (index: number): boolean => {
@@ -90,7 +90,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
             className="text-xs text-text-muted truncate"
             title={conflict.sourceFile.absolutePath}
           >
-            {t('conflict.source')}: {conflict.sourceFile.absolutePath}
+            {t(($) => $.conflict.source)}: {conflict.sourceFile.absolutePath}
           </div>
         </div>
 
@@ -107,7 +107,7 @@ export const ConflictDialog: React.FC<ConflictDialogProps> = ({
             className="text-xs text-text-muted truncate"
             title={conflict.targetFile?.absolutePath ?? conflict.sourceFile.absolutePath}
           >
-            {t('conflict.target')}:{' '}
+            {t(($) => $.conflict.target)}:{' '}
             {conflict.targetFile?.absolutePath ?? conflict.sourceFile.absolutePath}
           </div>
         </div>

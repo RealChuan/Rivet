@@ -1,4 +1,3 @@
-import type React from 'react'
 import { cn } from '@renderer/utils/index.js'
 import { OPERATION_STATUS } from '@shared/constants/transfer.js'
 
@@ -8,11 +7,7 @@ interface TransferProgressBarProps {
   status: string
 }
 
-export const TransferProgressBar: React.FC<TransferProgressBarProps> = ({
-  transferred,
-  total,
-  status,
-}) => {
+export const TransferProgressBar = ({ transferred, total, status }: TransferProgressBarProps) => {
   const percentage = total > 0 ? Math.min(Math.round((transferred / total) * 100), 100) : 0
   const isRunning = status === OPERATION_STATUS.RUNNING
   const isFailed = status === OPERATION_STATUS.FAILED
@@ -25,7 +20,7 @@ export const TransferProgressBar: React.FC<TransferProgressBarProps> = ({
           className={cn(
             'h-full rounded-full transition-all duration-300',
             isFailed ? 'bg-danger' : 'bg-accent',
-            showIndeterminate && 'animate-progress-indeterminate'
+            showIndeterminate && 'animate-progress-indeterminate',
           )}
           style={{ width: `${percentage}%` }}
         />

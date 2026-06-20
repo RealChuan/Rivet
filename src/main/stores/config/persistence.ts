@@ -69,11 +69,11 @@ function loadTransferSettings(): TransferSettings {
     return {
       maxUploadConcurrency: Math.min(
         TRANSFER_CONFIG.MAX_CONCURRENCY,
-        Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, saved.maxUploadConcurrency)
+        Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, saved.maxUploadConcurrency),
       ),
       maxDownloadConcurrency: Math.min(
         TRANSFER_CONFIG.MAX_CONCURRENCY,
-        Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, saved.maxDownloadConcurrency)
+        Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, saved.maxDownloadConcurrency),
       ),
     }
   }
@@ -124,7 +124,7 @@ export function flushConfigToDisk(): Result<void, ErrorInfo> {
   try {
     const config = getInMemoryConfig()
     // savePassword=false 的连接不将密码写入磁盘
-    const connectionsToSave = config.savedConnections.map(connection => {
+    const connectionsToSave = config.savedConnections.map((connection) => {
       if (!connection.savePassword) {
         const { password: _, ...rest } = connection
         return rest
@@ -206,12 +206,12 @@ const configGetHandlers: Record<string, () => Result<unknown, ErrorInfo>> = {
 }
 
 const configSetHandlers: Record<string, (value: unknown) => Result<void, ErrorInfo>> = {
-  [STORE_KEY.SAVED_CONNECTIONS]: value => {
+  [STORE_KEY.SAVED_CONNECTIONS]: (value) => {
     const connections = (value as ConnectionConfig[]).filter(isValidConnection)
     setToMemory(STORE_KEY.SAVED_CONNECTIONS, connections)
     return ok(undefined)
   },
-  [STORE_KEY.UI_SETTINGS]: value => {
+  [STORE_KEY.UI_SETTINGS]: (value) => {
     if (!isValidUiSettings(value)) {
       return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Invalid UI settings value'))
     }

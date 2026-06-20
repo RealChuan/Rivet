@@ -53,7 +53,7 @@ vi.mock('webdav', () => ({
   createClient: mockCreateClient,
 }))
 
-vi.mock('node:http', async importOriginal => {
+vi.mock('node:http', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     default: {
@@ -64,7 +64,7 @@ vi.mock('node:http', async importOriginal => {
   }
 })
 
-vi.mock('node:https', async importOriginal => {
+vi.mock('node:https', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     default: {
@@ -91,7 +91,7 @@ const { mockFs } = vi.hoisted(() => {
   return { mockFs }
 })
 
-vi.mock('node:fs', async importOriginal => {
+vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof fs>()
   return {
     ...actual,
@@ -207,7 +207,7 @@ describe('WebdavProtocol', () => {
 
     it('should handle connection refused', async () => {
       mockWebdavClient.getDirectoryContents.mockRejectedValue(
-        new Error('connect ECONNREFUSED 192.168.1.1:443')
+        new Error('connect ECONNREFUSED 192.168.1.1:443'),
       )
       const result = await webdav.connect(baseConfig, 'testpass')
       expect(result.success).toBe(false)
@@ -218,7 +218,7 @@ describe('WebdavProtocol', () => {
 
     it('should handle SSL certificate error', async () => {
       mockWebdavClient.getDirectoryContents.mockRejectedValue(
-        new Error('UNABLE_TO_VERIFY_LEAF_SIGNATURE')
+        new Error('UNABLE_TO_VERIFY_LEAF_SIGNATURE'),
       )
       const result = await webdav.connect(baseConfig, 'testpass')
       expect(result.success).toBe(false)
@@ -244,7 +244,7 @@ describe('WebdavProtocol', () => {
 
     it('should handle DNS resolution failure', async () => {
       mockWebdavClient.getDirectoryContents.mockRejectedValue(
-        new Error('getaddrinfo ENOTFOUND nonexistent.example.com')
+        new Error('getaddrinfo ENOTFOUND nonexistent.example.com'),
       )
       const result = await webdav.connect(baseConfig, 'testpass')
       expect(result.success).toBe(false)
@@ -374,7 +374,7 @@ describe('WebdavProtocol', () => {
           owner: '',
           absolutePath: '/old',
         },
-        'new'
+        'new',
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -395,7 +395,7 @@ describe('WebdavProtocol', () => {
           owner: '',
           absolutePath: '/old',
         },
-        'new'
+        'new',
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -454,7 +454,7 @@ describe('WebdavProtocol', () => {
           owner: '',
           absolutePath: '/src',
         },
-        '/dst'
+        '/dst',
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -477,7 +477,7 @@ describe('WebdavProtocol', () => {
           owner: '',
           absolutePath: '/src',
         },
-        '/dst'
+        '/dst',
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -504,13 +504,13 @@ describe('WebdavProtocol', () => {
         'webdav_test_session',
         '/local/file.txt',
         '/remote/file.txt',
-        onProgress
+        onProgress,
       )
       expect(result.success).toBe(true)
       expect(mockWebdavClient.putFileContents).toHaveBeenCalledWith(
         '/dav/remote/file.txt',
         expect.anything(),
-        expect.objectContaining({ contentLength: 1024, overwrite: true })
+        expect.objectContaining({ contentLength: 1024, overwrite: true }),
       )
     })
 
@@ -522,7 +522,7 @@ describe('WebdavProtocol', () => {
         'webdav_test_session',
         '/local/file.txt',
         '/remote/file.txt',
-        onProgress
+        onProgress,
       )
       expect(result.success).toBe(false)
       if (result.success) return

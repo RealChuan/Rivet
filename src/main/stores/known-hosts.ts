@@ -27,7 +27,7 @@ function computeChecksum(record: Omit<HostKey, 'checksum'>): string {
 
 export function getHostKeyRecord(connectionId: string): Result<HostKey | undefined, ErrorInfo> {
   try {
-    const host = store.get(STORE_KEY.KNOWN_HOSTS).find(h => h.connectionId === connectionId)
+    const host = store.get(STORE_KEY.KNOWN_HOSTS).find((h) => h.connectionId === connectionId)
     if (host?.checksum) {
       const { checksum, ...recordWithoutChecksum } = host
       const computedChecksum = computeChecksum(recordWithoutChecksum)
@@ -46,7 +46,7 @@ export function getHostKeyRecord(connectionId: string): Result<HostKey | undefin
 export function saveHostKeyRecord(record: Omit<HostKey, 'createdAt'>): Result<void, ErrorInfo> {
   try {
     const hosts = store.get(STORE_KEY.KNOWN_HOSTS)
-    const idx = hosts.findIndex(h => h.connectionId === record.connectionId)
+    const idx = hosts.findIndex((h) => h.connectionId === record.connectionId)
 
     const createdAt = Date.now()
     const hostRecordWithCreatedAt = { ...record, createdAt }
@@ -75,7 +75,7 @@ export function saveHostKeyRecord(record: Omit<HostKey, 'createdAt'>): Result<vo
 export function removeHostKeyRecord(connectionId: string): Result<void, ErrorInfo> {
   try {
     const hosts = store.get(STORE_KEY.KNOWN_HOSTS)
-    const filteredHosts = hosts.filter(h => h.connectionId !== connectionId)
+    const filteredHosts = hosts.filter((h) => h.connectionId !== connectionId)
     store.set(STORE_KEY.KNOWN_HOSTS, filteredHosts)
     logger.info(`Deleted host key for connection: ${connectionId}`)
     return ok(undefined)

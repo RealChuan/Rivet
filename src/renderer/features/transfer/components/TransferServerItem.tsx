@@ -17,7 +17,7 @@ interface TransferServerItemProps {
   style?: React.CSSProperties
 }
 
-export const TransferServerItem: React.FC<TransferServerItemProps> = ({
+export const TransferServerItem = ({
   name,
   host,
   port,
@@ -28,7 +28,7 @@ export const TransferServerItem: React.FC<TransferServerItemProps> = ({
   isSelected,
   onSelect,
   style,
-}) => {
+}: TransferServerItemProps) => {
   const { t } = useTranslation()
   const isRunning = running > 0
   const hasFailed = failed > 0
@@ -41,7 +41,7 @@ export const TransferServerItem: React.FC<TransferServerItemProps> = ({
         onClick={onSelect}
         className={cn(
           'w-full flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-150 text-left border-b border-border focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
-          isSelected ? 'bg-selected' : 'hover:bg-hover bg-transparent'
+          isSelected ? 'bg-selected' : 'hover:bg-hover bg-transparent',
         )}
       >
         {/* 左侧：状态指示 + 协议 + 连接信息 */}
@@ -81,7 +81,7 @@ export const TransferServerItem: React.FC<TransferServerItemProps> = ({
           </span>
           {hasFailed && (
             <span className="text-xs text-danger leading-none">
-              {t('transfer.status.failedCount', { count: failed })}
+              {t(($) => $.transfer.status.failedCount, { count: failed })}
             </span>
           )}
         </div>

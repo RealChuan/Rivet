@@ -22,7 +22,7 @@ import { TEMP_FILE_SUFFIX, isAbortError } from './transfer-context.js'
 export async function executeDownloadFile(
   task: TransferTask,
   signal: AbortSignal,
-  onProgress: (transferred: number) => void
+  onProgress: (transferred: number) => void,
 ): Promise<Result<void, ErrorInfo>> {
   if (!task.localDir) {
     return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ERROR, 'localDir is required for download'))
@@ -35,7 +35,7 @@ export async function executeDownloadFile(
     task.remotePath,
     tempLocalPath,
     onProgress,
-    signal
+    signal,
   )
 
   if (isErr(result)) {
@@ -58,7 +58,7 @@ export async function executeDownloadFile(
 async function expandRemoteDirectory(
   ctx: TransferContext,
   task: TransferTask,
-  remoteDir: string
+  remoteDir: string,
 ): Promise<void> {
   if (ctx.isTaskCancelled(task.id)) return
 
@@ -115,7 +115,7 @@ async function expandRemoteDirectory(
 export async function executeDownloadFolderOp(
   ctx: TransferContext,
   op: UploadOperation,
-  task: TransferTask | undefined
+  task: TransferTask | undefined,
 ): Promise<void> {
   if (op.type === TRANSFER_OPERATION_TYPE.MKDIR) {
     // Download: create local directory
@@ -142,10 +142,10 @@ export async function executeDownloadFolderOp(
         sessionId,
         op.remotePath,
         tempLocalPath,
-        transferred => {
+        (transferred) => {
           if (task) ctx.onOperationProgress(op, task, transferred)
         },
-        controller.signal
+        controller.signal,
       )
 
       if (ctx.isTaskCancelled(op.parentTaskId)) return

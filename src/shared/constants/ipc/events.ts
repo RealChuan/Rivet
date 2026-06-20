@@ -1,3 +1,3 @@
 export const EVENTS_CHANNELS = {
-  SESSION_DISCONNECTED: 'session-disconnected',
+  SESSION_DISCONNECTED: 'events:session-disconnected',
 } as const

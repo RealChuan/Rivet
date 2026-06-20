@@ -17,6 +17,7 @@ export interface SessionStore {
   setOperating: (sessionId: string, operating: boolean) => void
   refreshCurrentDirectory: (sessionId: string) => Promise<void>
   addSession: (session: Session) => void
+  replaceSession: (connectionId: string, session: Session) => void
   removeSession: (sessionId: string) => void
 
   getSessionByConnectionId: (connectionId: string) => Session | undefined
@@ -43,7 +44,7 @@ const sanitizeFiles = (files: unknown): FileInfo[] => {
         f.absolutePath.length > 0
       )
     })
-    .map(file => ({
+    .map((file) => ({
       name: String(file.name).replace(/[\\/:*?"<>|]/g, '_'),
       type: file.type === FILE_TYPE.DIRECTORY ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE,
       size: Number(file.size),
@@ -59,75 +60,75 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   activeSessionId: null,
   currentListRequestId: null,
 
-  getSessionByConnectionId: connectionId => {
-    return get().sessions.find(s => s.connectionId === connectionId)
+  getSessionByConnectionId: (connectionId) => {
+    return get().sessions.find((s) => s.connectionId === connectionId)
   },
 
-  getSessionById: sessionId => {
-    return get().sessions.find(s => s.sessionId === sessionId)
+  getSessionById: (sessionId) => {
+    return get().sessions.find((s) => s.sessionId === sessionId)
   },
 
-  setActiveSession: sessionId => {
+  setActiveSession: (sessionId) => {
     set({ activeSessionId: sessionId })
   },
 
   updateCurrentPath: (sessionId, path) => {
-    set(state => ({
-      sessions: state.sessions.map(s =>
-        s.sessionId === sessionId ? { ...s, currentPath: path } : s
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.sessionId === sessionId ? { ...s, currentPath: path } : s,
       ),
     }))
   },
 
   setFiles: (sessionId, files) => {
     const safeFiles = sanitizeFiles(files)
-    set(state => ({
-      sessions: state.sessions.map(s =>
-        s.sessionId === sessionId ? { ...s, files: safeFiles } : s
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.sessionId === sessionId ? { ...s, files: safeFiles } : s,
       ),
     }))
   },
 
   setLoading: (sessionId, loading) => {
-    set(state => ({
-      sessions: state.sessions.map(s =>
-        s.sessionId === sessionId ? { ...s, isLoading: loading } : s
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.sessionId === sessionId ? { ...s, isLoading: loading } : s,
       ),
     }))
   },
 
   setOperating: (sessionId, operating) => {
-    set(state => ({
-      sessions: state.sessions.map(s =>
-        s.sessionId === sessionId ? { ...s, isOperating: operating } : s
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.sessionId === sessionId ? { ...s, isOperating: operating } : s,
       ),
     }))
   },
 
-  refreshCurrentDirectory: async sessionId => {
-    const session = get().sessions.find(s => s.sessionId === sessionId)
+  refreshCurrentDirectory: async (sessionId) => {
+    const session = get().sessions.find((s) => s.sessionId === sessionId)
     if (!session) return
 
-    const requestId = window.electronAPI.system.generateUuid()
-
+    const requestId = await window.electronAPI.system.generateUuid()
     const oldRequestId = get().currentListRequestId
+
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.sessionId === sessionId ? { ...s, isLoading: true, error: null } : s,
+      ),
+      currentListRequestId: requestId,
+    }))
+
     if (oldRequestId) {
       void window.electronAPI.protocol.cancel(oldRequestId).catch(() => {
         logger.debug('Failed to cancel previous request', { requestId: oldRequestId })
       })
     }
 
-    set(state => ({
-      sessions: state.sessions.map(s =>
-        s.sessionId === sessionId ? { ...s, isLoading: true, error: null } : s
-      ),
-      currentListRequestId: requestId,
-    }))
-
     const response = await window.electronAPI.protocol.list(
       sessionId,
       session.currentPath,
-      requestId
+      requestId,
     )
 
     if (requestId !== get().currentListRequestId) {
@@ -135,39 +136,47 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     }
 
     if (isProtocolResponseErr(response)) {
-      set(state => ({
-        sessions: state.sessions.map(s =>
+      set((state) => ({
+        sessions: state.sessions.map((s) =>
           s.sessionId === sessionId
             ? {
                 ...s,
-                error: formatErrorMessage(response.error) || i18n.t('error.listDirectoryFailed'),
+                error:
+                  formatErrorMessage(response.error) || i18n.t(($) => $.error.listDirectoryFailed),
                 isLoading: false,
                 files: [],
               }
-            : s
+            : s,
         ),
       }))
       return
     }
 
     const safeFiles = sanitizeFiles(response.value)
-    set(state => ({
-      sessions: state.sessions.map(s =>
-        s.sessionId === sessionId ? { ...s, files: safeFiles, isLoading: false } : s
+    set((state) => ({
+      sessions: state.sessions.map((s) =>
+        s.sessionId === sessionId ? { ...s, files: safeFiles, isLoading: false } : s,
       ),
     }))
   },
 
-  addSession: session => {
-    set(state => ({
+  addSession: (session) => {
+    set((state) => ({
       sessions: [...state.sessions, session],
       activeSessionId: session.sessionId,
     }))
   },
 
-  removeSession: sessionId => {
-    set(state => ({
-      sessions: state.sessions.filter(s => s.sessionId !== sessionId),
+  replaceSession: (connectionId: string, session: Session) => {
+    set((state) => ({
+      sessions: state.sessions.filter((s) => s.connectionId !== connectionId).concat(session),
+      activeSessionId: session.sessionId,
+    }))
+  },
+
+  removeSession: (sessionId) => {
+    set((state) => ({
+      sessions: state.sessions.filter((s) => s.sessionId !== sessionId),
       activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
     }))
   },

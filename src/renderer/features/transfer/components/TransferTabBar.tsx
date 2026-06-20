@@ -1,4 +1,3 @@
-import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TransferDirection } from '@shared/constants/transfer.js'
 import { TRANSFER_DIRECTION } from '@shared/constants/transfer.js'
@@ -8,7 +7,7 @@ interface TransferTabBarProps {
   onTabChange: (tab: TransferDirection) => void
 }
 
-export const TransferTabBar: React.FC<TransferTabBarProps> = ({ activeTab, onTabChange }) => {
+export const TransferTabBar = ({ activeTab, onTabChange }: TransferTabBarProps) => {
   const { t } = useTranslation()
 
   return (
@@ -20,11 +19,11 @@ export const TransferTabBar: React.FC<TransferTabBarProps> = ({ activeTab, onTab
             ? 'text-accent border-accent'
             : 'text-text-muted border-transparent hover:text-text'
         }`}
-        aria-label={t('transfer.upload')}
-        title={t('transfer.upload')}
+        aria-label={t(($) => $.transfer.upload)}
+        title={t(($) => $.transfer.upload)}
         onClick={() => onTabChange(TRANSFER_DIRECTION.UPLOAD)}
       >
-        {t('transfer.upload')}
+        {t(($) => $.transfer.upload)}
       </button>
       <button
         type="button"
@@ -33,11 +32,11 @@ export const TransferTabBar: React.FC<TransferTabBarProps> = ({ activeTab, onTab
             ? 'text-accent border-accent'
             : 'text-text-muted border-transparent hover:text-text'
         }`}
-        aria-label={t('transfer.download')}
-        title={t('transfer.download')}
+        aria-label={t(($) => $.transfer.download)}
+        title={t(($) => $.transfer.download)}
         onClick={() => onTabChange(TRANSFER_DIRECTION.DOWNLOAD)}
       >
-        {t('transfer.download')}
+        {t(($) => $.transfer.download)}
       </button>
     </div>
   )

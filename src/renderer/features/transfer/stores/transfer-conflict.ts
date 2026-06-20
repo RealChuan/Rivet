@@ -10,7 +10,7 @@ interface TransferConflictState {
 interface TransferConflictActions {
   openDialog: (
     conflicts: ConflictItem[],
-    resolve: (resolutions: ConflictResolution[] | null) => void
+    resolve: (resolutions: ConflictResolution[] | null) => void,
   ) => void
   confirm: (resolutions: ConflictResolution[]) => void
   cancel: () => void
@@ -26,7 +26,7 @@ export const useTransferConflictStore = create<TransferConflictState & TransferC
       set({ conflicts, dialogOpen: true, _resolveRef: resolve })
     },
 
-    confirm: resolutions => {
+    confirm: (resolutions) => {
       const { _resolveRef } = get()
       set({ conflicts: [], dialogOpen: false, _resolveRef: null })
       _resolveRef?.(resolutions)
@@ -37,5 +37,5 @@ export const useTransferConflictStore = create<TransferConflictState & TransferC
       set({ conflicts: [], dialogOpen: false, _resolveRef: null })
       _resolveRef?.(null)
     },
-  })
+  }),
 )

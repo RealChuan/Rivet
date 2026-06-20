@@ -48,17 +48,17 @@ vi.mock('react-window', () => ({
 
 describe('VirtualList', () => {
   const items = ['Item 1', 'Item 2', 'Item 3']
-  const renderItem = (item: string, index: number, style: React.CSSProperties) => (
-    <div key={index} style={style} data-testid={`item-${index}`}>
+  const renderItem = (item: string, _index: number, style: React.CSSProperties) => (
+    <div key={item} style={style} data-testid={`item-${item}`}>
       {item}
     </div>
   )
 
   it('should render specified number of items', () => {
     render(<VirtualList items={items} itemHeight={40} width={800} renderItem={renderItem} />)
-    expect(screen.getByTestId('item-0')).not.toBeNull()
-    expect(screen.getByTestId('item-1')).not.toBeNull()
-    expect(screen.getByTestId('item-2')).not.toBeNull()
+    expect(screen.getByTestId('item-Item 1')).not.toBeNull()
+    expect(screen.getByTestId('item-Item 2')).not.toBeNull()
+    expect(screen.getByTestId('item-Item 3')).not.toBeNull()
   })
 
   it('should not crash with empty array', () => {
@@ -80,8 +80,8 @@ describe('VirtualList', () => {
   })
 
   it('should call renderItem for each item', () => {
-    const mockRenderItem = vi.fn((item: string, index: number, style: React.CSSProperties) => (
-      <div key={index} style={style}>
+    const mockRenderItem = vi.fn((item: string, _index: number, style: React.CSSProperties) => (
+      <div key={item} style={style}>
         {item}
       </div>
     ))

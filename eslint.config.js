@@ -86,7 +86,7 @@ export default [
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
 
-      'no-console': ['warn', { allow: ['error', 'warn'] }],
+      'no-console': 'error',
       eqeqeq: ['error', 'always'],
       'no-var': 'error',
       'prefer-const': 'error',

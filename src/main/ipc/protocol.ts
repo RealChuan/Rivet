@@ -12,49 +12,49 @@ export function setupProtocolIpcHandlers(): void {
     IPC_CHANNELS.PROTOCOL.DISCONNECT,
     async (_, sessionId: string, requestId?: string) => {
       return await protocolService.disconnect(sessionId, requestId)
-    }
+    },
   )
 
   ipcMain.handle(
     IPC_CHANNELS.PROTOCOL.LIST,
     async (_, sessionId: string, remotePath: string, requestId?: string) => {
       return await protocolService.list(sessionId, remotePath, requestId)
-    }
+    },
   )
 
   ipcMain.handle(
     IPC_CHANNELS.PROTOCOL.MKDIR,
     async (_, sessionId: string, remotePath: string, requestId?: string) => {
       return await protocolService.mkdir(sessionId, remotePath, requestId)
-    }
+    },
   )
 
   ipcMain.handle(
     IPC_CHANNELS.PROTOCOL.RENAME,
     async (_, sessionId: string, file: FileInfo, newName: string, requestId?: string) => {
       return await protocolService.rename(sessionId, file, newName, requestId)
-    }
+    },
   )
 
   ipcMain.handle(
     IPC_CHANNELS.PROTOCOL.DELETE,
     async (_, sessionId: string, file: FileInfo, requestId?: string) => {
       return await protocolService.delete(sessionId, file, requestId)
-    }
+    },
   )
 
   ipcMain.handle(
     IPC_CHANNELS.PROTOCOL.COPY,
     async (_, sessionId: string, file: FileInfo, targetPath: string, requestId?: string) => {
       return await protocolService.copy(sessionId, file, targetPath, requestId)
-    }
+    },
   )
 
   ipcMain.handle(
     IPC_CHANNELS.PROTOCOL.MOVE,
     async (_, sessionId: string, file: FileInfo, targetPath: string, requestId?: string) => {
       return await protocolService.move(sessionId, file, targetPath, requestId)
-    }
+    },
   )
 
   ipcMain.handle(IPC_CHANNELS.PROTOCOL.CANCEL, (_, requestId: string) => {
@@ -65,7 +65,7 @@ export function setupProtocolIpcHandlers(): void {
     IPC_CHANNELS.PROTOCOL.CALCULATE_FOLDER_STATS,
     async (_, sessionId: string, path: string) => {
       return await protocolService.calculateFolderStats(sessionId, path)
-    }
+    },
   )
 
   ipcMain.handle(IPC_CHANNELS.PROTOCOL.CANCEL_CALCULATE_FOLDER_STATS, (_, sessionId: string) => {

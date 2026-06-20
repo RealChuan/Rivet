@@ -4,7 +4,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement | HTMLTe
   as?: 'input' | 'textarea'
 }
 
-export const Input: React.FC<InputProps> = ({ className = '', as = 'input', ...props }) => {
+export const Input = ({ className = '', as = 'input', ...props }: InputProps) => {
   const baseClassName = `
     w-full px-3 py-2 bg-glass-bg border border-border rounded-md
     text-text text-[13px] transition-colors duration-150

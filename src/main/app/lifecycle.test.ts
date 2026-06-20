@@ -84,7 +84,7 @@ describe('lifecycle', () => {
       setSessionCount(sessionRegistry, 3)
       const mockResult = { success: true, value: null }
       ;(sessionManager.safeUnregisterAll as ReturnType<typeof vi.fn>).mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(mockResult), 100))
+        () => new Promise((resolve) => setTimeout(() => resolve(mockResult), 100)),
       )
 
       const promise1 = disconnectAllSessions()
@@ -139,7 +139,7 @@ describe('lifecycle', () => {
 
       setSessionCount(sessionRegistry, 1)
       ;(sessionManager.safeUnregisterAll as ReturnType<typeof vi.fn>).mockRejectedValue(
-        new Error('Unexpected error')
+        new Error('Unexpected error'),
       )
 
       await disconnectAllSessions()

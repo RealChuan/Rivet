@@ -22,7 +22,7 @@ const SPEED_MIN_SAMPLES = 2
 export function addSpeedSample(
   samples: Map<string, SpeedSample[]>,
   id: string,
-  transferredSize: number
+  transferredSize: number,
 ): void {
   let list = samples.get(id)
   if (!list) {
@@ -65,7 +65,7 @@ export function markProgressSent(lastProgressTime: Map<string, number>, taskId: 
 export function buildProgressData(
   task: TransferTask,
   speed: number,
-  activeOperations?: OperationProgressInfo[]
+  activeOperations?: OperationProgressInfo[],
 ): TransferProgressData {
   const data: TransferProgressData = {
     taskId: task.id,
@@ -86,19 +86,20 @@ export function buildProgressData(
 export function getActiveOperationInfos(
   operationsByTask: Map<string, UploadOperation[]>,
   opSpeedSamples: Map<string, SpeedSample[]>,
-  taskId: string
+  taskId: string,
 ): OperationProgressInfo[] {
   const taskOps = operationsByTask.get(taskId) ?? []
-  const runningOps = taskOps.filter(op => op.status === OPERATION_STATUS.RUNNING)
+  const runningOps = taskOps.filter((op) => op.status === OPERATION_STATUS.RUNNING)
   const completedOps = taskOps
     .filter(
-      op =>
+      (op) =>
         op.status === OPERATION_STATUS.COMPLETED &&
-        (op.type === TRANSFER_OPERATION_TYPE.UPLOAD || op.type === TRANSFER_OPERATION_TYPE.DOWNLOAD)
+        (op.type === TRANSFER_OPERATION_TYPE.UPLOAD ||
+          op.type === TRANSFER_OPERATION_TYPE.DOWNLOAD),
     )
     .slice(-TRANSFER_CONFIG.MAX_INLINE_OPERATIONS)
 
-  return [...runningOps, ...completedOps].map(op => {
+  return [...runningOps, ...completedOps].map((op) => {
     const opSpeed = computeSpeed(opSpeedSamples, op.id)
     const info: OperationProgressInfo = {
       id: op.id,

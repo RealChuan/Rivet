@@ -1,4 +1,3 @@
-import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { Checkbox } from '@renderer/components/ui/Checkbox.js'
 import Input from '@renderer/components/ui/Input.js'
@@ -37,7 +36,7 @@ interface ConnectionFormFieldsProps {
   onSavePasswordChange: (value: boolean) => void
 }
 
-export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
+export const ConnectionFormFields = ({
   name,
   onNameChange,
   protocol,
@@ -58,33 +57,33 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
   onPasswordChange,
   savePassword,
   onSavePasswordChange,
-}) => {
+}: ConnectionFormFieldsProps) => {
   const { t } = useTranslation()
 
   return (
     <>
       <div>
         <label className="block text-xs font-medium text-text mb-1.5">
-          {t('connectionDialog.name')}
+          {t(($) => $.connectionDialog.name)}
         </label>
         <Input
           type="text"
           value={name}
-          onChange={e => onNameChange(e.target.value)}
-          placeholder={t('connectionDialog.namePlaceholder')}
+          onChange={(e) => onNameChange(e.target.value)}
+          placeholder={t(($) => $.connectionDialog.namePlaceholder)}
         />
       </div>
 
       <div>
         <label className="block text-xs font-medium text-text mb-1.5">
-          {t('connectionDialog.protocol')}
+          {t(($) => $.connectionDialog.protocol)}
         </label>
         <Select
           value={protocol}
           onChange={onProtocolChange}
           options={[
-            { value: PROTOCOL.SFTP, label: t('connectionDialog.protocolSftp') },
-            { value: PROTOCOL.WEBDAV, label: t('connectionDialog.protocolWebdav') },
+            { value: PROTOCOL.SFTP, label: t(($) => $.connectionDialog.protocolSftp) },
+            { value: PROTOCOL.WEBDAV, label: t(($) => $.connectionDialog.protocolWebdav) },
           ]}
         />
       </div>
@@ -92,23 +91,23 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs font-medium text-text mb-1.5">
-            {t('connectionDialog.host')}
+            {t(($) => $.connectionDialog.host)}
           </label>
           <Input
             type="text"
             value={host}
-            onChange={e => onHostChange(e.target.value)}
-            placeholder={t('connectionDialog.hostPlaceholder')}
+            onChange={(e) => onHostChange(e.target.value)}
+            placeholder={t(($) => $.connectionDialog.hostPlaceholder)}
           />
         </div>
         <div>
           <label className="block text-xs font-medium text-text mb-1.5">
-            {t('connectionDialog.port')}
+            {t(($) => $.connectionDialog.port)}
           </label>
           <Input
             type="number"
             value={port}
-            onChange={e => onPortChange(e.target.value)}
+            onChange={(e) => onPortChange(e.target.value)}
             placeholder={protocol === PROTOCOL.SFTP ? String(PORT_SFTP) : String(PORT_WEBDAV_HTTPS)}
           />
         </div>
@@ -118,7 +117,7 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
         <>
           <div>
             <label className="block text-xs font-medium text-text mb-1.5">
-              {t('connectionDialog.scheme')}
+              {t(($) => $.connectionDialog.scheme)}
             </label>
             <div className="flex gap-2">
               <button
@@ -128,10 +127,10 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
                   'flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
                   scheme === SCHEME.HTTP
                     ? 'border border-accent bg-accent-light text-accent'
-                    : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg'
+                    : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg',
                 )}
               >
-                {t('connectionDialog.schemeHttp')}
+                {t(($) => $.connectionDialog.schemeHttp)}
               </button>
               <button
                 type="button"
@@ -142,7 +141,7 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
                     : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg'
                 }`}
               >
-                {t('connectionDialog.schemeHttps')}
+                {t(($) => $.connectionDialog.schemeHttps)}
               </button>
             </div>
           </div>
@@ -151,22 +150,22 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
               <Checkbox
                 id="rejectUnauthorized"
                 checked={rejectUnauthorized}
-                onChange={e => onRejectUnauthorizedChange(e.target.checked)}
+                onChange={(e) => onRejectUnauthorizedChange(e.target.checked)}
               />
               <label htmlFor="rejectUnauthorized" className="text-sm text-text cursor-pointer">
-                {t('connectionDialog.rejectUnauthorized')}
+                {t(($) => $.connectionDialog.rejectUnauthorized)}
               </label>
             </div>
           )}
           <div>
             <label className="block text-xs font-medium text-text mb-1.5">
-              {t('connectionDialog.basePath')}
+              {t(($) => $.connectionDialog.basePath)}
             </label>
             <Input
               type="text"
               value={basePath}
-              onChange={e => onBasePathChange(e.target.value)}
-              placeholder={t('connectionDialog.basePathPlaceholder')}
+              onChange={(e) => onBasePathChange(e.target.value)}
+              placeholder={t(($) => $.connectionDialog.basePathPlaceholder)}
             />
           </div>
         </>
@@ -174,24 +173,24 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
 
       <div>
         <label className="block text-xs font-medium text-text mb-1.5">
-          {t('connectionDialog.username')}
+          {t(($) => $.connectionDialog.username)}
         </label>
         <Input
           type="text"
           value={username}
-          onChange={e => onUsernameChange(e.target.value)}
-          placeholder={t('connectionDialog.usernamePlaceholder')}
+          onChange={(e) => onUsernameChange(e.target.value)}
+          placeholder={t(($) => $.connectionDialog.usernamePlaceholder)}
         />
       </div>
 
       <div>
         <label className="block text-xs font-medium text-text mb-1.5">
-          {t('connectionDialog.password')}
+          {t(($) => $.connectionDialog.password)}
         </label>
         <PasswordInput
           value={password}
           onChange={onPasswordChange}
-          placeholder={t('connectionDialog.passwordPlaceholder')}
+          placeholder={t(($) => $.connectionDialog.passwordPlaceholder)}
         />
       </div>
 
@@ -199,10 +198,10 @@ export const ConnectionFormFields: React.FC<ConnectionFormFieldsProps> = ({
         <Checkbox
           id="savePassword"
           checked={savePassword}
-          onChange={e => onSavePasswordChange(e.target.checked)}
+          onChange={(e) => onSavePasswordChange(e.target.checked)}
         />
         <label htmlFor="savePassword" className="text-sm text-text cursor-pointer">
-          {t('connectionDialog.savePassword')}
+          {t(($) => $.connectionDialog.savePassword)}
         </label>
       </div>
     </>

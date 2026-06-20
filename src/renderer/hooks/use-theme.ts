@@ -13,13 +13,13 @@ function getSystemThemeSnapshot(): ResolvedTheme {
 }
 
 export function useApplicationTheme() {
-  const appearance = useUiStore(state => state.appearance)
-  const setAppearance = useUiStore(state => state.setAppearance)
+  const appearance = useUiStore((state) => state.appearance)
+  const setAppearance = useUiStore((state) => state.setAppearance)
 
   const systemTheme = useSyncExternalStore(
     subscribeSystemTheme,
     getSystemThemeSnapshot,
-    () => THEME.LIGHT
+    () => THEME.LIGHT,
   )
 
   const resolvedTheme = appearance === THEME.SYSTEM ? systemTheme : appearance

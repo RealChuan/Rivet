@@ -13,14 +13,14 @@ import { useSessionConnect } from './use-session-connect.js'
 export const useConnectionActions = () => {
   const { t } = useTranslation()
   const { connectSession, reconnectSession } = useSessionConnect()
-  const removeSession = useSessionStore(state => state.removeSession)
-  const getSessionByConnectionId = useSessionStore(state => state.getSessionByConnectionId)
-  const connections = useConnectionStore(state => state.connections)
-  const addConnection = useConnectionStore(state => state.addConnection)
-  const updateConnection = useConnectionStore(state => state.updateConnection)
-  const deleteConnection = useConnectionStore(state => state.deleteConnection)
-  const saveConnectionConfigs = useConnectionStore(state => state.saveConnectionConfigs)
-  const addToast = useUiStore(state => state.addToast)
+  const removeSession = useSessionStore((state) => state.removeSession)
+  const getSessionByConnectionId = useSessionStore((state) => state.getSessionByConnectionId)
+  const connections = useConnectionStore((state) => state.connections)
+  const addConnection = useConnectionStore((state) => state.addConnection)
+  const updateConnection = useConnectionStore((state) => state.updateConnection)
+  const deleteConnection = useConnectionStore((state) => state.deleteConnection)
+  const saveConnectionConfigs = useConnectionStore((state) => state.saveConnectionConfigs)
+  const addToast = useUiStore((state) => state.addToast)
   const { guard, confirmOpen, handleConfirm, handleCancel, title, message } = useActiveTaskGuard()
 
   const [editConfig, setEditConfig] = useState<ConnectionConfig | null>(null)
@@ -30,28 +30,33 @@ export const useConnectionActions = () => {
 
   const showConnectionToast = (
     type: typeof TOAST_TYPE.SUCCESS | typeof TOAST_TYPE.ERROR,
-    config: { protocol: string; name: string }
+    config: { protocol: string; name: string },
   ) => {
     addToast({
       type,
-      message: t(`toast.connection${type === TOAST_TYPE.SUCCESS ? 'Success' : 'Failed'}`, {
-        protocol: config.protocol.toUpperCase(),
-        name: config.name,
-      }),
+      message: t(
+        type === TOAST_TYPE.SUCCESS
+          ? ($) => $.toast.connectionSuccess
+          : ($) => $.toast.connectionFailed,
+        {
+          protocol: config.protocol.toUpperCase(),
+          name: config.name,
+        },
+      ),
     })
   }
 
   const handleSaveConnection = async (
     config: Omit<ConnectionConfig, 'id'> & { password?: string },
-    onSuccess?: () => void
+    onSuccess?: () => void,
   ) => {
     let encryptedPassword: string | undefined
     if (config.password) {
       try {
         encryptedPassword = await encryptPassword(config.password)
       } catch {
-        addToast({ type: TOAST_TYPE.ERROR, message: t('connectionDialog.encryptFailed') })
-        throw new Error(t('connectionDialog.encryptFailed'))
+        addToast({ type: TOAST_TYPE.ERROR, message: t(($) => $.connectionDialog.encryptFailed) })
+        throw new Error(t(($) => $.connectionDialog.encryptFailed))
       }
     }
 
@@ -74,7 +79,7 @@ export const useConnectionActions = () => {
 
     if (!success) {
       showConnectionToast(TOAST_TYPE.ERROR, config)
-      throw new Error(t('connectionDialog.connectFailed'))
+      throw new Error(t(($) => $.connectionDialog.connectFailed))
     }
 
     if (editConfig) {
@@ -89,7 +94,7 @@ export const useConnectionActions = () => {
   }
 
   const handleDisconnect = (connectionId: string) => {
-    const connection = connections.find(c => c.id === connectionId)
+    const connection = connections.find((c) => c.id === connectionId)
     const session = getSessionByConnectionId(connectionId)
 
     const doDisconnect = async () => {
@@ -100,17 +105,22 @@ export const useConnectionActions = () => {
         }
         addToast({
           type: TOAST_TYPE.INFO,
-          message: t('toast.disconnectSuccess', {
-            protocol: connection ? connection.protocol.toUpperCase() : t('error.unknownProtocol'),
-            name: connection?.name ?? connection?.host ?? t('error.unknownName'),
+          message: t(($) => $.toast.disconnectSuccess, {
+            protocol: connection
+              ? connection.protocol.toUpperCase()
+              : t(($) => $.error.unknownProtocol),
+            name: connection?.name ?? connection?.host ?? t(($) => $.error.unknownName),
           }),
         })
       } catch (_error) {
+        logger.catch(_error, { action: 'disconnect', connectionId })
         addToast({
           type: TOAST_TYPE.ERROR,
-          message: t('toast.disconnectFailed', {
-            protocol: connection ? connection.protocol.toUpperCase() : t('error.unknownProtocol'),
-            name: connection?.name ?? connection?.host ?? t('error.unknownName'),
+          message: t(($) => $.toast.disconnectFailed, {
+            protocol: connection
+              ? connection.protocol.toUpperCase()
+              : t(($) => $.error.unknownProtocol),
+            name: connection?.name ?? connection?.host ?? t(($) => $.error.unknownName),
           }),
         })
       }
@@ -137,12 +147,12 @@ export const useConnectionActions = () => {
         removeSession(session.sessionId)
       }
       await deleteConnection(connectionToDelete)
-      addToast({ type: TOAST_TYPE.INFO, message: t('toast.deleteConnectionSuccess') })
+      addToast({ type: TOAST_TYPE.INFO, message: t(($) => $.toast.deleteConnectionSuccess) })
     } catch (error) {
       logger.catch(error, { connectionId: connectionToDelete, action: 'delete-connection' })
       addToast({
         type: TOAST_TYPE.ERROR,
-        message: t('toast.deleteFailed'),
+        message: t(($) => $.toast.deleteFailed),
       })
     } finally {
       setDeleteConfirmOpen(false)
@@ -164,6 +174,10 @@ export const useConnectionActions = () => {
         // 连接失败，打开重连对话框让用户重新输入密码
       } catch (error) {
         logger.catch(error, { action: 'decrypt-password' })
+        addToast({
+          type: TOAST_TYPE.ERROR,
+          message: t(($) => $.connectionDialog.decryptFailed),
+        })
       }
     }
     setReconnectConfig(connection)
@@ -171,7 +185,7 @@ export const useConnectionActions = () => {
   }
 
   const handleReconnectSubmit = async (
-    config: Omit<ConnectionConfig, 'id'> & { password?: string }
+    config: Omit<ConnectionConfig, 'id'> & { password?: string },
   ) => {
     if (!reconnectConfig) return
     try {
@@ -181,8 +195,8 @@ export const useConnectionActions = () => {
         try {
           encryptedPassword = await encryptPassword(config.password)
         } catch {
-          addToast({ type: TOAST_TYPE.ERROR, message: t('connectionDialog.encryptFailed') })
-          throw new Error(t('connectionDialog.encryptFailed'))
+          addToast({ type: TOAST_TYPE.ERROR, message: t(($) => $.connectionDialog.encryptFailed) })
+          throw new Error(t(($) => $.connectionDialog.encryptFailed))
         }
       }
 

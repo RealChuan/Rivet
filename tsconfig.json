@@ -1,17 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ESNEXT",
+    "target": "ESNext",
     "module": "NodeNext",
-    "lib": ["ESNEXT", "DOM"],
+    "lib": ["ESNext", "DOM"],
     "jsx": "react-jsx",
-    "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
-    "baseUrl": ".",
     "paths": {
-      "*": ["./*"],
       "@/*": ["./src/*"],
       "@renderer/*": ["./src/renderer/*"],
-      "@main/*": ["./src/main/*"],
       "@shared/*": ["./src/shared/*"]
     },
     "strict": true,
@@ -29,13 +25,13 @@
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true,
     "noEmit": true,
+    "incremental": true,
     "types": ["node", "vitest/globals"],
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "allowImportingTsExtensions": true,
-    "rewriteRelativeImportExtensions": true,
-    "ignoreDeprecations": "6.0"
+    "rewriteRelativeImportExtensions": true
   },
-  "include": ["./src/renderer/**/*", "./src/shared/**/*", "./src/main/**/*", "forge.env.d.ts"],
+  "include": ["./src/renderer/**/*", "./src/shared/**/*", "forge.env.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -26,6 +26,7 @@ interface FolderPropertiesDialogProps {
   open: boolean
   onClose: () => void
   file: FileInfo | null
+  isSftp?: boolean | undefined
 }
 
 interface StatsState {
@@ -53,7 +54,7 @@ interface StatCardProps {
   highlight?: boolean
 }
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, icon, highlight }) => (
+const StatCard = ({ label, value, icon, highlight }: StatCardProps) => (
   <div className="flex flex-col items-center gap-1.5 px-3 py-3 bg-surface rounded-lg min-w-0">
     <div className="flex items-center gap-1 text-text-muted">
       {icon}
@@ -62,7 +63,7 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon, highlight }) =>
     <span
       className={cn(
         'text-base font-semibold tabular-nums truncate',
-        highlight ? 'text-accent' : 'text-text'
+        highlight ? 'text-accent' : 'text-text',
       )}
     >
       {value}
@@ -73,16 +74,18 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon, highlight }) =>
 interface FolderPropertiesDialogContentProps {
   file: FileInfo
   onClose: () => void
+  isSftp?: boolean | undefined
 }
 
-const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps> = ({
+const FolderPropertiesDialogContent = ({
   file,
   onClose,
-}) => {
+  isSftp,
+}: FolderPropertiesDialogContentProps) => {
   const { i18n, t } = useTranslation()
   const lng = i18n.language
-  const sessionId = useSessionStore(state => state.activeSessionId)
-  const addToast = useUiStore(state => state.addToast)
+  const sessionId = useSessionStore((state) => state.activeSessionId)
+  const addToast = useUiStore((state) => state.addToast)
   const [stats, setStats] = useState<StatsState>(initialStats)
 
   const startCalculation = useCallback(() => {
@@ -97,14 +100,14 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
     })
     window.electronAPI.protocol
       .calculateFolderStats(sessionId, file.absolutePath)
-      .then(result => {
+      .then((result) => {
         if (isErr(result)) {
-          setStats(prev => ({ ...prev, status: STATS_STATUS.ERROR }))
+          setStats((prev) => ({ ...prev, status: STATS_STATUS.ERROR }))
           addToast({ type: TOAST_TYPE.ERROR, message: result.error.message })
         }
       })
       .catch(() => {
-        setStats(prev => ({ ...prev, status: STATS_STATUS.ERROR }))
+        setStats((prev) => ({ ...prev, status: STATS_STATUS.ERROR }))
       })
   }, [sessionId, file.absolutePath, addToast])
 
@@ -130,7 +133,7 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
           currentPath: data.currentPath,
           errorCount: data.errorCount,
         })
-      }
+      },
     )
 
     return unsubscribe
@@ -143,7 +146,6 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
     onClose()
   }, [stats.status, cancelCalculation, onClose])
 
-  const isSftp = file.permissions !== undefined
   const isCalculating = stats.status === STATS_STATUS.CALCULATING
   const isIdle = stats.status === STATS_STATUS.IDLE
   const isCancelled = stats.status === STATS_STATUS.CANCELLED
@@ -170,7 +172,7 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
         </div>
         <button
           onClick={handleClose}
-          aria-label={t('common.close')}
+          aria-label={t(($) => $.common.close)}
           className="p-1 rounded-md bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
         >
           <X className="w-4 h-4 stroke-current stroke-2" />
@@ -183,14 +185,14 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
           {isSftp && (
             <>
               <MetadataRow
-                label={t('folderProperties.permissions')}
+                label={t(($) => $.folderProperties.permissions)}
                 value={file.permissions ?? '-'}
               />
-              <MetadataRow label={t('folderProperties.owner')} value={file.owner ?? '-'} />
+              <MetadataRow label={t(($) => $.folderProperties.owner)} value={file.owner ?? '-'} />
             </>
           )}
           <MetadataRow
-            label={t('folderProperties.modifyTime')}
+            label={t(($) => $.folderProperties.modifyTime)}
             value={formatDate(file.modifyTime, lng)}
           />
         </div>
@@ -201,7 +203,7 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
         {/* Stat Cards Grid */}
         <div className="grid grid-cols-3 gap-2">
           <StatCard
-            label={t('folderProperties.size')}
+            label={t(($) => $.folderProperties.size)}
             value={
               isIdle ? (
                 <span className="text-text-muted font-normal">--</span>
@@ -213,7 +215,7 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
             highlight={!isIdle}
           />
           <StatCard
-            label={t('folderProperties.fileCount')}
+            label={t(($) => $.folderProperties.fileCount)}
             value={
               isIdle ? (
                 <span className="text-text-muted font-normal">--</span>
@@ -224,7 +226,7 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
             icon={<FileText className="w-3.5 h-3.5" />}
           />
           <StatCard
-            label={t('folderProperties.folderCount')}
+            label={t(($) => $.folderProperties.folderCount)}
             value={
               isIdle ? (
                 <span className="text-text-muted font-normal">--</span>
@@ -242,8 +244,8 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
             <div className="flex items-center gap-2 px-3 py-2 bg-accent/5 rounded-md border border-accent/10">
               <Loader2 className="w-3.5 h-3.5 stroke-accent animate-spin shrink-0" />
               <span className="text-xs text-text-secondary truncate" title={stats.currentPath}>
-                {t('folderProperties.scanning', {
-                  path: stats.currentPath || t('folderProperties.calculating'),
+                {t(($) => $.folderProperties.scanning, {
+                  path: stats.currentPath || t(($) => $.folderProperties.calculating),
                 })}
               </span>
             </div>
@@ -253,7 +255,9 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
             <div className="flex items-center justify-between px-3 py-2 bg-success-light/30 rounded-md border border-success/10">
               <div className="flex items-center gap-1.5">
                 <span className="text-success text-sm">&#10003;</span>
-                <span className="text-xs text-success">{t('folderProperties.completed')}</span>
+                <span className="text-xs text-success">
+                  {t(($) => $.folderProperties.completed)}
+                </span>
               </div>
             </div>
           )}
@@ -262,11 +266,13 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
             <div className="flex items-center justify-between px-3 py-2 bg-warning-light/30 rounded-md border border-warning/10">
               <div className="flex items-center gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 stroke-warning shrink-0" />
-                <span className="text-sm text-warning">{t('folderProperties.cancelled')}</span>
+                <span className="text-sm text-warning">
+                  {t(($) => $.folderProperties.cancelled)}
+                </span>
               </div>
               {stats.errorCount > 0 && (
                 <span className="text-xs text-text-muted">
-                  {t('folderProperties.errorCount', { count: stats.errorCount })}
+                  {t(($) => $.folderProperties.errorCount, { count: stats.errorCount })}
                 </span>
               )}
             </div>
@@ -275,7 +281,7 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
           {isError && (
             <div className="flex items-center gap-1.5 px-3 py-2 bg-danger-light/30 rounded-md border border-danger/10">
               <AlertTriangle className="w-3.5 h-3.5 stroke-danger shrink-0" />
-              <span className="text-sm text-danger">{t('folderProperties.failed')}</span>
+              <span className="text-sm text-danger">{t(($) => $.folderProperties.failed)}</span>
             </div>
           )}
         </div>
@@ -285,32 +291,33 @@ const FolderPropertiesDialogContent: React.FC<FolderPropertiesDialogContentProps
       <div className="flex justify-end gap-2.5 pt-4 mt-3 border-t border-border shrink-0">
         {isIdle && (
           <Button variant="primary" onClick={startCalculation}>
-            {t('folderProperties.calculate')}
+            {t(($) => $.folderProperties.calculate)}
           </Button>
         )}
         {isCalculating && (
           <Button variant="secondary" onClick={cancelCalculation}>
-            {t('folderProperties.cancelCalculation')}
+            {t(($) => $.folderProperties.cancelCalculation)}
           </Button>
         )}
         {(isCompleted || isCancelled || isError) && (
           <Button variant="secondary" onClick={startCalculation}>
-            {t('folderProperties.recalculate')}
+            {t(($) => $.folderProperties.recalculate)}
           </Button>
         )}
         <Button variant="secondary" onClick={handleClose}>
-          {t('common.action.close')}
+          {t(($) => $.common.action.close)}
         </Button>
       </div>
     </div>
   )
 }
 
-export const FolderPropertiesDialog: React.FC<FolderPropertiesDialogProps> = ({
+export const FolderPropertiesDialog = ({
   open,
   onClose,
   file,
-}) => {
+  isSftp,
+}: FolderPropertiesDialogProps) => {
   const handleClose = useCallback(() => {
     onClose()
   }, [onClose])
@@ -319,12 +326,17 @@ export const FolderPropertiesDialog: React.FC<FolderPropertiesDialogProps> = ({
 
   return (
     <GlassDialog open={open} onClose={handleClose} width={420} height={480}>
-      <FolderPropertiesDialogContent key={file.absolutePath} file={file} onClose={handleClose} />
+      <FolderPropertiesDialogContent
+        key={file.absolutePath}
+        file={file}
+        onClose={handleClose}
+        isSftp={isSftp}
+      />
     </GlassDialog>
   )
 }
 
-const MetadataRow: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+const MetadataRow = ({ label, value }: { label: string; value: string }) => (
   <>
     <span className="text-xs text-text-muted shrink-0">{label}</span>
     <span className="text-sm text-text truncate" title={value}>

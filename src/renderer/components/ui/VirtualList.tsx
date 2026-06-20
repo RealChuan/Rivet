@@ -10,7 +10,7 @@ interface VirtualListProps<T> {
     item: T,
     index: number,
     style: React.CSSProperties,
-    containerWidth?: number
+    containerWidth?: number,
   ) => React.ReactNode
   listRef?: React.Ref<ListImperativeAPI>
   overscanCount?: number

@@ -1,4 +1,3 @@
-import type React from 'react'
 import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -6,7 +5,7 @@ interface SidebarHeaderProps {
   onNewConnection: () => void
 }
 
-export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ onNewConnection }) => {
+export const SidebarHeader = ({ onNewConnection }: SidebarHeaderProps) => {
   const { t } = useTranslation()
 
   return (
@@ -21,7 +20,7 @@ export const SidebarHeader: React.FC<SidebarHeaderProps> = ({ onNewConnection })
         `}
       >
         <Plus className="w-3.5 h-3.5" />
-        {t('connection.newConnection')}
+        {t(($) => $.connection.newConnection)}
       </button>
     </div>
   )

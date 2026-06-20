@@ -15,13 +15,13 @@ interface SortableConnectionItemProps {
 }
 
 function transformToString(
-  transform: { x: number; y: number; scaleX: number; scaleY: number } | null
+  transform: { x: number; y: number; scaleX: number; scaleY: number } | null,
 ): string | undefined {
   if (!transform) return undefined
   return `translate3d(${transform.x}px, ${transform.y}px, 0)`
 }
 
-export const SortableConnectionItem: React.FC<SortableConnectionItemProps> = ({
+export const SortableConnectionItem = ({
   connection,
   session,
   isActive,
@@ -30,7 +30,7 @@ export const SortableConnectionItem: React.FC<SortableConnectionItemProps> = ({
   onReconnect,
   onEdit,
   onDelete,
-}) => {
+}: SortableConnectionItemProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: connection.id,
   })

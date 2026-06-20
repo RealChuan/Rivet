@@ -19,7 +19,7 @@ import { executeUploadFolderOp } from './upload-executor.js'
 
 function scheduleByDirection(
   ctx: TransferContext,
-  direction: (typeof TRANSFER_DIRECTION)[keyof typeof TRANSFER_DIRECTION]
+  direction: (typeof TRANSFER_DIRECTION)[keyof typeof TRANSFER_DIRECTION],
 ): void {
   const getRunningCount = () =>
     direction === TRANSFER_DIRECTION.UPLOAD ? ctx.runningUploadTasks : ctx.runningDownloadTasks
@@ -27,7 +27,7 @@ function scheduleByDirection(
 
   while (getRunningCount() < concurrency) {
     const task = ctx.tasks.find(
-      t => t.status === OPERATION_STATUS.WAITING && t.direction === direction
+      (t) => t.status === OPERATION_STATUS.WAITING && t.direction === direction,
     )
     if (!task) break
 
@@ -41,7 +41,7 @@ function scheduleByDirection(
     }
 
     if (task.itemType === FILE_TYPE.FILE) {
-      void executeFileTask(ctx, task).catch(err => {
+      void executeFileTask(ctx, task).catch((err) => {
         logger.catch(err, { action: 'execute-file-task', taskId: task.id })
         task.status = OPERATION_STATUS.FAILED
         task.errorMessage = formatErrorMessage(err)
@@ -64,14 +64,14 @@ export function scheduleTasks(ctx: TransferContext): void {
 export function scheduleFolderOps(ctx: TransferContext, taskId: string): void {
   if (ctx.cancelledTaskIds.has(taskId)) return
 
-  const task = ctx.tasks.find(t => t.id === taskId)
+  const task = ctx.tasks.find((t) => t.id === taskId)
   const maxOps = task ? ctx.getConcurrency(task.direction) : TRANSFER_CONFIG.MAX_CONCURRENCY
 
   const runningOps = ctx.folderRunningOps.get(taskId) ?? 0
   if (runningOps >= maxOps) return
 
   const pendingOps = (ctx.operationsByTask.get(taskId) ?? []).filter(
-    op => op.status === OPERATION_STATUS.WAITING
+    (op) => op.status === OPERATION_STATUS.WAITING,
   )
 
   let currentRunning = runningOps
@@ -80,7 +80,7 @@ export function scheduleFolderOps(ctx: TransferContext, taskId: string): void {
     if (ctx.cancelledTaskIds.has(taskId)) return
     currentRunning++
     ctx.folderRunningOps.set(taskId, currentRunning)
-    void executeFolderOp(ctx, op).catch(err => {
+    void executeFolderOp(ctx, op).catch((err) => {
       logger.catch(err, { action: 'execute-folder-op', opId: op.id })
       op.status = OPERATION_STATUS.FAILED
       op.errorMessage = formatErrorMessage(err)
@@ -120,11 +120,11 @@ export async function executeFileTask(ctx: TransferContext, task: TransferTask):
             task.sessionId,
             task.localPath,
             task.remotePath,
-            transferred => onFileProgress(ctx, task, transferred),
-            controller.signal
+            (transferred) => onFileProgress(ctx, task, transferred),
+            controller.signal,
           )
-        : await executeDownloadFile(task, controller.signal, transferred =>
-            onFileProgress(ctx, task, transferred)
+        : await executeDownloadFile(task, controller.signal, (transferred) =>
+            onFileProgress(ctx, task, transferred),
           )
 
     if (ctx.isTaskCancelled(task.id)) return
@@ -171,7 +171,7 @@ export async function executeFolderOp(ctx: TransferContext, op: UploadOperation)
 
   op.status = OPERATION_STATUS.RUNNING
   op.startedAt = Date.now()
-  const task = ctx.tasks.find(t => t.id === op.parentTaskId)
+  const task = ctx.tasks.find((t) => t.id === op.parentTaskId)
   if (task) ctx.updateTaskStats(task)
 
   try {
@@ -201,7 +201,7 @@ export async function executeFolderOp(ctx: TransferContext, op: UploadOperation)
 export function onFileProgress(
   ctx: TransferContext,
   task: TransferTask,
-  transferred: number
+  transferred: number,
 ): void {
   task.transferredSize = transferred
   addSpeedSample(ctx.speedSamples, task.id, transferred)
@@ -216,7 +216,7 @@ export function onOperationProgress(
   ctx: TransferContext,
   op: UploadOperation,
   task: TransferTask,
-  transferred: number
+  transferred: number,
 ): void {
   op.transferredSize = transferred
   addSpeedSample(ctx.opSpeedSamples, op.id, transferred)

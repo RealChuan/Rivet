@@ -23,7 +23,7 @@ function computeRemainingTime(task: TransferTask): number {
 function sortTasks(
   tasks: TransferTask[],
   sortBy: TransferSortField,
-  sortOrder: SortOrderWithDirection
+  sortOrder: SortOrderWithDirection,
 ): TransferTask[] {
   const sorted = [...tasks].sort((a, b) => {
     let cmp = 0

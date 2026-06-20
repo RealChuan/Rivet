@@ -32,20 +32,20 @@ describe('transfer IPC handlers', () => {
     expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.TRANSFER.CANCEL, expect.any(Function))
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.TRANSFER.CANCEL_ALL,
-      expect.any(Function)
+      expect.any(Function),
     )
     expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.TRANSFER.RETRY, expect.any(Function))
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.TRANSFER.RETRY_ALL,
-      expect.any(Function)
+      expect.any(Function),
     )
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.TRANSFER.GET_TASKS,
-      expect.any(Function)
+      expect.any(Function),
     )
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.TRANSFER.SET_CONCURRENCY,
-      expect.any(Function)
+      expect.any(Function),
     )
   })
 
@@ -54,7 +54,7 @@ describe('transfer IPC handlers', () => {
     setupTransferIpcHandlers()
 
     const calls = vi.mocked(ipcMain.handle).mock.calls
-    const addCall = calls.find(c => c[0] === IPC_CHANNELS.TRANSFER.ADD)
+    const addCall = calls.find((c) => c[0] === IPC_CHANNELS.TRANSFER.ADD)
     const handler = addCall?.[1] as (...args: unknown[]) => unknown
 
     const tasks = [{ id: '1' }]
@@ -69,7 +69,7 @@ describe('transfer IPC handlers', () => {
     setupTransferIpcHandlers()
 
     const calls = vi.mocked(ipcMain.handle).mock.calls
-    const cancelCall = calls.find(c => c[0] === IPC_CHANNELS.TRANSFER.CANCEL)
+    const cancelCall = calls.find((c) => c[0] === IPC_CHANNELS.TRANSFER.CANCEL)
     const handler = cancelCall?.[1] as (...args: unknown[]) => unknown
 
     handler({}, 'task-1')
@@ -83,7 +83,7 @@ describe('transfer IPC handlers', () => {
     setupTransferIpcHandlers()
 
     const calls = vi.mocked(ipcMain.handle).mock.calls
-    const getTasksCall = calls.find(c => c[0] === IPC_CHANNELS.TRANSFER.GET_TASKS)
+    const getTasksCall = calls.find((c) => c[0] === IPC_CHANNELS.TRANSFER.GET_TASKS)
     const handler = getTasksCall?.[1] as (...args: unknown[]) => unknown
 
     handler({}, 'session-1')
@@ -97,7 +97,7 @@ describe('transfer IPC handlers', () => {
     setupTransferIpcHandlers()
 
     const calls = vi.mocked(ipcMain.handle).mock.calls
-    const setConcurrencyCall = calls.find(c => c[0] === IPC_CHANNELS.TRANSFER.SET_CONCURRENCY)
+    const setConcurrencyCall = calls.find((c) => c[0] === IPC_CHANNELS.TRANSFER.SET_CONCURRENCY)
     const handler = setConcurrencyCall?.[1] as (...args: unknown[]) => unknown
 
     handler({}, 5, TRANSFER_DIRECTION.UPLOAD)

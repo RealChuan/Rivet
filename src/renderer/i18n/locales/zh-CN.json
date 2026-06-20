@@ -61,6 +61,7 @@
       "connectFailed": "连接失败",
       "connecting": "连接中...",
       "continue": "继续",
+      "decryptFailed": "密码解密失败，请重新输入",
       "editTitle": "编辑连接",
       "encryptFailed": "密码加密失败，无法连接",
       "fillRequired": "请填写所有必填字段",

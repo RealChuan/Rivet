@@ -5,7 +5,23 @@ import { FileListHeader } from './FileListHeader.js'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string | ((ns: unknown) => unknown)) => {
+      if (typeof key === 'function') {
+        const path: string[] = []
+        const proxy = new Proxy(
+          {},
+          {
+            get(_target, prop) {
+              if (typeof prop === 'string') path.push(prop)
+              return proxy
+            },
+          },
+        )
+        key(proxy)
+        return path.join('.')
+      }
+      return key
+    },
     i18n: { language: 'en-US' },
   }),
 }))
@@ -24,7 +40,7 @@ const defaultProps = {
   sortOrder: SORT_ORDER.ASC as typeof SORT_ORDER.ASC,
   onSort: vi.fn(),
   onResizeStart: vi.fn(),
-  isWebdav: false,
+  isSftp: true,
 }
 
 describe('FileListHeader', () => {
@@ -37,8 +53,8 @@ describe('FileListHeader', () => {
     expect(screen.getByText('fileExplorerList.dateModified')).not.toBeNull()
   })
 
-  it('should hide permissions and owner columns in WebDAV mode', () => {
-    render(<FileListHeader {...defaultProps} isWebdav={true} />)
+  it('should hide permissions and owner columns in non-SFTP mode', () => {
+    render(<FileListHeader {...defaultProps} isSftp={false} />)
     expect(screen.queryByText('fileExplorerList.permissions')).toBeNull()
     expect(screen.queryByText('fileExplorerList.owner')).toBeNull()
   })
@@ -48,8 +64,8 @@ describe('FileListHeader', () => {
     const header = document.querySelector('[data-file-list-header]')
     if (!header) throw new Error('Header not found')
     const buttons = header.querySelectorAll('button')
-    const nameButton = Array.from(buttons).find(b =>
-      b.textContent?.includes('fileExplorerList.name')
+    const nameButton = Array.from(buttons).find((b) =>
+      b.textContent?.includes('fileExplorerList.name'),
     )
     if (!nameButton) throw new Error('Name button not found')
     const svg = nameButton.querySelector('svg')
@@ -61,8 +77,8 @@ describe('FileListHeader', () => {
     const header = document.querySelector('[data-file-list-header]')
     if (!header) throw new Error('Header not found')
     const buttons = header.querySelectorAll('button')
-    const sizeButton = Array.from(buttons).find(b =>
-      b.textContent?.includes('fileExplorerList.size')
+    const sizeButton = Array.from(buttons).find((b) =>
+      b.textContent?.includes('fileExplorerList.size'),
     )
     if (!sizeButton) throw new Error('Size button not found')
     const svg = sizeButton.querySelector('svg')
@@ -73,7 +89,7 @@ describe('FileListHeader', () => {
     const onSort = vi.fn()
     render(<FileListHeader {...defaultProps} onSort={onSort} />)
     const buttons = screen.getAllByRole('button')
-    const nameButton = buttons.find(b => b.textContent?.includes('fileExplorerList.name'))
+    const nameButton = buttons.find((b) => b.textContent?.includes('fileExplorerList.name'))
     if (!nameButton) throw new Error('Name button not found')
     fireEvent.click(nameButton)
     expect(onSort).toHaveBeenCalledWith('name')
@@ -83,7 +99,7 @@ describe('FileListHeader', () => {
     const onSort = vi.fn()
     render(<FileListHeader {...defaultProps} onSort={onSort} />)
     const buttons = screen.getAllByRole('button')
-    const sizeButton = buttons.find(b => b.textContent?.includes('fileExplorerList.size'))
+    const sizeButton = buttons.find((b) => b.textContent?.includes('fileExplorerList.size'))
     if (!sizeButton) throw new Error('Size button not found')
     fireEvent.click(sizeButton)
     expect(onSort).toHaveBeenCalledWith('size')
@@ -93,7 +109,7 @@ describe('FileListHeader', () => {
     const onSort = vi.fn()
     render(<FileListHeader {...defaultProps} onSort={onSort} />)
     const buttons = screen.getAllByRole('button')
-    const dateButton = buttons.find(b => b.textContent?.includes('fileExplorerList.dateModified'))
+    const dateButton = buttons.find((b) => b.textContent?.includes('fileExplorerList.dateModified'))
     if (!dateButton) throw new Error('Date button not found')
     fireEvent.click(dateButton)
     expect(onSort).toHaveBeenCalledWith('modifyTime')
@@ -104,8 +120,8 @@ describe('FileListHeader', () => {
     const header = document.querySelector('[data-file-list-header]')
     if (!header) throw new Error('Header not found')
     const buttons = header.querySelectorAll('button')
-    const nameButton = Array.from(buttons).find(b =>
-      b.textContent?.includes('fileExplorerList.name')
+    const nameButton = Array.from(buttons).find((b) =>
+      b.textContent?.includes('fileExplorerList.name'),
     )
     if (!nameButton) throw new Error('Name button not found')
     const svg = nameButton.querySelector('svg')

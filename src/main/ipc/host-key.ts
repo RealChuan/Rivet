@@ -7,7 +7,7 @@ export function setupHostKeyIpcHandlers(): void {
     IPC_CHANNELS.HOST_KEY.SAVE,
     (_, record: { connectionId: string; hash: string }) => {
       return saveHostKeyRecord(record)
-    }
+    },
   )
 
   ipcMain.handle(IPC_CHANNELS.HOST_KEY.DELETE, (_, connectionId: string) => {

@@ -11,12 +11,12 @@ interface SplitPanelProps {
   setWidthSelector?: (state: ReturnType<typeof useUiStore.getState>) => (width: number) => void
 }
 
-export const SplitPanel: React.FC<SplitPanelProps> = ({
+export const SplitPanel = ({
   left,
   right,
-  widthSelector = state => state.connectionPanelWidth,
-  setWidthSelector = state => state.setConnectionPanelWidth,
-}) => {
+  widthSelector = (state) => state.connectionPanelWidth,
+  setWidthSelector = (state) => state.setConnectionPanelWidth,
+}: SplitPanelProps) => {
   const panelWidth = useUiStore(widthSelector)
   const setPanelWidth = useUiStore(setWidthSelector)
   const [isDragging, setIsDragging] = useState(false)
@@ -29,7 +29,7 @@ export const SplitPanel: React.FC<SplitPanelProps> = ({
       const delta = e.clientX - dragStartRef.current.x
       const newWidth = Math.max(
         MIN_PANEL_WIDTH,
-        Math.min(MAX_PANEL_WIDTH, dragStartRef.current.width + delta)
+        Math.min(MAX_PANEL_WIDTH, dragStartRef.current.width + delta),
       )
       setPanelWidth(newWidth)
     }
@@ -56,7 +56,7 @@ export const SplitPanel: React.FC<SplitPanelProps> = ({
 
       <Resizer
         isDragging={isDragging}
-        onMouseDown={e => {
+        onMouseDown={(e) => {
           dragStartRef.current = { x: e.clientX, width: panelWidth }
           setIsDragging(true)
         }}

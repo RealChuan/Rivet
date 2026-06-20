@@ -14,7 +14,7 @@ interface TextInputDialogProps {
   submitText?: string
 }
 
-export const TextInputDialog: React.FC<TextInputDialogProps> = ({
+export const TextInputDialog = ({
   open,
   onClose,
   onSubmit,
@@ -22,7 +22,7 @@ export const TextInputDialog: React.FC<TextInputDialogProps> = ({
   placeholder,
   defaultValue = '',
   submitText,
-}) => {
+}: TextInputDialogProps) => {
   const { t } = useTranslation()
   const [value, setValue] = useState(defaultValue)
   const [prevOpen, setPrevOpen] = useState(open)
@@ -46,7 +46,7 @@ export const TextInputDialog: React.FC<TextInputDialogProps> = ({
         <input
           type="text"
           value={value}
-          onChange={e => setValue(e.target.value)}
+          onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
           autoFocus
           className={`
@@ -58,10 +58,10 @@ export const TextInputDialog: React.FC<TextInputDialogProps> = ({
         />
         <div className="flex justify-end gap-2.5">
           <Button type="button" variant="secondary" onClick={onClose}>
-            {t('common.action.cancel')}
+            {t(($) => $.common.action.cancel)}
           </Button>
           <Button type="submit" variant="primary" disabled={!value.trim()}>
-            {submitText ?? t('common.action.confirm')}
+            {submitText ?? t(($) => $.common.action.confirm)}
           </Button>
         </div>
       </form>

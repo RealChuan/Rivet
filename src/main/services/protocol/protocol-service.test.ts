@@ -171,7 +171,7 @@ describe('ProtocolService', () => {
       mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
       mockGetHostKeyRecord.mockReturnValue(ok(undefined))
       mockConnect.mockResolvedValue(
-        err(createErrorInfo(ERROR_CODE.CONN_FAILED, 'Connection refused'))
+        err(createErrorInfo(ERROR_CODE.CONN_FAILED, 'Connection refused')),
       )
 
       const result = await service.connect(baseConfig)
@@ -183,7 +183,7 @@ describe('ProtocolService', () => {
     it('HOST_KEY_MISMATCH returns success with statusCode', async () => {
       mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
       mockGetHostKeyRecord.mockReturnValue(
-        ok({ connectionId: 'conn-1', hash: 'old-hash', createdAt: Date.now() })
+        ok({ connectionId: 'conn-1', hash: 'old-hash', createdAt: Date.now() }),
       )
       const operationResult: OperationResult = {
         sessionId: '',
@@ -228,7 +228,7 @@ describe('ProtocolService', () => {
     it('constructs hostVerifier callback for SFTP protocol', async () => {
       mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
       mockGetHostKeyRecord.mockReturnValue(
-        ok({ connectionId: 'conn-1', hash: 'known-hash', createdAt: Date.now() })
+        ok({ connectionId: 'conn-1', hash: 'known-hash', createdAt: Date.now() }),
       )
       const operationResult: OperationResult = {
         sessionId: 'session-1',
@@ -277,7 +277,7 @@ describe('ProtocolService', () => {
     it('hostVerifier returns HOST_KEY_MISMATCH when hash differs', async () => {
       mockDecryptPassword.mockReturnValue(ok('decrypted-pwd'))
       mockGetHostKeyRecord.mockReturnValue(
-        ok({ connectionId: 'conn-1', hash: 'old-hash', createdAt: Date.now() })
+        ok({ connectionId: 'conn-1', hash: 'old-hash', createdAt: Date.now() }),
       )
       const operationResult: OperationResult = {
         sessionId: 'session-1',

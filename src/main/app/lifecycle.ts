@@ -33,7 +33,7 @@ function notifyRendererActiveTasks(win: Electron.BrowserWindow): void {
  * 拦截窗口关闭：有活跃传输任务时阻止关闭并通知渲染进程弹窗
  */
 function interceptCloseIfActive(win: Electron.BrowserWindow): void {
-  win.on('close', event => {
+  win.on('close', (event) => {
     if (transferService.hasActiveTasks()) {
       event.preventDefault()
       notifyRendererActiveTasks(win)
@@ -64,7 +64,7 @@ export async function disconnectAllSessions(): Promise<void> {
 export async function cleanupAndExit(
   signalName: string,
   shouldSaveConfig: boolean,
-  exitCode: number
+  exitCode: number,
 ): Promise<void> {
   logger.info(`${signalName} received, cleaning up...`)
 
@@ -90,7 +90,7 @@ export function setupAppLifecycle(): void {
     }
   })
 
-  app.on('before-quit', event => {
+  app.on('before-quit', (event) => {
     if (isCleaningUp) return
 
     if (transferService.hasActiveTasks()) {
@@ -108,7 +108,7 @@ export function setupAppLifecycle(): void {
     void (async () => {
       const forceExitTimeout = setTimeout(() => {
         logger.warn(
-          'Force exiting after timeout - some sessions may not have disconnected properly'
+          'Force exiting after timeout - some sessions may not have disconnected properly',
         )
         app.exit(0)
       }, TIMEOUTS.FORCE_EXIT)

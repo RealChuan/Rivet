@@ -4,8 +4,8 @@ import { useUiStore } from '../stores/index.js'
 
 export function useInternationalization() {
   const { i18n } = useTranslation()
-  const locale = useUiStore(state => state.locale)
-  const setLocale = useUiStore(state => state.setLocale)
+  const locale = useUiStore((state) => state.locale)
+  const setLocale = useUiStore((state) => state.setLocale)
 
   const changeLanguage = (lang: SupportedLanguageLiteral) => {
     void i18n.changeLanguage(lang)

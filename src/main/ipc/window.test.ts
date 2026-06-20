@@ -39,11 +39,11 @@ describe('window IPC handlers', () => {
     expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW.GET_STATE, expect.any(Function))
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.WINDOW.CREATE_CHILD,
-      expect.any(Function)
+      expect.any(Function),
     )
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.WINDOW.CLOSE_CHILD,
-      expect.any(Function)
+      expect.any(Function),
     )
     expect(ipcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW.MINIMIZE, expect.any(Function))
     expect(ipcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW.MAXIMIZE, expect.any(Function))

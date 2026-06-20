@@ -1,14 +1,15 @@
-import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import { ConfirmationDialog } from '@renderer/components/common/ConfirmationDialog.js'
 import { HOST_KEY_DIALOG_TYPE } from '@shared/constants/index.js'
 import { useHostKeyStore } from '../stores/host-key.js'
 import { HostKeyNotification } from './HostKeyNotification.js'
 
-export const HostKeyVerificationDialog: React.FC = () => {
+export const HostKeyVerificationDialog = () => {
   const { t } = useTranslation()
-  const hostKeyDialog = useHostKeyStore(state => state.hostKeyDialog)
-  const setHostKeyVerificationDialog = useHostKeyStore(state => state.setHostKeyVerificationDialog)
+  const hostKeyDialog = useHostKeyStore((state) => state.hostKeyDialog)
+  const setHostKeyVerificationDialog = useHostKeyStore(
+    (state) => state.setHostKeyVerificationDialog,
+  )
 
   const handleTrust = () => {
     if (hostKeyDialog.onConfirm) {
@@ -33,10 +34,10 @@ export const HostKeyVerificationDialog: React.FC = () => {
       open={hostKeyDialog.open}
       onClose={handleCancel}
       onConfirm={handleTrust}
-      title={isMismatch ? t('hostKey.mismatchTitle') : t('hostKey.firstConnectTitle')}
+      title={isMismatch ? t(($) => $.hostKey.mismatchTitle) : t(($) => $.hostKey.firstConnectTitle)}
       type={isMismatch ? 'danger' : 'info'}
-      confirmText={isMismatch ? t('hostKey.trustNew') : t('hostKey.trustAndSave')}
-      cancelText={isMismatch ? t('common.action.close') : t('hostKey.disconnect')}
+      confirmText={isMismatch ? t(($) => $.hostKey.trustNew) : t(($) => $.hostKey.trustAndSave)}
+      cancelText={isMismatch ? t(($) => $.common.action.close) : t(($) => $.hostKey.disconnect)}
       customContent={
         <HostKeyNotification
           type={hostKeyDialog.type}

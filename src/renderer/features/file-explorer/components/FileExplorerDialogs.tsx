@@ -1,4 +1,3 @@
-import type React from 'react'
 import { useTranslation } from 'react-i18next'
 import ConfirmationDialog from '@renderer/components/common/ConfirmationDialog.js'
 import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
@@ -20,15 +19,17 @@ interface FileExplorerDialogsProps {
   sessionId: string
   currentPath: string
   listState: UseFileListStateReturn
+  isSftp?: boolean | undefined
 }
 
-export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
+export const FileExplorerDialogs = ({
   sessionId,
   currentPath,
   listState,
-}) => {
+  isSftp,
+}: FileExplorerDialogsProps) => {
   const { t } = useTranslation()
-  const addToast = useUiStore(state => state.addToast)
+  const addToast = useUiStore((state) => state.addToast)
 
   const { handleDelete } = useFileDeletion(sessionId)
   const { handleRename } = useFileRenaming(sessionId)
@@ -91,15 +92,17 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
         onClose={closeDeleteDialog}
         title={
           fileToDelete?.length === 1
-            ? t('confirmationDialog.confirmDeleteTitle')
-            : t('confirmationDialog.confirmDeleteMultipleTitle')
+            ? t(($) => $.confirmationDialog.confirmDeleteTitle)
+            : t(($) => $.confirmationDialog.confirmDeleteMultipleTitle)
         }
         message={
           fileToDelete?.length === 1
-            ? t('confirmationDialog.confirmDeleteMessage', { name: fileToDelete[0]?.name })
-            : t('confirmationDialog.confirmDeleteMultipleMessage', { count: fileToDelete?.length })
+            ? t(($) => $.confirmationDialog.confirmDeleteMessage, { name: fileToDelete[0]?.name })
+            : t(($) => $.confirmationDialog.confirmDeleteMultipleMessage, {
+                count: fileToDelete?.length ?? 0,
+              })
         }
-        confirmText={t('common.action.delete')}
+        confirmText={t(($) => $.common.action.delete)}
         type="danger"
         onConfirm={() => {
           if (fileToDelete) {
@@ -114,27 +117,27 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
       <TextInputDialog
         open={renameDialogOpen}
         onClose={closeRenameDialog}
-        title={t('file.action.rename')}
-        placeholder={t('textInputDialog.newNamePlaceholder')}
+        title={t(($) => $.file.action.rename)}
+        placeholder={t(($) => $.textInputDialog.newNamePlaceholder)}
         defaultValue={selectedFile?.name ?? ''}
-        submitText={t('file.action.rename')}
+        submitText={t(($) => $.file.action.rename)}
         onSubmit={handleRenameWrapper}
       />
 
       <TextInputDialog
         open={newFolderDialogOpen}
         onClose={() => setNewFolderDialogOpen(false)}
-        title={t('file.action.newFolder')}
-        placeholder={t('textInputDialog.folderNamePlaceholder')}
-        submitText={t('common.action.create')}
+        title={t(($) => $.file.action.newFolder)}
+        placeholder={t(($) => $.textInputDialog.folderNamePlaceholder)}
+        submitText={t(($) => $.common.action.create)}
         onSubmit={handleCreateFolderWrapper}
       />
 
       <TargetFolderDialog
         open={targetFolderDialogOpen}
         onClose={() => setTargetFolderDialogOpen(false)}
-        onConfirm={targetDir => {
-          void handleSelectTargetFolder(targetDir).then(result => {
+        onConfirm={(targetDir) => {
+          void handleSelectTargetFolder(targetDir).then((result) => {
             if (isOk(result)) {
               setTargetFolderDialogOpen(false)
             } else {
@@ -158,6 +161,7 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
         open={propertiesDialogOpen}
         onClose={closePropertiesDialog}
         file={propertiesDialogFile}
+        isSftp={isSftp}
       />
 
       {contextMenu && (
@@ -177,14 +181,14 @@ export const FileExplorerDialogs: React.FC<FileExplorerDialogsProps> = ({
           }}
           onUploadFiles={() => void openFilePicker()}
           onUploadFolder={() => void openFolderPicker()}
-          onDownload={files => {
+          onDownload={(files) => {
             void openDownloadDialog(
-              files.map(f => ({
+              files.map((f) => ({
                 path: f.absolutePath,
                 name: f.name,
                 type: f.type,
                 size: f.size,
-              }))
+              })),
             )
           }}
           onProperties={openPropertiesDialog}

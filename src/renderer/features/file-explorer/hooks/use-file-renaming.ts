@@ -12,8 +12,8 @@ interface UseFileRenamingReturn {
 
 export const useFileRenaming = (sessionId: string): UseFileRenamingReturn => {
   const { t } = useTranslation()
-  const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
-  const addToast = useUiStore(state => state.addToast)
+  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
+  const addToast = useUiStore((state) => state.addToast)
   const { execute } = useFileOperation(sessionId)
 
   const handleRename = async (file: FileInfo, newName: string) => {
@@ -22,11 +22,11 @@ export const useFileRenaming = (sessionId: string): UseFileRenamingReturn => {
 
       if (isProtocolResponseErr(result)) {
         throw new Error(
-          `${t('toast.renameFailed')}: ${formatErrorMessage(result.error) || t('error.unknown')}`
+          `${t(($) => $.toast.renameFailed)}: ${formatErrorMessage(result.error) || t(($) => $.error.unknown)}`,
         )
       }
 
-      addToast({ type: TOAST_TYPE.SUCCESS, message: t('toast.renameSuccess') })
+      addToast({ type: TOAST_TYPE.SUCCESS, message: t(($) => $.toast.renameSuccess) })
       await refreshCurrentDirectory(sessionId)
     })
   }

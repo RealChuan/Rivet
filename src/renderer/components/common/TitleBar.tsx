@@ -75,7 +75,7 @@ export function TitleBar({
         unsubscribe = window.electronAPI.window.onStateChange(
           (newState: { isMaximized: boolean }) => {
             setIsMaximized(newState.isMaximized)
-          }
+          },
         )
       } catch (err) {
         logger.catch(err, { action: 'initialize-window-state' })
@@ -127,14 +127,14 @@ export function TitleBar({
         className="flex-1 flex items-center h-full px-3 draggable titlebar-text"
         onDoubleClick={childMode ? undefined : handleMaximize}
         role="button"
-        aria-label={t('titleBar.dragToMove')}
+        aria-label={t(($) => $.titleBar.dragToMove)}
       >
         <div className="flex items-center gap-2 no-drag">
           {/* 应用 Logo */}
           <AppLogo />
           <div className="flex items-center gap-3">
-            <span className="text-sm text-text font-semibold">{t('app.name')}</span>
-            <span className="text-xs text-text-muted">{t('app.subtitle')}</span>
+            <span className="text-sm text-text font-semibold">{t(($) => $.app.name)}</span>
+            <span className="text-xs text-text-muted">{t(($) => $.app.subtitle)}</span>
           </div>
           {leftContent}
         </div>
@@ -153,8 +153,8 @@ export function TitleBar({
             <button
               onClick={handleMinimize}
               className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 cursor-default"
-              aria-label={t('titleBar.minimize')}
-              title={t('titleBar.minimize')}
+              aria-label={t(($) => $.titleBar.minimize)}
+              title={t(($) => $.titleBar.minimize)}
               type="button"
             >
               <Minus className="w-3.5 h-3.5" />
@@ -163,8 +163,10 @@ export function TitleBar({
             <button
               onClick={handleMaximize}
               className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 cursor-default"
-              aria-label={isMaximized ? t('titleBar.restore') : t('titleBar.maximize')}
-              title={isMaximized ? t('titleBar.restore') : t('titleBar.maximize')}
+              aria-label={
+                isMaximized ? t(($) => $.titleBar.restore) : t(($) => $.titleBar.maximize)
+              }
+              title={isMaximized ? t(($) => $.titleBar.restore) : t(($) => $.titleBar.maximize)}
               type="button"
             >
               {isMaximized ? <Maximize2 className="w-3 h-3" /> : <Square className="w-3 h-3" />}
@@ -175,8 +177,8 @@ export function TitleBar({
         <button
           onClick={handleClose}
           className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-danger hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 cursor-default"
-          aria-label={t('titleBar.close')}
-          title={t('titleBar.close')}
+          aria-label={t(($) => $.titleBar.close)}
+          title={t(($) => $.titleBar.close)}
           type="button"
         >
           <X className="w-3.5 h-3.5" />

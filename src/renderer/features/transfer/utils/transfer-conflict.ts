@@ -13,9 +13,9 @@ export function detectConflicts(
   sourcePaths: string[],
   targetFiles: TargetFileEntry[],
   targetDir: string,
-  itemType: FileType
+  itemType: FileType,
 ): ConflictItem[] {
-  const targetFileMap = new Map(targetFiles.map(f => [f.name, f]))
+  const targetFileMap = new Map(targetFiles.map((f) => [f.name, f]))
   const detected: ConflictItem[] = []
 
   for (const sourcePath of sourcePaths) {
@@ -39,7 +39,7 @@ export function applyResolutions(
   sourcePaths: string[],
   resolutions: ConflictResolution[],
   targetDir: string,
-  _itemType: FileType
+  _itemType: FileType,
 ): {
   localPath: string
   remotePath: string
@@ -47,7 +47,7 @@ export function applyResolutions(
   conflictAction?: ConflictAction
   renamedName?: string
 }[] {
-  const resolutionMap = new Map(resolutions.map(r => [r.localPath, r]))
+  const resolutionMap = new Map(resolutions.map((r) => [r.localPath, r]))
   const skipSet = new Set<string>()
 
   for (const resolution of resolutions) {
@@ -57,8 +57,8 @@ export function applyResolutions(
   }
 
   return sourcePaths
-    .filter(p => !skipSet.has(p))
-    .map(sourcePath => {
+    .filter((p) => !skipSet.has(p))
+    .map((sourcePath) => {
       const name = pathBasename(sourcePath)
       const resolution = resolutionMap.get(sourcePath)
 

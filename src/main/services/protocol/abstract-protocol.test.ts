@@ -161,7 +161,7 @@ describe('AbstractProtocol', () => {
         { id: 'c1' },
         '/home/user/old.txt',
         '/home/user/new.txt',
-        '/base'
+        '/base',
       )
     })
   })
@@ -182,7 +182,7 @@ describe('AbstractProtocol', () => {
         { id: 'c1' },
         '/some/deep/file.txt',
         '/base',
-        'file'
+        'file',
       )
     })
   })
@@ -204,7 +204,7 @@ describe('AbstractProtocol', () => {
         '/source/src.txt',
         '/target/dst.txt',
         '/base',
-        'file'
+        'file',
       )
     })
   })
@@ -225,7 +225,7 @@ describe('AbstractProtocol', () => {
         { id: 'c1' },
         '/source/src.txt',
         '/target/dst.txt',
-        '/base'
+        '/base',
       )
     })
   })
@@ -285,13 +285,13 @@ describe('AbstractProtocol', () => {
       protocol.listImpl.mockReturnValue(
         new Promise<never>(() => {
           /* never resolves */
-        })
+        }),
       )
       // Must provide a signal so withAbort enters the timeout/abort path
       const controller = new AbortController()
       let resolved = false
       let result: Result<FileInfo[], ErrorInfo> | undefined
-      void protocol.list('s1', '/path', controller.signal).then(r => {
+      void protocol.list('s1', '/path', controller.signal).then((r) => {
         resolved = true
         result = r
       })

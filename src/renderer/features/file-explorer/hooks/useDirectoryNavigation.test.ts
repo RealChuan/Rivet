@@ -22,8 +22,8 @@ describe('useDirectoryNavigation', () => {
         currentPath,
         mockUpdateCurrentPath,
         mockRefreshCurrentDirectory,
-        mockOnNavigateComplete
-      )
+        mockOnNavigateComplete,
+      ),
     )
     await act(async () => {
       await result.current.handleNavigate('/home/user/documents')
@@ -49,8 +49,8 @@ describe('useDirectoryNavigation', () => {
         currentPath,
         mockUpdateCurrentPath,
         mockRefreshCurrentDirectory,
-        mockOnNavigateComplete
-      )
+        mockOnNavigateComplete,
+      ),
     )
     act(() => {
       result.current.handleDoubleClick(dirFile)
@@ -74,8 +74,8 @@ describe('useDirectoryNavigation', () => {
         currentPath,
         mockUpdateCurrentPath,
         mockRefreshCurrentDirectory,
-        mockOnNavigateComplete
-      )
+        mockOnNavigateComplete,
+      ),
     )
     act(() => {
       result.current.handleDoubleClick(file)
@@ -90,8 +90,8 @@ describe('useDirectoryNavigation', () => {
         currentPath,
         mockUpdateCurrentPath,
         mockRefreshCurrentDirectory,
-        mockOnNavigateComplete
-      )
+        mockOnNavigateComplete,
+      ),
     )
     act(() => {
       result.current.handleParentDirectory()
@@ -106,8 +106,8 @@ describe('useDirectoryNavigation', () => {
         '/',
         mockUpdateCurrentPath,
         mockRefreshCurrentDirectory,
-        mockOnNavigateComplete
-      )
+        mockOnNavigateComplete,
+      ),
     )
     act(() => {
       result.current.handleParentDirectory()

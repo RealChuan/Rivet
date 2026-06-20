@@ -28,7 +28,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
   abstract connect(
     config: ConnectionConfig,
     password: string,
-    hostVerifier?: HostVerifier
+    hostVerifier?: HostVerifier,
   ): Promise<Result<OperationResult, ErrorInfo>>
   abstract disconnect(sessionId: string): Promise<Result<void, ErrorInfo>>
 
@@ -37,37 +37,37 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
   protected abstract listImpl(
     client: T,
     path: string,
-    basePath: string
+    basePath: string,
   ): Promise<Result<FileInfo[], ErrorInfo>>
   protected abstract mkdirImpl(
     client: T,
     path: string,
-    basePath: string
+    basePath: string,
   ): Promise<Result<void, ErrorInfo>>
   protected abstract renameImpl(
     client: T,
     oldPath: string,
     newPath: string,
-    basePath: string
+    basePath: string,
   ): Promise<Result<void, ErrorInfo>>
   protected abstract deleteImpl(
     client: T,
     path: string,
     basePath: string,
-    fileType: string
+    fileType: string,
   ): Promise<Result<void, ErrorInfo>>
   protected abstract copyImpl(
     client: T,
     sourcePath: string,
     targetPath: string,
     basePath: string,
-    fileType: string
+    fileType: string,
   ): Promise<Result<void, ErrorInfo>>
   protected abstract moveImpl(
     client: T,
     sourcePath: string,
     targetPath: string,
-    basePath: string
+    basePath: string,
   ): Promise<Result<void, ErrorInfo>>
   protected abstract uploadImpl(
     client: T,
@@ -75,7 +75,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     remotePath: string,
     basePath: string,
     onProgress: (transferred: number) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
   ): Promise<Result<void, ErrorInfo>>
   protected abstract downloadImpl(
     client: T,
@@ -83,7 +83,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     localPath: string,
     basePath: string,
     onProgress: (transferred: number) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
   ): Promise<Result<void, ErrorInfo>>
   protected abstract pingImpl(client: T, basePath: string): Promise<Result<void, ErrorInfo>>
 
@@ -112,7 +112,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       return ok(sanitizePath(path))
     } catch (e) {
       return err(
-        createErrorInfo(ERROR_CODE.PATH_TRAVERSAL, e instanceof Error ? e.message : String(e))
+        createErrorInfo(ERROR_CODE.PATH_TRAVERSAL, e instanceof Error ? e.message : String(e)),
       )
     }
   }
@@ -122,7 +122,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     operation: () => Promise<Result<R, ErrorInfo>>,
     timeout?: number,
     timeoutErrorCode?: string,
-    abortedErrorCode?: string
+    abortedErrorCode?: string,
   ): Promise<Result<R, ErrorInfo>> {
     if (!signal) {
       return operation()
@@ -132,12 +132,12 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       return err(
         createErrorInfo(
           abortedErrorCode ?? ERROR_CODE.REQUEST_ABORTED,
-          ERROR_MESSAGE.OPERATION_ALREADY_ABORTED
-        )
+          ERROR_MESSAGE.OPERATION_ALREADY_ABORTED,
+        ),
       )
     }
 
-    return new Promise<Result<R, ErrorInfo>>(resolve => {
+    return new Promise<Result<R, ErrorInfo>>((resolve) => {
       let settled = false
 
       const cleanup = () => {
@@ -155,9 +155,9 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
                 err(
                   createErrorInfo(
                     timeoutErrorCode ?? ERROR_CODE.REQUEST_ABORTED,
-                    `Operation timed out after ${timeout}ms`
-                  )
-                )
+                    `Operation timed out after ${timeout}ms`,
+                  ),
+                ),
               )
             }, timeout)
           : undefined
@@ -170,22 +170,22 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
           err(
             createErrorInfo(
               abortedErrorCode ?? ERROR_CODE.REQUEST_ABORTED,
-              ERROR_MESSAGE.OPERATION_ABORTED
-            )
-          )
+              ERROR_MESSAGE.OPERATION_ABORTED,
+            ),
+          ),
         )
       }
 
       signal.addEventListener('abort', onAbort)
 
       operation()
-        .then(result => {
+        .then((result) => {
           if (settled) return
           settled = true
           cleanup()
           resolve(result)
         })
-        .catch(error => {
+        .catch((error) => {
           if (settled) return
           settled = true
           cleanup()
@@ -198,7 +198,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     sessionId: string,
     operation: (client: T, basePath: string) => Promise<Result<R, ErrorInfo>>,
     logAction: string,
-    logData: Record<string, unknown> = {}
+    logData: Record<string, unknown> = {},
   ): Promise<Result<R, ErrorInfo>> {
     const clientResult = this.getClient(sessionId)
     if (isErr(clientResult)) return clientResult
@@ -213,8 +213,8 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       return err(
         createErrorInfo(
           ERROR_CODE.INVALID_STATE,
-          error instanceof Error ? error.message : String(error)
-        )
+          error instanceof Error ? error.message : String(error),
+        ),
       )
     }
 
@@ -242,7 +242,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
   async list(
     sessionId: string,
     path: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Result<FileInfo[], ErrorInfo>> {
     const pathResult = this.sanitizePathOrError(path)
     if (isErr(pathResult)) return pathResult
@@ -256,17 +256,17 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
           () => this.listImpl(client, sanitizedPath, basePath),
           TIMEOUTS.LIST,
           ERROR_CODE.LIST_TIMEOUT,
-          ERROR_CODE.LIST_ABORTED
+          ERROR_CODE.LIST_ABORTED,
         ),
       FILE_OPERATION.LIST,
-      { path: sanitizedPath }
+      { path: sanitizedPath },
     )
   }
 
   async mkdir(
     sessionId: string,
     path: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     const pathResult = this.sanitizePathOrError(path)
     if (isErr(pathResult)) return pathResult
@@ -280,10 +280,10 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
           () => this.mkdirImpl(client, sanitizedPath, basePath),
           TIMEOUTS.MKDIR,
           ERROR_CODE.MKDIR_TIMEOUT,
-          ERROR_CODE.MKDIR_ABORTED
+          ERROR_CODE.MKDIR_ABORTED,
         ),
       FILE_OPERATION.MKDIR,
-      { path: sanitizedPath }
+      { path: sanitizedPath },
     )
   }
 
@@ -291,7 +291,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     sessionId: string,
     file: FileInfo,
     newName: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     const currentPathResult = this.sanitizePathOrError(file.absolutePath)
     if (isErr(currentPathResult)) return currentPathResult
@@ -310,17 +310,17 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
           () => this.renameImpl(client, sanitizedCurrentPath, sanitizedNewPath, basePath),
           TIMEOUTS.RENAME,
           ERROR_CODE.RENAME_TIMEOUT,
-          ERROR_CODE.RENAME_ABORTED
+          ERROR_CODE.RENAME_ABORTED,
         ),
       FILE_OPERATION.RENAME,
-      { from: sanitizedCurrentPath, to: sanitizedNewPath }
+      { from: sanitizedCurrentPath, to: sanitizedNewPath },
     )
   }
 
   async delete(
     sessionId: string,
     file: FileInfo,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     const pathResult = this.sanitizePathOrError(file.absolutePath)
     if (isErr(pathResult)) return pathResult
@@ -334,10 +334,10 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
           () => this.deleteImpl(client, sanitizedPath, basePath, file.type),
           TIMEOUTS.DELETE,
           ERROR_CODE.DELETE_TIMEOUT,
-          ERROR_CODE.DELETE_ABORTED
+          ERROR_CODE.DELETE_ABORTED,
         ),
       FILE_OPERATION.DELETE,
-      { path: sanitizedPath }
+      { path: sanitizedPath },
     )
   }
 
@@ -345,7 +345,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     sessionId: string,
     file: FileInfo,
     targetPath: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     const sourcePathResult = this.sanitizePathOrError(file.absolutePath)
     if (isErr(sourcePathResult)) return sourcePathResult
@@ -364,10 +364,10 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
             this.copyImpl(client, sanitizedSourcePath, sanitizedTargetPath, basePath, file.type),
           undefined,
           undefined,
-          ERROR_CODE.COPY_ABORTED
+          ERROR_CODE.COPY_ABORTED,
         ),
       FILE_OPERATION.COPY,
-      { from: sanitizedSourcePath, to: sanitizedTargetPath }
+      { from: sanitizedSourcePath, to: sanitizedTargetPath },
     )
   }
 
@@ -375,7 +375,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     sessionId: string,
     file: FileInfo,
     targetPath: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     const sourcePathResult = this.sanitizePathOrError(file.absolutePath)
     if (isErr(sourcePathResult)) return sourcePathResult
@@ -393,10 +393,10 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
           () => this.moveImpl(client, sanitizedSourcePath, sanitizedTargetPath, basePath),
           undefined,
           undefined,
-          ERROR_CODE.MOVE_ABORTED
+          ERROR_CODE.MOVE_ABORTED,
         ),
       FILE_OPERATION.MOVE,
-      { from: sanitizedSourcePath, to: sanitizedTargetPath }
+      { from: sanitizedSourcePath, to: sanitizedTargetPath },
     )
   }
 
@@ -407,11 +407,11 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       client: T,
       sanitizedRemotePath: string,
       basePath: string,
-      controller: AbortController
+      controller: AbortController,
     ) => Promise<Result<void, ErrorInfo>>,
     action: string,
     abortedErrorCode: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     const clientResult = this.getClient(sessionId)
     if (isErr(clientResult)) return clientResult
@@ -434,7 +434,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
         () => operation(clientResult.value, sanitizedRemotePath, basePath, controller),
         undefined,
         undefined,
-        abortedErrorCode
+        abortedErrorCode,
       )
 
       if (isErr(result)) {
@@ -469,7 +469,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     localPath: string,
     remotePath: string,
     onProgress: (transferred: number) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     return this.executeTransferOperation(
       sessionId,
@@ -481,11 +481,11 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
           sanitizedRemotePath,
           basePath,
           onProgress,
-          controller.signal
+          controller.signal,
         ),
       FILE_OPERATION.UPLOAD,
       ERROR_CODE.UPLOAD_ABORTED,
-      signal
+      signal,
     )
   }
 
@@ -494,7 +494,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     remotePath: string,
     localPath: string,
     onProgress: (transferred: number) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     return this.executeTransferOperation(
       sessionId,
@@ -506,11 +506,11 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
           localPath,
           basePath,
           onProgress,
-          controller.signal
+          controller.signal,
         ),
       FILE_OPERATION.DOWNLOAD,
       ERROR_CODE.DOWNLOAD_ABORTED,
-      signal
+      signal,
     )
   }
 

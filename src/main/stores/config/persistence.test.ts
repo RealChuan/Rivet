@@ -193,7 +193,7 @@ describe('persistence', () => {
         expect.objectContaining({
           savedConnections: [validConn],
           transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
-        })
+        }),
       )
       expect(logger.warn).toHaveBeenCalledWith('Filtered 1 invalid connection(s)')
     })
@@ -213,7 +213,7 @@ describe('persistence', () => {
         expect.objectContaining({
           savedConnections: [],
           transferSettings: { maxUploadConcurrency: 5, maxDownloadConcurrency: 5 },
-        })
+        }),
       )
       expect(logger.warn).toHaveBeenCalledWith('Invalid connections format, reset to empty array')
     })
@@ -277,16 +277,16 @@ describe('persistence', () => {
       expect(result.success).toBe(true)
       expect(mockStoreSet).toHaveBeenCalledWith(
         STORE_KEY.SAVED_CONNECTIONS,
-        mockConfig.savedConnections
+        mockConfig.savedConnections,
       )
       expect(mockStoreSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, mockConfig.uiSettings)
       expect(mockStoreSet).toHaveBeenCalledWith(
         STORE_KEY.TRANSFER_SETTINGS,
-        mockConfig.transferSettings
+        mockConfig.transferSettings,
       )
       expect(mockStoreSet).toHaveBeenCalledWith(
         STORE_KEY.CONNECTION_SORT_ORDER,
-        mockConfig.connectionSortOrder
+        mockConfig.connectionSortOrder,
       )
       expect(resetConfigChanged).toHaveBeenCalled()
       expect(logger.info).toHaveBeenCalledWith('Config flushed to disk')
@@ -508,7 +508,7 @@ describe('persistence', () => {
       } as unknown as ReturnType<typeof getInMemoryConfig>)
 
       const allConfig = getInMemoryConfig() as unknown as Record<string, unknown>
-      const customKey = Object.keys(allConfig).find(k => k === 'customKey') as keyof ReturnType<
+      const customKey = Object.keys(allConfig).find((k) => k === 'customKey') as keyof ReturnType<
         typeof getInMemoryConfig
       >
       const result = getConfigurationValue(customKey)

@@ -23,7 +23,7 @@ export const buildTransferTask = (
   remoteDir: string,
   itemType: FileType,
   conflictAction?: ConflictAction,
-  renamedName?: string
+  renamedName?: string,
 ): TransferTask => {
   const name = pathBasename(localPath)
   const itemName = renamedName ?? name
@@ -53,7 +53,7 @@ export const buildDownloadTask = (
   itemType: FileType,
   fileSize: number,
   conflictAction?: ConflictAction,
-  renamedName?: string
+  renamedName?: string,
 ): TransferTask => {
   const name = pathBasename(remotePath)
   const itemName = renamedName ?? name

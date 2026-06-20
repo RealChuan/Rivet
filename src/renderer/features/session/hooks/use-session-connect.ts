@@ -27,10 +27,7 @@ export function useSessionConnect() {
       error: null,
     }
 
-    useSessionStore.setState(state => ({
-      sessions: state.sessions.filter(s => s.connectionId !== config.id).concat(session),
-      activeSessionId: result.sessionId,
-    }))
+    useSessionStore.getState().replaceSession(config.id, session)
 
     await useSessionStore.getState().refreshCurrentDirectory(result.sessionId)
 
@@ -39,7 +36,7 @@ export function useSessionConnect() {
 
   const reconnectSession = async (
     connectionId: string,
-    passwordConfig?: Partial<{ password?: string; savePassword?: boolean }>
+    passwordConfig?: Partial<{ password?: string; savePassword?: boolean }>,
   ): Promise<boolean> => {
     const connection = useConnectionStore.getState().getConnectionById(connectionId)
     if (!connection) throw new Error('Connection not found')

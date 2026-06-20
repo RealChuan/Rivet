@@ -91,7 +91,7 @@ describe('handleConnectWithHostKey', () => {
         sessionId: 'sess-2',
         connectionId: 'conn-1',
         open: true,
-      })
+      }),
     )
     expect(mockHostKeySave).toHaveBeenCalledWith({ connectionId: 'conn-1', hash: 'abc123' })
     expect(result).toEqual({ success: true, sessionId: 'sess-2', retry: false })
@@ -148,7 +148,7 @@ describe('handleConnectWithHostKey', () => {
         sessionId: '',
         connectionId: 'conn-1',
         open: true,
-      })
+      }),
     )
     expect(mockHostKeySave).toHaveBeenCalledWith({ connectionId: 'conn-1', hash: 'def456' })
     expect(result).toEqual({ success: false, sessionId: null, retry: true })

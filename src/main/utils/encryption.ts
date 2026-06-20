@@ -37,7 +37,7 @@ export function encryptPassword(password: string): Result<string, ErrorInfo> {
     if (!safeStorage.isEncryptionAvailable()) {
       logger.warn('safeStorage encryption not available, password will not be persisted')
       return err(
-        createErrorInfo(ERROR_CODE.ENCRYPT_UNAVAILABLE, 'safeStorage encryption not available')
+        createErrorInfo(ERROR_CODE.ENCRYPT_UNAVAILABLE, 'safeStorage encryption not available'),
       )
     }
 
@@ -51,8 +51,8 @@ export function encryptPassword(password: string): Result<string, ErrorInfo> {
       createErrorInfo(
         ERROR_CODE.ENCRYPTION_ERROR,
         'Failed to encrypt password',
-        formatErrorMessage(error)
-      )
+        formatErrorMessage(error),
+      ),
     )
   }
 }
@@ -67,7 +67,7 @@ export function decryptPassword(encrypted: string): Result<string, ErrorInfo> {
     if (!safeStorage.isEncryptionAvailable()) {
       logger.warn('safeStorage decryption not available')
       return err(
-        createErrorInfo(ERROR_CODE.DECRYPT_UNAVAILABLE, 'safeStorage decryption not available')
+        createErrorInfo(ERROR_CODE.DECRYPT_UNAVAILABLE, 'safeStorage decryption not available'),
       )
     }
 
@@ -88,8 +88,8 @@ export function decryptPassword(encrypted: string): Result<string, ErrorInfo> {
       createErrorInfo(
         ERROR_CODE.DECRYPTION_ERROR,
         'Failed to decrypt password',
-        formatErrorMessage(error)
-      )
+        formatErrorMessage(error),
+      ),
     )
   }
 }

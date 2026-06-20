@@ -98,7 +98,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
     const computeSelection = (
       currentDragStart: Point,
       currentDragEnd: Point,
-      currentItems: FileInfo[]
+      currentItems: FileInfo[],
     ): Set<string> => {
       const startY = Math.min(currentDragStart.y, currentDragEnd.y)
       const endY = Math.max(currentDragStart.y, currentDragEnd.y)
@@ -160,7 +160,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
         if (scrollDelta !== 0) {
           const maxScrollTop = Math.max(
             0,
-            currentScrollEl.scrollHeight - currentScrollEl.clientHeight
+            currentScrollEl.scrollHeight - currentScrollEl.clientHeight,
           )
           const currentScrollTop = currentScrollEl.scrollTop
           const newScrollTop = Math.max(0, Math.min(maxScrollTop, currentScrollTop + scrollDelta))

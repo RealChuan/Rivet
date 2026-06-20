@@ -24,15 +24,15 @@ describe('system IPC handlers', () => {
 
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.SYSTEM.GET_TEMP_DIR,
-      expect.any(Function)
+      expect.any(Function),
     )
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.SYSTEM.GET_DOWNLOAD_DIR,
-      expect.any(Function)
+      expect.any(Function),
     )
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.SYSTEM.SUPPORTS_GLASS,
-      expect.any(Function)
+      expect.any(Function),
     )
   })
 })

@@ -1,5 +1,8 @@
 import { defineConfig } from 'vitest/config'
-import path from 'path'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   test: {
@@ -30,6 +33,7 @@ export default defineConfig({
     clearMocks: true,
   },
   resolve: {
+    tsconfigPaths: true,
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@renderer': path.resolve(__dirname, './src/renderer'),
@@ -38,11 +42,11 @@ export default defineConfig({
       // Electron 依赖隔离：测试时重定向到 mock 模块
       'electron-log/renderer': path.resolve(
         __dirname,
-        './src/shared/test-utils/mocks/electron-log-renderer.ts'
+        './src/shared/test-utils/mocks/electron-log-renderer.ts',
       ),
       'electron-log/main': path.resolve(
         __dirname,
-        './src/shared/test-utils/mocks/electron-log-main.ts'
+        './src/shared/test-utils/mocks/electron-log-main.ts',
       ),
       'electron-store': path.resolve(__dirname, './src/shared/test-utils/mocks/electron-store.ts'),
       electron: path.resolve(__dirname, './src/shared/test-utils/mocks/electron.ts'),

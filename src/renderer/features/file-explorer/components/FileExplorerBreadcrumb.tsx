@@ -1,5 +1,5 @@
 import { Home, ChevronRight } from 'lucide-react'
-import React from 'react'
+import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { cn } from '@renderer/utils/index.js'
@@ -11,14 +11,14 @@ interface FileExplorerBreadcrumbProps {
   onNavigate?: (path: string) => void
 }
 
-export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
+export const FileExplorerBreadcrumb = ({
   path,
   sessionId,
   onNavigate,
-}) => {
+}: FileExplorerBreadcrumbProps) => {
   const { t } = useTranslation()
-  const updateCurrentPath = useSessionStore(state => state.updateCurrentPath)
-  const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
+  const updateCurrentPath = useSessionStore((state) => state.updateCurrentPath)
+  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
 
   const pathParts = path.split('/').filter(Boolean)
 
@@ -35,7 +35,7 @@ export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
     <nav className="flex items-center gap-1 text-sm overflow-x-auto flex-1">
       <button
         onClick={() => void handleNavigate(ROOT_PATH)}
-        aria-label={t('fileExplorerList.parentDirectory')}
+        aria-label={t(($) => $.fileExplorerList.parentDirectory)}
         className={`
           flex items-center gap-1 px-2 py-1 rounded text-text
           bg-transparent border-none cursor-pointer whitespace-nowrap font-medium
@@ -50,7 +50,7 @@ export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
         const isLast = index === pathParts.length - 1
 
         return (
-          <React.Fragment key={fullPath}>
+          <Fragment key={fullPath}>
             <ChevronRight className="w-3 h-3 stroke-text-muted stroke-2 shrink-0" />
             <button
               onClick={() => void handleNavigate(fullPath)}
@@ -58,12 +58,12 @@ export const FileExplorerBreadcrumb: React.FC<FileExplorerBreadcrumbProps> = ({
                 'px-2 py-1 rounded bg-transparent border-none cursor-pointer whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
                 isLast
                   ? 'text-text font-medium'
-                  : 'text-text-muted font-normal hover:bg-hover hover:text-text'
+                  : 'text-text-muted font-normal hover:bg-hover hover:text-text',
               )}
             >
               <span className="max-w-40 overflow-hidden text-ellipsis">{part}</span>
             </button>
-          </React.Fragment>
+          </Fragment>
         )
       })}
     </nav>

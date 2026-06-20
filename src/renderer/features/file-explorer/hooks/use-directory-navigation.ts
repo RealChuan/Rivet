@@ -7,7 +7,7 @@ export const useDirectoryNavigation = (
   currentPath: string,
   updateCurrentPath: (sessionId: string, path: string) => void,
   refreshCurrentDirectory: (sessionId: string) => Promise<void>,
-  onNavigateComplete?: () => void
+  onNavigateComplete?: () => void,
 ) => {
   const handleNavigate = async (path: string) => {
     updateCurrentPath(sessionId, path)

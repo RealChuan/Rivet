@@ -8,6 +8,7 @@ import {
   type ProtocolType,
   SftpStatus,
   TIMEOUTS,
+  FILE_TYPE,
 } from '@shared/constants/index.js'
 import {
   type ConnectionConfig,
@@ -68,7 +69,7 @@ export class ProtocolService {
     const instance = this.protocols.get(protocol)
     if (!instance) {
       return err(
-        createErrorInfo(ERROR_CODE.SESSION_NOT_FOUND, `Protocol not initialized: ${protocol}`)
+        createErrorInfo(ERROR_CODE.SESSION_NOT_FOUND, `Protocol not initialized: ${protocol}`),
       )
     }
 
@@ -87,7 +88,7 @@ export class ProtocolService {
     sessionId: string,
     timeout: number | undefined,
     operation: (signal: AbortSignal) => Promise<Result<T, ErrorInfo>>,
-    providedRequestId?: string
+    providedRequestId?: string,
   ): Promise<ProtocolResponse<T>> {
     const requestId = providedRequestId ?? crypto.randomUUID()
     const controller = new AbortController()
@@ -125,7 +126,7 @@ export class ProtocolService {
             value: undefined,
             error: createErrorInfo(
               ERROR_CODE.REQUEST_ABORTED,
-              'Request was cancelled or timed out'
+              'Request was cancelled or timed out',
             ),
           }
         }
@@ -141,19 +142,19 @@ export class ProtocolService {
     sessionId: string,
     operation: (protocol: FileProtocol, signal: AbortSignal) => Promise<Result<R, ErrorInfo>>,
     timeout: number | undefined = undefined,
-    requestId?: string
+    requestId?: string,
   ): Promise<ProtocolResponse<R>> {
     return this.executeWithRequest(
       sessionId,
       timeout,
-      async signal => {
+      async (signal) => {
         const protocolResult = this.getProtocolBySessionId(sessionId)
         if (isErr(protocolResult)) {
           return protocolResult
         }
         return operation(protocolResult.value, signal)
       },
-      requestId
+      requestId,
     )
   }
 
@@ -238,7 +239,7 @@ export class ProtocolService {
           value: undefined,
           error: createErrorInfo(
             ERROR_CODE.CONN_FAILED,
-            'Connection failed: no session ID returned'
+            'Connection failed: no session ID returned',
           ),
         }
       }
@@ -285,33 +286,33 @@ export class ProtocolService {
         logger.info(`Disconnected: ${sessionId}`)
         return result
       },
-      requestId
+      requestId,
     )
   }
 
   async list(
     sessionId: string,
     remotePath: string,
-    requestId?: string
+    requestId?: string,
   ): Promise<ProtocolResponse<FileInfo[]>> {
     return this.executeWithProtocol(
       sessionId,
       (protocol, signal) => protocol.list(sessionId, remotePath, signal),
       TIMEOUTS.LIST,
-      requestId
+      requestId,
     )
   }
 
   async mkdir(
     sessionId: string,
     remotePath: string,
-    requestId?: string
+    requestId?: string,
   ): Promise<ProtocolResponse<void>> {
     return this.executeWithProtocol(
       sessionId,
       (protocol, signal) => protocol.mkdir(sessionId, remotePath, signal),
       TIMEOUTS.MKDIR,
-      requestId
+      requestId,
     )
   }
 
@@ -319,26 +320,26 @@ export class ProtocolService {
     sessionId: string,
     file: FileInfo,
     newName: string,
-    requestId?: string
+    requestId?: string,
   ): Promise<ProtocolResponse<void>> {
     return this.executeWithProtocol(
       sessionId,
       (protocol, signal) => protocol.rename(sessionId, file, newName, signal),
       TIMEOUTS.RENAME,
-      requestId
+      requestId,
     )
   }
 
   async delete(
     sessionId: string,
     file: FileInfo,
-    requestId?: string
+    requestId?: string,
   ): Promise<ProtocolResponse<void>> {
     return this.executeWithProtocol(
       sessionId,
       (protocol, signal) => protocol.delete(sessionId, file, signal),
       TIMEOUTS.DELETE,
-      requestId
+      requestId,
     )
   }
 
@@ -346,13 +347,13 @@ export class ProtocolService {
     sessionId: string,
     file: FileInfo,
     targetPath: string,
-    requestId?: string
+    requestId?: string,
   ): Promise<ProtocolResponse<void>> {
     return this.executeWithProtocol(
       sessionId,
       (protocol, signal) => protocol.copy(sessionId, file, targetPath, signal),
       undefined,
-      requestId
+      requestId,
     )
   }
 
@@ -360,13 +361,13 @@ export class ProtocolService {
     sessionId: string,
     file: FileInfo,
     targetPath: string,
-    requestId?: string
+    requestId?: string,
   ): Promise<ProtocolResponse<void>> {
     return this.executeWithProtocol(
       sessionId,
       (protocol, signal) => protocol.move(sessionId, file, targetPath, signal),
       undefined,
-      requestId
+      requestId,
     )
   }
 
@@ -375,7 +376,7 @@ export class ProtocolService {
     localPath: string,
     remotePath: string,
     onProgress: (transferred: number) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     const protocolResult = this.getProtocolBySessionId(sessionId)
     if (isErr(protocolResult)) {
@@ -391,7 +392,7 @@ export class ProtocolService {
     remotePath: string,
     localPath: string,
     onProgress: (transferred: number) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     const protocolResult = this.getProtocolBySessionId(sessionId)
     if (isErr(protocolResult)) {
@@ -409,6 +410,62 @@ export class ProtocolService {
     }
 
     return protocolResult.value.ping(sessionId)
+  }
+
+  private createStatsWorker(ctx: {
+    stats: FolderStatsProgress
+    queue: string[]
+    activeCount: { value: number }
+    protocol: FileProtocol
+    sessionId: string
+    controller: AbortController
+  }): () => Promise<void> {
+    const { stats, queue, activeCount, protocol, sessionId, controller } = ctx
+
+    return async () => {
+      while (true) {
+        if (controller.signal.aborted) return
+
+        const currentPath = queue.shift()
+        if (!currentPath) {
+          if (activeCount.value === 0) return
+          await new Promise<void>((resolve) => setTimeout(resolve, 0))
+          continue
+        }
+
+        activeCount.value++
+        try {
+          stats.currentPath = currentPath
+
+          const listResult = await protocol.list(sessionId, currentPath, controller.signal)
+          if (isErr(listResult)) {
+            stats.errorCount++
+            logger.warn(`Folder stats: failed to list ${currentPath}`)
+            continue
+          }
+
+          for (const file of listResult.value) {
+            if (file.type === FILE_TYPE.DIRECTORY) {
+              stats.folderCount++
+              queue.push(file.absolutePath)
+            } else {
+              stats.fileCount++
+              stats.totalSize += file.size
+            }
+          }
+
+          this.send(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, { sessionId, ...stats })
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            return
+          }
+          stats.errorCount++
+          logger.warn(`Folder stats: error listing ${currentPath}: ${String(error)}`)
+        } finally {
+          activeCount.value--
+        }
+      }
+    }
   }
 
   async calculateFolderStats(sessionId: string, path: string): Promise<Result<void, ErrorInfo>> {
@@ -429,48 +486,35 @@ export class ProtocolService {
       isCancelled: false,
       errorCount: 0,
     }
-    const stack: string[] = [path]
+
+    const CONCURRENCY = 5
+    const worker = this.createStatsWorker({
+      stats,
+      queue: [path],
+      activeCount: { value: 0 },
+      protocol: protocolResult.value,
+      sessionId,
+      controller,
+    })
 
     try {
-      while (stack.length > 0) {
-        if (controller.signal.aborted) {
-          stats.isCancelled = true
-          this.send(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, { sessionId, ...stats })
-          return ok(undefined)
-        }
+      const workers = Array.from({ length: CONCURRENCY }, () => worker())
+      await Promise.all(workers)
 
-        const currentPath = stack.pop()
-        if (!currentPath) break
-        stats.currentPath = currentPath
-
-        const listResult = await protocolResult.value.list(
-          sessionId,
-          currentPath,
-          controller.signal
-        )
-        if (isErr(listResult)) {
-          stats.errorCount++
-          logger.warn(`Folder stats: failed to list ${currentPath}`)
-          continue
-        }
-
-        for (const file of listResult.value) {
-          if (file.type === 'directory') {
-            stats.folderCount++
-            stack.push(file.absolutePath)
-          } else {
-            stats.fileCount++
-            stats.totalSize += file.size
-          }
-        }
-
+      if (controller.signal.aborted) {
+        stats.isCancelled = true
         this.send(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, { sessionId, ...stats })
+        return ok(undefined)
       }
 
       stats.isComplete = true
       stats.currentPath = ''
       this.send(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, { sessionId, ...stats })
       return ok(undefined)
+    } catch (error) {
+      controller.abort()
+      logger.error(`Folder stats error: ${String(error)}`)
+      return err(createErrorInfo(ERROR_CODE.LIST_ERROR, String(error)))
     } finally {
       this.statsControllers.delete(sessionId)
     }

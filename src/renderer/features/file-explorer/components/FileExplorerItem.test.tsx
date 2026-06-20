@@ -5,7 +5,23 @@ import { FileExplorerItem } from './FileExplorerItem.js'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string | ((ns: unknown) => unknown)) => {
+      if (typeof key === 'function') {
+        const path: string[] = []
+        const proxy = new Proxy(
+          {},
+          {
+            get(_target, prop) {
+              if (typeof prop === 'string') path.push(prop)
+              return proxy
+            },
+          },
+        )
+        key(proxy)
+        return path.join('.')
+      }
+      return key
+    },
     i18n: { language: 'en-US' },
   }),
   initReactI18next: vi.fn(),
@@ -139,8 +155,8 @@ describe('FileExplorerItem', () => {
     expect(onHover).toHaveBeenCalledWith(null)
   })
 
-  it('should hide permissions and owner columns in WebDAV mode', () => {
-    render(<FileExplorerItem {...defaultProps} isWebdav={true} />)
+  it('should hide permissions and owner columns in non-SFTP mode', () => {
+    render(<FileExplorerItem {...defaultProps} isSftp={false} />)
     expect(screen.queryByTitle('rw-r--r--')).toBeNull()
   })
 })

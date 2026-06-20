@@ -2,8 +2,8 @@ import { useEffect } from 'react'
 import { useSessionStore } from '../features/session/stores/session.js'
 
 export const useGlobalShortcuts = () => {
-  const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
-  const activeSessionId = useSessionStore(state => state.activeSessionId)
+  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
+  const activeSessionId = useSessionStore((state) => state.activeSessionId)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

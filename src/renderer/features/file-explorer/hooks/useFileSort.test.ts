@@ -44,7 +44,7 @@ describe('useFileSort', () => {
 
   it('should sort by name ascending by default', () => {
     const { result } = renderHook(() => useFileSort(mockFiles))
-    const fileNames = result.current.sortedFiles.filter(f => f.type === 'file').map(f => f.name)
+    const fileNames = result.current.sortedFiles.filter((f) => f.type === 'file').map((f) => f.name)
     expect(fileNames).toEqual(['b-file.txt', 'c-file.txt'])
   })
 
@@ -78,7 +78,7 @@ describe('useFileSort', () => {
     act(() => {
       result.current.handleSort('size')
     })
-    const files = result.current.sortedFiles.filter(f => f.type === 'file')
+    const files = result.current.sortedFiles.filter((f) => f.type === 'file')
     const firstFile = files[0]
     const secondFile = files[1]
     if (!firstFile || !secondFile) throw new Error('Expected at least 2 files')
@@ -90,7 +90,7 @@ describe('useFileSort', () => {
     act(() => {
       result.current.handleSort('modifyTime')
     })
-    const files = result.current.sortedFiles.filter(f => f.type === 'file')
+    const files = result.current.sortedFiles.filter((f) => f.type === 'file')
     const firstFile = files[0]
     const secondFile = files[1]
     if (!firstFile || !secondFile) throw new Error('Expected at least 2 files')

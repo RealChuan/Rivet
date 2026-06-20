@@ -8,7 +8,7 @@ interface ResizerProps {
   onMouseDown: (e: React.MouseEvent) => void
 }
 
-export const Resizer: React.FC<ResizerProps> = ({ isDragging, onMouseDown }) => {
+export const Resizer = ({ isDragging, onMouseDown }: ResizerProps) => {
   const [isHovered, setIsHovered] = useState(false)
   const isActive = isDragging || isHovered
 
@@ -23,14 +23,14 @@ export const Resizer: React.FC<ResizerProps> = ({ isDragging, onMouseDown }) => 
       <div
         className={cn(
           'h-full w-px transition-colors duration-150',
-          isActive ? 'bg-accent/30' : 'bg-border'
+          isActive ? 'bg-accent/30' : 'bg-border',
         )}
       />
       <div
         className={cn(
           'absolute left-1/2 -translate-x-1/2 w-0.5 h-5 rounded-full bg-accent',
           'transition-all duration-150',
-          isActive ? 'opacity-100' : 'opacity-0'
+          isActive ? 'opacity-100' : 'opacity-0',
         )}
       />
     </div>

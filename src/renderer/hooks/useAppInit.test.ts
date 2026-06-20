@@ -45,31 +45,31 @@ describe('useApplicationInitialization', () => {
       initialized: false,
     }
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: typeof uiState) => unknown) => selector(uiState)
+      (selector: (state: typeof uiState) => unknown) => selector(uiState),
     )
     ;(useConnectionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (
         selector: (state: {
           loadSavedConnections: typeof mockLoadSavedConnections
           loadSortOrderFromSettings: typeof mockLoadSortOrderFromSettings
-        }) => unknown
+        }) => unknown,
       ) =>
         selector({
           loadSavedConnections: mockLoadSavedConnections,
           loadSortOrderFromSettings: mockLoadSortOrderFromSettings,
-        })
+        }),
     )
     ;(useTransferStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (
         selector: (state: {
           startListening: typeof mockStartTransferListening
           loadExistingTasks: typeof mockLoadExistingTasks
-        }) => unknown
+        }) => unknown,
       ) =>
         selector({
           startListening: mockStartTransferListening,
           loadExistingTasks: mockLoadExistingTasks,
-        })
+        }),
     )
     ;(useTranslation as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       i18n: { changeLanguage: mockChangeLanguage },
@@ -151,19 +151,19 @@ describe('useApplicationInitialization', () => {
       initialized: true,
     }
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: typeof uiState) => unknown) => selector(uiState)
+      (selector: (state: typeof uiState) => unknown) => selector(uiState),
     )
     ;(useTransferStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (
         selector: (state: {
           startListening: typeof mockStartTransferListening
           loadExistingTasks: typeof mockLoadExistingTasks
-        }) => unknown
+        }) => unknown,
       ) =>
         selector({
           startListening: mockStartTransferListening,
           loadExistingTasks: mockLoadExistingTasks,
-        })
+        }),
     )
 
     rerender()

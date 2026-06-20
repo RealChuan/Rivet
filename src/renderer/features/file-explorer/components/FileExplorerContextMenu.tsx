@@ -1,4 +1,3 @@
-import type React from 'react'
 import {
   Plus,
   Upload,
@@ -33,7 +32,7 @@ interface FileExplorerContextMenuProps {
   onProperties: (file: FileInfo) => void
 }
 
-export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = ({
+export const FileExplorerContextMenu = ({
   x,
   y,
   files,
@@ -48,7 +47,7 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
   onUploadFolder,
   onDownload,
   onProperties,
-}) => {
+}: FileExplorerContextMenuProps) => {
   const { t } = useTranslation()
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -83,31 +82,31 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
         <>
           <button className={itemClass} onClick={() => handleItemClick(onCreateFolder)}>
             <Plus className="w-3.5 h-3.5 stroke-current stroke-2" />
-            {t('file.action.newFolder')}
+            {t(($) => $.file.action.newFolder)}
           </button>
           <div className={separatorClass} />
           <button className={itemClass} onClick={() => handleItemClick(onUploadFiles)}>
             <Upload className="w-3.5 h-3.5 stroke-current stroke-2" />
-            {t('file.action.uploadFiles')}
+            {t(($) => $.file.action.uploadFiles)}
           </button>
           <button className={itemClass} onClick={() => handleItemClick(onUploadFolder)}>
             <FolderUp className="w-3.5 h-3.5 stroke-current stroke-2" />
-            {t('file.action.uploadFolder')}
+            {t(($) => $.file.action.uploadFolder)}
           </button>
         </>
       ) : (
         <>
           <button className={itemClass} onClick={() => handleItemClick(() => onCopy(files))}>
             <Copy className="w-3.5 h-3.5 stroke-current stroke-2" />
-            {t('file.action.copy')} {files.length > 1 ? `(${files.length})` : ''}
+            {t(($) => $.file.action.copy)} {files.length > 1 ? `(${files.length})` : ''}
           </button>
           <button className={itemClass} onClick={() => handleItemClick(() => onMove(files))}>
             <FolderInput className="w-3.5 h-3.5 stroke-current stroke-2" />
-            {t('file.action.move')} {files.length > 1 ? `(${files.length})` : ''}
+            {t(($) => $.file.action.move)} {files.length > 1 ? `(${files.length})` : ''}
           </button>
           <button className={itemClass} onClick={() => handleItemClick(() => onDownload(files))}>
             <Download className="w-3.5 h-3.5 stroke-current stroke-2" />
-            {t('file.action.download')} {files.length > 1 ? `(${files.length})` : ''}
+            {t(($) => $.file.action.download)} {files.length > 1 ? `(${files.length})` : ''}
           </button>
           {files.length === 1 && (
             <>
@@ -120,7 +119,7 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
                 }}
               >
                 <Pencil className="w-3.5 h-3.5 stroke-current stroke-2" />
-                {t('file.action.rename')}
+                {t(($) => $.file.action.rename)}
               </button>
             </>
           )}
@@ -130,22 +129,24 @@ export const FileExplorerContextMenu: React.FC<FileExplorerContextMenuProps> = (
             onClick={() => handleItemClick(() => onDelete(files))}
           >
             <Trash className="w-3.5 h-3.5 stroke-current stroke-2" />
-            {t('common.action.delete')} {files.length > 1 ? `(${files.length})` : ''}
+            {t(($) => $.common.action.delete)} {files.length > 1 ? `(${files.length})` : ''}
           </button>
-          <div className={separatorClass} />
           {files.length === 1 && files[0]?.type === FILE_TYPE.DIRECTORY && (
-            <button
-              className={itemClass}
-              onClick={() => {
-                const file = files[0]
-                if (file) {
-                  handleItemClick(() => onProperties(file))
-                }
-              }}
-            >
-              <FolderCog className="w-3.5 h-3.5 stroke-current stroke-2" />
-              {t('file.action.properties')}
-            </button>
+            <>
+              <div className={separatorClass} />
+              <button
+                className={itemClass}
+                onClick={() => {
+                  const file = files[0]
+                  if (file) {
+                    handleItemClick(() => onProperties(file))
+                  }
+                }}
+              >
+                <FolderCog className="w-3.5 h-3.5 stroke-current stroke-2" />
+                {t(($) => $.file.action.properties)}
+              </button>
+            </>
           )}
         </>
       )}

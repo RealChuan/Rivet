@@ -26,7 +26,7 @@ describe('useInternationalization', () => {
       setLocale: mockSetLocale,
     }
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: typeof mockState) => unknown) => selector(mockState)
+      (selector: (state: typeof mockState) => unknown) => selector(mockState),
     )
     ;(useTranslation as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       i18n: {
@@ -44,7 +44,7 @@ describe('useInternationalization', () => {
       setLocale: mockSetLocale,
     }
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: typeof mockState) => unknown) => selector(mockState)
+      (selector: (state: typeof mockState) => unknown) => selector(mockState),
     )
     ;(useTranslation as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       i18n: {

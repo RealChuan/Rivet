@@ -1,5 +1,5 @@
 import { Terminal, Globe, Plug, EllipsisVertical, LogOut, Pencil, Trash } from 'lucide-react'
-import React from 'react'
+import { useState, useRef, useEffect, type CSSProperties } from 'react'
 import ReactDOM from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { LoaderIcon } from '@renderer/components/common/index.js'
@@ -16,10 +16,10 @@ interface ConnectionItemProps {
   onReconnect: () => void
   onDelete: () => void
   onEdit: () => void
-  style?: React.CSSProperties
+  style?: CSSProperties
 }
 
-export const ConnectionItem: React.FC<ConnectionItemProps> = ({
+export const ConnectionItem = ({
   connection,
   session,
   isActive,
@@ -29,12 +29,12 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
   onDelete,
   onEdit,
   style,
-}) => {
+}: ConnectionItemProps) => {
   const { t } = useTranslation()
-  const [showMenu, setShowMenu] = React.useState(false)
-  const menuRef = React.useRef<HTMLDivElement>(null)
-  const buttonRef = React.useRef<HTMLButtonElement>(null)
-  const [menuPosition, setMenuPosition] = React.useState<{
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const [menuPosition, setMenuPosition] = useState<{
     top: number
     right: number
   } | null>(null)
@@ -42,7 +42,7 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
   const isConnected = session?.isConnected ?? false
   const isLoading = session?.isLoading ?? false
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (showMenu && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
       setMenuPosition({
@@ -67,14 +67,14 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
           'mx-2 px-3 py-2.5 rounded-md cursor-pointer flex items-center gap-2.5 transition-all duration-150 border border-border',
           isActive
             ? 'bg-selected border-l-2 border-l-accent'
-            : 'bg-transparent hover:bg-hover border-l-2 border-border'
+            : 'bg-transparent hover:bg-hover border-l-2 border-border',
         )}
       >
         <div className="flex items-center gap-2 shrink-0">
           <div
             className={cn(
               'relative',
-              isConnected ? 'text-status-connected' : 'text-status-disconnected'
+              isConnected ? 'text-status-connected' : 'text-status-disconnected',
             )}
           >
             {isConnected && (
@@ -93,7 +93,7 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
               'text-xs px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-[0.5px]',
               connection.protocol === PROTOCOL.SFTP
                 ? 'text-accent bg-accent-light'
-                : 'text-protocol-webdav bg-protocol-webdav-light'
+                : 'text-protocol-webdav bg-protocol-webdav-light',
             )}
           >
             {connection.protocol.toUpperCase()}
@@ -109,12 +109,12 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
         </div>
         <button
           ref={buttonRef}
-          onClick={e => {
+          onClick={(e) => {
             e.stopPropagation()
             setShowMenu(!showMenu)
           }}
           className="p-1 rounded shrink-0 text-text-muted bg-transparent border-none cursor-pointer hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-          aria-label={t('connection.moreActions')}
+          aria-label={t(($) => $.connection.moreActions)}
         >
           <EllipsisVertical className="w-3.5 h-3.5 fill-current" />
         </button>
@@ -135,7 +135,7 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
             >
               {isConnected ? (
                 <button
-                  onClick={e => {
+                  onClick={(e) => {
                     e.stopPropagation()
                     onDisconnect()
                     setShowMenu(false)
@@ -147,11 +147,11 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
                 `}
                 >
                   <LogOut className="w-3.5 h-3.5 stroke-current" />
-                  {t('connection.disconnect')}
+                  {t(($) => $.connection.disconnect)}
                 </button>
               ) : (
                 <button
-                  onClick={e => {
+                  onClick={(e) => {
                     e.stopPropagation()
                     onReconnect()
                     setShowMenu(false)
@@ -163,12 +163,12 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
                 `}
                 >
                   <Plug className="w-3.5 h-3.5 stroke-current" />
-                  {t('connection.connect')}
+                  {t(($) => $.connection.connect)}
                 </button>
               )}
               <div className="h-px bg-border my-1" />
               <button
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation()
                   onEdit()
                   setShowMenu(false)
@@ -180,11 +180,11 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
               `}
               >
                 <Pencil className="w-3.5 h-3.5 stroke-current" />
-                {t('connection.edit')}
+                {t(($) => $.connection.edit)}
               </button>
               <div className="h-px bg-border my-1" />
               <button
-                onClick={e => {
+                onClick={(e) => {
                   e.stopPropagation()
                   onDelete()
                   setShowMenu(false)
@@ -196,11 +196,11 @@ export const ConnectionItem: React.FC<ConnectionItemProps> = ({
               `}
               >
                 <Trash className="w-3.5 h-3.5 stroke-current" />
-                {t('common.action.delete')}
+                {t(($) => $.common.action.delete)}
               </button>
             </div>
           </>,
-          document.body
+          document.body,
         )}
     </div>
   )

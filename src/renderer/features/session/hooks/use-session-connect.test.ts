@@ -4,7 +4,7 @@ import type { ConnectionConfig } from '@shared/types/index.js'
 import { useSessionConnect } from './use-session-connect.js'
 
 const mockHandleConnectWithHostKey = vi.fn()
-const mockSetState = vi.fn()
+const mockReplaceSession = vi.fn()
 const mockRefreshCurrentDirectory = vi.fn()
 const mockGetConnectionById = vi.fn()
 
@@ -25,11 +25,9 @@ vi.mock('./host-key-connect.js', () => ({
 
 vi.mock('../stores/session.js', () => ({
   useSessionStore: {
-    setState: (updater: unknown): void => {
-      mockSetState(updater)
-    },
     getState: () => ({
       sessions: mockSessions,
+      replaceSession: mockReplaceSession,
       refreshCurrentDirectory: mockRefreshCurrentDirectory,
     }),
   },
@@ -61,18 +59,6 @@ describe('useSessionConnect', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSessions.length = 0
-    mockSetState.mockImplementation(
-      (
-        updater: (state: { sessions: unknown[] }) => {
-          sessions: unknown[]
-          activeSessionId: string
-        }
-      ) => {
-        const result = updater({ sessions: mockSessions })
-        mockSessions.length = 0
-        mockSessions.push(...(result.sessions as typeof mockSessions))
-      }
-    )
     mockRefreshCurrentDirectory.mockResolvedValue(undefined)
     mockHandleConnectWithHostKey.mockResolvedValue({
       success: true,
@@ -90,7 +76,7 @@ describe('useSessionConnect', () => {
 
       expect(success).toBe(true)
       expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith(mockConfig)
-      expect(mockSetState).toHaveBeenCalled()
+      expect(mockReplaceSession).toHaveBeenCalled()
       expect(mockRefreshCurrentDirectory).toHaveBeenCalledWith('sess-1')
     })
 
@@ -106,7 +92,7 @@ describe('useSessionConnect', () => {
       const success = await result.current.connectSession(mockConfig)
 
       expect(success).toBe(false)
-      expect(mockSetState).not.toHaveBeenCalled()
+      expect(mockReplaceSession).not.toHaveBeenCalled()
       expect(mockRefreshCurrentDirectory).not.toHaveBeenCalled()
     })
 
@@ -135,7 +121,7 @@ describe('useSessionConnect', () => {
 
       expect(success).toBe(false)
       expect(mockHandleConnectWithHostKey).toHaveBeenCalledTimes(2)
-      expect(mockSetState).not.toHaveBeenCalled()
+      expect(mockReplaceSession).not.toHaveBeenCalled()
       expect(mockRefreshCurrentDirectory).not.toHaveBeenCalled()
     })
   })
@@ -147,7 +133,7 @@ describe('useSessionConnect', () => {
       const { result } = renderHook(() => useSessionConnect())
 
       await expect(result.current.reconnectSession('unknown-id')).rejects.toThrow(
-        'Connection not found'
+        'Connection not found',
       )
     })
 

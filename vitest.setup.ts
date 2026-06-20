@@ -1,15 +1,46 @@
 import { vi } from 'vitest'
 
+const mockT = (key: string | ((ns: unknown) => unknown)) => {
+  if (typeof key === 'function') {
+    const path: string[] = []
+    const proxy = new Proxy(
+      {},
+      {
+        get(_target, prop) {
+          if (typeof prop === 'string') path.push(prop)
+          return proxy
+        },
+      },
+    )
+    key(proxy)
+    return path.join('.')
+  }
+  return key
+}
+
 vi.mock('i18next', () => ({
   default: {
     init: vi.fn().mockResolvedValue({}),
     use: vi.fn().mockReturnThis(),
     changeLanguage: vi.fn().mockResolvedValue({}),
-    t: vi.fn((key: string) => key),
-    getFixedT: vi.fn(() => vi.fn((key: string) => key)),
+    t: mockT,
+    getFixedT: vi.fn(() => mockT),
   },
-  useTranslation: vi.fn().mockReturnValue({
-    t: vi.fn((key: string) => key),
+  useTranslation: () => ({
+    t: mockT,
+    i18n: {
+      changeLanguage: vi.fn().mockResolvedValue({}),
+    },
+  }),
+}))
+
+vi.mock('react-i18next', () => ({
+  initReactI18next: {
+    type: '3rdParty' as const,
+    init: vi.fn(),
+  },
+  useTranslation: () => ({
+    t: mockT,
     i18n: {
       changeLanguage: vi.fn().mockResolvedValue({}),
     },
@@ -27,7 +58,7 @@ vi.stubGlobal(
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
-  }))
+  })),
 )
 
 vi.stubGlobal(
@@ -36,7 +67,7 @@ vi.stubGlobal(
     observe: vi.fn(),
     unobserve: vi.fn(),
     disconnect: vi.fn(),
-  }))
+  })),
 )
 
 Object.defineProperty(document.documentElement, 'classList', {

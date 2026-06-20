@@ -14,7 +14,7 @@ export function createProgressBatchState(): ProgressBatchState {
 
 function hasProgressChanged(
   current: TaskProgress | undefined,
-  data: TransferProgressData
+  data: TransferProgressData,
 ): boolean {
   if (current === undefined) return true
   return (
@@ -31,7 +31,7 @@ function hasProgressChanged(
 
 function hasOperationsChanged(
   currentOps: OperationProgressInfo[] | undefined,
-  incomingOps: OperationProgressInfo[]
+  incomingOps: OperationProgressInfo[],
 ): boolean {
   if (currentOps === undefined) return true
   if (incomingOps.length !== currentOps.length) return true
@@ -40,13 +40,13 @@ function hasOperationsChanged(
       incoming.id === currentOps[i]?.id &&
       incoming.transferredSize === currentOps[i]?.transferredSize &&
       incoming.status === currentOps[i]?.status &&
-      incoming.fileSize === currentOps[i]?.fileSize
+      incoming.fileSize === currentOps[i]?.fileSize,
   )
 }
 
 function buildUpdatedProgress(
   current: TaskProgress | undefined,
-  data: TransferProgressData
+  data: TransferProgressData,
 ): TaskProgress {
   return {
     transferredSize: data.transferredSize,
@@ -75,7 +75,7 @@ interface ProgressBatchResult<T extends { id: string; status: string }> {
 
 export function applyProgressBatch<T extends { id: string; status: string }>(
   state: ProgressBatchStateSlice<T>,
-  batch: TransferProgressData[]
+  batch: TransferProgressData[],
 ): ProgressBatchResult<T> | null {
   let taskProgress = state.taskProgress
   let activeOperations = state.activeOperations
@@ -85,7 +85,7 @@ export function applyProgressBatch<T extends { id: string; status: string }>(
   let statusChanged = false
 
   for (const data of batch) {
-    const taskIndex = state.tasks.findIndex(t => t.id === data.taskId)
+    const taskIndex = state.tasks.findIndex((t) => t.id === data.taskId)
     if (taskIndex === -1) continue
 
     const current = taskProgress.get(data.taskId)
@@ -117,12 +117,12 @@ export function applyProgressBatch<T extends { id: string; status: string }>(
     const task = state.tasks[taskIndex]
     if (task?.status === OPERATION_STATUS.WAITING) {
       if (tasks === state.tasks) {
-        tasks = state.tasks.map(t =>
-          t.id === data.taskId ? { ...t, status: OPERATION_STATUS.RUNNING } : t
+        tasks = state.tasks.map((t) =>
+          t.id === data.taskId ? { ...t, status: OPERATION_STATUS.RUNNING } : t,
         )
       } else {
-        tasks = tasks.map(t =>
-          t.id === data.taskId ? { ...t, status: OPERATION_STATUS.RUNNING } : t
+        tasks = tasks.map((t) =>
+          t.id === data.taskId ? { ...t, status: OPERATION_STATUS.RUNNING } : t,
         )
       }
       statusChanged = true
@@ -143,7 +143,7 @@ export function applyProgressBatch<T extends { id: string; status: string }>(
 
 export function flushProgressBatch(
   batchState: ProgressBatchState,
-  applyBatch: (batch: TransferProgressData[]) => void
+  applyBatch: (batch: TransferProgressData[]) => void,
 ): void {
   if (batchState.timerId !== null) {
     clearTimeout(batchState.timerId)

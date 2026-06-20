@@ -2,7 +2,27 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useFolderCreation } from './use-folder-creation.js'
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string | ((ns: unknown) => unknown)) => {
+      if (typeof key === 'function') {
+        const path: string[] = []
+        const proxy = new Proxy(
+          {},
+          {
+            get(_target, prop) {
+              if (typeof prop === 'string') path.push(prop)
+              return proxy
+            },
+          },
+        )
+        key(proxy)
+        return path.join('.')
+      }
+      return key
+    },
+  }),
+}))
 
 const mockRefreshCurrentDirectory = vi.fn().mockResolvedValue(undefined)
 const mockSetOperating = vi.fn()

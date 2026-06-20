@@ -1,13 +1,12 @@
-import type React from 'react'
 import { ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useTransferStore } from '../stores/transfer.js'
 import { TransferArea } from './TransferArea.js'
 
-export const TransferContainer: React.FC = () => {
+export const TransferContainer = () => {
   const { t } = useTranslation()
-  const sessionIds = useTransferStore(state => state.sessionIds)
-  const selectedSessionId = useTransferStore(state => state.selectedSessionId)
+  const sessionIds = useTransferStore((state) => state.sessionIds)
+  const selectedSessionId = useTransferStore((state) => state.selectedSessionId)
 
   if (sessionIds.length === 0 || !selectedSessionId) {
     return (
@@ -21,7 +20,7 @@ export const TransferContainer: React.FC = () => {
           >
             <ArrowUpDown className="w-7 h-7 stroke-text-muted stroke-[1.5]" />
           </div>
-          <h3 className="text-sm font-medium text-text mb-1.5">{t('transfer.empty')}</h3>
+          <h3 className="text-sm font-medium text-text mb-1.5">{t(($) => $.transfer.empty)}</h3>
         </div>
       </div>
     )

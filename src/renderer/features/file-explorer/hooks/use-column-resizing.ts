@@ -17,7 +17,7 @@ interface ColumnWidths {
 }
 
 interface UseColumnResizingOptions {
-  isWebdav: boolean
+  isSftp: boolean
   initialWidths?: Partial<ColumnWidths>
 }
 
@@ -41,16 +41,16 @@ const DEFAULT_WIDTHS: ColumnWidths = {
 function computeColumnWidths(
   containerWidth: number,
   scrollbarWidth: number,
-  isWebdav: boolean
+  isSftp: boolean,
 ): ColumnWidths {
-  const { numFixedColumns, numGaps, permissionsWidth, ownerWidth } = isWebdav
-    ? { numFixedColumns: 1, numGaps: 3, permissionsWidth: 0, ownerWidth: 0 }
-    : {
+  const { numFixedColumns, numGaps, permissionsWidth, ownerWidth } = isSftp
+    ? {
         numFixedColumns: 3,
         numGaps: 5,
         permissionsWidth: FIXED_COLUMNS_WIDTH,
         ownerWidth: FIXED_COLUMNS_WIDTH,
       }
+    : { numFixedColumns: 1, numGaps: 3, permissionsWidth: 0, ownerWidth: 0 }
 
   const totalFixedWidth =
     FIXED_COLUMNS_WIDTH * numFixedColumns + DEFAULT_MODIFY_TIME_WIDTH + GAP_WIDTH * numGaps
@@ -65,8 +65,8 @@ function computeColumnWidths(
   }
 }
 
-export function computeTotalWidth(widths: ColumnWidths, isWebdav: boolean): number {
-  const numGaps = isWebdav ? 3 : 5
+export function computeTotalWidth(widths: ColumnWidths, isSftp: boolean): number {
+  const numGaps = isSftp ? 5 : 3
   return (
     widths.name +
     widths.permissions +
@@ -78,7 +78,7 @@ export function computeTotalWidth(widths: ColumnWidths, isWebdav: boolean): numb
 }
 
 export function useColumnResizing(options: UseColumnResizingOptions): UseColumnResizingReturn {
-  const { isWebdav, initialWidths } = options
+  const { isSftp, initialWidths } = options
 
   const containerRef = useRef<HTMLDivElement>(null)
   const [columnWidths, setColumnWidths] = useState<ColumnWidths>({
@@ -104,7 +104,7 @@ export function useColumnResizing(options: UseColumnResizingOptions): UseColumnR
     const onMouseMove = (e: MouseEvent) => {
       const deltaX = e.clientX - resizeStartX
       const newWidth = resizeStartWidth + deltaX
-      setColumnWidths(prev => ({
+      setColumnWidths((prev) => ({
         ...prev,
         [resizingColumn]: Math.max(MIN_COLUMN_WIDTH, newWidth),
       }))
@@ -128,7 +128,7 @@ export function useColumnResizing(options: UseColumnResizingOptions): UseColumnR
     }
 
     const gapWidth = GAP_WIDTH
-    const numGaps = isWebdav ? 3 : 5
+    const numGaps = isSftp ? 5 : 3
     const otherColumnsWidth =
       columnWidths.name +
       columnWidths.permissions +
@@ -137,7 +137,7 @@ export function useColumnResizing(options: UseColumnResizingOptions): UseColumnR
       gapWidth * numGaps
     const actualModifyTimeWidth = Math.max(
       columnWidths.modifyTime,
-      containerWidth - otherColumnsWidth
+      containerWidth - otherColumnsWidth,
     )
 
     return {
@@ -156,10 +156,10 @@ export function useColumnResizing(options: UseColumnResizingOptions): UseColumnR
 
       const currentScrollbarWidth = container.offsetWidth - container.clientWidth
       const scrollbarWidth = Math.max(currentScrollbarWidth, SCROLLBAR_WIDTH)
-      setColumnWidths(computeColumnWidths(containerWidth, scrollbarWidth, isWebdav))
+      setColumnWidths(computeColumnWidths(containerWidth, scrollbarWidth, isSftp))
     }
 
-    const resizeObserver = new ResizeObserver(entries => {
+    const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const entryWidth = (entry.target as HTMLElement).offsetWidth
         setContainerWidth(entryWidth)
@@ -178,7 +178,7 @@ export function useColumnResizing(options: UseColumnResizingOptions): UseColumnR
     })
 
     return () => resizeObserver.disconnect()
-  }, [hasUserResized, isWebdav])
+  }, [hasUserResized, isSftp])
 
   const resetColumnWidths = useCallback(() => {
     setHasUserResized(false)
@@ -188,8 +188,8 @@ export function useColumnResizing(options: UseColumnResizingOptions): UseColumnR
 
     const currentScrollbarWidth = container.offsetWidth - container.clientWidth
     const scrollbarWidth = Math.max(currentScrollbarWidth, 17)
-    setColumnWidths(computeColumnWidths(width, scrollbarWidth, isWebdav))
-  }, [isWebdav])
+    setColumnWidths(computeColumnWidths(width, scrollbarWidth, isSftp))
+  }, [isSftp])
 
   return {
     columnWidths,

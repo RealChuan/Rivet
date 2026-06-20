@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   build: {
@@ -19,6 +22,7 @@ export default defineConfig({
     emptyOutDir: false,
   },
   resolve: {
+    tsconfigPaths: true,
     alias: {
       '@shared': path.resolve(__dirname, './src/shared'),
     },

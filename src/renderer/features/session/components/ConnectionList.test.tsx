@@ -5,7 +5,23 @@ import { ConnectionList } from './ConnectionList.js'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string | ((ns: unknown) => unknown)) => {
+      if (typeof key === 'function') {
+        const path: string[] = []
+        const proxy = new Proxy(
+          {},
+          {
+            get(_target, prop) {
+              if (typeof prop === 'string') path.push(prop)
+              return proxy
+            },
+          },
+        )
+        key(proxy)
+        return path.join('.')
+      }
+      return key
+    },
     i18n: { language: 'en-US' },
   }),
   initReactI18next: vi.fn(),
@@ -104,7 +120,7 @@ describe('ConnectionList', () => {
         {...defaultProps}
         connections={[mockConnection1, mockConnection2]}
         getSessionByConnectionId={getSessionByConnectionId}
-      />
+      />,
     )
     expect(getSessionByConnectionId).toHaveBeenCalledWith('conn-1')
     expect(getSessionByConnectionId).toHaveBeenCalledWith('conn-2')
@@ -127,7 +143,7 @@ describe('ConnectionList', () => {
         connections={[mockConnection1]}
         activeSessionId="sess-1"
         getSessionByConnectionId={() => mockSession}
-      />
+      />,
     )
     const nameElement = screen.getByText('Server 1')
     const parent = nameElement.closest('div')
@@ -141,7 +157,7 @@ describe('ConnectionList', () => {
     // internal selectors returned unstable references, React would throw
     // "Maximum update depth exceeded".
     const { container } = render(
-      <ConnectionList {...defaultProps} connections={[mockConnection1, mockConnection2]} />
+      <ConnectionList {...defaultProps} connections={[mockConnection1, mockConnection2]} />,
     )
     expect(container.textContent).toContain('Server 1')
     expect(container.textContent).toContain('Server 2')

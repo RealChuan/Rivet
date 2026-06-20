@@ -7,7 +7,7 @@ interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>
   label?: string
 }
 
-export const Checkbox: React.FC<CheckboxProps> = ({
+export const Checkbox = ({
   label,
   checked,
   onChange,
@@ -15,13 +15,14 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   className = '',
   id,
   ...props
-}) => {
+}: CheckboxProps) => {
   return (
     <label
       className={cn(
         'flex items-center gap-2 cursor-pointer',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded',
         disabled && 'opacity-50 cursor-not-allowed',
-        className
+        className,
       )}
       htmlFor={id}
     >
@@ -43,7 +44,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
             'peer-checked:shadow-[0_0_0_3px_var(--color-accent-light)]',
             'border-input-border bg-transparent',
             'hover:border-input-border-hover',
-            disabled && 'cursor-not-allowed'
+            disabled && 'cursor-not-allowed',
           )}
         >
           {checked && <Check className="w-2.5 h-2.5 stroke-white stroke-3" />}

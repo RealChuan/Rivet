@@ -3,7 +3,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FileInfo } from '@shared/types/index.js'
 import { useFileRenaming } from './use-file-renaming.js'
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string | ((ns: unknown) => unknown)) => {
+      if (typeof key === 'function') {
+        const path: string[] = []
+        const proxy = new Proxy(
+          {},
+          {
+            get(_target, prop) {
+              if (typeof prop === 'string') path.push(prop)
+              return proxy
+            },
+          },
+        )
+        key(proxy)
+        return path.join('.')
+      }
+      return key
+    },
+  }),
+}))
 
 const mockRefreshCurrentDirectory = vi.fn().mockResolvedValue(undefined)
 const mockSetOperating = vi.fn()

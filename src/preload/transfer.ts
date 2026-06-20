@@ -46,31 +46,31 @@ export const transferAPI = {
 
   onTasksEnqueued: (callback: (tasks: TransferTask[]) => void) =>
     listenerManager.on(IPC_CHANNELS.TRANSFER.TASKS_ENQUEUED, (_, tasks: TransferTask[]) =>
-      callback(tasks)
+      callback(tasks),
     ),
 
   onProgress: (callback: (data: TransferProgressData) => void) =>
     listenerManager.on(IPC_CHANNELS.TRANSFER.PROGRESS, (_, data: TransferProgressData) =>
-      callback(data)
+      callback(data),
     ),
 
   onTaskCompleted: (
-    callback: (data: { taskId: string; transferredSize?: number; fileSize?: number }) => void
+    callback: (data: { taskId: string; transferredSize?: number; fileSize?: number }) => void,
   ) =>
     listenerManager.on(
       IPC_CHANNELS.TRANSFER.TASK_COMPLETED,
-      (_, data: { taskId: string; transferredSize?: number; fileSize?: number }) => callback(data)
+      (_, data: { taskId: string; transferredSize?: number; fileSize?: number }) => callback(data),
     ),
 
   onTaskFailed: (callback: (data: { taskId: string; errorMessage: string }) => void) =>
     listenerManager.on(
       IPC_CHANNELS.TRANSFER.TASK_FAILED,
-      (_, data: { taskId: string; errorMessage: string }) => callback(data)
+      (_, data: { taskId: string; errorMessage: string }) => callback(data),
     ),
 
   onTaskRemoved: (callback: (data: { taskId: string }) => void) =>
     listenerManager.on(IPC_CHANNELS.TRANSFER.TASK_REMOVED, (_, data: { taskId: string }) =>
-      callback(data)
+      callback(data),
     ),
 
   onHasActiveTasks: (callback: () => void) =>

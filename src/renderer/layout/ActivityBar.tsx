@@ -35,7 +35,7 @@ interface ActivityBarProps {
   onViewChange: (view: SidebarView) => void
 }
 
-export const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChange }) => {
+export const ActivityBar = ({ activeView, onViewChange }: ActivityBarProps) => {
   const { t } = useTranslation()
 
   return (
@@ -43,13 +43,13 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChan
       <ActivityBarButton
         icon={<Server className="w-5.5 h-5.5 stroke-[1.5]" />}
         isActive={activeView === SIDEBAR_VIEW.CONNECTIONS}
-        label={t('activityBar.connections')}
+        label={t(($) => $.activityBar.connections)}
         onClick={() => onViewChange(SIDEBAR_VIEW.CONNECTIONS)}
       />
       <ActivityBarButton
         icon={<ArrowLeftRight className="w-5.5 h-5.5 stroke-[1.5]" />}
         isActive={activeView === SIDEBAR_VIEW.TRANSFERS}
-        label={t('activityBar.transfers')}
+        label={t(($) => $.activityBar.transfers)}
         onClick={() => onViewChange(SIDEBAR_VIEW.TRANSFERS)}
       />
     </nav>

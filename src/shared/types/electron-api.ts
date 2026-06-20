@@ -27,7 +27,7 @@ export interface WindowAPI {
     title?: string
   }) => Promise<string>
   closeChild: (id: string) => Promise<boolean>
-  getMeta: () => { windowId: string; route: string }
+  getMeta: () => Promise<{ windowId: string; route: string }>
   refreshMeta: () => Promise<{ windowId: string; route: string }>
 }
 
@@ -37,7 +37,7 @@ export interface ProtocolAPI {
   list: (
     sessionId: string,
     path: string,
-    requestId?: string
+    requestId?: string,
   ) => Promise<ProtocolResponse<FileInfo[]>>
   onSessionDisconnected: (
     callback: (event: {
@@ -45,33 +45,33 @@ export interface ProtocolAPI {
       connectionId: string
       protocol: string
       name: string
-    }) => void
+    }) => void,
   ) => () => void
   delete: (sessionId: string, file: FileInfo, requestId?: string) => Promise<ProtocolResponse<void>>
   rename: (
     sessionId: string,
     file: FileInfo,
     newName: string,
-    requestId?: string
+    requestId?: string,
   ) => Promise<ProtocolResponse<void>>
   mkdir: (sessionId: string, path: string, requestId?: string) => Promise<ProtocolResponse<void>>
   copy: (
     sessionId: string,
     file: FileInfo,
     targetPath: string,
-    requestId?: string
+    requestId?: string,
   ) => Promise<ProtocolResponse<void>>
   move: (
     sessionId: string,
     file: FileInfo,
     targetPath: string,
-    requestId?: string
+    requestId?: string,
   ) => Promise<ProtocolResponse<void>>
   cancel: (requestId: string) => Promise<void>
   calculateFolderStats: (sessionId: string, path: string) => Promise<Result<void, ErrorInfo>>
   cancelCalculateFolderStats: (sessionId: string) => Promise<void>
   onFolderStatsProgress: (
-    callback: (data: FolderStatsProgress & { sessionId: string }) => void
+    callback: (data: FolderStatsProgress & { sessionId: string }) => void,
   ) => () => void
 }
 
@@ -99,7 +99,7 @@ interface HostKeyAPI {
 interface SystemAPI {
   getTempDir: () => Promise<Result<string, ErrorInfo>>
   getDownloadDir: () => Promise<Result<string, ErrorInfo>>
-  generateUuid: () => string
+  generateUuid: () => Promise<string>
   supportsGlass: () => Promise<boolean>
 }
 
@@ -123,7 +123,7 @@ export interface TransferAPI {
   onTasksEnqueued: (callback: (tasks: TransferTask[]) => void) => () => void
   onProgress: (callback: (data: TransferProgressData) => void) => () => void
   onTaskCompleted: (
-    callback: (data: { taskId: string; transferredSize?: number; fileSize?: number }) => void
+    callback: (data: { taskId: string; transferredSize?: number; fileSize?: number }) => void,
   ) => () => void
   onTaskFailed: (callback: (data: { taskId: string; errorMessage: string }) => void) => () => void
   onTaskRemoved: (callback: (data: { taskId: string }) => void) => () => void

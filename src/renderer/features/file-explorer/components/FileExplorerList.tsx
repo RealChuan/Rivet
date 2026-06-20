@@ -33,19 +33,19 @@ interface FileExplorerListProps {
   onSelectedFilesChange?: (files: FileInfo[]) => void
 }
 
-export const FileExplorerList: React.FC<FileExplorerListProps> = ({
+export const FileExplorerList = ({
   sessionId,
   currentPath,
   onSelectedFilesChange,
-}) => {
+}: FileExplorerListProps) => {
   const { t } = useTranslation()
-  const sessions = useSessionStore(state => state.sessions)
-  const updateCurrentPath = useSessionStore(state => state.updateCurrentPath)
-  const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
-  const connections = useConnectionStore(state => state.connections)
-  const session = sessions.find(s => s.sessionId === sessionId)
-  const connection = connections.find(c => c.id === session?.connectionId)
-  const isWebdav = connection?.protocol === PROTOCOL.WEBDAV
+  const sessions = useSessionStore((state) => state.sessions)
+  const updateCurrentPath = useSessionStore((state) => state.updateCurrentPath)
+  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
+  const connections = useConnectionStore((state) => state.connections)
+  const session = sessions.find((s) => s.sessionId === sessionId)
+  const connection = connections.find((c) => c.id === session?.connectionId)
+  const isSftp = connection?.protocol === PROTOCOL.SFTP
   const { startMixedUpload } = useFileExplorerTransferActions()
   const [isDragOver, setIsDragOver] = useState(false)
 
@@ -65,7 +65,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
   } = listState
 
   const { columnWidths, actualColumnWidths, handleResizeStart, containerRef, resetColumnWidths } =
-    useColumnResizing({ isWebdav })
+    useColumnResizing({ isSftp })
   const files = session?.files ?? []
   const { sortBy, sortOrder, sortedFiles, handleSort } = useFileSort(files)
   const { handleDoubleClick, handleParentDirectory } = useDirectoryNavigation(
@@ -73,7 +73,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
     currentPath,
     updateCurrentPath,
     refreshCurrentDirectory,
-    clearSelection
+    clearSelection,
   )
 
   const listRef = useRef<ListImperativeAPI>(null)
@@ -83,7 +83,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
     if (listRef.current) {
       scrollContainerRef.current = listRef.current.element
     }
-  })
+  }, [])
 
   const { dragSelection, isDragging, hasStartedDrag, handleMouseDown, getDragStyle } =
     useFileDragSelect({
@@ -93,7 +93,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
       onDragStart: () => {
         clearSelection()
       },
-      onDragSelect: selected => {
+      onDragSelect: (selected) => {
         if (selected.length > 0) {
           setSelectedFiles(selected)
           setSelectedFile(selected[selected.length - 1] ?? null)
@@ -121,7 +121,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
     e.stopPropagation()
 
     if (file) {
-      const isSelected = selectedFiles.some(f => f.name === file.name)
+      const isSelected = selectedFiles.some((f) => f.name === file.name)
       if (!isSelected) {
         handleSelectFile(file)
       }
@@ -203,18 +203,18 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
     <FileExplorerItem
       file={file}
       columnWidths={actualColumnWidths}
-      isSelected={selectedFiles.some(f => f.name === file.name)}
+      isSelected={selectedFiles.some((f) => f.name === file.name)}
       isPending={dragSelection.has(file.name)}
       isHovered={hoveredFile === file.name}
       onHover={setHoveredFile}
-      onClick={e => handleFileClick(file, e)}
+      onClick={(e) => handleFileClick(file, e)}
       onDoubleClick={() => handleDoubleClick(file)}
-      onContextMenu={e => {
+      onContextMenu={(e) => {
         e.stopPropagation()
         handleContextMenu(e, file)
       }}
       style={style}
-      isWebdav={isWebdav}
+      isSftp={isSftp}
     />
   )
 
@@ -235,7 +235,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
     )
   }
 
-  const totalWidth = computeTotalWidth(columnWidths, isWebdav)
+  const totalWidth = computeTotalWidth(columnWidths, isSftp)
 
   return (
     <div className="flex flex-col h-full" style={{ width: '100%' }}>
@@ -247,7 +247,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
       <div
         ref={containerRef}
         className="flex-1 min-h-10 relative overflow-hidden"
-        onContextMenu={e => {
+        onContextMenu={(e) => {
           const target = e.target as HTMLElement
           const fileItem = target.closest('[data-file-item]')
           if (!fileItem) {
@@ -263,7 +263,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-accent/5 border-2 border-dashed border-accent rounded pointer-events-none">
             <div className="flex flex-col items-center gap-2 text-accent">
               <Upload className="w-8 h-8 stroke-current stroke-2" />
-              <span className="text-sm font-medium">{t('file.dropToUpload')}</span>
+              <span className="text-sm font-medium">{t(($) => $.file.dropToUpload)}</span>
             </div>
           </div>
         )}
@@ -274,7 +274,7 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
             sortOrder={sortOrder}
             onSort={handleSort}
             onResizeStart={handleResizeStart}
-            isWebdav={isWebdav}
+            isSftp={isSftp}
           />
 
           {sortedFiles.length === 0 ? (
@@ -302,7 +302,12 @@ export const FileExplorerList: React.FC<FileExplorerListProps> = ({
 
       <ParentDirectoryButton currentPath={currentPath} onNavigate={handleParentDirectory} />
 
-      <FileExplorerDialogs sessionId={sessionId} currentPath={currentPath} listState={listState} />
+      <FileExplorerDialogs
+        sessionId={sessionId}
+        currentPath={currentPath}
+        listState={listState}
+        isSftp={isSftp}
+      />
     </div>
   )
 }

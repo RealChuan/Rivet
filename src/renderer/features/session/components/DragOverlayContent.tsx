@@ -1,4 +1,3 @@
-import type React from 'react'
 import { DragOverlay, useDndContext } from '@dnd-kit/core'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'
 import ConnectionItem from './ConnectionItem.js'
@@ -8,10 +7,10 @@ interface DragOverlayContentProps {
   getSessionByConnectionId: (id: string) => Session | undefined
 }
 
-export const DragOverlayContent: React.FC<DragOverlayContentProps> = ({
+export const DragOverlayContent = ({
   connections,
   getSessionByConnectionId,
-}) => {
+}: DragOverlayContentProps) => {
   const { active } = useDndContext()
 
   return (
@@ -19,7 +18,7 @@ export const DragOverlayContent: React.FC<DragOverlayContentProps> = ({
       {active ? (
         <div className="shadow-dropdown">
           {(() => {
-            const connection = connections.find(c => c.id === String(active.id))
+            const connection = connections.find((c) => c.id === String(active.id))
             if (!connection) return null
             return (
               <ConnectionItem

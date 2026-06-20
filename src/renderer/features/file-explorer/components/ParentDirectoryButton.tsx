@@ -1,4 +1,3 @@
-import type React from 'react'
 import { ChevronLeft } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { ROOT_PATH } from '@shared/constants/index.js'
@@ -8,10 +7,7 @@ interface ParentDirectoryButtonProps {
   onNavigate: () => void
 }
 
-export const ParentDirectoryButton: React.FC<ParentDirectoryButtonProps> = ({
-  currentPath,
-  onNavigate,
-}) => {
+export const ParentDirectoryButton = ({ currentPath, onNavigate }: ParentDirectoryButtonProps) => {
   const { t } = useTranslation()
 
   if (currentPath === ROOT_PATH) {
@@ -30,7 +26,7 @@ export const ParentDirectoryButton: React.FC<ParentDirectoryButtonProps> = ({
         `}
       >
         <ChevronLeft className="w-3.5 h-3.5 stroke-current stroke-2" />
-        {t('fileExplorerList.parentDirectory')}
+        {t(($) => $.fileExplorerList.parentDirectory)}
       </button>
     </div>
   )

@@ -11,19 +11,19 @@ import ConnectionDialog from './ConnectionDialog.js'
 import ConnectionList from './ConnectionList.js'
 import SidebarHeader from './SidebarHeader.js'
 
-export const ConnectionSidebar: React.FC = () => {
+export const ConnectionSidebar = () => {
   const { t } = useTranslation()
-  const activeSessionId = useSessionStore(state => state.activeSessionId)
-  const setActiveSession = useSessionStore(state => state.setActiveSession)
-  const getSessionByConnectionId = useSessionStore(state => state.getSessionByConnectionId)
-  useSessionStore(state => state.sessions) // Track sessions for loading state reactivity
-  const connections = useConnectionStore(state => state.connections)
-  const closeConnectionDialog = useConnectionStore(state => state.closeConnectionDialog)
-  const setCloseConnectionDialog = useConnectionStore(state => state.setCloseConnectionDialog)
-  const sortOrder = useConnectionStore(state => state.sortOrder)
-  const setSortOrder = useConnectionStore(state => state.setSortOrder)
-  const sortConnections = useConnectionStore(state => state.sortConnections)
-  const reorderConnections = useConnectionStore(state => state.reorderConnections)
+  const activeSessionId = useSessionStore((state) => state.activeSessionId)
+  const setActiveSession = useSessionStore((state) => state.setActiveSession)
+  const getSessionByConnectionId = useSessionStore((state) => state.getSessionByConnectionId)
+  useSessionStore((state) => state.sessions) // Track sessions for loading state reactivity
+  const connections = useConnectionStore((state) => state.connections)
+  const closeConnectionDialog = useConnectionStore((state) => state.closeConnectionDialog)
+  const setCloseConnectionDialog = useConnectionStore((state) => state.setCloseConnectionDialog)
+  const sortOrder = useConnectionStore((state) => state.sortOrder)
+  const setSortOrder = useConnectionStore((state) => state.setSortOrder)
+  const sortConnections = useConnectionStore((state) => state.sortConnections)
+  const reorderConnections = useConnectionStore((state) => state.reorderConnections)
 
   const handleSortClick = () => {
     const nextOrder: typeof sortOrder =
@@ -79,7 +79,7 @@ export const ConnectionSidebar: React.FC = () => {
   }
 
   const wrappedHandleSaveConnection = async (
-    config: Parameters<typeof handleSaveConnection>[0]
+    config: Parameters<typeof handleSaveConnection>[0],
   ) => {
     await handleSaveConnection(config, () => setConnectionDialogOpen(false))
   }
@@ -105,9 +105,9 @@ export const ConnectionSidebar: React.FC = () => {
             onSortClick={handleSortClick}
             onReorderConnections={(activeId, overId) => void reorderConnections(activeId, overId)}
             onSelectSession={setActiveSession}
-            onDisconnect={id => void handleDisconnect(id)}
-            onReconnect={conn => void wrappedHandleReconnect(conn)}
-            onEdit={conn => void wrappedHandleEdit(conn)}
+            onDisconnect={(id) => void handleDisconnect(id)}
+            onReconnect={(conn) => void wrappedHandleReconnect(conn)}
+            onEdit={(conn) => void wrappedHandleEdit(conn)}
             onDelete={handleDelete}
             getSessionByConnectionId={getSessionByConnectionId}
           />
@@ -129,10 +129,10 @@ export const ConnectionSidebar: React.FC = () => {
             setDeleteConfirmOpen(false)
           }}
           onConfirm={() => handleConfirmDelete()}
-          title={t('confirmationDialog.deleteConnectionTitle')}
-          message={t('confirmationDialog.deleteConnectionMessage')}
-          confirmText={t('common.action.delete')}
-          cancelText={t('common.action.cancel')}
+          title={t(($) => $.confirmationDialog.deleteConnectionTitle)}
+          message={t(($) => $.confirmationDialog.deleteConnectionMessage)}
+          confirmText={t(($) => $.common.action.delete)}
+          cancelText={t(($) => $.common.action.cancel)}
           type="danger"
         />
         <ConfirmationDialog
@@ -141,8 +141,8 @@ export const ConnectionSidebar: React.FC = () => {
           onConfirm={() => void handleConfirm()}
           title={title}
           message={message}
-          confirmText={t('common.action.confirm')}
-          cancelText={t('common.action.cancel')}
+          confirmText={t(($) => $.common.action.confirm)}
+          cancelText={t(($) => $.common.action.cancel)}
           type="warning"
         />
       </div>

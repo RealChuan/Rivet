@@ -23,19 +23,19 @@ interface UseTransferActionsReturn {
     localPaths: string[],
     sessionId: string,
     remoteDir: string,
-    itemType?: FileType
+    itemType?: FileType,
   ) => Promise<void>
   startMixedUpload: (
     filePaths: string[],
     folderPaths: string[],
     sessionId: string,
-    remoteDir: string
+    remoteDir: string,
   ) => Promise<void>
   startDownload: (
     remoteItems: { path: string; name: string; type: FileType; size: number }[],
     sessionId: string,
     localDir: string,
-    itemType?: FileType
+    itemType?: FileType,
   ) => Promise<void>
   cancelTask: (taskId: string) => Promise<void>
   cancelAll: (sessionId?: string) => Promise<void>
@@ -45,9 +45,9 @@ interface UseTransferActionsReturn {
 
 export function useTransferActions(): UseTransferActionsReturn {
   const { t } = useTranslation()
-  const addToast = useUiStore(state => state.addToast)
-  const setActiveView = useUiStore(state => state.setActiveView)
-  const setActiveTab = useTransferStore(state => state.setActiveTab)
+  const addToast = useUiStore((state) => state.addToast)
+  const setActiveView = useUiStore((state) => state.setActiveView)
+  const setActiveTab = useTransferStore((state) => state.setActiveTab)
 
   const startMixedUpload = useCallback(
     async (filePaths: string[], folderPaths: string[], sessionId: string, remoteDir: string) => {
@@ -66,25 +66,25 @@ export function useTransferActions(): UseTransferActionsReturn {
         if (!result) return
 
         const tasks = [
-          ...result.resolvedFilePaths.map(p =>
+          ...result.resolvedFilePaths.map((p) =>
             buildTransferTask(
               p.localPath,
               sessionId,
               remoteDir,
               FILE_TYPE.FILE,
               p.conflictAction,
-              p.renamedName
-            )
+              p.renamedName,
+            ),
           ),
-          ...result.resolvedFolderPaths.map(p =>
+          ...result.resolvedFolderPaths.map((p) =>
             buildTransferTask(
               p.localPath,
               sessionId,
               remoteDir,
               FILE_TYPE.DIRECTORY,
               p.conflictAction,
-              p.renamedName
-            )
+              p.renamedName,
+            ),
           ),
         ]
 
@@ -93,7 +93,7 @@ export function useTransferActions(): UseTransferActionsReturn {
         if (addResult.duplicates.length > 0) {
           addToast({
             type: TOAST_TYPE.WARNING,
-            message: t('toast.uploadDuplicates', { count: addResult.duplicates.length }),
+            message: t(($) => $.toast.uploadDuplicates, { count: addResult.duplicates.length }),
           })
         }
 
@@ -103,11 +103,11 @@ export function useTransferActions(): UseTransferActionsReturn {
         logger.catch(error, { action: 'startMixedUpload' })
         addToast({
           type: TOAST_TYPE.ERROR,
-          message: `${t('toast.uploadFailed')}: ${error instanceof Error ? error.message : String(error)}`,
+          message: `${t(($) => $.toast.uploadFailed)}: ${error instanceof Error ? error.message : String(error)}`,
         })
       }
     },
-    [addToast, setActiveTab, setActiveView, t]
+    [addToast, setActiveTab, setActiveView, t],
   )
 
   const startUpload = useCallback(
@@ -115,25 +115,25 @@ export function useTransferActions(): UseTransferActionsReturn {
       localPaths: string[],
       sessionId: string,
       remoteDir: string,
-      itemType: FileType = FILE_TYPE.FILE
+      itemType: FileType = FILE_TYPE.FILE,
     ) => {
       const filePaths = itemType === FILE_TYPE.FILE ? localPaths : []
       const folderPaths = itemType === FILE_TYPE.DIRECTORY ? localPaths : []
       return startMixedUpload(filePaths, folderPaths, sessionId, remoteDir)
     },
-    [startMixedUpload]
+    [startMixedUpload],
   )
 
   const startDownload = async (
     remoteItems: { path: string; name: string; type: FileType; size: number }[],
     sessionId: string,
     localDir: string,
-    itemType: FileType = FILE_TYPE.FILE
+    itemType: FileType = FILE_TYPE.FILE,
   ) => {
     if (remoteItems.length === 0) return
 
     try {
-      const remotePaths = remoteItems.map(item => item.path)
+      const remotePaths = remoteItems.map((item) => item.path)
       const localFiles = await window.electronAPI.transfer.checkLocalFiles(localDir)
 
       const resolvedPaths = await resolveConflictsAndBuildTasks({
@@ -145,21 +145,21 @@ export function useTransferActions(): UseTransferActionsReturn {
 
       if (!resolvedPaths) return
 
-      const sizeMap = new Map(remoteItems.map(item => [item.path, item.size]))
+      const sizeMap = new Map(remoteItems.map((item) => [item.path, item.size]))
 
       const resolvedItems: {
         path: string
         size: number
         conflictAction?: ConflictAction
         renamedName?: string
-      }[] = resolvedPaths.map(r => ({
+      }[] = resolvedPaths.map((r) => ({
         path: r.localPath,
         size: sizeMap.get(r.localPath) ?? 0,
         ...(r.conflictAction ? { conflictAction: r.conflictAction } : {}),
         ...(r.renamedName ? { renamedName: r.renamedName } : {}),
       }))
 
-      const tasks = resolvedItems.map(item =>
+      const tasks = resolvedItems.map((item) =>
         buildDownloadTask(
           item.path,
           sessionId,
@@ -167,8 +167,8 @@ export function useTransferActions(): UseTransferActionsReturn {
           itemType,
           item.size,
           item.conflictAction,
-          item.renamedName
-        )
+          item.renamedName,
+        ),
       )
 
       const result = await window.electronAPI.transfer.add(tasks)
@@ -176,7 +176,7 @@ export function useTransferActions(): UseTransferActionsReturn {
       if (result.duplicates.length > 0) {
         addToast({
           type: TOAST_TYPE.WARNING,
-          message: t('toast.downloadDuplicates', { count: result.duplicates.length }),
+          message: t(($) => $.toast.downloadDuplicates, { count: result.duplicates.length }),
         })
       }
 
@@ -186,7 +186,7 @@ export function useTransferActions(): UseTransferActionsReturn {
       logger.catch(error, { action: 'startDownload' })
       addToast({
         type: TOAST_TYPE.ERROR,
-        message: `${t('toast.downloadFailed')}: ${error instanceof Error ? error.message : String(error)}`,
+        message: `${t(($) => $.toast.downloadFailed)}: ${error instanceof Error ? error.message : String(error)}`,
       })
     }
   }

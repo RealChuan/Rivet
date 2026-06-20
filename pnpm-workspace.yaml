@@ -17,8 +17,3 @@ allowBuilds:
   fs-xattr: true
   macos-alias: true
   ssh2: true
-
-minimumReleaseAgeExclude:
-  - electron@42.4.1
-  - i18next-cli@1.64.1
-  - lucide-react@1.20.0

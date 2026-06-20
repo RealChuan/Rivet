@@ -200,7 +200,7 @@ describe('TransferService', () => {
           id: `task-${i}`,
           localPath: `/local/file${i}.txt`,
           remotePath: `/remote/file${i}.txt`,
-        })
+        }),
       )
 
       mockUpload.mockReturnValue(new Promise<void>(() => {}))
@@ -209,7 +209,7 @@ describe('TransferService', () => {
 
       expect(mockUpload).toHaveBeenCalledTimes(2)
 
-      const runningTasks = service.getTasks().filter(t => t.status === OPERATION_STATUS.RUNNING)
+      const runningTasks = service.getTasks().filter((t) => t.status === OPERATION_STATUS.RUNNING)
       expect(runningTasks).toHaveLength(2)
     })
 
@@ -229,9 +229,9 @@ describe('TransferService', () => {
       })
 
       mockMkdir.mockReturnValue(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
-        })
+        }),
       )
       mockUpload.mockReturnValue(new Promise<void>(() => {}))
 
@@ -248,7 +248,7 @@ describe('TransferService', () => {
 
       void service.addTasks([folderTask, fileTask1, fileTask2])
 
-      const runningTasks = service.getTasks().filter(t => t.status === OPERATION_STATUS.RUNNING)
+      const runningTasks = service.getTasks().filter((t) => t.status === OPERATION_STATUS.RUNNING)
       expect(runningTasks).toHaveLength(3)
     })
 
@@ -265,9 +265,9 @@ describe('TransferService', () => {
       let uploadResolve1: () => void = () => {}
       mockUpload
         .mockReturnValueOnce(
-          new Promise<void>(resolve => {
+          new Promise<void>((resolve) => {
             uploadResolve1 = resolve
-          })
+          }),
         )
         .mockReturnValueOnce(new Promise<void>(() => {}))
 
@@ -295,7 +295,7 @@ describe('TransferService', () => {
           task.localPath,
           task.remotePath,
           expect.any(Function),
-          expect.any(AbortSignal)
+          expect.any(AbortSignal),
         )
       })
 
@@ -314,7 +314,7 @@ describe('TransferService', () => {
         expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASK_FAILED, expect.anything())
       })
 
-      const failedTask = service.getTasks().find(t => t.id === task.id)
+      const failedTask = service.getTasks().find((t) => t.id === task.id)
       expect(failedTask?.status).toBe(OPERATION_STATUS.FAILED)
       expect(failedTask?.errorMessage).toBe('Upload failed')
     })
@@ -326,7 +326,7 @@ describe('TransferService', () => {
           _localPath: string,
           _remotePath: string,
           _onProgress: unknown,
-          signal?: AbortSignal
+          signal?: AbortSignal,
         ) =>
           new Promise((_resolve, reject) => {
             if (signal) {
@@ -336,7 +336,7 @@ describe('TransferService', () => {
                 reject(abortError)
               })
             }
-          })
+          }),
       )
 
       const task = createFileTask()
@@ -344,8 +344,8 @@ describe('TransferService', () => {
 
       // Wait for task to start running
       await vi.waitFor(() => {
-        expect(service.getTasks().find(t => t.id === task.id)?.status).toBe(
-          OPERATION_STATUS.RUNNING
+        expect(service.getTasks().find((t) => t.id === task.id)?.status).toBe(
+          OPERATION_STATUS.RUNNING,
         )
       })
 
@@ -356,7 +356,7 @@ describe('TransferService', () => {
         expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASK_REMOVED, expect.anything())
       })
 
-      expect(service.getTasks().find(t => t.id === task.id)).toBeUndefined()
+      expect(service.getTasks().find((t) => t.id === task.id)).toBeUndefined()
     })
   })
 
@@ -364,10 +364,10 @@ describe('TransferService', () => {
     it('creates root mkdir operation and executes it', async () => {
       let mkdirResolve: () => void = () => {}
       mockMkdir.mockReturnValue(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           mkdirResolve = () =>
             resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
-        })
+        }),
       )
       mockReaddirSync.mockReturnValue([])
       mockReaddirAsync.mockResolvedValue([])
@@ -443,7 +443,7 @@ describe('TransferService', () => {
         expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASK_FAILED, expect.anything())
       })
 
-      const failedTask = service.getTasks().find(t => t.id === task.id)
+      const failedTask = service.getTasks().find((t) => t.id === task.id)
       expect(failedTask?.status).toBe(OPERATION_STATUS.FAILED)
     })
   })
@@ -454,10 +454,10 @@ describe('TransferService', () => {
 
       let mkdirResolve: () => void = () => {}
       mockMkdir.mockReturnValue(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           mkdirResolve = () =>
             resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
-        })
+        }),
       )
 
       const task = createFolderTask()
@@ -485,14 +485,14 @@ describe('TransferService', () => {
       })
 
       mockUpload.mockResolvedValueOnce(
-        err(createErrorInfo(ERROR_CODE.UPLOAD_ERROR, 'Upload error'))
+        err(createErrorInfo(ERROR_CODE.UPLOAD_ERROR, 'Upload error')),
       )
 
       await vi.waitFor(() => {
         expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASK_FAILED, expect.anything())
       })
 
-      const failedTask = service.getTasks().find(t => t.id === task.id)
+      const failedTask = service.getTasks().find((t) => t.id === task.id)
       expect(failedTask?.status).toBe(OPERATION_STATUS.FAILED)
     })
   })
@@ -512,16 +512,16 @@ describe('TransferService', () => {
 
       void service.addTasks([task1, task2])
 
-      expect(service.getTasks().find(t => t.id === 'running-task')?.status).toBe(
-        OPERATION_STATUS.RUNNING
+      expect(service.getTasks().find((t) => t.id === 'running-task')?.status).toBe(
+        OPERATION_STATUS.RUNNING,
       )
-      expect(service.getTasks().find(t => t.id === 'waiting-task')?.status).toBe(
-        OPERATION_STATUS.WAITING
+      expect(service.getTasks().find((t) => t.id === 'waiting-task')?.status).toBe(
+        OPERATION_STATUS.WAITING,
       )
 
       service.cancel('waiting-task')
 
-      expect(service.getTasks().find(t => t.id === 'waiting-task')).toBeUndefined()
+      expect(service.getTasks().find((t) => t.id === 'waiting-task')).toBeUndefined()
       expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASK_REMOVED, expect.anything())
     })
 
@@ -537,17 +537,17 @@ describe('TransferService', () => {
 
       service.cancel(task.id)
 
-      expect(service.getTasks().find(t => t.id === task.id)).toBeUndefined()
+      expect(service.getTasks().find((t) => t.id === task.id)).toBeUndefined()
       expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASK_REMOVED, expect.anything())
     })
 
     it('cancels a running folder task by aborting all operations', async () => {
       let mkdirResolve: () => void = () => {}
       mockMkdir.mockReturnValue(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           mkdirResolve = () =>
             resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
-        })
+        }),
       )
 
       const task = createFolderTask()
@@ -573,7 +573,7 @@ describe('TransferService', () => {
 
       service.cancel(task.id)
 
-      expect(service.getTasks().find(t => t.id === task.id)).toBeUndefined()
+      expect(service.getTasks().find((t) => t.id === task.id)).toBeUndefined()
       expect(mockSend).toHaveBeenCalledWith(TRANSFER_CHANNELS.TASK_REMOVED, expect.anything())
     })
 
@@ -585,10 +585,10 @@ describe('TransferService', () => {
     it('does not continue upload after cancelling folder task during mkdir', async () => {
       let mkdirResolve: () => void = () => {}
       mockMkdir.mockReturnValue(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           mkdirResolve = () =>
             resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
-        })
+        }),
       )
 
       mockReaddirSync.mockReturnValue([
@@ -613,7 +613,7 @@ describe('TransferService', () => {
       mkdirResolve()
 
       await vi.waitFor(() => {
-        expect(service.getTasks().find(t => t.id === task.id)).toBeUndefined()
+        expect(service.getTasks().find((t) => t.id === task.id)).toBeUndefined()
       })
 
       expect(mockUpload).not.toHaveBeenCalled()
@@ -664,7 +664,7 @@ describe('TransferService', () => {
 
       service.cancel(task.id)
 
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       expect(mockUpload.mock.calls.length).toBe(uploadCallCountBefore)
     })
@@ -675,9 +675,9 @@ describe('TransferService', () => {
       let uploadResolve1: () => void = () => {}
       mockUpload
         .mockReturnValueOnce(
-          new Promise<void>(resolve => {
+          new Promise<void>((resolve) => {
             uploadResolve1 = resolve
-          })
+          }),
         )
         .mockResolvedValue(ok(undefined))
 
@@ -704,10 +704,10 @@ describe('TransferService', () => {
 
       let mkdirResolve: () => void = () => {}
       mockMkdir.mockReturnValue(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           mkdirResolve = () =>
             resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
-        })
+        }),
       )
 
       const folderTask = createFolderTask({ id: 'folder-1' })
@@ -721,13 +721,13 @@ describe('TransferService', () => {
 
       mkdirResolve()
 
-      await new Promise(resolve => setTimeout(resolve, 50))
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       let uploadResolve: () => void = () => {}
       mockUpload.mockReturnValueOnce(
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           uploadResolve = resolve
-        })
+        }),
       )
 
       const newTask = createFileTask({ id: 'new-task', localPath: '/c', remotePath: '/c' })
@@ -737,8 +737,8 @@ describe('TransferService', () => {
         expect(mockUpload).toHaveBeenCalledTimes(1)
       })
 
-      expect(service.getTasks().find(t => t.id === 'new-task')?.status).toBe(
-        OPERATION_STATUS.RUNNING
+      expect(service.getTasks().find((t) => t.id === 'new-task')?.status).toBe(
+        OPERATION_STATUS.RUNNING,
       )
 
       uploadResolve()
@@ -747,10 +747,10 @@ describe('TransferService', () => {
     it('allows retry after cancelling a folder task', async () => {
       let mkdirResolve: () => void = () => {}
       mockMkdir.mockReturnValue(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           mkdirResolve = () =>
             resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
-        })
+        }),
       )
 
       mockReaddirSync.mockReturnValue([])
@@ -769,14 +769,14 @@ describe('TransferService', () => {
       mkdirResolve()
 
       await vi.waitFor(() => {
-        expect(service.getTasks().find(t => t.id === task.id)).toBeUndefined()
+        expect(service.getTasks().find((t) => t.id === task.id)).toBeUndefined()
       })
 
       task.status = OPERATION_STATUS.FAILED
       void service.addTasks([task])
 
       await vi.waitFor(() => {
-        expect(service.getTasks().find(t => t.id === task.id)).toBeDefined()
+        expect(service.getTasks().find((t) => t.id === task.id)).toBeDefined()
       })
     })
   })
@@ -809,8 +809,8 @@ describe('TransferService', () => {
 
       service.cancelAll('s1')
 
-      expect(service.getTasks().find(t => t.id === 't1')).toBeUndefined()
-      expect(service.getTasks().find(t => t.id === 't2')).toBeDefined()
+      expect(service.getTasks().find((t) => t.id === 't1')).toBeUndefined()
+      expect(service.getTasks().find((t) => t.id === 't2')).toBeDefined()
     })
   })
 
@@ -824,12 +824,16 @@ describe('TransferService', () => {
       void service.addTasks([task])
 
       await vi.waitFor(() => {
-        expect(service.getTasks().find(t => t.id === task.id)?.status).toBe(OPERATION_STATUS.FAILED)
+        expect(service.getTasks().find((t) => t.id === task.id)?.status).toBe(
+          OPERATION_STATUS.FAILED,
+        )
       })
 
       service.retry(task.id)
 
-      expect(service.getTasks().find(t => t.id === task.id)?.status).toBe(OPERATION_STATUS.RUNNING)
+      expect(service.getTasks().find((t) => t.id === task.id)?.status).toBe(
+        OPERATION_STATUS.RUNNING,
+      )
 
       await vi.waitFor(() => {
         expect(mockUpload).toHaveBeenCalledTimes(2)
@@ -846,7 +850,9 @@ describe('TransferService', () => {
       void service.addTasks([task1, task2])
 
       await vi.waitFor(() => {
-        expect(service.getTasks().filter(t => t.status === OPERATION_STATUS.FAILED)).toHaveLength(2)
+        expect(service.getTasks().filter((t) => t.status === OPERATION_STATUS.FAILED)).toHaveLength(
+          2,
+        )
       })
 
       mockUpload.mockResolvedValue(ok(undefined))
@@ -882,7 +888,9 @@ describe('TransferService', () => {
       void service.addTasks([task])
 
       await vi.waitFor(() => {
-        expect(service.getTasks().find(t => t.id === task.id)?.status).toBe(OPERATION_STATUS.FAILED)
+        expect(service.getTasks().find((t) => t.id === task.id)?.status).toBe(
+          OPERATION_STATUS.FAILED,
+        )
       })
 
       service.retry(task.id)
@@ -904,7 +912,9 @@ describe('TransferService', () => {
       void service.addTasks([task1, task2])
 
       await vi.waitFor(() => {
-        expect(service.getTasks().filter(t => t.status === OPERATION_STATUS.FAILED)).toHaveLength(2)
+        expect(service.getTasks().filter((t) => t.status === OPERATION_STATUS.FAILED)).toHaveLength(
+          2,
+        )
       })
 
       mockUpload.mockResolvedValue(ok(undefined))
@@ -926,7 +936,9 @@ describe('TransferService', () => {
       void service.addTasks([task1, task2])
 
       await vi.waitFor(() => {
-        expect(service.getTasks().filter(t => t.status === OPERATION_STATUS.FAILED)).toHaveLength(2)
+        expect(service.getTasks().filter((t) => t.status === OPERATION_STATUS.FAILED)).toHaveLength(
+          2,
+        )
       })
 
       mockUpload.mockResolvedValue(ok(undefined))
@@ -971,14 +983,14 @@ describe('TransferService', () => {
       service.setConcurrency(100, TRANSFER_DIRECTION.UPLOAD)
 
       const tasks = Array.from({ length: 15 }, (_, i) =>
-        createFileTask({ id: `t${i}`, localPath: `/f${i}`, remotePath: `/f${i}` })
+        createFileTask({ id: `t${i}`, localPath: `/f${i}`, remotePath: `/f${i}` }),
       )
 
       mockUpload.mockResolvedValue(ok(undefined))
 
       void service.addTasks(tasks)
 
-      const runningTasks = service.getTasks().filter(t => t.status === OPERATION_STATUS.RUNNING)
+      const runningTasks = service.getTasks().filter((t) => t.status === OPERATION_STATUS.RUNNING)
       expect(runningTasks.length).toBeLessThanOrEqual(10)
     })
 
@@ -987,9 +999,9 @@ describe('TransferService', () => {
 
       let uploadResolve1: () => void = () => {}
       mockUpload.mockReturnValueOnce(
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           uploadResolve1 = resolve
-        })
+        }),
       )
 
       const task1 = createFileTask({ id: 't1' })
@@ -997,14 +1009,16 @@ describe('TransferService', () => {
 
       void service.addTasks([task1, task2])
 
-      expect(service.getTasks().filter(t => t.status === OPERATION_STATUS.RUNNING)).toHaveLength(1)
+      expect(service.getTasks().filter((t) => t.status === OPERATION_STATUS.RUNNING)).toHaveLength(
+        1,
+      )
 
       uploadResolve1()
 
       await vi.waitFor(() => {
-        expect(service.getTasks().filter(t => t.status === OPERATION_STATUS.RUNNING)).toHaveLength(
-          1
-        )
+        expect(
+          service.getTasks().filter((t) => t.status === OPERATION_STATUS.RUNNING),
+        ).toHaveLength(1)
       })
     })
   })
@@ -1057,7 +1071,9 @@ describe('TransferService', () => {
       void service.addTasks([task])
 
       await vi.waitFor(() => {
-        expect(service.getTasks().find(t => t.id === task.id)?.status).toBe(OPERATION_STATUS.FAILED)
+        expect(service.getTasks().find((t) => t.id === task.id)?.status).toBe(
+          OPERATION_STATUS.FAILED,
+        )
       })
 
       expect(service.hasActiveTasks()).toBe(false)
@@ -1095,9 +1111,9 @@ describe('TransferService', () => {
   describe('getActiveOperations', () => {
     it('returns running and waiting operations for a task', () => {
       mockMkdir.mockReturnValue(
-        new Promise(resolve => {
+        new Promise((resolve) => {
           resolve({ success: true, value: undefined, error: undefined, requestId: 'r1' })
-        })
+        }),
       )
 
       const task = createFolderTask()
@@ -1123,20 +1139,20 @@ describe('TransferService', () => {
           _local: string,
           _remote: string,
           onProgress: (t: number) => void,
-          _signal: AbortSignal
+          _signal: AbortSignal,
         ) => {
           onProgress(100)
           onProgress(200)
           onProgress(300)
           return Promise.resolve(ok(undefined))
-        }
+        },
       )
 
       const task = createFileTask()
       void service.addTasks([task])
 
       const progressCalls = mockSend.mock.calls.filter(
-        call => call[0] === TRANSFER_CHANNELS.PROGRESS
+        (call) => call[0] === TRANSFER_CHANNELS.PROGRESS,
       )
       expect(progressCalls.length).toBeLessThanOrEqual(2)
     })
@@ -1167,7 +1183,7 @@ describe('TransferService', () => {
       })
 
       const progressCalls = mockSend.mock.calls.filter(
-        call => call[0] === TRANSFER_CHANNELS.PROGRESS
+        (call) => call[0] === TRANSFER_CHANNELS.PROGRESS,
       )
       if (progressCalls.length > 0) {
         const data = progressCalls[0]?.[1] as { activeOperations?: unknown[] }

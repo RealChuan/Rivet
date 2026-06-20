@@ -30,7 +30,7 @@ describe('generateUniqueFilename', () => {
   it('should produce different names when called at different times', async () => {
     const result1 = generateUniqueFilename('test.txt')
     // Wait at least 1ms to ensure different timestamp
-    await new Promise(resolve => setTimeout(resolve, 2))
+    await new Promise((resolve) => setTimeout(resolve, 2))
     const result2 = generateUniqueFilename('test.txt')
     expect(result1).not.toBe(result2)
   })
@@ -77,8 +77,8 @@ describe('generateUniqueFilename', () => {
         Number(hour),
         Number(minute),
         Number(second),
-        Number(ms)
-      )
+        Number(ms),
+      ),
     )
     const generatedTime = generatedDate.getTime()
     // Allow for timezone offset and small delay

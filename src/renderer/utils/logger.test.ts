@@ -10,7 +10,7 @@ vi.mock('@shared/utils/index.js', () => ({
       const message = error instanceof Error ? error.message : String(error)
       const contextStr = context ? ` ${JSON.stringify(context)}` : ''
       logFn(`[formatted] ${message}${contextStr}`)
-    }
+    },
   ),
 }))
 

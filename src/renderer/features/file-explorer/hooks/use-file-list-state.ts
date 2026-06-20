@@ -29,18 +29,20 @@ export const useFileListState = () => {
     file: FileInfo,
     isCtrl: boolean,
     isShift: boolean,
-    sortedFiles: FileInfo[]
+    sortedFiles: FileInfo[],
   ) => {
-    setSelectedFiles(prev => {
+    setSelectedFiles((prev) => {
       if (isCtrl) {
-        const exists = prev.find(f => f.name === file.name)
+        const exists = prev.find((f) => f.name === file.name)
         if (exists) {
-          return prev.filter(f => f.name !== file.name)
+          return prev.filter((f) => f.name !== file.name)
         }
         return [...prev, file]
       } else if (isShift && prev.length > 0) {
-        const currentIndex = sortedFiles.findIndex(f => f.name === file.name)
-        const lastSelectedIndex = sortedFiles.findIndex(f => f.name === prev[prev.length - 1]?.name)
+        const currentIndex = sortedFiles.findIndex((f) => f.name === file.name)
+        const lastSelectedIndex = sortedFiles.findIndex(
+          (f) => f.name === prev[prev.length - 1]?.name,
+        )
         if (currentIndex === -1 || lastSelectedIndex === -1) {
           return [file]
         }

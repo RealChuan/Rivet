@@ -13,7 +13,23 @@ const mockTransferActions = {
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string | ((ns: unknown) => unknown)) => {
+      if (typeof key === 'function') {
+        const path: string[] = []
+        const proxy = new Proxy(
+          {},
+          {
+            get(_target, prop) {
+              if (typeof prop === 'string') path.push(prop)
+              return proxy
+            },
+          },
+        )
+        key(proxy)
+        return path.join('.')
+      }
+      return key
+    },
     i18n: { language: 'en-US' },
   }),
   initReactI18next: vi.fn(),
@@ -168,7 +184,7 @@ describe('FileExplorerList', () => {
   it('should return null when session is not found', () => {
     mockSessionStore.sessions = []
     const { container } = renderWithProvider(
-      <FileExplorerList sessionId="nonexistent" currentPath="/home" />
+      <FileExplorerList sessionId="nonexistent" currentPath="/home" />,
     )
     expect(container.innerHTML).toBe('')
   })
@@ -176,7 +192,7 @@ describe('FileExplorerList', () => {
   it('should show loading state', () => {
     mockSessionStore.sessions = [makeSession({ isLoading: true })]
     const { container } = renderWithProvider(
-      <FileExplorerList sessionId="sess-1" currentPath="/home" />
+      <FileExplorerList sessionId="sess-1" currentPath="/home" />,
     )
     expect(container.querySelectorAll('.animate-skeleton-shimmer').length).toBe(8)
   })
@@ -224,7 +240,7 @@ describe('FileExplorerList', () => {
     ]
     mockSessionStore.sessions = [makeSession({ files })]
     const { container } = renderWithProvider(
-      <FileExplorerList sessionId="sess-1" currentPath="/home" />
+      <FileExplorerList sessionId="sess-1" currentPath="/home" />,
     )
     expect(container.querySelector('[data-testid="virtual-list"]')).not.toBeNull()
   })

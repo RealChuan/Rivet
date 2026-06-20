@@ -130,8 +130,8 @@ describe('useConnectionStore', () => {
 
       const { connections } = useConnectionStore.getState()
       expect(connections).toHaveLength(2)
-      expect(connections.find(c => c.id === 'conn-1')?.name).toBe('Updated First')
-      expect(connections.find(c => c.id === 'conn-2')?.name).toBe('Second')
+      expect(connections.find((c) => c.id === 'conn-1')?.name).toBe('Updated First')
+      expect(connections.find((c) => c.id === 'conn-2')?.name).toBe('Second')
     })
 
     it('should not add a new connection if id does not match', () => {
@@ -383,7 +383,7 @@ describe('useConnectionStore', () => {
       // Move conn-3 before conn-1
       await useConnectionStore.getState().reorderConnections('conn-3', 'conn-1')
 
-      const ids = useConnectionStore.getState().connections.map(c => c.id)
+      const ids = useConnectionStore.getState().connections.map((c) => c.id)
       expect(ids).toEqual(['conn-3', 'conn-1', 'conn-2'])
     })
 
@@ -396,7 +396,7 @@ describe('useConnectionStore', () => {
       // Move conn-1 before conn-3: splice removes conn-1, then inserts at index 2
       await useConnectionStore.getState().reorderConnections('conn-1', 'conn-3')
 
-      const ids = useConnectionStore.getState().connections.map(c => c.id)
+      const ids = useConnectionStore.getState().connections.map((c) => c.id)
       expect(ids).toEqual(['conn-2', 'conn-3', 'conn-1'])
     })
 
@@ -430,7 +430,7 @@ describe('useConnectionStore', () => {
 
       await useConnectionStore.getState().reorderConnections('conn-999', 'conn-1')
 
-      const ids = useConnectionStore.getState().connections.map(c => c.id)
+      const ids = useConnectionStore.getState().connections.map((c) => c.id)
       expect(ids).toEqual(['conn-1', 'conn-2'])
       // Should not persist when no reorder happened
       expect(mockConfigSet).not.toHaveBeenCalled()
@@ -443,7 +443,7 @@ describe('useConnectionStore', () => {
 
       await useConnectionStore.getState().reorderConnections('conn-1', 'conn-999')
 
-      const ids = useConnectionStore.getState().connections.map(c => c.id)
+      const ids = useConnectionStore.getState().connections.map((c) => c.id)
       expect(ids).toEqual(['conn-1', 'conn-2'])
     })
   })
@@ -457,7 +457,7 @@ describe('useConnectionStore', () => {
 
       await useConnectionStore.getState().sortConnections(SORT_ORDER.ASC)
 
-      const names = useConnectionStore.getState().connections.map(c => c.name)
+      const names = useConnectionStore.getState().connections.map((c) => c.name)
       expect(names).toEqual(['Alice', 'Bob', 'Charlie'])
     })
 
@@ -469,7 +469,7 @@ describe('useConnectionStore', () => {
 
       await useConnectionStore.getState().sortConnections(SORT_ORDER.DESC)
 
-      const names = useConnectionStore.getState().connections.map(c => c.name)
+      const names = useConnectionStore.getState().connections.map((c) => c.name)
       expect(names).toEqual(['Charlie', 'Bob', 'Alice'])
     })
 

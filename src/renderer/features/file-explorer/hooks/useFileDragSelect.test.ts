@@ -79,7 +79,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     expect(result.current.isDragging).toBe(false)
@@ -94,7 +94,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {
@@ -115,7 +115,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: scrolledRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {
@@ -138,7 +138,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {
@@ -155,13 +155,13 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     const buttonEl = document.createElement('button')
     act(() => {
       result.current.handleMouseDown(
-        createMouseEvent({ clientX: 100, clientY: 50, target: buttonEl })
+        createMouseEvent({ clientX: 100, clientY: 50, target: buttonEl }),
       )
     })
 
@@ -177,7 +177,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: nullRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {
@@ -194,7 +194,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {
@@ -221,7 +221,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {
@@ -243,7 +243,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {
@@ -268,7 +268,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     // Start at y=35 (row 1), drag to y=85 (row 2-3 boundary)
@@ -293,7 +293,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {
@@ -313,7 +313,7 @@ describe('useFileDragSelect', () => {
     if (!callArgs) throw new Error('Expected onDragSelect to be called with args')
     const firstArg: FileInfo[] = callArgs[0]
     if (!firstArg) throw new Error('Expected first argument')
-    const names = firstArg.map(f => f.name)
+    const names = firstArg.map((f) => f.name)
     expect(names).toEqual(['file1.txt', 'file2.txt'])
   })
 
@@ -324,7 +324,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {
@@ -350,7 +350,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {
@@ -380,14 +380,14 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: mockScrollContainerRef,
         onDragSelect,
-      })
+      }),
     )
 
     const headerEl = document.createElement('div')
     headerEl.setAttribute('data-file-list-header', '')
     act(() => {
       result.current.handleMouseDown(
-        createMouseEvent({ clientX: 100, clientY: 10, target: headerEl })
+        createMouseEvent({ clientX: 100, clientY: 10, target: headerEl }),
       )
     })
 
@@ -404,7 +404,7 @@ describe('useFileDragSelect', () => {
         itemHeight: 30,
         scrollContainerRef: scrolledRef,
         onDragSelect,
-      })
+      }),
     )
 
     act(() => {

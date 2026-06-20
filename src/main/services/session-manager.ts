@@ -33,7 +33,7 @@ class SessionManager {
     sessionId: string,
     client: T,
     config: ConnectionConfig,
-    protocolType: ProtocolType
+    protocolType: ProtocolType,
   ): void {
     sessionRegistry.register(sessionId, client, config, protocolType)
     this.startHeartbeat()
@@ -63,13 +63,13 @@ class SessionManager {
       await Promise.race([
         this.callbacks.disconnect(sessionId),
         new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error('Disconnect timeout')), TIMEOUTS.DISCONNECT)
+          setTimeout(() => reject(new Error('Disconnect timeout')), TIMEOUTS.DISCONNECT),
         ),
       ])
     } catch (e) {
       sessionRegistry.unregister(sessionId)
       return err(
-        createErrorInfo(ERROR_CODE.DISCONNECT_ERROR, 'Disconnect failed', formatErrorMessage(e))
+        createErrorInfo(ERROR_CODE.DISCONNECT_ERROR, 'Disconnect failed', formatErrorMessage(e)),
       )
     }
 
@@ -91,13 +91,13 @@ class SessionManager {
 
     try {
       await Promise.allSettled(
-        sessionIds.map(async sessionId => {
+        sessionIds.map(async (sessionId) => {
           const result = await this.safeUnregister(sessionId)
           if (!result.success) {
             logger.error(`Failed to cleanup session ${sessionId}:`, result.error)
             allSucceeded = false
           }
-        })
+        }),
       )
 
       this.destroy()
@@ -115,7 +115,7 @@ class SessionManager {
     if (this.heartbeatInterval) return
     logger.info('Starting session heartbeat...')
     this.heartbeatInterval = setInterval(() => {
-      this.checkAllSessions().catch(err => {
+      this.checkAllSessions().catch((err) => {
         logger.catch(err, { action: 'heartbeat-check' })
       })
     }, TIMEOUTS.HEARTBEAT_INTERVAL)
@@ -127,7 +127,7 @@ class SessionManager {
     const sessionsToCheck = Array.from(sessionRegistry.getAllIds())
 
     await Promise.allSettled(
-      sessionsToCheck.map(async sessionId => {
+      sessionsToCheck.map(async (sessionId) => {
         const handle = sessionRegistry.get(sessionId)
         if (!handle || handle.isClosing) return
 
@@ -135,12 +135,12 @@ class SessionManager {
           await Promise.race([
             this.callbacks.ping(sessionId),
             new Promise<void>((_, reject) =>
-              setTimeout(() => reject(new Error('Ping timeout')), TIMEOUTS.PING)
+              setTimeout(() => reject(new Error('Ping timeout')), TIMEOUTS.PING),
             ),
           ])
         } catch (_error) {
           const protocolType: ProtocolType | undefined = handle.protocolType
-          this.safeUnregister(sessionId).catch(err => {
+          this.safeUnregister(sessionId).catch((err) => {
             logger.catch(err, { action: 'heartbeat-unregister', sessionId })
           })
           WindowManager.broadcast(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, {
@@ -148,7 +148,7 @@ class SessionManager {
             protocolType,
           })
         }
-      })
+      }),
     )
   }
 

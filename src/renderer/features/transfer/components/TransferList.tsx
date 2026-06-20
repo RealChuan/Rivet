@@ -26,7 +26,7 @@ interface TransferListProps {
   onCancelAll: () => void
 }
 
-export const TransferList: React.FC<TransferListProps> = ({ tasks, onCancelAll }) => {
+export const TransferList = ({ tasks, onCancelAll }: TransferListProps) => {
   const { t } = useTranslation()
   const { sortBy, sortOrder, setSort, sortedTasks } = useTransferSort(tasks)
   const { retryTask, cancelTask } = useTransferActions()
@@ -35,14 +35,14 @@ export const TransferList: React.FC<TransferListProps> = ({ tasks, onCancelAll }
     (taskId: string) => {
       void retryTask(taskId)
     },
-    [retryTask]
+    [retryTask],
   )
 
   const handleCancel = useCallback(
     (taskId: string) => {
       void cancelTask(taskId)
     },
-    [cancelTask]
+    [cancelTask],
   )
 
   const renderItem = useCallback(
@@ -56,7 +56,7 @@ export const TransferList: React.FC<TransferListProps> = ({ tasks, onCancelAll }
         style={style}
       />
     ),
-    [handleCancel, handleRetry]
+    [handleCancel, handleRetry],
   )
 
   const getItemHeightForIndex = useCallback(
@@ -71,7 +71,7 @@ export const TransferList: React.FC<TransferListProps> = ({ tasks, onCancelAll }
         FOLDER_OPS_BORDER
       )
     },
-    [sortedTasks]
+    [sortedTasks],
   )
 
   return (
@@ -95,7 +95,7 @@ export const TransferList: React.FC<TransferListProps> = ({ tasks, onCancelAll }
               <ArrowUpDown className="w-7 h-7 stroke-text-muted stroke-[1.5]" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-text mb-1">{t('transfer.empty')}</p>
+              <p className="text-sm font-medium text-text mb-1">{t(($) => $.transfer.empty)}</p>
             </div>
           </div>
         ) : (

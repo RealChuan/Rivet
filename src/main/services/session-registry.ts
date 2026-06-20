@@ -15,7 +15,7 @@ export class SessionRegistry {
     sessionId: string,
     client: T,
     config: ConnectionConfig,
-    protocolType: ProtocolType
+    protocolType: ProtocolType,
   ): void {
     this.sessions.set(sessionId, { client, config, protocolType })
   }

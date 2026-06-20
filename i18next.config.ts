@@ -7,10 +7,9 @@ export default defineConfig({
     output: 'src/renderer/i18n/locales/{{lng}}.json',
     keySeparator: '.',
     nsSeparator: ':',
-    // @ts-ignore - func 属性在当前版本类型定义中未声明
     func: {
       list: ['t'],
-    },
+    } as { list: string[] },
     trans: {
       component: 'Trans',
     },

@@ -33,7 +33,7 @@ describe('IPC crypto handlers', () => {
 
       expect(ipcMain.handle).toHaveBeenCalledWith(
         IPC_CHANNELS.CRYPTO.ENCRYPT_PASSWORD,
-        expect.any(Function)
+        expect.any(Function),
       )
     })
 
@@ -45,7 +45,7 @@ describe('IPC crypto handlers', () => {
 
       expect(ipcMain.handle).toHaveBeenCalledWith(
         IPC_CHANNELS.CRYPTO.DECRYPT_PASSWORD,
-        expect.any(Function)
+        expect.any(Function),
       )
     })
 

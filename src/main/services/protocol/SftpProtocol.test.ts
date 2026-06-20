@@ -134,7 +134,7 @@ describe('SftpProtocol', () => {
 
     it('should handle authentication failure', async () => {
       mockClient.connect.mockRejectedValue(
-        new Error('All configured authentication methods failed')
+        new Error('All configured authentication methods failed'),
       )
       const result = await sftp.connect(baseConfig, 'testpass')
       expect(result.success).toBe(false)
@@ -333,7 +333,7 @@ describe('SftpProtocol', () => {
           owner: '',
           absolutePath: '/old',
         },
-        'new'
+        'new',
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -354,7 +354,7 @@ describe('SftpProtocol', () => {
           owner: '',
           absolutePath: '/old',
         },
-        'new'
+        'new',
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -475,7 +475,7 @@ describe('SftpProtocol', () => {
           owner: '',
           absolutePath: '/src',
         },
-        '/dst'
+        '/dst',
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -496,7 +496,7 @@ describe('SftpProtocol', () => {
           owner: '',
           absolutePath: '/srcdir',
         },
-        '/dstdir'
+        '/dstdir',
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -517,7 +517,7 @@ describe('SftpProtocol', () => {
           owner: '',
           absolutePath: '/file',
         },
-        '/dst'
+        '/dst',
       )
       expect(mockClient.rcopy).toHaveBeenCalledWith('/file', '/dst')
 
@@ -534,7 +534,7 @@ describe('SftpProtocol', () => {
           owner: '',
           absolutePath: '/dir',
         },
-        '/dstdir'
+        '/dstdir',
       )
       expect(mockClient.rcopy).not.toHaveBeenCalled()
       expect(mockClient.mkdir).toHaveBeenCalled()
@@ -554,7 +554,7 @@ describe('SftpProtocol', () => {
           owner: '',
           absolutePath: '/src',
         },
-        '/dst'
+        '/dst',
       )
       expect(mockClient.stat).not.toHaveBeenCalled()
     })
@@ -576,7 +576,7 @@ describe('SftpProtocol', () => {
           owner: '',
           absolutePath: '/src',
         },
-        '/dst'
+        '/dst',
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -603,7 +603,7 @@ describe('SftpProtocol', () => {
         'sftp_test_session',
         '/local/file.txt',
         '/remote/file.txt',
-        onProgress
+        onProgress,
       )
       expect(result.success).toBe(true)
       expect(mockClient.fastPut).toHaveBeenCalledWith(
@@ -612,7 +612,7 @@ describe('SftpProtocol', () => {
         expect.objectContaining({
           chunkSize: expect.any(Number) as number,
           step: expect.any(Function) as unknown as ((total: number) => void) | undefined,
-        })
+        }),
       )
     })
 
@@ -624,7 +624,7 @@ describe('SftpProtocol', () => {
         'sftp_test_session',
         '/local/file.txt',
         '/remote/file.txt',
-        onProgress
+        onProgress,
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -640,13 +640,13 @@ describe('SftpProtocol', () => {
           step?.(1024)
           step?.(2048)
           return Promise.resolve(undefined)
-        }
+        },
       )
       const result = await sftp.upload(
         'sftp_test_session',
         '/local/file.txt',
         '/remote/file.txt',
-        onProgress
+        onProgress,
       )
       expect(result.success).toBe(true)
       expect(onProgress).toHaveBeenCalledWith(1024)
@@ -663,7 +663,7 @@ describe('SftpProtocol', () => {
         '/local/file.txt',
         '/remote/file.txt',
         onProgress,
-        controller.signal
+        controller.signal,
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -686,7 +686,7 @@ describe('SftpProtocol', () => {
         '/local/file.txt',
         '/remote/file.txt',
         onProgress,
-        controller.signal
+        controller.signal,
       )
       expect(result.success).toBe(false)
       if (result.success) return
@@ -706,7 +706,7 @@ describe('SftpProtocol', () => {
           controller.abort()
           step?.(2048)
           return Promise.resolve(undefined)
-        }
+        },
       )
 
       const result = await sftp.upload(
@@ -714,7 +714,7 @@ describe('SftpProtocol', () => {
         '/local/file.txt',
         '/remote/file.txt',
         onProgress,
-        controller.signal
+        controller.signal,
       )
       expect(result.success).toBe(false)
       // 只有 abort 前的进度被报告

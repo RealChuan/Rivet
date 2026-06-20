@@ -91,7 +91,7 @@ export function createErrorInfo(
   code: string,
   message: string,
   detail?: string,
-  stack?: string
+  stack?: string,
 ): ErrorInfo {
   return {
     code,

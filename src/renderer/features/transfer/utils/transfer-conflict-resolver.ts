@@ -15,14 +15,14 @@ interface ResolveParams {
 }
 
 export async function resolveConflictsAndBuildTasks(
-  params: ResolveParams
+  params: ResolveParams,
 ): Promise<ResolvedTask[] | null> {
   const { localPaths, remoteFiles, remoteDir, itemType } = params
 
   const conflicts = detectConflicts(localPaths, remoteFiles, remoteDir, itemType)
 
   if (conflicts.length > 0) {
-    const resolutions = await new Promise<ConflictResolution[] | null>(resolve => {
+    const resolutions = await new Promise<ConflictResolution[] | null>((resolve) => {
       useTransferConflictStore.getState().openDialog(conflicts, resolve)
     })
 
@@ -31,7 +31,7 @@ export async function resolveConflictsAndBuildTasks(
     return applyResolutions(localPaths, resolutions, remoteDir, itemType)
   }
 
-  return localPaths.map(p => ({
+  return localPaths.map((p) => ({
     localPath: p,
     remotePath: joinPaths(remoteDir, pathBasename(p)),
     itemName: pathBasename(p),
@@ -46,7 +46,7 @@ interface MixedResolveParams {
 }
 
 export async function resolveMixedConflicts(
-  params: MixedResolveParams
+  params: MixedResolveParams,
 ): Promise<{ resolvedFilePaths: ResolvedTask[]; resolvedFolderPaths: ResolvedTask[] } | null> {
   const { filePaths, folderPaths, remoteFiles, remoteDir } = params
 
@@ -58,7 +58,7 @@ export async function resolveMixedConflicts(
   let resolvedFolderPaths: ResolvedTask[]
 
   if (allConflicts.length > 0) {
-    const resolutions = await new Promise<ConflictResolution[] | null>(resolve => {
+    const resolutions = await new Promise<ConflictResolution[] | null>((resolve) => {
       useTransferConflictStore.getState().openDialog(allConflicts, resolve)
     })
 
@@ -67,12 +67,12 @@ export async function resolveMixedConflicts(
     resolvedFilePaths = applyResolutions(filePaths, resolutions, remoteDir, FILE_TYPE.FILE)
     resolvedFolderPaths = applyResolutions(folderPaths, resolutions, remoteDir, FILE_TYPE.DIRECTORY)
   } else {
-    resolvedFilePaths = filePaths.map(p => ({
+    resolvedFilePaths = filePaths.map((p) => ({
       localPath: p,
       remotePath: joinPaths(remoteDir, pathBasename(p)),
       itemName: pathBasename(p),
     }))
-    resolvedFolderPaths = folderPaths.map(p => ({
+    resolvedFolderPaths = folderPaths.map((p) => ({
       localPath: p,
       remotePath: joinPaths(remoteDir, pathBasename(p)),
       itemName: pathBasename(p),

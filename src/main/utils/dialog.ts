@@ -4,7 +4,7 @@ import { createErrorInfo, err, type ErrorInfo, ok, type Result } from '@shared/t
 import { logger } from './index.js'
 
 export async function showSaveDialog(
-  options: SaveDialogOptions
+  options: SaveDialogOptions,
 ): Promise<Result<{ canceled: boolean; filePath?: string } | undefined, ErrorInfo>> {
   try {
     const result = await dialog.showSaveDialog(options)
@@ -12,13 +12,13 @@ export async function showSaveDialog(
   } catch (error) {
     logger.catch(error, { action: 'show-save-dialog' })
     return err(
-      createErrorInfo(ERROR_CODE.DIALOG_ERROR, 'Failed to show save dialog', String(error))
+      createErrorInfo(ERROR_CODE.DIALOG_ERROR, 'Failed to show save dialog', String(error)),
     )
   }
 }
 
 export async function showOpenDialog(
-  options: OpenDialogOptions
+  options: OpenDialogOptions,
 ): Promise<Result<{ canceled: boolean; filePaths: string[] } | undefined, ErrorInfo>> {
   try {
     const result = await dialog.showOpenDialog(options)
@@ -26,7 +26,7 @@ export async function showOpenDialog(
   } catch (error) {
     logger.catch(error, { action: 'show-open-dialog' })
     return err(
-      createErrorInfo(ERROR_CODE.DIALOG_ERROR, 'Failed to show open dialog', String(error))
+      createErrorInfo(ERROR_CODE.DIALOG_ERROR, 'Failed to show open dialog', String(error)),
     )
   }
 }

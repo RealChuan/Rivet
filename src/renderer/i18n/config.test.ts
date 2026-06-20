@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
 vi.unmock('i18next')
+vi.unmock('react-i18next')
 
 describe('i18n config', () => {
   it('should export initialized i18n instance', async () => {
     const i18n = (await import('./config.js')).default
     if (!i18n.isInitialized) {
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         i18n.on('initialized', () => resolve())
       })
     }
@@ -16,7 +17,7 @@ describe('i18n config', () => {
   it('should have zh-CN and en-US resources', async () => {
     const i18n = (await import('./config.js')).default
     if (!i18n.isInitialized) {
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         i18n.on('initialized', () => resolve())
       })
     }
@@ -29,7 +30,7 @@ describe('i18n config', () => {
   it('should use en-US as fallback language', async () => {
     const i18n = (await import('./config.js')).default
     if (!i18n.isInitialized) {
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         i18n.on('initialized', () => resolve())
       })
     }

@@ -59,7 +59,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
   activeView: SIDEBAR_VIEW.CONNECTIONS,
   toasts: [],
 
-  setAppearance: appearance => {
+  setAppearance: (appearance) => {
     set({ appearance })
     const { locale } = get()
     void window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
@@ -68,7 +68,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
     })
   },
 
-  setLocale: locale => {
+  setLocale: (locale) => {
     set({ locale })
     const { appearance } = get()
     void window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
@@ -77,19 +77,19 @@ export const useUiStore = create<UiStore>((set, get) => ({
     })
   },
 
-  setConnectionPanelWidth: connectionPanelWidth => {
+  setConnectionPanelWidth: (connectionPanelWidth) => {
     set({ connectionPanelWidth })
   },
 
-  setTransferPanelWidth: transferPanelWidth => {
+  setTransferPanelWidth: (transferPanelWidth) => {
     set({ transferPanelWidth })
   },
 
-  setActiveView: activeView => {
+  setActiveView: (activeView) => {
     set({ activeView })
   },
 
-  initialize: settings => {
+  initialize: (settings) => {
     set({
       appearance: settings.appearance ?? DEFAULT_THEME_VALUE,
       locale: settings.locale ?? DEFAULT_LANGUAGE,
@@ -98,21 +98,21 @@ export const useUiStore = create<UiStore>((set, get) => ({
     })
   },
 
-  addToast: toast => {
+  addToast: (toast) => {
     const id = crypto.randomUUID()
     let timer: ReturnType<typeof setTimeout> | undefined
 
     if (toast.duration !== 0) {
       const duration = getToastDuration(toast.type, toast.duration)
       timer = setTimeout(() => {
-        set(state => {
-          const existingToast = state.toasts.find(t => t.id === id)
+        set((state) => {
+          const existingToast = state.toasts.find((t) => t.id === id)
           if (!existingToast) return state
           if (existingToast.timer) {
             clearTimeout(existingToast.timer)
           }
           return {
-            toasts: state.toasts.filter(t => t.id !== id),
+            toasts: state.toasts.filter((t) => t.id !== id),
           }
         })
       }, duration)
@@ -120,19 +120,19 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
     const newToast: Toast = { ...toast, id, timer }
 
-    set(state => ({
+    set((state) => ({
       toasts: [...state.toasts, newToast],
     }))
   },
 
-  removeToast: id => {
-    set(state => {
-      const toastToRemove = state.toasts.find(t => t.id === id)
+  removeToast: (id) => {
+    set((state) => {
+      const toastToRemove = state.toasts.find((t) => t.id === id)
       if (toastToRemove?.timer) {
         clearTimeout(toastToRemove.timer)
       }
       return {
-        toasts: state.toasts.filter(t => t.id !== id),
+        toasts: state.toasts.filter((t) => t.id !== id),
       }
     })
   },

@@ -173,13 +173,13 @@ interface BookmarkStore {
   removeBookmark: (id: string) => void
 }
 
-export const useBookmarkStore = create<BookmarkStore>(set => ({
+export const useBookmarkStore = create<BookmarkStore>((set) => ({
   bookmarks: [],
-  addBookmark: bookmark => {
-    set(state => ({ bookmarks: [...state.bookmarks, bookmark] }))
+  addBookmark: (bookmark) => {
+    set((state) => ({ bookmarks: [...state.bookmarks, bookmark] }))
   },
-  removeBookmark: id => {
-    set(state => ({ bookmarks: state.bookmarks.filter(b => b.id !== id) }))
+  removeBookmark: (id) => {
+    set((state) => ({ bookmarks: state.bookmarks.filter((b) => b.id !== id) }))
   },
 }))
 ```
@@ -191,6 +191,16 @@ export const useBookmarkStore = create<BookmarkStore>(set => ({
 ### 4. 添加 i18n Key
 
 在 [src/renderer/i18n/locales/en-US.json](../src/renderer/i18n/locales/en-US.json) 和 [zh-CN.json](../src/renderer/i18n/locales/zh-CN.json) 中添加 `bookmark.*` 相关的翻译。新增页面后必须同步更新所有语言文件，禁止只改一种语言。
+
+组件中使用 selector API 引用翻译：
+
+```typescript
+const { t } = useTranslation()
+
+// 必须使用 selector API，禁止字符串 API
+t(($) => $.bookmark.add)
+t(($) => $.bookmark.remove)
+```
 
 ### 5. 集成到布局
 
@@ -312,5 +322,5 @@ pnpm run package:mac      # macOS
 - **React**：禁止 `forwardRef`（React 19 支持 ref 作为普通 prop），禁止无意义的手动 `useMemo`/`useCallback`
 - **Zustand**：组件内必须使用 selector 订阅，多值 selector 用 `shallow` 比较
 - **Tailwind 4**：配置在 CSS `@theme` 中，无 `tailwind.config.js`，复杂条件类名用 `tailwind-merge` + `clsx`
-- **i18next**：UI 文本禁止硬编码，Key 命名 `feature.subFeature.element`
+- **i18next**：UI 文本禁止硬编码，必须使用 selector API `t($ => $.feature.subFeature.element)`，禁止字符串 API `t('feature.subFeature.element')`
 - **Electron**：渲染进程禁止直接 import `fs`/`path`/`os`/`child_process`，IPC 通道名禁止裸字符串

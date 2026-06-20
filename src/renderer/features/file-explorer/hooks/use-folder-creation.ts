@@ -12,8 +12,8 @@ interface UseFolderCreationReturn {
 
 export const useFolderCreation = (sessionId: string): UseFolderCreationReturn => {
   const { t } = useTranslation()
-  const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
-  const addToast = useUiStore(state => state.addToast)
+  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
+  const addToast = useUiStore((state) => state.addToast)
   const { execute } = useFileOperation(sessionId)
 
   const handleCreateFolder = async (currentPath: string, folderName: string) => {
@@ -25,11 +25,11 @@ export const useFolderCreation = (sessionId: string): UseFolderCreationReturn =>
 
       if (isProtocolResponseErr(result)) {
         throw new Error(
-          `${t('toast.createFolderFailed')}: ${formatErrorMessage(result.error) || t('error.unknown')}`
+          `${t(($) => $.toast.createFolderFailed)}: ${formatErrorMessage(result.error) || t(($) => $.error.unknown)}`,
         )
       }
 
-      addToast({ type: TOAST_TYPE.SUCCESS, message: t('toast.createFolderSuccess') })
+      addToast({ type: TOAST_TYPE.SUCCESS, message: t(($) => $.toast.createFolderSuccess) })
       await refreshCurrentDirectory(sessionId)
     })
   }

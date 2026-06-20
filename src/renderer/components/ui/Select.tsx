@@ -17,14 +17,14 @@ interface SelectProps {
   className?: string
 }
 
-export const Select: React.FC<SelectProps> = ({ value, onChange, options, className = '' }) => {
+export const Select = ({ value, onChange, options, className = '' }: SelectProps) => {
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const containerRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
 
-  const selectedOption = options.find(opt => opt.value === value)
+  const selectedOption = options.find((opt) => opt.value === value)
 
   useClickOutside({
     ref: containerRef,
@@ -48,10 +48,10 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
       setIsOpen(false)
     } else if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setHighlightedIndex(prev => (prev < options.length - 1 ? prev + 1 : 0))
+      setHighlightedIndex((prev) => (prev < options.length - 1 ? prev + 1 : 0))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : options.length - 1))
+      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : options.length - 1))
     }
   }
 
@@ -68,12 +68,12 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
         `}
       >
         <span className="flex-1 truncate">
-          {selectedOption?.label ?? t('common.selectPlaceholder')}
+          {selectedOption?.label ?? t(($) => $.common.selectPlaceholder)}
         </span>
         <ChevronDown
           className={cn(
             'w-3 h-3 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none transition-transform duration-150',
-            isOpen && 'rotate-180'
+            isOpen && 'rotate-180',
           )}
         />
       </button>
@@ -98,7 +98,7 @@ export const Select: React.FC<SelectProps> = ({ value, onChange, options, classN
               className={cn(
                 'px-3 py-2 cursor-pointer transition-colors duration-100',
                 highlightedIndex === index ? 'bg-hover' : 'bg-transparent',
-                option.value === value ? 'text-accent font-medium' : 'text-text font-normal'
+                option.value === value ? 'text-accent font-medium' : 'text-text font-normal',
               )}
             >
               {option.label}

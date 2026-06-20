@@ -1,4 +1,3 @@
-import type React from 'react'
 import { X } from 'lucide-react'
 import { useRef, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,20 +14,16 @@ interface ErrorDetailDialogProps {
   errorMessage: string
 }
 
-export const ErrorDetailDialog: React.FC<ErrorDetailDialogProps> = ({
-  open,
-  onClose,
-  errorMessage,
-}) => {
+export const ErrorDetailDialog = ({ open, onClose, errorMessage }: ErrorDetailDialogProps) => {
   const { t } = useTranslation()
-  const addToast = useUiStore(state => state.addToast)
+  const addToast = useUiStore((state) => state.addToast)
   const [copied, setCopied] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleCopy = () => {
     void navigator.clipboard.writeText(errorMessage).then(() => {
       setCopied(true)
-      addToast({ type: TOAST_TYPE.SUCCESS, message: t('transfer.errorDetail.copied') })
+      addToast({ type: TOAST_TYPE.SUCCESS, message: t(($) => $.transfer.errorDetail.copied) })
       if (timerRef.current) clearTimeout(timerRef.current)
       timerRef.current = setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION)
     })
@@ -49,11 +44,13 @@ export const ErrorDetailDialog: React.FC<ErrorDetailDialogProps> = ({
     >
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-text">{t('transfer.errorDetail.title')}</h2>
+          <h2 className="text-lg font-semibold text-text">
+            {t(($) => $.transfer.errorDetail.title)}
+          </h2>
           <button
             onClick={onClose}
             className="p-1 rounded text-text-muted hover:text-text hover:bg-hover transition-colors"
-            aria-label={t('common.close')}
+            aria-label={t(($) => $.common.close)}
           >
             <X className="w-4 h-4" />
           </button>
@@ -70,7 +67,9 @@ export const ErrorDetailDialog: React.FC<ErrorDetailDialogProps> = ({
             onClick={handleCopy}
             className="px-4 py-2 rounded-lg text-sm font-medium bg-accent text-white hover:bg-accent-hover transition-colors"
           >
-            {copied ? t('transfer.errorDetail.copied') : t('transfer.errorDetail.copy')}
+            {copied
+              ? t(($) => $.transfer.errorDetail.copied)
+              : t(($) => $.transfer.errorDetail.copy)}
           </button>
         </div>
       </div>

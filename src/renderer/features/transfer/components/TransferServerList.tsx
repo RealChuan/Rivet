@@ -27,26 +27,26 @@ interface TransferServerListProps {
   className?: string
 }
 
-export const TransferServerList: React.FC<TransferServerListProps> = ({ className }) => {
+export const TransferServerList = ({ className }: TransferServerListProps) => {
   const { t } = useTranslation()
-  const selectedSessionId = useTransferStore(state => state.selectedSessionId)
-  const setSelectedSessionId = useTransferStore(state => state.setSelectedSessionId)
-  const maxUploadConcurrency = useTransferStore(state => state.maxUploadConcurrency)
-  const maxDownloadConcurrency = useTransferStore(state => state.maxDownloadConcurrency)
-  const setMaxUploadConcurrency = useTransferStore(state => state.setMaxUploadConcurrency)
-  const setMaxDownloadConcurrency = useTransferStore(state => state.setMaxDownloadConcurrency)
-  const sessions = useSessionStore(state => state.sessions)
-  const connections = useConnectionStore(state => state.connections)
+  const selectedSessionId = useTransferStore((state) => state.selectedSessionId)
+  const setSelectedSessionId = useTransferStore((state) => state.setSelectedSessionId)
+  const maxUploadConcurrency = useTransferStore((state) => state.maxUploadConcurrency)
+  const maxDownloadConcurrency = useTransferStore((state) => state.maxDownloadConcurrency)
+  const setMaxUploadConcurrency = useTransferStore((state) => state.setMaxUploadConcurrency)
+  const setMaxDownloadConcurrency = useTransferStore((state) => state.setMaxDownloadConcurrency)
+  const sessions = useSessionStore((state) => state.sessions)
+  const connections = useConnectionStore((state) => state.connections)
 
-  const sessionSummaries = useTransferStore(state => state.sessionTaskSummaries)
-  const runningTaskCount = useTransferStore(state => state.runningTaskCount)
+  const sessionSummaries = useTransferStore((state) => state.sessionTaskSummaries)
+  const runningTaskCount = useTransferStore((state) => state.runningTaskCount)
 
   const serverItems = useMemo(() => {
     const items: ServerListItem[] = []
     for (const summary of sessionSummaries) {
-      const session = sessions.find(s => s.sessionId === summary.sessionId)
+      const session = sessions.find((s) => s.sessionId === summary.sessionId)
       if (!session) continue
-      const connection = connections.find(c => c.id === session.connectionId)
+      const connection = connections.find((c) => c.id === session.connectionId)
       if (!connection) continue
       items.push({
         sessionId: summary.sessionId,
@@ -87,7 +87,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
         style={style}
       />
     ),
-    [selectedSessionId, setSelectedSessionId]
+    [selectedSessionId, setSelectedSessionId],
   )
 
   return (
@@ -98,7 +98,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
       {/* 并发控制 */}
       <div className="flex items-center gap-2 px-4 pt-4 pb-3">
         <label className="text-sm text-text-muted whitespace-nowrap">
-          {t('transfer.concurrency.upload')}
+          {t(($) => $.transfer.concurrency.upload)}
         </label>
         <Select
           value={String(maxUploadConcurrency)}
@@ -108,14 +108,14 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
             (_, i) => ({
               label: String(i + TRANSFER_CONFIG.MIN_CONCURRENCY),
               value: String(i + TRANSFER_CONFIG.MIN_CONCURRENCY),
-            })
+            }),
           )}
           className="flex-1 min-w-0"
         />
       </div>
       <div className="flex items-center gap-2 px-4 pb-3">
         <label className="text-sm text-text-muted whitespace-nowrap">
-          {t('transfer.concurrency.download')}
+          {t(($) => $.transfer.concurrency.download)}
         </label>
         <Select
           value={String(maxDownloadConcurrency)}
@@ -125,7 +125,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
             (_, i) => ({
               label: String(i + TRANSFER_CONFIG.MIN_CONCURRENCY),
               value: String(i + TRANSFER_CONFIG.MIN_CONCURRENCY),
-            })
+            }),
           )}
           className="flex-1 min-w-0"
         />
@@ -141,7 +141,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
               <ArrowUpDown className="w-5 h-5 stroke-text-muted stroke-[1.5]" />
             </div>
             <p className="text-sm text-text-muted text-center leading-relaxed">
-              {t('transfer.empty')}
+              {t(($) => $.transfer.empty)}
             </p>
           </div>
         ) : (
@@ -158,7 +158,7 @@ export const TransferServerList: React.FC<TransferServerListProps> = ({ classNam
       {runningTaskCount > 0 && (
         <div className="px-4 py-2.5 border-t border-border">
           <span className="text-sm text-text-muted tabular-nums">
-            {t('transfer.runningCount', { count: runningTaskCount })}
+            {t(($) => $.transfer.runningCount, { count: runningTaskCount })}
           </span>
         </div>
       )}

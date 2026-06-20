@@ -52,7 +52,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
   async connect(
     config: ConnectionConfig,
     password: string,
-    hostVerifier?: HostVerifier
+    hostVerifier?: HostVerifier,
   ): Promise<Result<OperationResult, ErrorInfo>> {
     const client = new Client()
     const sessionId = generateSessionId(PROTOCOL.SFTP)
@@ -132,7 +132,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
   protected async listImpl(
     client: Client,
     path: string,
-    _basePath: string
+    _basePath: string,
   ): Promise<Result<FileInfo[], ErrorInfo>> {
     try {
       const list = (await client.list(path)) as unknown as Array<{
@@ -148,7 +148,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
         longname?: string
       }>
 
-      const result = list.map(item => {
+      const result = list.map((item) => {
         const rights = item.rights ?? {}
         const padPermission = (perm?: string) => {
           if (!perm) return '---'
@@ -188,7 +188,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
   protected async mkdirImpl(
     client: Client,
     path: string,
-    _basePath: string
+    _basePath: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       await client.mkdir(path, true)
@@ -202,7 +202,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     client: Client,
     oldPath: string,
     newPath: string,
-    _basePath: string
+    _basePath: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       await client.rename(oldPath, newPath)
@@ -216,7 +216,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     client: Client,
     path: string,
     _basePath: string,
-    fileType: string
+    fileType: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       if (fileType === FILE_TYPE.DIRECTORY) {
@@ -235,7 +235,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     sourcePath: string,
     targetPath: string,
     _basePath: string,
-    fileType: string
+    fileType: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       if (fileType === FILE_TYPE.DIRECTORY) {
@@ -252,7 +252,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
   private async copyDirectory(
     client: Client,
     sourcePath: string,
-    targetPath: string
+    targetPath: string,
   ): Promise<void> {
     await client.mkdir(targetPath, true)
     const list = await client.list(sourcePath)
@@ -274,7 +274,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     client: Client,
     sourcePath: string,
     targetPath: string,
-    _basePath: string
+    _basePath: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       try {
@@ -304,7 +304,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     remotePath: string,
     _basePath: string,
     onProgress: (transferred: number) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     if (signal.aborted) {
       return err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, ERROR_MESSAGE.UPLOAD_ABORTED))
@@ -333,7 +333,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
         // 传输已完成但用户已取消，删除远程残留文件
         await client
           .delete(remotePath)
-          .catch(e => logger.catch(e, { action: LOG_ACTION.DELETE_ABORTED_UPLOAD_REMNANT }))
+          .catch((e) => logger.catch(e, { action: LOG_ACTION.DELETE_ABORTED_UPLOAD_REMNANT }))
         return err(createErrorInfo(ERROR_CODE.UPLOAD_ABORTED, ERROR_MESSAGE.UPLOAD_ABORTED))
       }
 
@@ -352,7 +352,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
     localPath: string,
     _basePath: string,
     onProgress: (transferred: number) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     if (signal.aborted) {
       return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ABORTED, ERROR_MESSAGE.DOWNLOAD_ABORTED))

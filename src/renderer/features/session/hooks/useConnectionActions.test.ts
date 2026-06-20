@@ -117,7 +117,7 @@ describe('useConnectionActions', () => {
       await act(async () => {
         await result.current.handleSaveConnection(
           { ...baseConfig, password: 'secret', savePassword: true },
-          onSuccess
+          onSuccess,
         )
       })
 
@@ -125,7 +125,7 @@ describe('useConnectionActions', () => {
       expect(mockAddConnection).toHaveBeenCalledOnce()
       expect(mockSaveConnectionConfigs).toHaveBeenCalledOnce()
       expect(mockAddToast).toHaveBeenCalledWith(
-        expect.objectContaining({ type: TOAST_TYPE.SUCCESS })
+        expect.objectContaining({ type: TOAST_TYPE.SUCCESS }),
       )
       expect(onSuccess).toHaveBeenCalledOnce()
     })
@@ -210,7 +210,7 @@ describe('useConnectionActions', () => {
 
       await vi.waitFor(() => {
         expect(mockAddToast).toHaveBeenCalledWith(
-          expect.objectContaining({ type: TOAST_TYPE.INFO })
+          expect.objectContaining({ type: TOAST_TYPE.INFO }),
         )
       })
       expect(mockRemoveSession).not.toHaveBeenCalled()
@@ -299,7 +299,7 @@ describe('useConnectionActions', () => {
         password: 'encrypted-pw',
       })
       expect(mockAddToast).toHaveBeenCalledWith(
-        expect.objectContaining({ type: TOAST_TYPE.SUCCESS })
+        expect.objectContaining({ type: TOAST_TYPE.SUCCESS }),
       )
       expect(onOpenDialog).not.toHaveBeenCalled()
     })

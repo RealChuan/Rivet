@@ -56,7 +56,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
   async connect(
     config: ConnectionConfig,
     password: string,
-    _hostVerifier?: HostVerifier
+    _hostVerifier?: HostVerifier,
   ): Promise<Result<OperationResult, ErrorInfo>> {
     const sessionId = generateSessionId(PROTOCOL.WEBDAV)
     const useScheme = config.scheme ?? SCHEME.HTTPS
@@ -131,7 +131,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
   protected async listImpl(
     session: WebDAVSession,
     path: string,
-    basePath: string
+    basePath: string,
   ): Promise<Result<FileInfo[], ErrorInfo>> {
     try {
       const serverPath = path === ROOT_PATH ? basePath : joinPaths(basePath, path)
@@ -161,7 +161,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
   protected async mkdirImpl(
     session: WebDAVSession,
     path: string,
-    basePath: string
+    basePath: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       const serverPath = joinPaths(basePath, path)
@@ -176,7 +176,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     session: WebDAVSession,
     oldPath: string,
     newPath: string,
-    basePath: string
+    basePath: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       const serverOldPath = joinPaths(basePath, oldPath)
@@ -192,7 +192,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     session: WebDAVSession,
     path: string,
     basePath: string,
-    _fileType: string
+    _fileType: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       const serverPath = joinPaths(basePath, path)
@@ -208,7 +208,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     sourcePath: string,
     targetPath: string,
     basePath: string,
-    _fileType: string
+    _fileType: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       const serverSourcePath = joinPaths(basePath, sourcePath)
@@ -224,7 +224,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     session: WebDAVSession,
     sourcePath: string,
     targetPath: string,
-    basePath: string
+    basePath: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       const serverSourcePath = joinPaths(basePath, sourcePath)
@@ -242,7 +242,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     remotePath: string,
     basePath: string,
     onProgress: (transferred: number) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       const serverPath = joinPaths(basePath, remotePath)
@@ -279,7 +279,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
     localPath: string,
     _basePath: string,
     onProgress: (transferred: number) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
     if (signal.aborted) {
       return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ABORTED, ERROR_MESSAGE.DOWNLOAD_ABORTED))
@@ -331,7 +331,7 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
 
   protected async pingImpl(
     session: WebDAVSession,
-    basePath: string
+    basePath: string,
   ): Promise<Result<void, ErrorInfo>> {
     try {
       await session.client.stat(basePath)

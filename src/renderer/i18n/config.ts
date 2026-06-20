@@ -13,6 +13,7 @@ void i18n.use(initReactI18next).init({
   resources,
   lng: SUPPORTED_LANGUAGE.EN_US,
   fallbackLng: SUPPORTED_LANGUAGE.EN_US,
+  enableSelector: true,
   interpolation: {
     escapeValue: false,
   },

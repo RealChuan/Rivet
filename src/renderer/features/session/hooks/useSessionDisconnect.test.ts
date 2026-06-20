@@ -16,12 +16,30 @@ const mockOnSessionDisconnected = vi.fn(
   (cb: (event: { connectionId: string; protocol: string; name: string }) => void) => {
     capturedCallback = cb
     return mockUnsubscribe
-  }
+  },
 )
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, params?: Record<string, string>) => {
+    t: (key: string | ((ns: unknown) => unknown), params?: Record<string, string>) => {
+      if (typeof key === 'function') {
+        const path: string[] = []
+        const proxy = new Proxy(
+          {},
+          {
+            get(_target, prop) {
+              if (typeof prop === 'string') path.push(prop)
+              return proxy
+            },
+          },
+        )
+        key(proxy)
+        const resolvedKey = path.join('.')
+        if (resolvedKey === 'toast.connectionLost' && params) {
+          return `${resolvedKey}: ${params.protocol} ${params.name}`
+        }
+        return resolvedKey
+      }
       if (key === 'toast.connectionLost' && params) {
         return `${key}: ${params.protocol} ${params.name}`
       }

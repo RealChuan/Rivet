@@ -38,7 +38,7 @@ export function setupTransferIpcHandlers(): void {
     IPC_CHANNELS.TRANSFER.SET_CONCURRENCY,
     (_, max: number, direction: TransferDirection) => {
       transferService.setConcurrency(max, direction)
-    }
+    },
   )
 
   ipcMain.handle(IPC_CHANNELS.TRANSFER.CHECK_LOCAL_FILES, (_event, localDir: string) => {

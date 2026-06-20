@@ -15,7 +15,7 @@ import { useTransferStore } from '../features/transfer/stores/transfer.js'
  */
 export function useActiveTaskGuard() {
   const { t } = useTranslation()
-  const runningTaskCount = useTransferStore(state => state.runningTaskCount)
+  const runningTaskCount = useTransferStore((state) => state.runningTaskCount)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
   const [pendingSessionId, setPendingSessionId] = useState<string | undefined>(undefined)
@@ -25,14 +25,14 @@ export function useActiveTaskGuard() {
       const { tasks } = useTransferStore.getState()
       if (sessionId) {
         return tasks.some(
-          t =>
+          (t) =>
             t.sessionId === sessionId &&
-            (t.status === OPERATION_STATUS.RUNNING || t.status === OPERATION_STATUS.WAITING)
+            (t.status === OPERATION_STATUS.RUNNING || t.status === OPERATION_STATUS.WAITING),
         )
       }
       return runningTaskCount > 0
     },
-    [runningTaskCount]
+    [runningTaskCount],
   )
 
   /**
@@ -50,7 +50,7 @@ export function useActiveTaskGuard() {
         action()
       }
     },
-    [hasActiveTasks]
+    [hasActiveTasks],
   )
 
   // 监听主进程系统级关闭拦截（Alt+F4 等）
@@ -84,7 +84,9 @@ export function useActiveTaskGuard() {
     confirmOpen,
     handleConfirm,
     handleCancel,
-    title: t(isQuit ? 'transfer.confirmQuit.title' : 'transfer.confirmDisconnect.title'),
-    message: t(isQuit ? 'transfer.confirmQuit.message' : 'transfer.confirmDisconnect.message'),
+    title: t(($) => (isQuit ? $.transfer.confirmQuit.title : $.transfer.confirmDisconnect.title)),
+    message: t(($) =>
+      isQuit ? $.transfer.confirmQuit.message : $.transfer.confirmDisconnect.message,
+    ),
   }
 }

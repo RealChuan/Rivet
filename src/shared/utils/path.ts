@@ -4,7 +4,7 @@
 export const normalizePath = (path: string): string => {
   if (typeof path !== 'string') throw new TypeError('path must be a string')
   const isAbsolute = path.startsWith('/')
-  const segments = path.split('/').filter(s => s !== '' && s !== '.')
+  const segments = path.split('/').filter((s) => s !== '' && s !== '.')
   return isAbsolute ? '/' + segments.join('/') : segments.join('/')
 }
 

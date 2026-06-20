@@ -12,8 +12,8 @@ interface UseFileDeletionReturn {
 
 export const useFileDeletion = (sessionId: string): UseFileDeletionReturn => {
   const { t } = useTranslation()
-  const refreshCurrentDirectory = useSessionStore(state => state.refreshCurrentDirectory)
-  const addToast = useUiStore(state => state.addToast)
+  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
+  const addToast = useUiStore((state) => state.addToast)
   const { execute } = useFileOperation(sessionId)
 
   const handleDelete = async (files: FileInfo[]) => {
@@ -24,12 +24,12 @@ export const useFileDeletion = (sessionId: string): UseFileDeletionReturn => {
         const result = await window.electronAPI.protocol.delete(sessionId, file)
         if (isProtocolResponseErr(result)) {
           throw new Error(
-            `${t('toast.deleteFailed')}: ${formatErrorMessage(result.error) || t('error.unknown')}`
+            `${t(($) => $.toast.deleteFailed)}: ${formatErrorMessage(result.error) || t(($) => $.error.unknown)}`,
           )
         }
       }
 
-      addToast({ type: TOAST_TYPE.SUCCESS, message: t('toast.deleteSuccess') })
+      addToast({ type: TOAST_TYPE.SUCCESS, message: t(($) => $.toast.deleteSuccess) })
       await refreshCurrentDirectory(sessionId)
     })
   }

@@ -76,10 +76,10 @@ export class TransferService implements TransferContext {
 
     for (const task of tasks) {
       const isDuplicate = this.tasks.some(
-        t =>
+        (t) =>
           t.sessionId === task.sessionId &&
           t.localPath === task.localPath &&
-          t.remotePath === task.remotePath
+          t.remotePath === task.remotePath,
       )
       if (isDuplicate) {
         duplicates.push(task)
@@ -118,14 +118,14 @@ export class TransferService implements TransferContext {
   }
 
   hasActiveTasks(sessionId?: string): boolean {
-    const tasks = sessionId ? this.tasks.filter(t => t.sessionId === sessionId) : this.tasks
+    const tasks = sessionId ? this.tasks.filter((t) => t.sessionId === sessionId) : this.tasks
     return tasks.some(
-      t => t.status === OPERATION_STATUS.WAITING || t.status === OPERATION_STATUS.RUNNING
+      (t) => t.status === OPERATION_STATUS.WAITING || t.status === OPERATION_STATUS.RUNNING,
     )
   }
 
   getTasks(sessionId?: string): TransferTask[] {
-    return sessionId ? this.tasks.filter(t => t.sessionId === sessionId) : [...this.tasks]
+    return sessionId ? this.tasks.filter((t) => t.sessionId === sessionId) : [...this.tasks]
   }
 
   getActiveOperations(taskId: string): OperationProgressInfo[] {
@@ -135,16 +135,16 @@ export class TransferService implements TransferContext {
   checkLocalFiles(localDir: string): Promise<LocalFileInfo[]> {
     return fs.promises
       .readdir(localDir, { withFileTypes: true })
-      .then(entries =>
+      .then((entries) =>
         entries
-          .filter(entry => entry.isFile() || entry.isDirectory())
-          .map(entry => ({
+          .filter((entry) => entry.isFile() || entry.isDirectory())
+          .map((entry) => ({
             name: entry.name,
             size: 0,
             type: entry.isDirectory() ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE,
-          }))
+          })),
       )
-      .catch(err => {
+      .catch((err) => {
         logger.debug('Failed to read local directory', { localDir, error: formatErrorMessage(err) })
         return []
       })
@@ -162,7 +162,7 @@ export class TransferService implements TransferContext {
   setConcurrency(max: number, direction: TransferDirection): void {
     const clamped = Math.min(
       TRANSFER_CONFIG.MAX_CONCURRENCY,
-      Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, max)
+      Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, max),
     )
 
     const settings = { ...getFromMemory(STORE_KEY.TRANSFER_SETTINGS) }
@@ -195,10 +195,10 @@ export class TransferService implements TransferContext {
   }
 
   removeOperation(operationId: string, parentTaskId: string): void {
-    this.operations = this.operations.filter(op => op.id !== operationId)
+    this.operations = this.operations.filter((op) => op.id !== operationId)
     const taskOpList = this.operationsByTask.get(parentTaskId)
     if (taskOpList) {
-      const idx = taskOpList.findIndex(op => op.id === operationId)
+      const idx = taskOpList.findIndex((op) => op.id === operationId)
       if (idx !== -1) taskOpList.splice(idx, 1)
     }
   }
@@ -233,9 +233,9 @@ export class TransferService implements TransferContext {
 
   updateTaskStats(task: TransferTask): void {
     const taskOps = this.operationsByTask.get(task.id) ?? []
-    const completedOps = taskOps.filter(op => op.status === OPERATION_STATUS.COMPLETED)
-    const runningOps = taskOps.filter(op => op.status === OPERATION_STATUS.RUNNING)
-    const waitingOps = taskOps.filter(op => op.status === OPERATION_STATUS.WAITING)
+    const completedOps = taskOps.filter((op) => op.status === OPERATION_STATUS.COMPLETED)
+    const runningOps = taskOps.filter((op) => op.status === OPERATION_STATUS.RUNNING)
+    const waitingOps = taskOps.filter((op) => op.status === OPERATION_STATUS.WAITING)
 
     const isFileOp = (op: UploadOperation) =>
       op.type === TRANSFER_OPERATION_TYPE.UPLOAD || op.type === TRANSFER_OPERATION_TYPE.DOWNLOAD
@@ -254,12 +254,12 @@ export class TransferService implements TransferContext {
 
     const taskOps = this.operationsByTask.get(task.id) ?? []
     const allDone = taskOps.every(
-      op => op.status === OPERATION_STATUS.COMPLETED || op.status === OPERATION_STATUS.FAILED
+      (op) => op.status === OPERATION_STATUS.COMPLETED || op.status === OPERATION_STATUS.FAILED,
     )
 
     if (!allDone) return
 
-    const hasFailed = taskOps.some(op => op.status === OPERATION_STATUS.FAILED)
+    const hasFailed = taskOps.some((op) => op.status === OPERATION_STATUS.FAILED)
 
     if (hasFailed) {
       task.status = OPERATION_STATUS.FAILED
@@ -282,7 +282,7 @@ export class TransferService implements TransferContext {
     op.errorMessage = errorMessage
     this.opSpeedSamples.delete(op.id)
 
-    const task = this.tasks.find(t => t.id === op.parentTaskId)
+    const task = this.tasks.find((t) => t.id === op.parentTaskId)
     if (!task) return
 
     task.status = OPERATION_STATUS.FAILED
@@ -360,8 +360,8 @@ export class TransferService implements TransferContext {
       this.opSpeedSamples.delete(op.id)
     }
     this.operationsByTask.delete(taskId)
-    this.tasks = this.tasks.filter(t => t.id !== taskId)
-    this.operations = this.operations.filter(op => op.parentTaskId !== taskId)
+    this.tasks = this.tasks.filter((t) => t.id !== taskId)
+    this.operations = this.operations.filter((op) => op.parentTaskId !== taskId)
     this.lastProgressTime.delete(taskId)
     this.speedSamples.delete(taskId)
   }
@@ -379,7 +379,7 @@ export class TransferService implements TransferContext {
 
   cleanupSessionTasks(sessionId?: string): void {
     const tasksToClean = sessionId
-      ? this.tasks.filter(t => t.sessionId === sessionId)
+      ? this.tasks.filter((t) => t.sessionId === sessionId)
       : [...this.tasks]
 
     for (const task of tasksToClean) {
@@ -408,10 +408,10 @@ export class TransferService implements TransferContext {
     }
 
     this.runningUploadTasks = this.tasks.filter(
-      t => t.status === OPERATION_STATUS.RUNNING && t.direction === TRANSFER_DIRECTION.UPLOAD
+      (t) => t.status === OPERATION_STATUS.RUNNING && t.direction === TRANSFER_DIRECTION.UPLOAD,
     ).length
     this.runningDownloadTasks = this.tasks.filter(
-      t => t.status === OPERATION_STATUS.RUNNING && t.direction === TRANSFER_DIRECTION.DOWNLOAD
+      (t) => t.status === OPERATION_STATUS.RUNNING && t.direction === TRANSFER_DIRECTION.DOWNLOAD,
     ).length
   }
 

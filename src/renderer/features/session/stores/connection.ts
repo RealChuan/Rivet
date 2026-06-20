@@ -40,26 +40,26 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
   closeConnectionDialog: false,
   sortOrder: SORT_ORDER.NONE,
 
-  getConnectionById: connectionId => {
-    return get().connections.find(c => c.id === connectionId)
+  getConnectionById: (connectionId) => {
+    return get().connections.find((c) => c.id === connectionId)
   },
 
-  addConnection: config => {
-    set(state => ({
+  addConnection: (config) => {
+    set((state) => ({
       connections: [...state.connections, config],
     }))
 
     return config.id
   },
 
-  updateConnection: config => {
-    set(state => ({
-      connections: state.connections.map(c => (c.id === config.id ? config : c)),
+  updateConnection: (config) => {
+    set((state) => ({
+      connections: state.connections.map((c) => (c.id === config.id ? config : c)),
     }))
   },
 
-  deleteConnection: async connectionId => {
-    const updatedConnections = get().connections.filter(c => c.id !== connectionId)
+  deleteConnection: async (connectionId) => {
+    const updatedConnections = get().connections.filter((c) => c.id !== connectionId)
     set({ connections: updatedConnections })
 
     await window.electronAPI.config.set(STORE_KEY.SAVED_CONNECTIONS, updatedConnections)
@@ -88,19 +88,19 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
     set({ pendingConnectionConfig: config, pendingIsEditing: isEditing })
   },
 
-  setCloseConnectionDialog: close => {
+  setCloseConnectionDialog: (close) => {
     set({ closeConnectionDialog: close })
   },
 
-  setSortOrder: async order => {
+  setSortOrder: async (order) => {
     set({ sortOrder: order })
     await saveSortOrderToSettings(order)
   },
 
   reorderConnections: async (activeId, overId) => {
     const connections = [...get().connections]
-    const oldIndex = connections.findIndex(c => c.id === activeId)
-    const newIndex = connections.findIndex(c => c.id === overId)
+    const oldIndex = connections.findIndex((c) => c.id === activeId)
+    const newIndex = connections.findIndex((c) => c.id === overId)
 
     if (oldIndex !== -1 && newIndex !== -1) {
       const [removed] = connections.splice(oldIndex, 1)
@@ -113,7 +113,7 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
     }
   },
 
-  sortConnections: async order => {
+  sortConnections: async (order) => {
     const connections = [...get().connections].sort((a, b) => {
       const comparison = a.name.localeCompare(b.name)
       return order === SORT_ORDER.ASC ? comparison : -comparison

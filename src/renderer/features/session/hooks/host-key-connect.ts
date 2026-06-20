@@ -16,7 +16,7 @@ const showHostKeyVerificationDialog = async (config: {
 }) => {
   const hostKeyStore = useHostKeyStore.getState()
 
-  return new Promise<boolean>(resolve => {
+  return new Promise<boolean>((resolve) => {
     const handleConfirm = () => {
       hostKeyStore.setHostKeyVerificationDialog({ open: false })
       resolve(true)
@@ -41,7 +41,7 @@ const showHostKeyVerificationDialog = async (config: {
 }
 
 export const handleConnectWithHostKey = async (
-  fullConfig: ConnectionConfig
+  fullConfig: ConnectionConfig,
 ): Promise<{ success: boolean; sessionId: string | null; retry: boolean }> => {
   const response = await window.electronAPI.protocol.connect(fullConfig)
 

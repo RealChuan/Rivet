@@ -10,7 +10,7 @@ class ListenerManager {
 
   on<T extends unknown[]>(
     channel: string,
-    handler: (event: IpcRendererEvent, ...args: T) => void
+    handler: (event: IpcRendererEvent, ...args: T) => void,
   ): () => void {
     const wrappedHandler = handler as (...args: unknown[]) => void
     ipcRenderer.on(channel, wrappedHandler)

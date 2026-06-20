@@ -7,6 +7,6 @@ import { protocolService } from './protocol/protocol-service.js'
 import { SessionManager } from './session-manager.js'
 
 export const sessionManager = new SessionManager({
-  disconnect: sessionId => protocolService.disconnect(sessionId),
-  ping: sessionId => protocolService.ping(sessionId),
+  disconnect: (sessionId) => protocolService.disconnect(sessionId),
+  ping: (sessionId) => protocolService.ping(sessionId),
 })

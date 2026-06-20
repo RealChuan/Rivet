@@ -436,9 +436,9 @@ describe('useSessionStore', () => {
       let resolveFirst: (value: unknown) => void = () => {}
       mockProtocolList.mockImplementationOnce(
         () =>
-          new Promise(resolve => {
+          new Promise((resolve) => {
             resolveFirst = resolve
-          })
+          }),
       )
       mockProtocolList.mockResolvedValueOnce(okResponse([]))
 
@@ -450,6 +450,10 @@ describe('useSessionStore', () => {
 
       // Start second refresh
       const secondPromise = useSessionStore.getState().refreshCurrentDirectory('sess-1')
+
+      // Flush microtasks so the first call reaches protocol.list() and assigns
+      // the real resolveFirst before we try to resolve it
+      await Promise.resolve()
 
       // Resolve first (stale) call
       resolveFirst(okResponse([makeFileInfo({ name: 'stale.txt' })]))
@@ -471,9 +475,9 @@ describe('useSessionStore', () => {
       let resolveFirst: (value: unknown) => void = () => {}
       mockProtocolList.mockImplementationOnce(
         () =>
-          new Promise(resolve => {
+          new Promise((resolve) => {
             resolveFirst = resolve
-          })
+          }),
       )
       mockProtocolList.mockResolvedValueOnce(okResponse([makeFileInfo({ name: 'fresh.txt' })]))
 
@@ -507,12 +511,15 @@ describe('useSessionStore', () => {
       let resolveList: (value: unknown) => void = () => {}
       mockProtocolList.mockImplementationOnce(
         () =>
-          new Promise(resolve => {
+          new Promise((resolve) => {
             resolveList = resolve
-          })
+          }),
       )
 
       const refreshPromise = useSessionStore.getState().refreshCurrentDirectory('sess-1')
+
+      // Flush microtasks to allow async generateUuid to resolve
+      await Promise.resolve()
 
       // Check loading state before resolution
       const loadingState = useSessionStore.getState().getSessionById('sess-1')

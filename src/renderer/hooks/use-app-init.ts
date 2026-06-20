@@ -9,12 +9,12 @@ import { useUiStore } from '../stores/index.js'
 
 export const useApplicationInitialization = () => {
   const { i18n } = useTranslation()
-  const initialize = useUiStore(state => state.initialize)
-  const initialized = useUiStore(state => state.initialized)
-  const loadSavedConnections = useConnectionStore(state => state.loadSavedConnections)
-  const loadSortOrderFromSettings = useConnectionStore(state => state.loadSortOrderFromSettings)
-  const startTransferListening = useTransferStore(state => state.startListening)
-  const loadExistingTasks = useTransferStore(state => state.loadExistingTasks)
+  const initialize = useUiStore((state) => state.initialize)
+  const initialized = useUiStore((state) => state.initialized)
+  const loadSavedConnections = useConnectionStore((state) => state.loadSavedConnections)
+  const loadSortOrderFromSettings = useConnectionStore((state) => state.loadSortOrderFromSettings)
+  const startTransferListening = useTransferStore((state) => state.startListening)
+  const loadExistingTasks = useTransferStore((state) => state.loadExistingTasks)
 
   useEffect(() => {
     const initApp = async () => {

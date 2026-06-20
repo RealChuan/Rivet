@@ -26,7 +26,7 @@ export const formatMessage = (message: string, isDev: boolean, callerInfo: strin
 export function catchLog(
   logFn: (message: string, ...args: unknown[]) => void,
   error: unknown,
-  context?: Record<string, unknown>
+  context?: Record<string, unknown>,
 ): void {
   const callerInfo = getCallerInfo(4)
   const errorObj = error instanceof Error ? error : new Error(String(error))

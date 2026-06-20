@@ -28,12 +28,7 @@ interface ConnectionDialogProps {
 const getDefaultPort = (protocol: ProtocolType): string =>
   protocol === PROTOCOL.WEBDAV ? String(PORT_WEBDAV_HTTPS) : String(PORT_SFTP)
 
-export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
-  open,
-  onClose,
-  onSave,
-  config,
-}) => {
+export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDialogProps) => {
   const { t } = useTranslation()
   const isMountedRef = useRef(true)
 
@@ -76,13 +71,13 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
     if (!name.trim() || !host.trim() || !username.trim()) {
-      setError(t('connectionDialog.fillRequired'))
+      setError(t(($) => $.connectionDialog.fillRequired))
       return
     }
 
     const portNum = parseInt(port, 10)
     if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      setError(t('connectionDialog.invalidPort'))
+      setError(t(($) => $.connectionDialog.invalidPort))
       return
     }
 
@@ -132,8 +127,9 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
   }
 
   const handleProtocolChange = (value: string) => {
-    setProtocol(value as ProtocolType)
-    setPort(getDefaultPort(value as ProtocolType))
+    const protocolValue = value === PROTOCOL.WEBDAV ? PROTOCOL.WEBDAV : PROTOCOL.SFTP
+    setProtocol(protocolValue)
+    setPort(getDefaultPort(protocolValue))
   }
 
   const isEditMode = !!config
@@ -154,16 +150,18 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         </div>
         <div>
           <h2 className="text-base font-semibold text-text">
-            {isEditMode ? t('connectionDialog.editTitle') : t('connection.newConnection')}
+            {isEditMode
+              ? t(($) => $.connectionDialog.editTitle)
+              : t(($) => $.connection.newConnection)}
           </h2>
           <p className="text-xs text-text-muted">
-            {isEditMode ? host : t('connectionDialog.subtitle')}
+            {isEditMode ? host : t(($) => $.connectionDialog.subtitle)}
           </p>
         </div>
       </div>
 
       <form
-        onSubmit={e => {
+        onSubmit={(e) => {
           e.preventDefault()
           void handleSubmit()
         }}
@@ -201,10 +199,12 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
 
         <div className="flex justify-end gap-2.5 mt-1">
           <Button type="button" variant="secondary" onClick={onClose}>
-            {t('common.action.cancel')}
+            {t(($) => $.common.action.cancel)}
           </Button>
           <Button type="submit" variant="primary" isLoading={isLoading}>
-            {isLoading ? t('connectionDialog.connecting') : t('connectionDialog.save')}
+            {isLoading
+              ? t(($) => $.connectionDialog.connecting)
+              : t(($) => $.connectionDialog.save)}
           </Button>
         </div>
       </form>
@@ -214,11 +214,11 @@ export const ConnectionDialog: React.FC<ConnectionDialogProps> = ({
         onClose={() => setShowCertWarning(false)}
         onConfirm={handleCertWarningConfirm}
         onCancel={handleCertWarningCancel}
-        title={t('connectionDialog.certWarningTitle')}
-        message={t('connectionDialog.certWarningMessage')}
+        title={t(($) => $.connectionDialog.certWarningTitle)}
+        message={t(($) => $.connectionDialog.certWarningMessage)}
         type="warning"
-        confirmText={t('connectionDialog.continue')}
-        cancelText={t('common.action.cancel')}
+        confirmText={t(($) => $.connectionDialog.continue)}
+        cancelText={t(($) => $.common.action.cancel)}
       />
     </GlassDialog>
   )

@@ -34,7 +34,7 @@ export const protocolAPI = {
       sessionId,
       file,
       newName,
-      requestId
+      requestId,
     ) as Promise<ProtocolResponse<void>>,
   delete: (sessionId: string, file: FileInfo, requestId?: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.DELETE, sessionId, file, requestId) as Promise<
@@ -46,7 +46,7 @@ export const protocolAPI = {
       sessionId,
       file,
       targetPath,
-      requestId
+      requestId,
     ) as Promise<ProtocolResponse<void>>,
   move: (sessionId: string, file: FileInfo, targetPath: string, requestId?: string) =>
     ipcRenderer.invoke(
@@ -54,7 +54,7 @@ export const protocolAPI = {
       sessionId,
       file,
       targetPath,
-      requestId
+      requestId,
     ) as Promise<ProtocolResponse<void>>,
   cancel: (requestId: string) => ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.CANCEL, requestId),
   onSessionDisconnected: (
@@ -63,11 +63,11 @@ export const protocolAPI = {
       connectionId: string
       protocol: string
       name: string
-    }) => void
+    }) => void,
   ): (() => void) => {
     const handler = (
       _: Electron.IpcRendererEvent,
-      event: { sessionId: string; connectionId: string; protocol: string; name: string }
+      event: { sessionId: string; connectionId: string; protocol: string; name: string },
     ) => callback(event)
     return listenerManager.on(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, handler)
   },
@@ -78,11 +78,11 @@ export const protocolAPI = {
   cancelCalculateFolderStats: (sessionId: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PROTOCOL.CANCEL_CALCULATE_FOLDER_STATS, sessionId),
   onFolderStatsProgress: (
-    callback: (data: FolderStatsProgress & { sessionId: string }) => void
+    callback: (data: FolderStatsProgress & { sessionId: string }) => void,
   ): (() => void) => {
     const handler = (
       _: Electron.IpcRendererEvent,
-      data: FolderStatsProgress & { sessionId: string }
+      data: FolderStatsProgress & { sessionId: string },
     ) => callback(data)
     return listenerManager.on(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, handler)
   },

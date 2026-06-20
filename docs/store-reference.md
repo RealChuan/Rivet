@@ -8,12 +8,12 @@
 
 ```typescript
 // 正确：使用 selector 订阅
-const theme = useUiStore(state => state.appearance)
+const theme = useUiStore((state) => state.appearance)
 
 // 正确：多值 selector 使用 shallow
 const { tasks, runningTaskCount } = useTransferStore(
-  state => ({ tasks: state.tasks, runningTaskCount: state.runningTaskCount }),
-  shallow
+  (state) => ({ tasks: state.tasks, runningTaskCount: state.runningTaskCount }),
+  shallow,
 )
 
 // 错误：禁止直接解构
@@ -243,7 +243,7 @@ const { theme } = useUiStore() // 任何 state 变化都会触发重渲染
 #### 使用模式
 
 ```typescript
-const resolutions = await new Promise<ConflictResolution[] | null>(resolve => {
+const resolutions = await new Promise<ConflictResolution[] | null>((resolve) => {
   useTransferConflictStore.getState().openDialog(conflicts, resolve)
 })
 ```

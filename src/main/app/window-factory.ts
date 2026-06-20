@@ -5,18 +5,20 @@
  * 自动应用平台适配的无边框配置，复用同一套 Preload 脚本。
  */
 
-import { BrowserWindow, type BrowserWindowConstructorOptions } from 'electron'
+import { BrowserWindow, type BrowserWindowConstructorOptions, type WebContents } from 'electron'
 import path from 'node:path'
 import {
   DEFAULT_CHILD_WINDOW_HEIGHT,
   DEFAULT_CHILD_WINDOW_MIN_HEIGHT,
   DEFAULT_CHILD_WINDOW_MIN_WIDTH,
   DEFAULT_CHILD_WINDOW_WIDTH,
+  DEFAULT_ROUTE,
   MACOS_TRAFFIC_LIGHT_POSITION,
   APP_NAME,
 } from '@shared/constants/index.js'
 import { IPC_CHANNELS } from '@shared/constants/index.js'
 import { supportsGlassEffect } from '../utils/index.js'
+import { getWindowMeta } from '../utils/window-meta.js'
 import { registerWindowMeta, unregisterWindowMeta } from '../utils/window-meta.js'
 
 // ============================================================
@@ -122,7 +124,7 @@ export function createFramelessWindow(options: FramelessWindowOptions): BrowserW
   }
 
   // ========== 安全：阻止导航和打开新窗口 ==========
-  win.webContents.on('will-navigate', event => {
+  win.webContents.on('will-navigate', (event) => {
     event.preventDefault()
   })
 
@@ -192,7 +194,7 @@ export const WindowManager = {
    * 获取所有存活窗口
    */
   getAll(): BrowserWindow[] {
-    return Array.from(windowMap.values()).filter(w => !w.isDestroyed())
+    return Array.from(windowMap.values()).filter((w) => !w.isDestroyed())
   },
 
   /**
@@ -202,10 +204,57 @@ export const WindowManager = {
     channel: (typeof IPC_CHANNELS.EVENTS)[keyof typeof IPC_CHANNELS.EVENTS],
     ...args: unknown[]
   ): void {
-    windowMap.forEach(win => {
+    windowMap.forEach((win) => {
       if (!win.isDestroyed()) {
         win.webContents.send(channel, ...(args as Parameters<typeof win.webContents.send>))
       }
     })
+  },
+
+  /**
+   * 通过 sender 最小化窗口
+   */
+  minimize(sender: WebContents): void {
+    BrowserWindow.fromWebContents(sender)?.minimize()
+  },
+
+  /**
+   * 通过 sender 切换最大化/还原
+   */
+  maximize(sender: WebContents): void {
+    const win = BrowserWindow.fromWebContents(sender)
+    if (!win) return
+    if (win.isMaximized()) {
+      win.unmaximize()
+    } else {
+      win.maximize()
+    }
+  },
+
+  /**
+   * 通过 sender 关闭窗口
+   */
+  closeBySender(sender: WebContents): void {
+    BrowserWindow.fromWebContents(sender)?.close()
+  },
+
+  /**
+   * 通过 sender 获取窗口状态
+   */
+  getState(sender: WebContents): { isMaximized: boolean; platform: string } {
+    const win = BrowserWindow.fromWebContents(sender)
+    return {
+      isMaximized: win?.isMaximized() ?? false,
+      platform: process.platform,
+    }
+  },
+
+  /**
+   * 通过 sender 获取窗口元数据
+   */
+  getMeta(sender: WebContents): { windowId: string; route: string } {
+    const win = BrowserWindow.fromWebContents(sender)
+    if (!win) return { windowId: 'unknown', route: DEFAULT_ROUTE }
+    return getWindowMeta(win) ?? { windowId: 'unknown', route: DEFAULT_ROUTE }
   },
 } as const

@@ -62,6 +62,7 @@
       "connectFailed": "Connection failed",
       "connecting": "Connecting...",
       "continue": "Continue",
+      "decryptFailed": "Password decryption failed, please re-enter",
       "editTitle": "Edit Connection",
       "encryptFailed": "Password encryption failed, cannot connect",
       "fillRequired": "Please fill in all required fields",

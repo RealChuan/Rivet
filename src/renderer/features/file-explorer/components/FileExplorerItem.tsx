@@ -26,11 +26,11 @@ interface FileExplorerItemProps {
   onDoubleClick: () => void
   onContextMenu: (e: React.MouseEvent) => void
   style?: React.CSSProperties
-  isWebdav?: boolean
+  isSftp?: boolean
   containerWidth?: number
 }
 
-export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
+export const FileExplorerItem = ({
   file,
   columnWidths,
   isSelected,
@@ -41,11 +41,11 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
   onDoubleClick,
   onContextMenu,
   style,
-  isWebdav = false,
-}) => {
+  isSftp = false,
+}: FileExplorerItemProps) => {
   const { i18n } = useTranslation()
   const lng = i18n.language
-  const totalWidth = computeTotalWidth(columnWidths, isWebdav)
+  const totalWidth = computeTotalWidth(columnWidths, isSftp)
 
   const nameContent = file.name
   const permissionsContent = file.permissions ?? '-'
@@ -63,7 +63,7 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
           : isHovered
             ? 'bg-hover border-l-2 border-l-transparent'
             : 'bg-transparent border-l-2 border-l-transparent',
-        isSelected ? 'text-accent' : 'text-text'
+        isSelected ? 'text-accent' : 'text-text',
       )}
       style={{ ...style, minWidth: totalWidth }}
       onMouseEnter={() => onHover(file.name)}
@@ -83,7 +83,7 @@ export const FileExplorerItem: React.FC<FileExplorerItemProps> = ({
         <span className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">{file.name}</span>
       </div>
       <div className="w-1.5" />
-      {!isWebdav && (
+      {isSftp && (
         <>
           <div
             className="px-2.5 text-xs text-text-muted h-full flex items-center"

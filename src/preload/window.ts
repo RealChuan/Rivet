@@ -1,5 +1,5 @@
 import { ipcRenderer, type IpcRendererEvent } from 'electron'
-import { DEFAULT_ROUTE, IPC_CHANNELS, MAIN_WINDOW_ID } from '@shared/constants/index.js'
+import { IPC_CHANNELS } from '@shared/constants/index.js'
 import { listenerManager } from './listener-manager.js'
 
 export const windowAPI = {
@@ -44,26 +44,17 @@ export const windowAPI = {
     return ipcRenderer.invoke(IPC_CHANNELS.WINDOW.CLOSE_CHILD, id)
   },
 
-  getMeta: (): { windowId: string; route: string } => {
-    const hash = window.location.hash.replace('#', '')
-    return {
-      windowId: MAIN_WINDOW_ID,
-      route: hash || DEFAULT_ROUTE,
-    }
+  getMeta: (): Promise<{ windowId: string; route: string }> => {
+    return ipcRenderer.invoke(IPC_CHANNELS.WINDOW.GET_META) as Promise<{
+      windowId: string
+      route: string
+    }>
   },
 
   refreshMeta: async (): Promise<{ windowId: string; route: string }> => {
-    try {
-      return (await ipcRenderer.invoke(IPC_CHANNELS.WINDOW.GET_META)) as {
-        windowId: string
-        route: string
-      }
-    } catch {
-      const hash = window.location.hash.replace('#', '')
-      return {
-        windowId: MAIN_WINDOW_ID,
-        route: hash || DEFAULT_ROUTE,
-      }
-    }
+    return ipcRenderer.invoke(IPC_CHANNELS.WINDOW.GET_META) as Promise<{
+      windowId: string
+      route: string
+    }>
   },
 }

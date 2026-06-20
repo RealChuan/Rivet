@@ -16,7 +16,7 @@ vi.mock('../utils/index.js', () => ({
   supportsGlassEffect: vi.fn(() => false),
 }))
 
-vi.mock('@shared/constants/index.js', async importOriginal => {
+vi.mock('@shared/constants/index.js', async (importOriginal) => {
   const actual: Record<string, unknown> = await importOriginal()
   return {
     ...actual,
@@ -106,7 +106,7 @@ describe('window-factory', () => {
       expect(mockRegisterWindowMeta).toHaveBeenCalledWith(
         expect.any(Object),
         'meta-window',
-        '/test-route'
+        '/test-route',
       )
     })
 

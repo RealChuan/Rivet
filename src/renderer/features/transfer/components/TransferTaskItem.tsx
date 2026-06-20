@@ -64,7 +64,7 @@ interface InlineOperationRowProps {
   lng: string
 }
 
-const InlineOperationRow: React.FC<InlineOperationRowProps> = ({ op, lng }) => {
+const InlineOperationRow = ({ op, lng }: InlineOperationRowProps) => {
   const { t } = useTranslation()
   const isMkdir = op.type === TRANSFER_OPERATION_TYPE.MKDIR
 
@@ -123,9 +123,9 @@ const InlineOperationRow: React.FC<InlineOperationRowProps> = ({ op, lng }) => {
         className={`whitespace-nowrap text-right ${isFailed ? 'text-danger' : 'text-text-muted tabular-nums'}`}
       >
         {isFailed
-          ? t('transfer.status.failed')
+          ? t(($) => $.transfer.status.failed)
           : isWaiting
-            ? t('transfer.status.waiting')
+            ? t(($) => $.transfer.status.waiting)
             : isRunning
               ? formatRemainingTime(computeOpRemainingSeconds(op))
               : null}
@@ -152,19 +152,19 @@ interface TransferTaskItemProps {
   style?: React.CSSProperties
 }
 
-export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
+export const TransferTaskItem = ({
   task,
   onRetry,
   onCancel,
   onRemove,
   style,
-}) => {
+}: TransferTaskItemProps) => {
   const { t, i18n } = useTranslation()
   const lng = i18n.language
   const activeOperations = useTransferStore(
-    state => state.activeOperations.get(task.id) ?? EMPTY_OPERATIONS
+    (state) => state.activeOperations.get(task.id) ?? EMPTY_OPERATIONS,
   )
-  const progress = useTransferStore(state => state.taskProgress.get(task.id))
+  const progress = useTransferStore((state) => state.taskProgress.get(task.id))
   const [rotationOffset, setRotationOffset] = useState(0)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [showErrorDetail, setShowErrorDetail] = useState(false)
@@ -201,7 +201,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
   useEffect(() => {
     if (!shouldRotate) return
     const timer = setInterval(() => {
-      setRotationOffset(prev => (prev + 1) % activeOperations.length)
+      setRotationOffset((prev) => (prev + 1) % activeOperations.length)
     }, TRANSFER_CONFIG.ROTATION_INTERVAL_MS)
     return () => clearInterval(timer)
   }, [shouldRotate, activeOperations.length])
@@ -242,15 +242,15 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
 
   // Folder status text: show file count or running
   const folderStatusText = isFailed
-    ? t('transfer.status.failed')
+    ? t(($) => $.transfer.status.failed)
     : isWaiting
-      ? t('transfer.status.waiting')
+      ? t(($) => $.transfer.status.waiting)
       : totalFileCount
-        ? t('transfer.folderStats.fileCount', {
+        ? t(($) => $.transfer.folderStats.fileCount, {
             completed: completedFileCount ?? 0,
             total: totalFileCount,
           })
-        : t('transfer.status.running')
+        : t(($) => $.transfer.status.running)
 
   return (
     <div style={style} className="overflow-hidden">
@@ -304,9 +304,9 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
         {/* Time/status column */}
         <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
           {isFailed
-            ? t('transfer.status.failed')
+            ? t(($) => $.transfer.status.failed)
             : isWaiting
-              ? t('transfer.status.waiting')
+              ? t(($) => $.transfer.status.waiting)
               : isFolder
                 ? ''
                 : formatRemainingTime(remainingSeconds)}
@@ -317,12 +317,12 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
           {(isRunning || isWaiting) && (
             <button
               type="button"
-              onClick={e => {
+              onClick={(e) => {
                 e.stopPropagation()
                 onCancel?.(task.id)
               }}
               className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-danger hover:bg-danger-light transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-              aria-label={t('transfer.action.cancel')}
+              aria-label={t(($) => $.transfer.action.cancel)}
             >
               <X />
             </button>
@@ -330,12 +330,12 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
           {isFailed && (
             <button
               type="button"
-              onClick={e => {
+              onClick={(e) => {
                 e.stopPropagation()
                 onRemove?.(task.id)
               }}
               className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-              aria-label={t('transfer.action.remove')}
+              aria-label={t(($) => $.transfer.action.remove)}
             >
               <X />
             </button>
@@ -346,19 +346,19 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
       {/* Path rows — span all columns */}
       <div className="px-3 pb-2 pt-0.5 border-b border-border">
         <div className="text-[13px] text-text-secondary truncate py-0.5" title={task.localPath}>
-          <span className="text-text-muted mr-1.5">{t('transfer.path.source')}: </span>
+          <span className="text-text-muted mr-1.5">{t(($) => $.transfer.path.source)}: </span>
           {task.localPath}
         </div>
         <div className="text-[13px] text-text-secondary truncate py-0.5" title={task.remotePath}>
-          <span className="text-text-muted mr-1.5">{t('transfer.path.destination')}: </span>
+          <span className="text-text-muted mr-1.5">{t(($) => $.transfer.path.destination)}: </span>
           {task.remotePath}
         </div>
       </div>
 
       {isFolder && (
         <div className={displayedOps.length > 0 ? 'border-b border-border' : ''}>
-          {displayedOps.map(op =>
-            op ? <InlineOperationRow key={op.id} op={op} lng={lng} /> : null
+          {displayedOps.map((op) =>
+            op ? <InlineOperationRow key={op.id} op={op} lng={lng} /> : null,
           )}
         </div>
       )}
@@ -379,7 +379,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
               }}
             >
               <RotateCcw />
-              {t('transfer.action.retry')}
+              {t(($) => $.transfer.action.retry)}
             </button>
           )}
           {isFailed && task.errorMessage && (
@@ -392,7 +392,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
               }}
             >
               <Info className="w-3.5 h-3.5" />
-              {t('transfer.action.viewErrorDetails')}
+              {t(($) => $.transfer.action.viewErrorDetails)}
             </button>
           )}
           {(isRunning || isWaiting) && (
@@ -405,7 +405,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
               }}
             >
               <X />
-              {t('transfer.action.cancel')}
+              {t(($) => $.transfer.action.cancel)}
             </button>
           )}
           {isFailed && (
@@ -418,7 +418,7 @@ export const TransferTaskItem: React.FC<TransferTaskItemProps> = ({
               }}
             >
               <Trash />
-              {t('transfer.action.remove')}
+              {t(($) => $.transfer.action.remove)}
             </button>
           )}
         </div>

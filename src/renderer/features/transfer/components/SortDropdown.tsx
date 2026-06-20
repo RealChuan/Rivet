@@ -1,4 +1,3 @@
-import type React from 'react'
 import { ChevronDown, ListFilter } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -20,7 +19,7 @@ interface SortDropdownProps {
   onSort: (field: TransferSortField) => void
 }
 
-export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, onSort }) => {
+export const SortDropdown = ({ sortBy, sortOrder, onSort }: SortDropdownProps) => {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -35,13 +34,13 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
   const getFieldLabel = (field: TransferSortField) => {
     switch (field) {
       case TRANSFER_SORT_FIELD.CREATED_AT:
-        return t('transfer.sort.time')
+        return t(($) => $.transfer.sort.time)
       case TRANSFER_SORT_FIELD.NAME:
-        return t('transfer.sort.name')
+        return t(($) => $.transfer.sort.name)
       case TRANSFER_SORT_FIELD.STATUS:
-        return t('transfer.sort.status')
+        return t(($) => $.transfer.sort.status)
       case TRANSFER_SORT_FIELD.REMAINING_TIME:
-        return t('transfer.sort.size')
+        return t(($) => $.transfer.sort.size)
     }
   }
 
@@ -52,9 +51,9 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen(prev => !prev)}
+        onClick={() => setOpen((prev) => !prev)}
         className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-text-muted hover:text-text border border-border bg-glass-bg hover:bg-hover transition-colors cursor-default"
-        aria-label={t('transfer.action.sort')}
+        aria-label={t(($) => $.transfer.action.sort)}
       >
         <ListFilter className="w-3.5 h-3.5" />
         <ChevronDown className="w-2.5 h-2.5" />
@@ -62,7 +61,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
 
       {open && (
         <div className="absolute right-0 top-full mt-1 z-50 min-w-50 p-3 rounded-lg border border-border bg-glass-bg backdrop-blur-xl shadow-dropdown">
-          {SORT_FIELDS.map(field => (
+          {SORT_FIELDS.map((field) => (
             <div key={field} className="mb-3 last:mb-0">
               <div className="text-xs text-text-muted mb-1.5">{getFieldLabel(field)}</div>
               <div className="flex gap-2">
@@ -77,7 +76,7 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
                     setOpen(false)
                   }}
                 >
-                  {t('common.sort.asc')}
+                  {t(($) => $.common.sort.asc)}
                 </button>
                 <button
                   type="button"
@@ -85,14 +84,14 @@ export const SortDropdown: React.FC<SortDropdownProps> = ({ sortBy, sortOrder, o
                     'flex-1 px-3 py-1.5 rounded-md text-xs border cursor-default transition-colors',
                     isActive(field, SORT_ORDER.DESC)
                       ? 'border-accent text-accent bg-accent-light'
-                      : 'border-border text-text bg-transparent hover:bg-hover'
+                      : 'border-border text-text bg-transparent hover:bg-hover',
                   )}
                   onClick={() => {
                     onSort(field)
                     setOpen(false)
                   }}
                 >
-                  {t('common.sort.desc')}
+                  {t(($) => $.common.sort.desc)}
                 </button>
               </div>
             </div>

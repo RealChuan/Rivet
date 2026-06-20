@@ -33,7 +33,7 @@ describe('protocol IPC handlers', () => {
     expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.PROTOCOL.CONNECT, expect.any(Function))
     expect(ipcMain.handle).toHaveBeenCalledWith(
       IPC_CHANNELS.PROTOCOL.DISCONNECT,
-      expect.any(Function)
+      expect.any(Function),
     )
     expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.PROTOCOL.LIST, expect.any(Function))
     expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.PROTOCOL.MKDIR, expect.any(Function))

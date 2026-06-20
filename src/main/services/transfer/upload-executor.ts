@@ -17,7 +17,7 @@ import { isAbortError } from './transfer-context.js'
 async function expandUploadDirectory(
   ctx: TransferContext,
   task: TransferTask,
-  remoteDir: string
+  remoteDir: string,
 ): Promise<void> {
   if (ctx.isTaskCancelled(task.id)) return
   if (task.direction === TRANSFER_DIRECTION.DOWNLOAD) return
@@ -85,7 +85,7 @@ async function expandUploadDirectory(
 export async function executeUploadFolderOp(
   ctx: TransferContext,
   op: UploadOperation,
-  task: TransferTask | undefined
+  task: TransferTask | undefined,
 ): Promise<void> {
   if (op.type === TRANSFER_OPERATION_TYPE.MKDIR) {
     const sessionId = task?.sessionId ?? ''
@@ -113,10 +113,10 @@ export async function executeUploadFolderOp(
         sessionId,
         op.localPath ?? '',
         op.remotePath,
-        transferred => {
+        (transferred) => {
           if (task) ctx.onOperationProgress(op, task, transferred)
         },
-        controller.signal
+        controller.signal,
       )
 
       if (ctx.isTaskCancelled(op.parentTaskId)) return

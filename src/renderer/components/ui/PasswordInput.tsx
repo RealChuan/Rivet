@@ -11,12 +11,12 @@ interface PasswordInputProps {
   className?: string
 }
 
-export const PasswordInput: React.FC<PasswordInputProps> = ({
+export const PasswordInput = ({
   value,
   onChange,
   placeholder = '',
   className = '',
-}) => {
+}: PasswordInputProps) => {
   const [showPassword, setShowPassword] = useState(false)
   const { t } = useTranslation()
 
@@ -33,7 +33,9 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
         type="button"
         onClick={() => setShowPassword(!showPassword)}
         aria-label={
-          showPassword ? t('passwordInput.hidePassword') : t('passwordInput.showPassword')
+          showPassword
+            ? t(($) => $.passwordInput.hidePassword)
+            : t(($) => $.passwordInput.showPassword)
         }
         className={`
           absolute right-2.5 bg-transparent border-none

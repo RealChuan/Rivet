@@ -9,7 +9,25 @@ const mockSetOperating = vi.fn()
 const mockAddToast = vi.fn()
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    t: (key: string | ((ns: unknown) => unknown)) => {
+      if (typeof key === 'function') {
+        const path: string[] = []
+        const proxy = new Proxy(
+          {},
+          {
+            get(_target, prop) {
+              if (typeof prop === 'string') path.push(prop)
+              return proxy
+            },
+          },
+        )
+        key(proxy)
+        return path.join('.')
+      }
+      return key
+    },
+  }),
   initReactI18next: vi.fn(),
 }))
 
@@ -38,7 +56,7 @@ const mockProtocolMove = vi.fn()
 const createMockFile = (
   name: string,
   type: 'file' | 'directory' = 'file',
-  path?: string
+  path?: string,
 ): FileInfo => ({
   name,
   type,

@@ -1,4 +1,3 @@
-import type React from 'react'
 import { Plug } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@renderer/features/session/stores/session.js'
@@ -13,10 +12,10 @@ interface FileExplorerAreaProps {
   sessionId: string
 }
 
-export const FileExplorerArea: React.FC<FileExplorerAreaProps> = ({ sessionId }) => {
+export const FileExplorerArea = ({ sessionId }: FileExplorerAreaProps) => {
   const { t } = useTranslation()
-  const sessions = useSessionStore(state => state.sessions)
-  const activeSession = sessions.find(s => s.sessionId === sessionId)
+  const sessions = useSessionStore((state) => state.sessions)
+  const activeSession = sessions.find((s) => s.sessionId === sessionId)
   const transferActions = useTransferActions()
 
   if (!activeSession?.isConnected) {
@@ -27,12 +26,14 @@ export const FileExplorerArea: React.FC<FileExplorerAreaProps> = ({ sessionId })
             <Plug className="w-5 h-5 stroke-text-muted stroke-[1.5]" />
           </div>
           <p className="text-sm text-text-muted mb-1">
-            {activeSession ? t('fileExplorerList.disconnected') : t('connection.noConnections')}
+            {activeSession
+              ? t(($) => $.fileExplorerList.disconnected)
+              : t(($) => $.connection.noConnections)}
           </p>
           <p className="text-xs text-text-muted opacity-70">
             {activeSession
-              ? t('fileExplorerList.reconnectHint')
-              : t('connection.newConnectionHint')}
+              ? t(($) => $.fileExplorerList.reconnectHint)
+              : t(($) => $.connection.newConnectionHint)}
           </p>
         </div>
       </div>

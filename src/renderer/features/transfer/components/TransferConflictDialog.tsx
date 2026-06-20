@@ -19,10 +19,10 @@ const strategyToAction = (strategy: ConflictStrategy): ConflictAction => {
   return CONFLICT_ACTION.KEEP_BOTH
 }
 
-export const TransferConflictDialog: React.FC = () => {
+export const TransferConflictDialog = () => {
   const { t } = useTranslation()
-  const dialogOpen = useTransferConflictStore(state => state.dialogOpen)
-  const conflicts = useTransferConflictStore(state => state.conflicts)
+  const dialogOpen = useTransferConflictStore((state) => state.dialogOpen)
+  const conflicts = useTransferConflictStore((state) => state.conflicts)
 
   const canOverwriteFn = (index: number): boolean => {
     const conflict = conflicts[index]
@@ -59,7 +59,7 @@ export const TransferConflictDialog: React.FC = () => {
             <span className="text-sm text-text font-medium truncate">{conflict.itemName}</span>
           </div>
           <div className="text-xs text-text-muted truncate" title={conflict.localPath}>
-            {t('conflict.source')}: {conflict.localPath}
+            {t(($) => $.conflict.source)}: {conflict.localPath}
           </div>
         </div>
 
@@ -71,7 +71,7 @@ export const TransferConflictDialog: React.FC = () => {
             <span className="text-sm text-danger font-medium truncate">{conflict.itemName}</span>
           </div>
           <div className="text-xs text-text-muted truncate" title={conflict.remotePath}>
-            {t('conflict.target')}: {conflict.remotePath}
+            {t(($) => $.conflict.target)}: {conflict.remotePath}
           </div>
         </div>
       </div>

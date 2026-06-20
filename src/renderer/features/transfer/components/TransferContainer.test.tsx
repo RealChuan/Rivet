@@ -18,10 +18,10 @@ vi.mock('../stores/transfer.js', () => ({
   selectTasksForSessionByDirection: (
     state: Record<string, unknown>,
     sessionId: string,
-    direction: string
+    direction: string,
   ) =>
     (state.tasks as TransferTask[]).filter(
-      t => t.sessionId === sessionId && t.direction === direction
+      (t) => t.sessionId === sessionId && t.direction === direction,
     ),
 }))
 

@@ -28,7 +28,7 @@ describe('useGlobalShortcuts', () => {
       activeSessionId,
     }
     ;(useSessionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
-      (selector: (state: typeof mockState) => unknown) => selector(mockState)
+      (selector: (state: typeof mockState) => unknown) => selector(mockState),
     )
   }
 

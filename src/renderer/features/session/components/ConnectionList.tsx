@@ -1,4 +1,3 @@
-import type React from 'react'
 import {
   closestCenter,
   DndContext,
@@ -35,7 +34,7 @@ interface ConnectionListProps {
   getSessionByConnectionId: (id: string) => Session | undefined
 }
 
-export const ConnectionList: React.FC<ConnectionListProps> = ({
+export const ConnectionList = ({
   connections,
   activeSessionId,
   sortOrder,
@@ -47,7 +46,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
   onEdit,
   onDelete,
   getSessionByConnectionId,
-}) => {
+}: ConnectionListProps) => {
   const { t } = useTranslation()
 
   const sensors = useSensors(
@@ -58,7 +57,7 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   )
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -75,8 +74,10 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
           <Plug className="w-4 h-4 stroke-text-muted stroke-[1.5]" />
         </div>
         <div>
-          <p className="text-xs text-text-muted">{t('connection.noConnections')}</p>
-          <p className="text-xs text-text-muted opacity-70">{t('connection.newConnectionHint')}</p>
+          <p className="text-xs text-text-muted">{t(($) => $.connection.noConnections)}</p>
+          <p className="text-xs text-text-muted opacity-70">
+            {t(($) => $.connection.newConnectionHint)}
+          </p>
         </div>
       </div>
     )
@@ -86,17 +87,17 @@ export const ConnectionList: React.FC<ConnectionListProps> = ({
     <div className="h-full flex flex-col">
       <div className="px-4 pt-3.5 pb-2 flex items-center justify-between">
         <span className="text-sm font-semibold text-text-muted uppercase tracking-[0.5px]">
-          {t('connection.connections')}
+          {t(($) => $.connection.connections)}
         </span>
         <SortButton sortOrder={sortOrder} onClick={onSortClick} />
       </div>
       <div className="flex-1 overflow-y-auto overflow-x-auto px-2 pb-2 space-y-2">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
-            items={connections.map(c => c.id)}
+            items={connections.map((c) => c.id)}
             strategy={verticalListSortingStrategy}
           >
-            {connections.map(connection => {
+            {connections.map((connection) => {
               const session = getSessionByConnectionId(connection.id)
               return (
                 <SortableConnectionItem
