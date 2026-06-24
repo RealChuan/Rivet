@@ -1,7 +1,7 @@
 import type React from 'react'
 import type { ListImperativeAPI } from 'react-window'
 import { Upload } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import VirtualList from '@renderer/components/ui/VirtualList.js'
 import { useFileExplorerTransferActions } from '@renderer/features/file-explorer/contexts/transfer-actions.js'
@@ -79,10 +79,10 @@ export const FileExplorerList = ({
   const listRef = useRef<ListImperativeAPI>(null)
   const scrollContainerRef = useRef<HTMLElement | null>(null)
 
-  useEffect(() => {
-    if (listRef.current) {
-      scrollContainerRef.current = listRef.current.element
-    }
+  // Callback ref: 同步设置 listRef 和 scrollContainerRef，避免 useEffect 时序问题
+  const handleListRef = useCallback((api: ListImperativeAPI | null) => {
+    listRef.current = api
+    scrollContainerRef.current = api?.element ?? null
   }, [])
 
   const { dragSelection, isDragging, hasStartedDrag, handleMouseDown, getDragStyle } =
@@ -286,7 +286,7 @@ export const FileExplorerList = ({
                 itemHeight={FILE_ITEM_HEIGHT}
                 width={totalWidth}
                 renderItem={renderFileExplorerItem}
-                listRef={listRef}
+                listRef={handleListRef}
               >
                 {isDragging && hasStartedDrag && (
                   <div

@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import http from 'node:http'
 import https from 'node:https'
 import { createClient, type FileStat, type WebDAVClient } from 'webdav'
+
 import { generateSessionId, logger } from '@main/utils/index.js'
 import {
   ERROR_CODE,
@@ -27,8 +28,9 @@ import {
   type Result,
 } from '@shared/types/index.js'
 import { formatErrorMessage, joinPaths } from '@shared/utils/index.js'
+import type { HostVerifier, SessionInfo } from './protocol-types.js'
 import { sessionRegistry } from '../session-registry.js'
-import { AbstractProtocol, type HostVerifier, type SessionInfo } from './abstract-protocol.js'
+import { AbstractProtocol } from './abstract-protocol.js'
 
 interface WebDAVSession {
   client: WebDAVClient

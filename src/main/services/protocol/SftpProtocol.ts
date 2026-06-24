@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import Client from 'ssh2-sftp-client'
+
 import { generateSessionId, logger } from '@main/utils/index.js'
 import {
   ERROR_CODE,
@@ -25,8 +26,9 @@ import {
   type SftpConnectDetail,
 } from '@shared/types/index.js'
 import { formatErrorMessage, joinPaths } from '@shared/utils/index.js'
+import type { HostVerifier, SessionInfo } from './protocol-types.js'
 import { sessionRegistry } from '../session-registry.js'
-import { AbstractProtocol, type HostVerifier, type SessionInfo } from './abstract-protocol.js'
+import { AbstractProtocol } from './abstract-protocol.js'
 
 export class SftpProtocol extends AbstractProtocol<Client> {
   readonly protocolType = PROTOCOL.SFTP

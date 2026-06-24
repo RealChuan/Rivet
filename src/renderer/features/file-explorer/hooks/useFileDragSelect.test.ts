@@ -27,7 +27,7 @@ const mockFiles: FileInfo[] = [
   },
 ]
 
-function createMockScrollContainerRef() {
+function createMockScrollContainerRef(overrides?: { clientHeight?: number }) {
   const mockGetBoundingClientRect = vi.fn(() => ({
     left: 0,
     top: 0,
@@ -41,6 +41,7 @@ function createMockScrollContainerRef() {
       getBoundingClientRect: mockGetBoundingClientRect,
       scrollLeft: 0,
       scrollTop: 0,
+      clientHeight: overrides?.clientHeight ?? 600,
     } as unknown as HTMLElement,
     mockGetBoundingClientRect,
   }
@@ -412,5 +413,39 @@ describe('useFileDragSelect', () => {
     })
 
     expect(result.current.isDragging).toBe(true)
+  })
+
+  it('should allow drag selection into blank area below items', () => {
+    // 3 items × 30px = 90px content, but container is 600px tall
+    // Dragging into the blank area (y > 90) should still work
+    const tallRef = createMockScrollContainerRef({ clientHeight: 600 })
+
+    const { result } = renderHook(() =>
+      useFileDragSelect({
+        items: mockFiles,
+        itemHeight: 30,
+        scrollContainerRef: tallRef,
+        onDragSelect,
+      }),
+    )
+
+    // Start at y=50 (within items), drag to y=200 (in blank area below items)
+    act(() => {
+      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 50 }))
+    })
+
+    act(() => {
+      dispatchMouseEvent('mousemove', { clientX: 100, clientY: 200 })
+    })
+
+    expect(result.current.hasStartedDrag).toBe(true)
+    // All 3 files should be selected since the box covers y=50 to y=200
+    // startIndex = floor(50/30) = 1, endIndex = ceil(200/30) = 7 → clamped to 3
+    expect(result.current.dragSelection).toEqual(new Set(['file2.txt', 'file3.txt']))
+
+    const style = result.current.getDragStyle()
+    // dragStart.y = 50, dragEnd.y = 200 (not clamped to 90)
+    expect(style.top).toBe(50)
+    expect(style.height).toBe(150)
   })
 })

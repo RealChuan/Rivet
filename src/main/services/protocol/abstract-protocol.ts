@@ -20,8 +20,6 @@ import {
 import { getParentPath, joinPaths, normalizePath, sanitizePath } from '@shared/utils/index.js'
 import type { FileProtocol, HostVerifier, SessionInfo } from './protocol-types.js'
 
-export type { FileProtocol, HostVerifier, SessionInfo } from './protocol-types.js'
-
 export abstract class AbstractProtocol<T> implements FileProtocol {
   abstract readonly protocolType: ProtocolType
 

@@ -26,6 +26,64 @@ const SCROLL_ZONE_SIZE = 40
 const MAX_SCROLL_SPEED = 15
 const MIN_DRAG_DISTANCE = 5
 
+/** Max Y in content coords: items total height or container visible height, whichever is larger */
+function getMaxContentY(itemsLength: number, itemHeight: number, containerHeight: number): number {
+  return Math.max(itemsLength * itemHeight, containerHeight)
+}
+
+/** Convert viewport client coords to scroll container content coords, clamping Y to [0, maxY] */
+function clientToContent(
+  clientX: number,
+  clientY: number,
+  container: HTMLElement,
+  maxY: number,
+): Point {
+  const rect = container.getBoundingClientRect()
+  const rawY = clientY - rect.top + container.scrollTop
+  return {
+    x: clientX - rect.left + container.scrollLeft,
+    y: Math.max(0, Math.min(maxY, rawY)),
+  }
+}
+
+/** Euclidean distance between two points */
+function dragDistance(a: Point, b: Point): number {
+  return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2)
+}
+
+/** Compute the set of file names whose rows overlap the drag rectangle */
+function computeFileSelection(
+  dragStart: Point,
+  dragEnd: Point,
+  items: FileInfo[],
+  itemHeight: number,
+): Set<string> {
+  const startY = Math.min(dragStart.y, dragEnd.y)
+  const endY = Math.max(dragStart.y, dragEnd.y)
+  const startIndex = Math.max(0, Math.floor(startY / itemHeight))
+  const endIndex = Math.min(items.length, Math.ceil(endY / itemHeight))
+
+  const selection = new Set<string>()
+  for (let i = startIndex; i < endIndex; i++) {
+    const file = items[i]
+    if (file) {
+      selection.add(file.name)
+    }
+  }
+  return selection
+}
+
+/** Collect FileInfo[] for files whose names are in the selection set, preserving order */
+function selectFilesByName(items: FileInfo[], names: Set<string>): FileInfo[] {
+  const result: FileInfo[] = []
+  for (const file of items) {
+    if (names.has(file.name)) {
+      result.push(file)
+    }
+  }
+  return result
+}
+
 export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDragSelectReturn {
   const { items, itemHeight, scrollContainerRef, onDragStart, onDragSelect } = options
 
@@ -62,25 +120,19 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
     const scrollContainer = scrollContainerRef.current
     if (!scrollContainer) return
 
-    const rect = scrollContainer.getBoundingClientRect()
-    const scrollLeft = scrollContainer.scrollLeft
-    const scrollTop = scrollContainer.scrollTop
-
-    const maxContentY = items.length * itemHeight
-    const x = e.clientX - rect.left + scrollLeft
-    const rawY = e.clientY - rect.top + scrollTop
-    const y = Math.max(0, Math.min(maxContentY, rawY))
+    const maxY = getMaxContentY(items.length, itemHeight, scrollContainer.clientHeight)
+    const point = clientToContent(e.clientX, e.clientY, scrollContainer, maxY)
 
     setIsDragging(true)
     setHasStartedDrag(false)
-    setDragStart({ x, y })
-    setDragEnd({ x, y })
+    setDragStart(point)
+    setDragEnd(point)
     setDragSelection(new Set())
 
     isDraggingRef.current = true
     hasStartedDragRef.current = false
-    dragStartRef.current = { x, y }
-    dragEndRef.current = { x, y }
+    dragStartRef.current = point
+    dragEndRef.current = point
     dragItemsRef.current = items
     lastMouseClientRef.current = { x: e.clientX, y: e.clientY }
   }
@@ -95,26 +147,6 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
   }
 
   useEffect(() => {
-    const computeSelection = (
-      currentDragStart: Point,
-      currentDragEnd: Point,
-      currentItems: FileInfo[],
-    ): Set<string> => {
-      const startY = Math.min(currentDragStart.y, currentDragEnd.y)
-      const endY = Math.max(currentDragStart.y, currentDragEnd.y)
-      const startIndex = Math.max(0, Math.floor(startY / itemHeight))
-      const endIndex = Math.min(currentItems.length, Math.ceil(endY / itemHeight))
-
-      const selection = new Set<string>()
-      for (let i = startIndex; i < endIndex && i < currentItems.length; i++) {
-        const file = currentItems[i]
-        if (file) {
-          selection.add(file.name)
-        }
-      }
-      return selection
-    }
-
     const stopAutoScroll = () => {
       if (scrollRafRef.current !== null) {
         cancelAnimationFrame(scrollRafRef.current)
@@ -142,19 +174,15 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
         let scrollDelta = 0
 
         if (distanceFromTop < SCROLL_ZONE_SIZE) {
-          if (distanceFromTop < 0) {
-            // Mouse is above the container — scroll up at max speed
-            scrollDelta = -MAX_SCROLL_SPEED
-          } else {
-            scrollDelta = -MAX_SCROLL_SPEED * (1 - distanceFromTop / SCROLL_ZONE_SIZE)
-          }
+          scrollDelta =
+            distanceFromTop < 0
+              ? -MAX_SCROLL_SPEED
+              : -MAX_SCROLL_SPEED * (1 - distanceFromTop / SCROLL_ZONE_SIZE)
         } else if (distanceFromBottom < SCROLL_ZONE_SIZE) {
-          if (distanceFromBottom < 0) {
-            // Mouse is below the container — scroll down at max speed
-            scrollDelta = MAX_SCROLL_SPEED
-          } else {
-            scrollDelta = MAX_SCROLL_SPEED * (1 - distanceFromBottom / SCROLL_ZONE_SIZE)
-          }
+          scrollDelta =
+            distanceFromBottom < 0
+              ? MAX_SCROLL_SPEED
+              : MAX_SCROLL_SPEED * (1 - distanceFromBottom / SCROLL_ZONE_SIZE)
         }
 
         if (scrollDelta !== 0) {
@@ -170,28 +198,23 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
             currentScrollEl.scrollBy(0, clampedDelta)
           }
 
-          const scrollLeft = currentScrollEl.scrollLeft
-          const scrollTop = currentScrollEl.scrollTop
-          const x = lastMouseClientRef.current.x - rect.left + scrollLeft
-
           const currentItems = dragItemsRef.current
-          const maxContentY = currentItems.length * itemHeight
-          const rawY = lastMouseClientRef.current.y - rect.top + scrollTop
-          const y = Math.max(0, Math.min(maxContentY, rawY))
+          const maxY = getMaxContentY(currentItems.length, itemHeight, currentScrollEl.clientHeight)
+          const newDragEnd = clientToContent(
+            lastMouseClientRef.current.x,
+            lastMouseClientRef.current.y,
+            currentScrollEl,
+            maxY,
+          )
 
-          const newDragEnd = { x, y }
           dragEndRef.current = newDragEnd
           setDragEnd(newDragEnd)
 
           const currentDragStart = dragStartRef.current
-          const startX = Math.min(currentDragStart.x, x)
-          const endX = Math.max(currentDragStart.x, x)
-          const startY = Math.min(currentDragStart.y, y)
-          const endY = Math.max(currentDragStart.y, y)
-
-          const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2))
-          if (distance >= MIN_DRAG_DISTANCE) {
-            setDragSelection(computeSelection(currentDragStart, newDragEnd, currentItems))
+          if (dragDistance(currentDragStart, newDragEnd) >= MIN_DRAG_DISTANCE) {
+            setDragSelection(
+              computeFileSelection(currentDragStart, newDragEnd, currentItems, itemHeight),
+            )
           }
         }
 
@@ -205,30 +228,19 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
       if (!isDraggingRef.current || !scrollContainerRef.current) return
 
       const scrollEl = scrollContainerRef.current
-      const rect = scrollEl.getBoundingClientRect()
-      const scrollLeft = scrollEl.scrollLeft
-      const scrollTop = scrollEl.scrollTop
-
       const currentItems = dragItemsRef.current
-      const x = e.clientX - rect.left + scrollLeft
-      const maxContentY = currentItems.length * itemHeight
-      const rawY = e.clientY - rect.top + scrollTop
-      const y = Math.max(0, Math.min(maxContentY, rawY))
+      const maxY = getMaxContentY(currentItems.length, itemHeight, scrollEl.clientHeight)
+      const point = clientToContent(e.clientX, e.clientY, scrollEl, maxY)
 
       lastMouseClientRef.current = { x: e.clientX, y: e.clientY }
 
       const currentDragStart = dragStartRef.current
       const currentHasStartedDrag = hasStartedDragRef.current
 
-      setDragEnd({ x, y })
-      dragEndRef.current = { x, y }
+      setDragEnd(point)
+      dragEndRef.current = point
 
-      const startX = Math.min(currentDragStart.x, x)
-      const endX = Math.max(currentDragStart.x, x)
-      const startY = Math.min(currentDragStart.y, y)
-      const endY = Math.max(currentDragStart.y, y)
-
-      const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2))
+      const distance = dragDistance(currentDragStart, point)
 
       if (distance < MIN_DRAG_DISTANCE) {
         return
@@ -240,8 +252,9 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
         onDragStartRef.current?.()
       }
 
-      setDragSelection(computeSelection(currentDragStart, { x, y }, currentItems))
+      setDragSelection(computeFileSelection(currentDragStart, point, currentItems, itemHeight))
 
+      const rect = scrollEl.getBoundingClientRect()
       const distanceFromTop = e.clientY - rect.top
       const distanceFromBottom = rect.bottom - e.clientY
       const inScrollZone =
@@ -260,8 +273,6 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
       stopAutoScroll()
 
       const currentHasStartedDrag = hasStartedDragRef.current
-      const currentDragStart = dragStartRef.current
-      const currentDragEnd = dragEndRef.current
 
       if (!currentHasStartedDrag) {
         setIsDragging(false)
@@ -270,21 +281,13 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
       }
 
       const currentItems = dragItemsRef.current
-      const selectedInBox: FileInfo[] = []
-
-      const startY = Math.min(currentDragStart.y, currentDragEnd.y)
-      const endY = Math.max(currentDragStart.y, currentDragEnd.y)
-      const startIndex = Math.max(0, Math.floor(startY / itemHeight))
-      const endIndex = Math.min(currentItems.length, Math.ceil(endY / itemHeight))
-
-      for (let i = startIndex; i < endIndex && i < currentItems.length; i++) {
-        const file = currentItems[i]
-        if (file) {
-          selectedInBox.push(file)
-        }
-      }
-
-      onDragSelectRef.current?.(selectedInBox)
+      const names = computeFileSelection(
+        dragStartRef.current,
+        dragEndRef.current,
+        currentItems,
+        itemHeight,
+      )
+      onDragSelectRef.current?.(selectFilesByName(currentItems, names))
 
       setDragSelection(new Set())
       setIsDragging(false)

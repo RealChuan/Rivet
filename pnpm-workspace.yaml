@@ -17,3 +17,19 @@ allowBuilds:
   fs-xattr: true
   macos-alias: true
   ssh2: true
+
+minimumReleaseAgeExclude:
+  - '@sentry/browser-utils@10.60.0'
+  - '@sentry/browser@10.60.0'
+  - '@sentry/core@10.60.0'
+  - '@sentry/electron@7.14.0'
+  - '@sentry/feedback@10.60.0'
+  - '@sentry/node-core@10.60.0'
+  - '@sentry/node@10.60.0'
+  - '@sentry/opentelemetry@10.60.0'
+  - '@sentry/replay-canvas@10.60.0'
+  - '@sentry/replay@10.60.0'
+  - '@sentry/server-utils@10.60.0'
+  - '@vitejs/plugin-react@6.0.3'
+  - electron@42.5.0
+  - vite@8.1.0
