@@ -2,6 +2,8 @@ import type React from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import { cn } from '@renderer/utils/index.js'
 import Input from './Input.js'
 
 interface PasswordInputProps {
@@ -15,7 +17,7 @@ export const PasswordInput = ({
   value,
   onChange,
   placeholder = '',
-  className = '',
+  className,
 }: PasswordInputProps) => {
   const [showPassword, setShowPassword] = useState(false)
   const { t } = useTranslation()
@@ -27,7 +29,7 @@ export const PasswordInput = ({
         value={value}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`${className} pr-10`}
+        className={cn(className, 'pr-10')}
       />
       <button
         type="button"
@@ -37,12 +39,12 @@ export const PasswordInput = ({
             ? t(($) => $.passwordInput.hidePassword)
             : t(($) => $.passwordInput.showPassword)
         }
-        className={`
-          absolute right-2.5 bg-transparent border-none
-          cursor-pointer p-1 flex items-center justify-center
-          text-text-muted hover:text-text transition-colors
-          focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
-        `}
+        className={cn(
+          'absolute right-2.5 bg-transparent border-none',
+          'cursor-pointer p-1 flex items-center justify-center',
+          'text-text-muted hover:text-text transition-colors',
+          'focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
+        )}
       >
         {showPassword ? (
           <EyeOff className="w-4 h-4 stroke-current stroke-2" />

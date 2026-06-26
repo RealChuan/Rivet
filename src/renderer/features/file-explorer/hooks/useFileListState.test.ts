@@ -126,11 +126,9 @@ describe('useFileListState', () => {
   it('should open and close context menu', () => {
     const { result } = renderHook(() => useFileListState())
     act(() => {
-      result.current.openContextMenu(100, 200, [mockFile], false)
+      result.current.openContextMenu([mockFile], false)
     })
     expect(result.current.contextMenu).toEqual({
-      x: 100,
-      y: 200,
       files: [mockFile],
       isEmptyArea: false,
     })

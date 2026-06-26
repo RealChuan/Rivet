@@ -134,8 +134,7 @@ describe('ConflictDialog', () => {
 
   it('should show global action panel when apply to all is checked', () => {
     render(<ConflictDialog {...defaultProps} />)
-    const checkbox = document.querySelector('input[type="checkbox"]') as HTMLInputElement
-    if (!checkbox) throw new Error('Checkbox not found')
+    const checkbox = screen.getByRole('checkbox')
     fireEvent.click(checkbox)
     expect(screen.getByText(/conflict\.globalAction/)).not.toBeNull()
   })

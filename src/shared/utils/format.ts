@@ -9,7 +9,7 @@ export const formatFileSize = (bytes: number, lng: string = 'en-US'): string => 
   const value = bytes / Math.pow(k, i)
   const formattedValue = new Intl.NumberFormat(lng, {
     maximumFractionDigits: 2,
-  }).format(parseFloat(value.toFixed(2)))
+  }).format(value)
   return `${formattedValue} ${sizes[i]}`
 }
 

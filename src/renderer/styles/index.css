@@ -147,6 +147,15 @@
     letter-spacing: -0.01em;
   }
 
+  /* 覆盖 Radix Select 默认隐藏滚动条的行为 */
+  [data-radix-select-viewport] {
+    scrollbar-width: thin !important;
+    -ms-overflow-style: auto !important;
+  }
+  [data-radix-select-viewport]::-webkit-scrollbar {
+    display: block !important;
+  }
+
   /* 滚动条 */
   ::-webkit-scrollbar {
     @apply size-1.5;

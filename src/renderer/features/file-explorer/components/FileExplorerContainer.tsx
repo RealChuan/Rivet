@@ -11,7 +11,7 @@ export const FileExplorerContainer = () => {
 
   if (sessions.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-transparent">
+      <div className="h-full flex items-center justify-center bg-transparent">
         <div className="text-center p-8">
           <div
             className={`
@@ -31,7 +31,7 @@ export const FileExplorerContainer = () => {
   }
 
   return (
-    <div className="flex-1 relative overflow-hidden">
+    <div className="h-full relative overflow-hidden">
       {sessions.map((session) => (
         <div
           key={session.sessionId}

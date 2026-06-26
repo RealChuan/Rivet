@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import Button from '@renderer/components/ui/Button.js'
 import { Checkbox } from '@renderer/components/ui/Checkbox.js'
 import GlassDialog from '@renderer/components/ui/GlassDialog.js'
-import RadioButton from '@renderer/components/ui/RadioButton.js'
+import { RadioButton, RadioGroup } from '@renderer/components/ui/RadioButton.js'
 import { cn } from '@renderer/utils/index.js'
 import { DIALOG_SIZE } from '@shared/constants/index.js'
 
@@ -94,36 +94,29 @@ export const ConflictDialogBase = ({
               <div key={`conflict-${index}`} className="p-3 bg-hover rounded-md mb-2 min-w-0">
                 <div className="min-w-0 wrap-break-word">{renderConflictInfo(index)}</div>
 
-                <div className="flex gap-4 justify-end">
+                <RadioGroup
+                  value={strategy}
+                  onValueChange={(val) => handleStrategyChange(index, val as ConflictStrategy)}
+                  className="flex gap-4 justify-end"
+                >
+                  <RadioButton value={CONFLICT_STRATEGY.SKIP} label={t(($) => $.conflict.skip)} />
                   <RadioButton
-                    label={t(($) => $.conflict.skip)}
-                    name={`strategy-${index}`}
-                    checked={strategy === CONFLICT_STRATEGY.SKIP}
-                    onChange={() => handleStrategyChange(index, CONFLICT_STRATEGY.SKIP)}
-                  />
-                  <RadioButton
+                    value={CONFLICT_STRATEGY.KEEP_BOTH}
                     label={t(($) => $.conflict.keepBoth)}
                     labelClassName="text-accent"
-                    name={`strategy-${index}`}
-                    checked={strategy === CONFLICT_STRATEGY.KEEP_BOTH}
-                    onChange={() => handleStrategyChange(index, CONFLICT_STRATEGY.KEEP_BOTH)}
                   />
                   {!hideOverwrite && (
                     <RadioButton
+                      value={CONFLICT_STRATEGY.OVERWRITE}
                       label={t(($) => $.conflict.overwrite)}
                       labelClassName={cn(
                         'text-danger',
                         cannotOverwrite && 'cursor-not-allowed opacity-50',
                       )}
-                      name={`strategy-${index}`}
-                      checked={strategy === CONFLICT_STRATEGY.OVERWRITE}
-                      onChange={() =>
-                        !cannotOverwrite && handleStrategyChange(index, CONFLICT_STRATEGY.OVERWRITE)
-                      }
                       disabled={cannotOverwrite}
                     />
                   )}
-                </div>
+                </RadioGroup>
 
                 {cannotOverwrite && !hideOverwrite && (
                   <div className="mt-2 text-xs text-danger">
@@ -138,7 +131,7 @@ export const ConflictDialogBase = ({
         <div className="flex justify-between items-center mt-4 pt-3 border-t border-border shrink-0">
           <Checkbox
             checked={applyToAll}
-            onChange={(e) => setApplyToAll(e.target.checked)}
+            onChange={setApplyToAll}
             label={t(($) => $.conflict.applyToAll)}
           />
 
@@ -155,28 +148,25 @@ export const ConflictDialogBase = ({
         {applyToAll && (
           <div className="mt-2 p-2 bg-hover rounded flex items-center gap-4 shrink-0">
             <span className="text-xs text-text-muted">{t(($) => $.conflict.globalAction)}:</span>
-            <RadioButton
-              label={t(($) => $.conflict.skip)}
-              name="global-strategy"
-              checked={globalStrategy === CONFLICT_STRATEGY.SKIP}
-              onChange={() => handleGlobalStrategyChange(CONFLICT_STRATEGY.SKIP)}
-            />
-            <RadioButton
-              label={t(($) => $.conflict.keepBoth)}
-              labelClassName="text-accent"
-              name="global-strategy"
-              checked={globalStrategy === CONFLICT_STRATEGY.KEEP_BOTH}
-              onChange={() => handleGlobalStrategyChange(CONFLICT_STRATEGY.KEEP_BOTH)}
-            />
-            {!hideOverwrite && (
+            <RadioGroup
+              value={globalStrategy}
+              onValueChange={(val) => handleGlobalStrategyChange(val as ConflictStrategy)}
+              className="flex items-center gap-4"
+            >
+              <RadioButton value={CONFLICT_STRATEGY.SKIP} label={t(($) => $.conflict.skip)} />
               <RadioButton
-                label={t(($) => $.conflict.overwrite)}
-                labelClassName="text-danger"
-                name="global-strategy"
-                checked={globalStrategy === CONFLICT_STRATEGY.OVERWRITE}
-                onChange={() => handleGlobalStrategyChange(CONFLICT_STRATEGY.OVERWRITE)}
+                value={CONFLICT_STRATEGY.KEEP_BOTH}
+                label={t(($) => $.conflict.keepBoth)}
+                labelClassName="text-accent"
               />
-            )}
+              {!hideOverwrite && (
+                <RadioButton
+                  value={CONFLICT_STRATEGY.OVERWRITE}
+                  label={t(($) => $.conflict.overwrite)}
+                  labelClassName="text-danger"
+                />
+              )}
+            </RadioGroup>
           </div>
         )}
       </div>

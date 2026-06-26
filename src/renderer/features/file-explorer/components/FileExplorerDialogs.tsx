@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+
 import ConfirmationDialog from '@renderer/components/common/ConfirmationDialog.js'
 import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
 import { useFileCopyMove } from '@renderer/features/file-explorer/hooks/use-file-copy-move.js'
@@ -50,7 +51,6 @@ export const FileExplorerDialogs = ({
     newFolderDialogOpen,
     setNewFolderDialogOpen,
     contextMenu,
-    closeContextMenu,
     openDeleteDialog,
     openRenameDialog,
     clearSelection,
@@ -164,36 +164,28 @@ export const FileExplorerDialogs = ({
         isSftp={isSftp}
       />
 
-      {contextMenu && (
-        <FileExplorerContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          files={contextMenu.files}
-          isEmptyArea={contextMenu.isEmptyArea}
-          onClose={closeContextMenu}
-          onCopy={handleCopy}
-          onMove={handleMove}
-          onDelete={openDeleteDialog}
-          onRename={openRenameDialog}
-          onCreateFolder={() => {
-            setNewFolderDialogOpen(true)
-            closeContextMenu()
-          }}
-          onUploadFiles={() => void openFilePicker()}
-          onUploadFolder={() => void openFolderPicker()}
-          onDownload={(files) => {
-            void openDownloadDialog(
-              files.map((f) => ({
-                path: f.absolutePath,
-                name: f.name,
-                type: f.type,
-                size: f.size,
-              })),
-            )
-          }}
-          onProperties={openPropertiesDialog}
-        />
-      )}
+      <FileExplorerContextMenu
+        files={contextMenu?.files ?? []}
+        isEmptyArea={contextMenu?.isEmptyArea ?? false}
+        onCopy={handleCopy}
+        onMove={handleMove}
+        onDelete={openDeleteDialog}
+        onRename={openRenameDialog}
+        onCreateFolder={() => setNewFolderDialogOpen(true)}
+        onUploadFiles={() => void openFilePicker()}
+        onUploadFolder={() => void openFolderPicker()}
+        onDownload={(files) => {
+          void openDownloadDialog(
+            files.map((f) => ({
+              path: f.absolutePath,
+              name: f.name,
+              type: f.type,
+              size: f.size,
+            })),
+          )
+        }}
+        onProperties={openPropertiesDialog}
+      />
     </>
   )
 }

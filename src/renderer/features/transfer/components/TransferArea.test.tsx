@@ -37,9 +37,7 @@ const mockElectronAPI = {
   },
 }
 
-vi.stubGlobal('window', {
-  electronAPI: mockElectronAPI,
-})
+;(window as unknown as Record<string, unknown>).electronAPI = mockElectronAPI
 
 function createTask(overrides: Partial<TransferTask> = {}): TransferTask {
   return {

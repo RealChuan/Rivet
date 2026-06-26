@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+
 import { Checkbox } from '@renderer/components/ui/Checkbox.js'
 import Input from '@renderer/components/ui/Input.js'
 import PasswordInput from '@renderer/components/ui/PasswordInput.js'
@@ -150,7 +151,7 @@ export const ConnectionFormFields = ({
               <Checkbox
                 id="rejectUnauthorized"
                 checked={rejectUnauthorized}
-                onChange={(e) => onRejectUnauthorizedChange(e.target.checked)}
+                onChange={onRejectUnauthorizedChange}
               />
               <label htmlFor="rejectUnauthorized" className="text-sm text-text cursor-pointer">
                 {t(($) => $.connectionDialog.rejectUnauthorized)}
@@ -195,11 +196,7 @@ export const ConnectionFormFields = ({
       </div>
 
       <div className="flex items-center gap-2">
-        <Checkbox
-          id="savePassword"
-          checked={savePassword}
-          onChange={(e) => onSavePasswordChange(e.target.checked)}
-        />
+        <Checkbox id="savePassword" checked={savePassword} onChange={onSavePasswordChange} />
         <label htmlFor="savePassword" className="text-sm text-text cursor-pointer">
           {t(($) => $.connectionDialog.savePassword)}
         </label>

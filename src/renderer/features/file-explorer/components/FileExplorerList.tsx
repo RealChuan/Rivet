@@ -1,8 +1,10 @@
 import type React from 'react'
 import type { ListImperativeAPI } from 'react-window'
+import * as ContextMenuPrimitive from '@radix-ui/react-context-menu'
 import { Upload } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import VirtualList from '@renderer/components/ui/VirtualList.js'
 import { useFileExplorerTransferActions } from '@renderer/features/file-explorer/contexts/transfer-actions.js'
 import {
@@ -116,19 +118,16 @@ export const FileExplorerList = ({
     }
   }
 
-  const handleContextMenu = (e: React.MouseEvent, file?: FileInfo) => {
-    e.preventDefault()
-    e.stopPropagation()
-
+  const handleContextMenu = (file?: FileInfo) => {
     if (file) {
       const isSelected = selectedFiles.some((f) => f.name === file.name)
       if (!isSelected) {
         handleSelectFile(file)
       }
-      openContextMenu(e.clientX, e.clientY, isSelected ? selectedFiles : [file], false)
+      openContextMenu(isSelected ? selectedFiles : [file], false)
     } else {
       clearSelection()
-      openContextMenu(e.clientX, e.clientY, [], true)
+      openContextMenu([], true)
     }
   }
 
@@ -183,12 +182,6 @@ export const FileExplorerList = ({
   }, [selectedFiles, onSelectedFilesChange])
 
   useEffect(() => {
-    const handleGlobalClick = () => closeContextMenu()
-    document.addEventListener('click', handleGlobalClick)
-    return () => document.removeEventListener('click', handleGlobalClick)
-  }, [closeContextMenu])
-
-  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault()
@@ -209,10 +202,7 @@ export const FileExplorerList = ({
       onHover={setHoveredFile}
       onClick={(e) => handleFileClick(file, e)}
       onDoubleClick={() => handleDoubleClick(file)}
-      onContextMenu={(e) => {
-        e.stopPropagation()
-        handleContextMenu(e, file)
-      }}
+      onContextMenu={() => handleContextMenu(file)}
       style={style}
       isSftp={isSftp}
     />
@@ -238,77 +228,85 @@ export const FileExplorerList = ({
   const totalWidth = computeTotalWidth(columnWidths, isSftp)
 
   return (
-    <div className="flex flex-col h-full" style={{ width: '100%' }}>
-      {(session.isLoading || session.isOperating) && files.length > 0 && (
-        <div className="h-0.5 bg-accent/10 shrink-0 overflow-hidden">
-          <div className="h-full bg-accent animate-progress-indeterminate" />
-        </div>
-      )}
-      <div
-        ref={containerRef}
-        className="flex-1 min-h-10 relative overflow-hidden"
-        onContextMenu={(e) => {
-          const target = e.target as HTMLElement
-          const fileItem = target.closest('[data-file-item]')
-          if (!fileItem) {
-            handleContextMenu(e)
-          }
-        }}
-        onMouseDown={handleMouseDown}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        {isDragOver && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-accent/5 border-2 border-dashed border-accent rounded pointer-events-none">
-            <div className="flex flex-col items-center gap-2 text-accent">
-              <Upload className="w-8 h-8 stroke-current stroke-2" />
-              <span className="text-sm font-medium">{t(($) => $.file.dropToUpload)}</span>
-            </div>
+    <ContextMenuPrimitive.Root
+      onOpenChange={(open) => {
+        if (!open) closeContextMenu()
+      }}
+    >
+      <div className="flex flex-col h-full" style={{ width: '100%' }}>
+        {(session.isLoading || session.isOperating) && files.length > 0 && (
+          <div className="h-0.5 bg-accent/10 shrink-0 overflow-hidden">
+            <div className="h-full bg-accent animate-progress-indeterminate" />
           </div>
         )}
-        <div className="flex flex-col" style={{ minWidth: totalWidth, height: '100%' }}>
-          <FileListHeader
-            columnWidths={actualColumnWidths}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            onSort={handleSort}
-            onResizeStart={handleResizeStart}
-            isSftp={isSftp}
-          />
+        <ContextMenuPrimitive.Trigger asChild>
+          <div
+            ref={containerRef}
+            className="flex-1 min-h-10 relative overflow-hidden"
+            onContextMenu={(e) => {
+              const target = e.target as HTMLElement
+              const fileItem = target.closest('[data-file-item]')
+              if (!fileItem) {
+                handleContextMenu()
+              }
+            }}
+            onMouseDown={handleMouseDown}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {isDragOver && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center bg-accent/5 border-2 border-dashed border-accent rounded pointer-events-none">
+                <div className="flex flex-col items-center gap-2 text-accent">
+                  <Upload className="w-8 h-8 stroke-current stroke-2" />
+                  <span className="text-sm font-medium">{t(($) => $.file.dropToUpload)}</span>
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col" style={{ minWidth: totalWidth, height: '100%' }}>
+              <FileListHeader
+                columnWidths={actualColumnWidths}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                onResizeStart={handleResizeStart}
+                isSftp={isSftp}
+              />
 
-          {sortedFiles.length === 0 ? (
-            <FileExplorerListEmpty />
-          ) : (
-            <div className="flex-1 min-h-0">
-              <VirtualList
-                items={sortedFiles}
-                itemHeight={FILE_ITEM_HEIGHT}
-                width={totalWidth}
-                renderItem={renderFileExplorerItem}
-                listRef={handleListRef}
-              >
-                {isDragging && hasStartedDrag && (
-                  <div
-                    className="absolute pointer-events-none z-100 rounded-sm border-[1.5px] border-accent bg-accent-light"
-                    style={getDragStyle()}
-                  />
-                )}
-              </VirtualList>
+              {sortedFiles.length === 0 ? (
+                <FileExplorerListEmpty />
+              ) : (
+                <div className="flex-1 min-h-0">
+                  <VirtualList
+                    items={sortedFiles}
+                    itemHeight={FILE_ITEM_HEIGHT}
+                    width={totalWidth}
+                    renderItem={renderFileExplorerItem}
+                    listRef={handleListRef}
+                  >
+                    {isDragging && hasStartedDrag && (
+                      <div
+                        className="absolute pointer-events-none z-100 rounded-sm border-[1.5px] border-accent bg-accent-light"
+                        style={getDragStyle()}
+                      />
+                    )}
+                  </VirtualList>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        </ContextMenuPrimitive.Trigger>
+
+        <ParentDirectoryButton currentPath={currentPath} onNavigate={handleParentDirectory} />
+
+        <FileExplorerDialogs
+          sessionId={sessionId}
+          currentPath={currentPath}
+          listState={listState}
+          isSftp={isSftp}
+        />
       </div>
-
-      <ParentDirectoryButton currentPath={currentPath} onNavigate={handleParentDirectory} />
-
-      <FileExplorerDialogs
-        sessionId={sessionId}
-        currentPath={currentPath}
-        listState={listState}
-        isSftp={isSftp}
-      />
-    </div>
+    </ContextMenuPrimitive.Root>
   )
 }
 

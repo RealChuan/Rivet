@@ -1,58 +1,64 @@
-import type React from 'react'
-
+import * as CheckboxPrimitive from '@radix-ui/react-checkbox'
 import { Check } from 'lucide-react'
+
 import { cn } from '@renderer/utils/index.js'
 
-interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+interface CheckboxProps {
+  checked: boolean
+  onChange?: (checked: boolean) => void
   label?: string
+  disabled?: boolean
+  id?: string
+  className?: string
 }
 
-export const Checkbox = ({
-  label,
-  checked,
-  onChange,
-  disabled,
-  className = '',
-  id,
-  ...props
-}: CheckboxProps) => {
-  return (
-    <label
+export const Checkbox = ({ checked, onChange, label, disabled, id, className }: CheckboxProps) => {
+  const handleCheckedChange = (value: boolean | 'indeterminate') => {
+    if (onChange && value !== 'indeterminate') {
+      onChange(value)
+    }
+  }
+
+  const root = (
+    <CheckboxPrimitive.Root
+      id={id}
+      checked={checked}
+      onCheckedChange={handleCheckedChange}
+      disabled={disabled}
       className={cn(
-        'flex items-center gap-2 cursor-pointer',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 rounded',
-        disabled && 'opacity-50 cursor-not-allowed',
+        'size-4 rounded-[3px] border-2 flex items-center justify-center',
+        'transition-all duration-200 cursor-pointer',
+        'data-[state=checked]:bg-accent data-[state=checked]:border-accent',
+        'data-[state=checked]:shadow-[0_0_0_3px_var(--color-accent-light)]',
+        'border-input-border bg-transparent',
+        'hover:border-input-border-hover',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+        disabled && 'cursor-not-allowed',
+        !label && disabled && 'opacity-50',
         className,
       )}
-      htmlFor={id}
     >
-      <span className="relative flex items-center justify-center size-4">
-        <input
-          type="checkbox"
-          id={id}
-          checked={checked}
-          onChange={onChange}
-          disabled={disabled}
-          className="sr-only peer"
-          {...props}
-        />
-        <span
-          className={cn(
-            'size-4 rounded-[3px] border-2 flex items-center justify-center',
-            'transition-all duration-200 cursor-pointer',
-            'peer-checked:bg-accent peer-checked:border-accent',
-            'peer-checked:shadow-[0_0_0_3px_var(--color-accent-light)]',
-            'border-input-border bg-transparent',
-            'hover:border-input-border-hover',
-            disabled && 'cursor-not-allowed',
-          )}
-        >
-          {checked && <Check className="w-2.5 h-2.5 stroke-white stroke-3" />}
-        </span>
-      </span>
-      {label && <span className="text-xs">{label}</span>}
-    </label>
+      <CheckboxPrimitive.Indicator>
+        <Check className="w-2.5 h-2.5 stroke-white stroke-3" />
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
   )
+
+  if (label) {
+    return (
+      <label
+        className={cn(
+          'flex items-center gap-2',
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+        )}
+      >
+        {root}
+        <span className="text-xs">{label}</span>
+      </label>
+    )
+  }
+
+  return root
 }
 
 export default Checkbox

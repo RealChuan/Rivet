@@ -10,7 +10,7 @@ export const TransferContainer = () => {
 
   if (sessionIds.length === 0 || !selectedSessionId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-transparent">
+      <div className="h-full flex items-center justify-center bg-transparent">
         <div className="text-center p-8">
           <div
             className={`
@@ -27,7 +27,7 @@ export const TransferContainer = () => {
   }
 
   return (
-    <div className="flex-1 flex overflow-hidden">
+    <div className="h-full flex overflow-hidden">
       {selectedSessionId && <TransferArea sessionId={selectedSessionId} />}
     </div>
   )

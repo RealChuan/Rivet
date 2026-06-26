@@ -1,11 +1,13 @@
 import type React from 'react'
+import * as ContextMenuPrimitive from '@radix-ui/react-context-menu'
 import { Info, RotateCcw, Trash, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import type { OperationProgressInfo, TransferTask } from '@shared/types/transfer.js'
 import { FileIcon } from '@renderer/components/common/index.js'
 import { useTransferStore } from '@renderer/features/transfer/stores/transfer.js'
-import { useClickOutside } from '@renderer/hooks/index.js'
+import { cn } from '@renderer/utils/index.js'
 import { FILE_TYPE } from '@shared/constants/index.js'
 import {
   TRANSFER_CONFIG,
@@ -137,13 +139,6 @@ const InlineOperationRow = ({ op, lng }: InlineOperationRowProps) => {
   )
 }
 
-interface ContextMenuState {
-  x: number
-  y: number
-  taskId: string
-  taskStatus: string
-}
-
 interface TransferTaskItemProps {
   task: TransferTask
   onRetry?: (taskId: string) => void
@@ -166,9 +161,7 @@ export const TransferTaskItem = ({
   )
   const progress = useTransferStore((state) => state.taskProgress.get(task.id))
   const [rotationOffset, setRotationOffset] = useState(0)
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [showErrorDetail, setShowErrorDetail] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
 
   const isFolder = task.itemType === FILE_TYPE.DIRECTORY
   const isFailed = task.status === OPERATION_STATUS.FAILED
@@ -213,32 +206,12 @@ export const TransferTaskItem = ({
       })
     : activeOperations.slice(0, TRANSFER_CONFIG.MAX_INLINE_OPERATIONS)
 
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault()
-    setContextMenu({ x: e.clientX, y: e.clientY, taskId: task.id, taskStatus: task.status })
-  }
-
-  useClickOutside({
-    ref: menuRef,
-    enabled: !!contextMenu,
-    onOutside: () => setContextMenu(null),
-  })
-
   const errorText =
     isFailed && task.errorMessage
       ? task.errorMessage.length > 30
         ? `${task.errorMessage.slice(0, 30)}...`
         : task.errorMessage
       : null
-
-  const clampPosition = (x: number, y: number) => {
-    const menuWidth = 140
-    const menuHeight = (isFailed ? 1 : 0) + (isRunning || isWaiting ? 1 : 0) + (isFailed ? 1 : 0)
-    const itemHeight = 36
-    const maxX = window.innerWidth - menuWidth - 8
-    const maxY = window.innerHeight - menuHeight * itemHeight - 8
-    return { left: Math.min(x, maxX), top: Math.min(y, maxY) }
-  }
 
   // Folder status text: show file count or running
   const folderStatusText = isFailed
@@ -252,96 +225,145 @@ export const TransferTaskItem = ({
           })
         : t(($) => $.transfer.status.running)
 
+  const menuItemClass = cn(
+    'w-full px-3 py-2 text-left text-sm bg-transparent border-none rounded-md',
+    'cursor-pointer flex items-center gap-2 transition-colors',
+    'data-highlighted:bg-hover data-highlighted:outline-none',
+  )
+
   return (
     <div style={style} className="overflow-hidden">
-      <div
-        className={`${GRID_COLS} items-center h-10 px-3 hover:bg-hover transition-colors cursor-default border-b border-border group`}
-        onContextMenu={handleContextMenu}
-        data-transfer-task={task.id}
-      >
-        {/* Name column */}
-        <div className="flex items-center gap-2 min-w-0">
-          <FileIcon
-            type={isFolder ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE}
-            className="w-4 h-4 shrink-0"
-          />
-          <span className="truncate text-sm" title={task.itemName}>
-            {task.itemName}
-          </span>
-        </div>
+      <ContextMenuPrimitive.Root>
+        <ContextMenuPrimitive.Trigger asChild>
+          <div
+            className={`${GRID_COLS} items-center h-10 px-3 hover:bg-hover transition-colors cursor-default border-b border-border group`}
+            data-transfer-task={task.id}
+          >
+            {/* Name column */}
+            <div className="flex items-center gap-2 min-w-0">
+              <FileIcon
+                type={isFolder ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE}
+                className="w-4 h-4 shrink-0"
+              />
+              <span className="truncate text-sm" title={task.itemName}>
+                {task.itemName}
+              </span>
+            </div>
 
-        {/* Size column */}
-        {isFailed && errorText ? (
-          <span className="text-danger text-xs truncate" title={task.errorMessage}>
-            {errorText}
-          </span>
-        ) : isFolder ? (
-          <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
-            {folderStatusText}
-          </span>
-        ) : (
-          <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
-            {formatFileSize(transferredSize, lng)}/{formatFileSize(fileSize, lng)}
-          </span>
-        )}
+            {/* Size column */}
+            {isFailed && errorText ? (
+              <span className="text-danger text-xs truncate" title={task.errorMessage}>
+                {errorText}
+              </span>
+            ) : isFolder ? (
+              <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
+                {folderStatusText}
+              </span>
+            ) : (
+              <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
+                {formatFileSize(transferredSize, lng)}/{formatFileSize(fileSize, lng)}
+              </span>
+            )}
 
-        {/* Progress column */}
-        <div>
-          {!isFolder && !isFailed && (
-            <TransferProgressBar
-              transferred={transferredSize}
-              total={fileSize}
-              status={task.status}
-            />
-          )}
-        </div>
+            {/* Progress column */}
+            <div>
+              {!isFolder && !isFailed && (
+                <TransferProgressBar
+                  transferred={transferredSize}
+                  total={fileSize}
+                  status={task.status}
+                />
+              )}
+            </div>
 
-        {/* Speed column */}
-        <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
-          {!isFolder && !isFailed && (isRunning || isWaiting) ? formatSpeed(speed, lng) : ''}
-        </span>
+            {/* Speed column */}
+            <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
+              {!isFolder && !isFailed && (isRunning || isWaiting) ? formatSpeed(speed, lng) : ''}
+            </span>
 
-        {/* Time/status column */}
-        <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
-          {isFailed
-            ? t(($) => $.transfer.status.failed)
-            : isWaiting
-              ? t(($) => $.transfer.status.waiting)
-              : isFolder
-                ? ''
-                : formatRemainingTime(remainingSeconds)}
-        </span>
+            {/* Time/status column */}
+            <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
+              {isFailed
+                ? t(($) => $.transfer.status.failed)
+                : isWaiting
+                  ? t(($) => $.transfer.status.waiting)
+                  : isFolder
+                    ? ''
+                    : formatRemainingTime(remainingSeconds)}
+            </span>
 
-        {/* Actions column */}
-        <div className="flex items-center justify-end">
-          {(isRunning || isWaiting) && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onCancel?.(task.id)
-              }}
-              className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-danger hover:bg-danger-light transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-              aria-label={t(($) => $.transfer.action.cancel)}
-            >
-              <X />
-            </button>
-          )}
-          {isFailed && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onRemove?.(task.id)
-              }}
-              className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-              aria-label={t(($) => $.transfer.action.remove)}
-            >
-              <X />
-            </button>
-          )}
-        </div>
-      </div>
+            {/* Actions column */}
+            <div className="flex items-center justify-end">
+              {(isRunning || isWaiting) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onCancel?.(task.id)
+                  }}
+                  className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-danger hover:bg-danger-light transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+                  aria-label={t(($) => $.transfer.action.cancel)}
+                >
+                  <X />
+                </button>
+              )}
+              {isFailed && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onRemove?.(task.id)
+                  }}
+                  className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+                  aria-label={t(($) => $.transfer.action.remove)}
+                >
+                  <X />
+                </button>
+              )}
+            </div>
+          </div>
+        </ContextMenuPrimitive.Trigger>
+        <ContextMenuPrimitive.Portal>
+          <ContextMenuPrimitive.Content className="bg-glass-bg backdrop-blur-xl rounded-lg shadow-dropdown border border-border p-1 min-w-35 z-9999 animate-menu-in">
+            {isFailed && (
+              <ContextMenuPrimitive.Item
+                className={menuItemClass}
+                onSelect={() => onRetry?.(task.id)}
+              >
+                <RotateCcw />
+                {t(($) => $.transfer.action.retry)}
+              </ContextMenuPrimitive.Item>
+            )}
+            {isFailed && task.errorMessage && (
+              <ContextMenuPrimitive.Item
+                className={cn(menuItemClass, 'text-text-muted cursor-default')}
+                onSelect={() => setShowErrorDetail(true)}
+              >
+                <Info className="w-3.5 h-3.5" />
+                {t(($) => $.transfer.action.viewErrorDetails)}
+              </ContextMenuPrimitive.Item>
+            )}
+            {(isRunning || isWaiting) && (
+              <ContextMenuPrimitive.Item
+                className={cn(menuItemClass, 'text-danger')}
+                onSelect={() => onCancel?.(task.id)}
+              >
+                <X />
+                {t(($) => $.transfer.action.cancel)}
+              </ContextMenuPrimitive.Item>
+            )}
+            {isFailed && (
+              <ContextMenuPrimitive.Item
+                className={cn(menuItemClass, 'text-text-muted')}
+                onSelect={() => onRemove?.(task.id)}
+              >
+                <Trash />
+                {t(($) => $.transfer.action.remove)}
+              </ContextMenuPrimitive.Item>
+            )}
+          </ContextMenuPrimitive.Content>
+        </ContextMenuPrimitive.Portal>
+      </ContextMenuPrimitive.Root>
 
       {/* Path rows — span all columns */}
       <div className="px-3 pb-2 pt-0.5 border-b border-border">
@@ -359,67 +381,6 @@ export const TransferTaskItem = ({
         <div className={displayedOps.length > 0 ? 'border-b border-border' : ''}>
           {displayedOps.map((op) =>
             op ? <InlineOperationRow key={op.id} op={op} lng={lng} /> : null,
-          )}
-        </div>
-      )}
-
-      {contextMenu && (
-        <div
-          ref={menuRef}
-          className="fixed bg-glass-bg backdrop-blur-xl rounded-lg shadow-dropdown border border-border p-1 min-w-35 z-9999 animate-menu-in"
-          style={clampPosition(contextMenu.x, contextMenu.y)}
-        >
-          {isFailed && (
-            <button
-              type="button"
-              className="w-full px-3 py-2 text-left text-sm text-text bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-              onClick={() => {
-                onRetry?.(contextMenu.taskId)
-                setContextMenu(null)
-              }}
-            >
-              <RotateCcw />
-              {t(($) => $.transfer.action.retry)}
-            </button>
-          )}
-          {isFailed && task.errorMessage && (
-            <button
-              type="button"
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-text-muted hover:bg-hover transition-colors cursor-default focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-              onClick={() => {
-                setShowErrorDetail(true)
-                setContextMenu(null)
-              }}
-            >
-              <Info className="w-3.5 h-3.5" />
-              {t(($) => $.transfer.action.viewErrorDetails)}
-            </button>
-          )}
-          {(isRunning || isWaiting) && (
-            <button
-              type="button"
-              className="w-full px-3 py-2 text-left text-sm text-danger bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-              onClick={() => {
-                onCancel?.(contextMenu.taskId)
-                setContextMenu(null)
-              }}
-            >
-              <X />
-              {t(($) => $.transfer.action.cancel)}
-            </button>
-          )}
-          {isFailed && (
-            <button
-              type="button"
-              className="w-full px-3 py-2 text-left text-sm text-text-muted bg-transparent border-none rounded-md cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-              onClick={() => {
-                onRemove?.(contextMenu.taskId)
-                setContextMenu(null)
-              }}
-            >
-              <Trash />
-              {t(($) => $.transfer.action.remove)}
-            </button>
           )}
         </div>
       )}

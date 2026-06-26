@@ -1,7 +1,8 @@
+import * as PopoverPrimitive from '@radix-ui/react-popover'
 import { ChevronDown, ListFilter } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useClickOutside } from '@renderer/hooks/index.js'
+
 import { cn } from '@renderer/utils/index.js'
 import { SORT_ORDER, type SortOrderWithDirection } from '@shared/constants/sort.js'
 import { type TransferSortField, TRANSFER_SORT_FIELD } from '@shared/constants/transfer.js'
@@ -22,14 +23,6 @@ interface SortDropdownProps {
 export const SortDropdown = ({ sortBy, sortOrder, onSort }: SortDropdownProps) => {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useClickOutside({
-    ref,
-    enabled: open,
-    includeEscape: false,
-    onOutside: () => setOpen(false),
-  })
 
   const getFieldLabel = (field: TransferSortField) => {
     switch (field) {
@@ -48,32 +41,42 @@ export const SortDropdown = ({ sortBy, sortOrder, onSort }: SortDropdownProps) =
     sortBy === field && sortOrder === order
 
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-text-muted hover:text-text border border-border bg-glass-bg hover:bg-hover transition-colors cursor-default"
-        aria-label={t(($) => $.transfer.action.sort)}
-      >
-        <ListFilter className="w-3.5 h-3.5" />
-        <ChevronDown className="w-2.5 h-2.5" />
-      </button>
+    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
+      <PopoverPrimitive.Trigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-text-muted hover:text-text border border-border bg-glass-bg hover:bg-hover transition-colors cursor-default"
+          aria-label={t(($) => $.transfer.action.sort)}
+        >
+          <ListFilter className="w-3.5 h-3.5" />
+          <ChevronDown className="w-2.5 h-2.5" />
+        </button>
+      </PopoverPrimitive.Trigger>
 
-      {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 min-w-50 p-3 rounded-lg border border-border bg-glass-bg backdrop-blur-xl shadow-dropdown">
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content
+          sideOffset={4}
+          align="end"
+          className={cn(
+            'z-50 min-w-50 p-3 rounded-lg border border-border',
+            'bg-glass-bg backdrop-blur-xl shadow-dropdown',
+            'animate-menu-in',
+          )}
+        >
           {SORT_FIELDS.map((field) => (
             <div key={field} className="mb-3 last:mb-0">
               <div className="text-xs text-text-muted mb-1.5">{getFieldLabel(field)}</div>
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className={`
-                    flex-1 px-3 py-1.5 rounded-md text-xs border cursor-default transition-colors
-                    ${isActive(field, SORT_ORDER.ASC) ? 'border-accent text-accent bg-accent-light' : 'border-border text-text bg-transparent hover:bg-hover'}
-                  `}
+                  className={cn(
+                    'flex-1 px-3 py-1.5 rounded-md text-xs border cursor-default transition-colors',
+                    isActive(field, SORT_ORDER.ASC)
+                      ? 'border-accent text-accent bg-accent-light'
+                      : 'border-border text-text bg-transparent hover:bg-hover',
+                  )}
                   onClick={() => {
                     onSort(field)
-                    setOpen(false)
                   }}
                 >
                   {t(($) => $.common.sort.asc)}
@@ -96,8 +99,8 @@ export const SortDropdown = ({ sortBy, sortOrder, onSort }: SortDropdownProps) =
               </div>
             </div>
           ))}
-        </div>
-      )}
-    </div>
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
   )
 }

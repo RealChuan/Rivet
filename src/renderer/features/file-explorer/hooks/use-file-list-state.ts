@@ -1,9 +1,8 @@
 import { useCallback, useState } from 'react'
+
 import { type FileInfo } from '@shared/types/index.js'
 
 interface ContextMenuState {
-  x: number
-  y: number
   files: FileInfo[]
   isEmptyArea: boolean
 }
@@ -86,8 +85,8 @@ export const useFileListState = () => {
     setRenameDialogOpen(false)
   }
 
-  const openContextMenu = (x: number, y: number, files: FileInfo[], isEmptyArea: boolean) => {
-    setContextMenu({ x, y, files, isEmptyArea })
+  const openContextMenu = (files: FileInfo[], isEmptyArea: boolean) => {
+    setContextMenu({ files, isEmptyArea })
   }
 
   const closeContextMenu = useCallback(() => {
