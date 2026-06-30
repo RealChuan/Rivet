@@ -15,7 +15,7 @@ export const generateUniqueFilename = (basename: string): string => {
     .toISOString()
     .replace(/[-:]/g, '')
     .replace('T', '_')
-    .replace(/\.\d{3}Z$/, (m) => `_${m.slice(1, 4)}`)
+    .replace(/\.(\d{3})Z$/, '_$1')
   const newName = `${name}_${timestamp}${ext}`
 
   return newName

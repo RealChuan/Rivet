@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FileInfo } from '@shared/types/index.js'
 import { PROTOCOL, TIMEOUTS } from '@shared/constants/index.js'
 import { err, type ErrorInfo, ok, type Result } from '@shared/types/result.js'
-import type { SessionInfo } from './protocol-types.js'
-import { AbstractProtocol } from './abstract-protocol.js'
+import { AbstractProtocol, type SessionInfo } from './abstract-protocol.js'
 
 vi.mock('@main/utils/index.js', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), catch: vi.fn() },
@@ -11,7 +10,7 @@ vi.mock('@main/utils/index.js', () => ({
 
 class TestableProtocol extends AbstractProtocol<{ id: string }> {
   readonly protocolType = PROTOCOL.SFTP
-  private sessions = new Map<string, SessionInfo>()
+  private sessions = new Map<string, SessionInfo<{ id: string }>>()
 
   connect = vi.fn()
   disconnect = vi.fn()
@@ -26,7 +25,7 @@ class TestableProtocol extends AbstractProtocol<{ id: string }> {
   downloadImpl = vi.fn()
   pingImpl = vi.fn()
 
-  protected getSessionInfo(sessionId: string): SessionInfo | null {
+  protected getSessionInfo(sessionId: string): SessionInfo<{ id: string }> | null {
     return this.sessions.get(sessionId) ?? null
   }
   protected setSessionClosing(sessionId: string): void {

@@ -60,11 +60,14 @@ export function TitleBar({
 
   // 初始化窗口状态 + 订阅变化
   useEffect(() => {
+    let cancelled = false
     let unsubscribe: (() => void) | undefined
 
     const init = async () => {
       try {
         const state = await window.electronAPI.window.getState()
+        // 组件已卸载：不更新状态、不订阅，避免监听器泄漏
+        if (cancelled) return
         if (state) {
           const isMaximized = typeof state.isMaximized === 'boolean' ? state.isMaximized : false
           const platform = typeof state.platform === 'string' ? state.platform : 'win32'
@@ -74,7 +77,7 @@ export function TitleBar({
 
         unsubscribe = window.electronAPI.window.onStateChange(
           (newState: { isMaximized: boolean }) => {
-            setIsMaximized(newState.isMaximized)
+            if (!cancelled) setIsMaximized(newState.isMaximized)
           },
         )
       } catch (err) {
@@ -83,7 +86,10 @@ export function TitleBar({
     }
 
     void init()
-    return () => unsubscribe?.()
+    return () => {
+      cancelled = true
+      unsubscribe?.()
+    }
   }, [])
 
   const handleMinimize = () => {

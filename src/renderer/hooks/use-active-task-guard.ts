@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+
+import logger from '@renderer/utils/logger.js'
 import { OPERATION_STATUS } from '@shared/constants/transfer.js'
 import { useTransferStore } from '../features/transfer/stores/transfer.js'
 
@@ -63,11 +65,18 @@ export function useActiveTaskGuard() {
 
   const handleConfirm = async () => {
     if (!pendingAction) return
-    await window.electronAPI.transfer.cancelAll(pendingSessionId)
-    pendingAction()
-    setConfirmOpen(false)
-    setPendingAction(null)
-    setPendingSessionId(undefined)
+    try {
+      await window.electronAPI.transfer.cancelAll(pendingSessionId)
+      pendingAction()
+    } catch (error) {
+      // 渲染进程错误上报主进程（electron-log/renderer 转发至主进程写入文件）
+      logger.catch(error, { action: 'useActiveTaskGuard.handleConfirm' })
+    } finally {
+      // 无论成功失败都重置状态，避免脏状态
+      setConfirmOpen(false)
+      setPendingAction(null)
+      setPendingSessionId(undefined)
+    }
   }
 
   const handleCancel = () => {

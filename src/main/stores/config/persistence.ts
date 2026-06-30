@@ -17,6 +17,7 @@ import {
   type TransferSettings,
   type UiSettings,
 } from '@shared/types/index.js'
+import type { StoreSchema } from './types.js'
 import { logger } from '../../utils/index.js'
 import {
   getInMemoryConfig,
@@ -220,12 +221,26 @@ const configSetHandlers: Record<string, (value: unknown) => Result<void, ErrorIn
   },
 }
 
+const CONFIG_KEYS: readonly (keyof StoreSchema)[] = [
+  STORE_KEY.SAVED_CONNECTIONS,
+  STORE_KEY.UI_SETTINGS,
+  STORE_KEY.TRANSFER_SETTINGS,
+  STORE_KEY.CONNECTION_SORT_ORDER,
+]
+
+function isConfigKey(key: string): key is keyof StoreSchema {
+  return CONFIG_KEYS.some((k) => k === key)
+}
+
 export function getConfigurationValue(key: string): Result<unknown, ErrorInfo> {
   try {
     const handler = configGetHandlers[key]
     if (handler) return handler()
+    if (!isConfigKey(key)) {
+      return err(createErrorInfo(ERROR_CODE.INVALID_CONFIG, `Unknown config key: ${key}`))
+    }
     const config = getInMemoryConfig()
-    return ok(config[key as keyof typeof config])
+    return ok(config[key])
   } catch (error) {
     logger.catch(error, { action: 'get-config-value', key })
     return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to get config value'))

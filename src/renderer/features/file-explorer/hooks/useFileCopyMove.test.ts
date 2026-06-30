@@ -247,6 +247,48 @@ describe('useFileCopyMove', () => {
     expect(mockProtocolCopy).toHaveBeenCalledWith('test-session', sourceFile, '/target/a.txt')
   })
 
+  // 7b. handleSelectTargetFolder: targetDir is ROOT_PATH produces /fileName
+  it('handleSelectTargetFolder: targetDir is ROOT_PATH produces /fileName', async () => {
+    const { result } = renderHook(() => useFileCopyMove('test-session'))
+    const sourceFile = createMockFile('a.txt', 'file', '/src/a.txt')
+    const files = [sourceFile]
+    const targetDir = createMockFile('root', 'directory', '/')
+
+    act(() => {
+      result.current.handleCopy(files)
+    })
+
+    mockProtocolList.mockResolvedValue(successListResponse([]))
+    mockProtocolCopy.mockResolvedValue(successVoidResponse)
+
+    await act(async () => {
+      await result.current.handleSelectTargetFolder(targetDir)
+    })
+
+    expect(mockProtocolCopy).toHaveBeenCalledWith('test-session', sourceFile, '/a.txt')
+  })
+
+  // 7c. handleSelectTargetFolder: targetDir with trailing slash produces normalized path
+  it('handleSelectTargetFolder: targetDir with trailing slash produces normalized path', async () => {
+    const { result } = renderHook(() => useFileCopyMove('test-session'))
+    const sourceFile = createMockFile('a.txt', 'file', '/src/a.txt')
+    const files = [sourceFile]
+    const targetDir = createMockFile('target', 'directory', '/target/')
+
+    act(() => {
+      result.current.handleCopy(files)
+    })
+
+    mockProtocolList.mockResolvedValue(successListResponse([]))
+    mockProtocolCopy.mockResolvedValue(successVoidResponse)
+
+    await act(async () => {
+      await result.current.handleSelectTargetFolder(targetDir)
+    })
+
+    expect(mockProtocolCopy).toHaveBeenCalledWith('test-session', sourceFile, '/target/a.txt')
+  })
+
   // 8. handleSelectTargetFolder: copy success shows success toast
   it('handleSelectTargetFolder: copy success shows success toast', async () => {
     const { result } = renderHook(() => useFileCopyMove('test-session'))

@@ -228,6 +228,20 @@ describe('SessionManager', () => {
       }
       expect(sessionRegistry.has('session-1')).toBe(false)
     })
+
+    it('should clear disconnect timeout on successful disconnect', async () => {
+      vi.useFakeTimers()
+      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+
+      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+
+      const result = await sessionManager.safeUnregister('session-1')
+
+      expect(result.success).toBe(true)
+      expect(clearTimeoutSpy).toHaveBeenCalledTimes(1)
+
+      clearTimeoutSpy.mockRestore()
+    })
   })
 
   describe('safeUnregisterAll - additional', () => {
@@ -298,6 +312,21 @@ describe('SessionManager', () => {
 
       expect(mockBroadcast).not.toHaveBeenCalled()
 
+      vi.useRealTimers()
+    })
+
+    it('should clear ping timeout on successful ping', async () => {
+      vi.useFakeTimers()
+      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+
+      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+
+      await vi.advanceTimersByTimeAsync(TIMEOUTS.HEARTBEAT_INTERVAL + 1)
+
+      expect(clearTimeoutSpy).toHaveBeenCalledTimes(1)
+      expect(mockBroadcast).not.toHaveBeenCalled()
+
+      clearTimeoutSpy.mockRestore()
       vi.useRealTimers()
     })
   })

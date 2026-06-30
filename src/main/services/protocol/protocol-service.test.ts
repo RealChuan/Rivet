@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FileInfo, OperationResult } from '@shared/types/index.js'
-import { ERROR_CODE, SftpStatus } from '@shared/constants/index.js'
+import { ERROR_CODE, IPC_CHANNELS, SftpStatus } from '@shared/constants/index.js'
 import { createErrorInfo, err, type ErrorInfo, ok, type Result } from '@shared/types/result.js'
 
 // --- Mock protocol instance methods ---
@@ -49,7 +49,7 @@ vi.mock('../session-registry.js', () => ({
 
 const mockDecryptPassword = vi.fn()
 vi.mock('../../utils/index.js', () => ({
-  logger: { info: vi.fn(), catch: vi.fn() },
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), catch: vi.fn() },
   decryptPassword: mockDecryptPassword,
 }))
 
@@ -334,6 +334,26 @@ describe('ProtocolService', () => {
       expect(result.success).toBe(false)
       expect(result.error?.code).toBe('CONN_NOT_FOUND')
     })
+
+    it('rejects disconnect when active tasks exist via injected checker', async () => {
+      service.setHasActiveTasksChecker(() => true)
+      // 不需要 setupSession，因为应该在检查活跃任务阶段就返回
+      const result = await service.disconnect('session-1')
+
+      expect(result.success).toBe(false)
+      expect(result.error?.code).toBe('UPLOAD_IN_PROGRESS')
+      expect(mockDisconnect).not.toHaveBeenCalled()
+    })
+
+    it('allows disconnect when no active tasks via injected checker', async () => {
+      service.setHasActiveTasksChecker(() => false)
+      mockSessionGet.mockReturnValue({ protocolType: 'sftp', client: {}, config: {} })
+      mockDisconnect.mockResolvedValue(ok(undefined))
+
+      const result = await service.disconnect('session-1')
+
+      expect(result.success).toBe(true)
+    })
   })
 
   // --- list ---
@@ -534,6 +554,188 @@ describe('ProtocolService', () => {
       // Second call should reuse cached instance
       await service.disconnect('session-2')
       expect(SftpProtocol).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  // --- calculateFolderStats ---
+  describe('calculateFolderStats', () => {
+    function makeFile(name: string, size: number, parent: string): FileInfo {
+      return {
+        name,
+        type: 'file',
+        size,
+        modifyTime: 0,
+        absolutePath: `${parent}/${name}`,
+      }
+    }
+
+    function makeDir(name: string, parent: string): FileInfo {
+      return {
+        name,
+        type: 'directory',
+        size: 0,
+        modifyTime: 0,
+        absolutePath: `${parent}/${name}`,
+      }
+    }
+
+    // Find the final progress event with the given flag set
+    function isRecord(value: unknown): value is Record<string, unknown> {
+      return value !== null && typeof value === 'object'
+    }
+
+    function findProgressCall(
+      sendSpy: { mock: { calls: unknown[][] } },
+      flag: 'isComplete' | 'isCancelled',
+    ): Record<string, unknown> | undefined {
+      for (const callArgs of sendSpy.mock.calls) {
+        const channel = callArgs[0]
+        const data = callArgs[1]
+        if (
+          channel === IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS &&
+          isRecord(data) &&
+          flag in data &&
+          data[flag] === true
+        ) {
+          return data
+        }
+      }
+      return undefined
+    }
+
+    it('session not found returns CONN_NOT_FOUND', async () => {
+      mockSessionGet.mockReturnValue(undefined)
+
+      const result = await service.calculateFolderStats('session-1', '/root')
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error?.code).toBe('CONN_NOT_FOUND')
+      }
+    })
+
+    it('calculates stats for a simple tree', async () => {
+      mockSessionGet.mockReturnValue({ protocolType: 'sftp', client: {}, config: {} })
+
+      mockList.mockImplementation((_sid: string, path: string) => {
+        if (path === '/root') {
+          return Promise.resolve(
+            ok([makeFile('file1.txt', 100, '/root'), makeDir('subdir', '/root')]),
+          )
+        }
+        if (path === '/root/subdir') {
+          return Promise.resolve(ok([makeFile('file2.txt', 200, '/root/subdir')]))
+        }
+        return Promise.resolve(ok([]))
+      })
+
+      const sendSpy = vi.spyOn(
+        service as unknown as { send: (channel: string, data: unknown) => void },
+        'send',
+      )
+
+      const result = await service.calculateFolderStats('session-1', '/root')
+
+      expect(result.success).toBe(true)
+
+      const finalStats = findProgressCall(sendSpy, 'isComplete')
+      expect(finalStats).toBeDefined()
+      expect(finalStats?.fileCount).toBe(2)
+      expect(finalStats?.folderCount).toBe(1)
+      expect(finalStats?.totalSize).toBe(300)
+      expect(finalStats?.errorCount).toBe(0)
+    })
+
+    it('continues when listing a subdirectory fails', async () => {
+      mockSessionGet.mockReturnValue({ protocolType: 'sftp', client: {}, config: {} })
+
+      mockList.mockImplementation((_sid: string, path: string) => {
+        if (path === '/root') {
+          return Promise.resolve(
+            ok([
+              makeFile('file1.txt', 100, '/root'),
+              makeDir('subdir', '/root'),
+              makeDir('brokendir', '/root'),
+            ]),
+          )
+        }
+        if (path === '/root/subdir') {
+          return Promise.resolve(ok([makeFile('file2.txt', 200, '/root/subdir')]))
+        }
+        if (path === '/root/brokendir') {
+          return Promise.resolve(err(createErrorInfo(ERROR_CODE.LIST_ERROR, 'Permission denied')))
+        }
+        return Promise.resolve(ok([]))
+      })
+
+      const sendSpy = vi.spyOn(
+        service as unknown as { send: (channel: string, data: unknown) => void },
+        'send',
+      )
+
+      const result = await service.calculateFolderStats('session-1', '/root')
+
+      expect(result.success).toBe(true)
+
+      const finalStats = findProgressCall(sendSpy, 'isComplete')
+      expect(finalStats).toBeDefined()
+      expect(finalStats?.fileCount).toBe(2)
+      expect(finalStats?.folderCount).toBe(2)
+      expect(finalStats?.totalSize).toBe(300)
+      expect(finalStats?.errorCount).toBe(1)
+    })
+
+    it('respects concurrency limit of 5', async () => {
+      mockSessionGet.mockReturnValue({ protocolType: 'sftp', client: {}, config: {} })
+
+      let activeCount = 0
+      let maxActive = 0
+
+      mockList.mockImplementation(async (_sid: string, path: string) => {
+        activeCount++
+        maxActive = Math.max(maxActive, activeCount)
+        // Yield to allow other concurrent calls to start
+        await new Promise((resolve) => setTimeout(resolve, 1))
+        activeCount--
+
+        if (path === '/root') {
+          return ok(Array.from({ length: 20 }, (_, i) => makeDir(`dir${i}`, '/root')))
+        }
+        return ok([makeFile('file.txt', 10, path)])
+      })
+
+      await service.calculateFolderStats('session-1', '/root')
+
+      expect(maxActive).toBe(5)
+      expect(maxActive).toBeLessThanOrEqual(5)
+    })
+
+    it('cancels and sets isCancelled', async () => {
+      mockSessionGet.mockReturnValue({ protocolType: 'sftp', client: {}, config: {} })
+
+      mockList.mockImplementation(createAbortAwareMock<FileInfo[]>())
+
+      const sendSpy = vi.spyOn(
+        service as unknown as { send: (channel: string, data: unknown) => void },
+        'send',
+      )
+
+      const statsPromise = service.calculateFolderStats('session-1', '/root')
+
+      // Let the list call start and register the abort listener
+      await vi.waitFor(() => {
+        expect(mockList).toHaveBeenCalled()
+      })
+
+      service.cancelCalculateFolderStats('session-1')
+
+      const result = await statsPromise
+
+      expect(result.success).toBe(true)
+
+      const finalStats = findProgressCall(sendSpy, 'isCancelled')
+      expect(finalStats).toBeDefined()
+      expect(finalStats?.isCancelled).toBe(true)
     })
   })
 })

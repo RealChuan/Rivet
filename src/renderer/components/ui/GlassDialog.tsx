@@ -1,7 +1,7 @@
 import type React from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { useRef, useState } from 'react'
 
+import { useDraggable } from '@renderer/hooks/use-draggable.js'
 import { cn } from '@renderer/utils/index.js'
 import { DIALOG_SIZE } from '@shared/constants/index.js'
 
@@ -44,43 +44,11 @@ interface DialogContentProps {
 }
 
 const DialogContent = ({ width, height, children }: DialogContentProps) => {
-  const dialogRef = useRef<HTMLDivElement>(null)
-  const [dragPosition, setDragPosition] = useState<{ x: number; y: number } | null>(null)
-  const dragStart = useRef({ mouseX: 0, mouseY: 0, dialogX: 0, dialogY: 0 })
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement
-    if (target.closest('button, input, textarea, select')) return
-
-    const rect = dialogRef.current?.getBoundingClientRect()
-    dragStart.current = {
-      mouseX: e.clientX,
-      mouseY: e.clientY,
-      dialogX: rect?.left ?? (window.innerWidth - width) / 2,
-      dialogY: rect?.top ?? (window.innerHeight - height) / 2,
-    }
-
-    const handleMouseMove = (ev: MouseEvent) => {
-      const deltaX = ev.clientX - dragStart.current.mouseX
-      const deltaY = ev.clientY - dragStart.current.mouseY
-      setDragPosition({
-        x: Math.max(0, Math.min(window.innerWidth - width, dragStart.current.dialogX + deltaX)),
-        y: Math.max(0, Math.min(window.innerHeight - height, dragStart.current.dialogY + deltaY)),
-      })
-    }
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove)
-      document.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    document.addEventListener('mousemove', handleMouseMove)
-    document.addEventListener('mouseup', handleMouseUp)
-  }
+  const { elementRef, dragPosition, handleMouseDown } = useDraggable({ width, height })
 
   return (
     <Dialog.Content
-      ref={dialogRef}
+      ref={elementRef}
       onPointerDownOutside={(e) => e.preventDefault()}
       onInteractOutside={(e) => e.preventDefault()}
       onCloseAutoFocus={(e) => e.preventDefault()}

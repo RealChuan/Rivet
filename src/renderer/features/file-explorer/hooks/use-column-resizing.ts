@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-const DEFAULT_NAME_WIDTH = 125
+const DEFAULT_PERMISSIONS_WIDTH = 125
 const DEFAULT_MODIFY_TIME_WIDTH = 150
-const DEFAULT_SIZE_WIDTH = 100
-const FIXED_COLUMNS_WIDTH = DEFAULT_NAME_WIDTH
+const DEFAULT_NAME_WIDTH = 100
+const DEFAULT_SIZE_WIDTH = 125
+const FIXED_COLUMNS_WIDTH = DEFAULT_PERMISSIONS_WIDTH
 const GAP_WIDTH = 6
 const MIN_COLUMN_WIDTH = 50
 const SCROLLBAR_WIDTH = 17
@@ -31,10 +32,10 @@ interface UseColumnResizingReturn {
 }
 
 const DEFAULT_WIDTHS: ColumnWidths = {
-  name: DEFAULT_SIZE_WIDTH,
-  permissions: DEFAULT_NAME_WIDTH,
-  owner: DEFAULT_NAME_WIDTH,
-  size: DEFAULT_NAME_WIDTH,
+  name: DEFAULT_NAME_WIDTH,
+  permissions: DEFAULT_PERMISSIONS_WIDTH,
+  owner: DEFAULT_PERMISSIONS_WIDTH,
+  size: DEFAULT_SIZE_WIDTH,
   modifyTime: DEFAULT_MODIFY_TIME_WIDTH,
 }
 
@@ -54,7 +55,7 @@ function computeColumnWidths(
 
   const totalFixedWidth =
     FIXED_COLUMNS_WIDTH * numFixedColumns + DEFAULT_MODIFY_TIME_WIDTH + GAP_WIDTH * numGaps
-  const nameWidth = Math.max(DEFAULT_SIZE_WIDTH, containerWidth - totalFixedWidth - scrollbarWidth)
+  const nameWidth = Math.max(DEFAULT_NAME_WIDTH, containerWidth - totalFixedWidth - scrollbarWidth)
 
   return {
     name: nameWidth,
@@ -187,7 +188,7 @@ export function useColumnResizing(options: UseColumnResizingOptions): UseColumnR
     if (!width || !container) return
 
     const currentScrollbarWidth = container.offsetWidth - container.clientWidth
-    const scrollbarWidth = Math.max(currentScrollbarWidth, 17)
+    const scrollbarWidth = Math.max(currentScrollbarWidth, SCROLLBAR_WIDTH)
     setColumnWidths(computeColumnWidths(width, scrollbarWidth, isSftp))
   }, [isSftp])
 

@@ -26,9 +26,9 @@ import {
   type SftpConnectDetail,
 } from '@shared/types/index.js'
 import { formatErrorMessage, joinPaths } from '@shared/utils/index.js'
-import type { HostVerifier, SessionInfo } from './protocol-types.js'
+import type { HostVerifier } from './protocol-types.js'
 import { sessionRegistry } from '../session-registry.js'
-import { AbstractProtocol } from './abstract-protocol.js'
+import { AbstractProtocol, type SessionInfo } from './abstract-protocol.js'
 
 export class SftpProtocol extends AbstractProtocol<Client> {
   readonly protocolType = PROTOCOL.SFTP
@@ -37,7 +37,7 @@ export class SftpProtocol extends AbstractProtocol<Client> {
   private static readonly MAX_CHUNK_SIZE = 4 * 1024 * 1024 // 4 MB
   private static readonly TARGET_CHUNKS = 200
 
-  protected getSessionInfo(sessionId: string): SessionInfo | null {
+  protected getSessionInfo(sessionId: string): SessionInfo<Client> | null {
     const handle = sessionRegistry.get<Client>(sessionId)
     if (!handle) return null
     return {

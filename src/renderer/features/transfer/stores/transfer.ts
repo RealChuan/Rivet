@@ -111,6 +111,22 @@ interface TransferState {
   startListening: () => () => void
 }
 
+/**
+ * Build a state updater that applies a progress batch and recomputes derived state.
+ * Shared by setVisible, handleProgress, and handleTaskCompleted to avoid duplicate logic.
+ * Returns the original state reference when nothing changed so Zustand skips re-renders.
+ */
+function applyBatchToState(
+  batch: TransferProgressData[],
+): (state: TransferState) => TransferState | Partial<TransferState> {
+  return (state) => {
+    const result = applyProgressBatch(state, batch)
+    if (result === null) return state
+    const derived = result.statusChanged && result.tasks ? computeDerivedState(result.tasks) : {}
+    return { ...result, ...derived }
+  }
+}
+
 const progressBatch = createProgressBatchState()
 
 export const useTransferStore = create<TransferState>((set, get) => ({
@@ -139,13 +155,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     // When becoming visible, flush any buffered progress updates immediately
     if (visible && progressBatch.buffer.length > 0) {
       flushProgressBatch(progressBatch, (batch) => {
-        useTransferStore.setState((state) => {
-          const result = applyProgressBatch(state, batch)
-          if (result === null) return state
-          const derived =
-            result.statusChanged && result.tasks ? computeDerivedState(result.tasks) : {}
-          return { ...result, ...derived }
-        })
+        useTransferStore.setState(applyBatchToState(batch))
       })
     }
   },
@@ -202,13 +212,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
 
       if (batch.length === 0) return
 
-      set((state) => {
-        const result = applyProgressBatch(state, batch)
-        if (result === null) return state
-        const derived =
-          result.statusChanged && result.tasks ? computeDerivedState(result.tasks) : {}
-        return { ...result, ...derived }
-      })
+      set(applyBatchToState(batch))
     }, TIMEOUTS.PROGRESS_FLUSH_MS)
   },
 
@@ -220,13 +224,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     // the task is already gone and the progress update is silently dropped.
     // The user sees the task jump from partial progress to "done" instantly.
     flushProgressBatch(progressBatch, (batch) => {
-      useTransferStore.setState((state) => {
-        const result = applyProgressBatch(state, batch)
-        if (result === null) return state
-        const derived =
-          result.statusChanged && result.tasks ? computeDerivedState(result.tasks) : {}
-        return { ...result, ...derived }
-      })
+      useTransferStore.setState(applyBatchToState(batch))
     })
 
     set((state) => {

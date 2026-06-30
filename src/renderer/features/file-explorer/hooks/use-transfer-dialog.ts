@@ -79,11 +79,7 @@ export function useTransferDialog({ sessionId, currentPath }: UseTransferDialogO
 
     await window.electronAPI.transfer.setLastDir(LAST_DIR_KEY.DOWNLOAD, localDir)
 
-    const itemType = remoteItems.some((i) => i.type === FILE_TYPE.DIRECTORY)
-      ? FILE_TYPE.DIRECTORY
-      : FILE_TYPE.FILE
-
-    await startDownload(remoteItems, sessionId, localDir, itemType)
+    await startDownload(remoteItems, sessionId, localDir)
   }
 
   return { openFilePicker, openFolderPicker, openDownloadDialog }

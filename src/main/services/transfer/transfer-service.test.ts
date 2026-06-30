@@ -13,11 +13,15 @@ import { createErrorInfo, err, ok } from '@shared/types/result.js'
 
 const mockUpload = vi.fn()
 const mockMkdir = vi.fn()
+const mockDownload = vi.fn()
+const mockList = vi.fn()
 
 vi.mock('../protocol/protocol-service.js', () => ({
   protocolService: {
     upload: mockUpload,
     mkdir: mockMkdir,
+    download: mockDownload,
+    list: mockList,
   },
 }))
 
@@ -39,6 +43,10 @@ const mockReaddirSync = vi.fn()
 const mockStatSync = vi.fn()
 const mockReaddirAsync = vi.fn()
 const mockStatAsync = vi.fn()
+const mockMkdirAsync = vi.fn()
+const mockRenameAsync = vi.fn()
+const mockUnlinkAsync = vi.fn()
+const mockRmAsync = vi.fn()
 
 vi.mock('node:fs', () => ({
   default: {
@@ -47,6 +55,10 @@ vi.mock('node:fs', () => ({
     promises: {
       readdir: mockReaddirAsync,
       stat: mockStatAsync,
+      mkdir: mockMkdirAsync,
+      rename: mockRenameAsync,
+      unlink: mockUnlinkAsync,
+      rm: mockRmAsync,
     },
   },
 }))
@@ -245,6 +257,49 @@ describe('TransferService', () => {
       ])
       mockStatSync.mockReturnValue({ size: 100 })
       mockStatAsync.mockResolvedValue({ size: 100 })
+
+      void service.addTasks([folderTask, fileTask1, fileTask2])
+
+      const runningTasks = service.getTasks().filter((t) => t.status === OPERATION_STATUS.RUNNING)
+      expect(runningTasks).toHaveLength(3)
+    })
+
+    it('download folder internal ops do not consume global slots', () => {
+      service.setConcurrency(3, TRANSFER_DIRECTION.DOWNLOAD)
+
+      const folderTask = createFolderTask({
+        id: 'dl-folder-1',
+        direction: TRANSFER_DIRECTION.DOWNLOAD,
+        localPath: '/local/folder',
+        remotePath: '/remote/folder',
+        localDir: '/local',
+      })
+      const fileTask1 = createFileTask({
+        id: 'dl-file-1',
+        direction: TRANSFER_DIRECTION.DOWNLOAD,
+        localPath: '/local/a.txt',
+        remotePath: '/remote/a.txt',
+        localDir: '/local',
+      })
+      const fileTask2 = createFileTask({
+        id: 'dl-file-2',
+        direction: TRANSFER_DIRECTION.DOWNLOAD,
+        localPath: '/local/b.txt',
+        remotePath: '/remote/b.txt',
+        localDir: '/local',
+      })
+
+      mockMkdirAsync.mockResolvedValue(undefined)
+      mockDownload.mockReturnValue(new Promise<void>(() => {}))
+      mockList.mockResolvedValue({
+        success: true,
+        value: [
+          { name: 'file1.txt', type: FILE_TYPE.FILE, size: 100 },
+          { name: 'file2.txt', type: FILE_TYPE.FILE, size: 100 },
+        ],
+        error: undefined,
+        requestId: 'r1',
+      })
 
       void service.addTasks([folderTask, fileTask1, fileTask2])
 

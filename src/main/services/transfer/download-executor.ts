@@ -1,4 +1,3 @@
-import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import type { TransferTask, UploadOperation } from '@shared/types/index.js'
@@ -14,10 +13,13 @@ import {
   createErrorInfo,
 } from '@shared/types/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
-import { joinPaths } from '@shared/utils/index.js'
-import type { TransferContext } from './transfer-context.js'
+import type {
+  DirectoryExpanderEntry,
+  DirectoryExpanderStrategy,
+  TransferContext,
+} from './transfer-context.js'
 import { protocolService } from '../protocol/protocol-service.js'
-import { TEMP_FILE_SUFFIX, isAbortError } from './transfer-context.js'
+import { TEMP_FILE_SUFFIX, expandDirectory, isAbortError } from './transfer-context.js'
 
 export async function executeDownloadFile(
   task: TransferTask,
@@ -55,61 +57,29 @@ export async function executeDownloadFile(
   return ok(undefined)
 }
 
-async function expandRemoteDirectory(
-  ctx: TransferContext,
-  task: TransferTask,
-  remoteDir: string,
-): Promise<void> {
-  if (ctx.isTaskCancelled(task.id)) return
+const downloadExpanderStrategy: DirectoryExpanderStrategy = {
+  mkdirIncludesLocalPath: true,
+  fileOperationType: TRANSFER_OPERATION_TYPE.DOWNLOAD,
 
-  const relativePath = path.posix.relative(task.remotePath, remoteDir)
-  const localBase = relativePath === '' ? task.localPath : path.join(task.localPath, relativePath)
-
-  const listResult = await protocolService.list(task.sessionId, remoteDir)
-
-  if (!listResult.success) {
-    const errorMessage = listResult.error?.message ?? 'Failed to list remote directory'
-    logger.error(`Failed to list remote directory: ${remoteDir}`, { errorMessage })
-    ctx.failTaskAndCleanup(task, errorMessage)
-    return
-  }
-
-  const entries = listResult.value
-
-  for (const entry of entries) {
-    const childRemotePath = joinPaths(remoteDir, entry.name)
-
-    if (entry.type === FILE_TYPE.DIRECTORY) {
-      ctx.addOperation({
-        id: crypto.randomUUID(),
-        parentTaskId: task.id,
-        type: TRANSFER_OPERATION_TYPE.MKDIR,
-        remotePath: childRemotePath,
-        localPath: path.join(localBase, entry.name),
-        itemName: entry.name,
-        status: OPERATION_STATUS.WAITING,
-        transferredSize: 0,
-      })
-    } else {
-      task.totalFileCount = (task.totalFileCount ?? 0) + 1
-
-      ctx.addOperation({
-        id: crypto.randomUUID(),
-        parentTaskId: task.id,
-        type: TRANSFER_OPERATION_TYPE.DOWNLOAD,
-        remotePath: childRemotePath,
-        localPath: path.join(localBase, entry.name),
-        itemName: entry.name,
-        status: OPERATION_STATUS.WAITING,
-        fileSize: entry.size,
-        transferredSize: 0,
-      })
+  async listEntries(task, _localDir, remoteDir) {
+    const listResult = await protocolService.list(task.sessionId, remoteDir)
+    if (!listResult.success) {
+      const errorMessage = listResult.error?.message ?? 'Failed to list remote directory'
+      logger.error(`Failed to list remote directory: ${remoteDir}`, { errorMessage })
+      return { ok: false, errorMessage }
     }
-  }
+    const entries: DirectoryExpanderEntry[] = listResult.value.map((entry) => ({
+      name: entry.name,
+      isDirectory: entry.type === FILE_TYPE.DIRECTORY,
+      isFile: entry.type === FILE_TYPE.FILE,
+      size: entry.size,
+    }))
+    return { ok: true, entries }
+  },
 
-  ctx.updateTaskStats(task)
-  ctx.scheduleFolderOps(task.id)
-  ctx.throttledSendProgress(task)
+  resolveFileSize(entry) {
+    return Promise.resolve(entry.size)
+  },
 }
 
 export async function executeDownloadFolderOp(
@@ -127,7 +97,7 @@ export async function executeDownloadFolderOp(
     }
     op.status = OPERATION_STATUS.COMPLETED
     if (task) {
-      await expandRemoteDirectory(ctx, task, op.remotePath)
+      await expandDirectory(ctx, task, op.remotePath, downloadExpanderStrategy)
     }
   } else if (op.type === TRANSFER_OPERATION_TYPE.DOWNLOAD) {
     const controller = new AbortController()

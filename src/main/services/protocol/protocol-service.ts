@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import pLimit from 'p-limit'
 import type { FolderStatsProgress } from '@shared/types/folder-stats.js'
 import {
   ERROR_CODE,
@@ -26,7 +27,6 @@ import {
 import { getHostKeyRecord } from '../../stores/index.js'
 import { decryptPassword, logger } from '../../utils/index.js'
 import { sessionRegistry } from '../session-registry.js'
-import { transferService } from '../transfer/index.js'
 import { type FileProtocol, type HostVerifierResult } from './protocol-types.js'
 import { SftpProtocol } from './SftpProtocol.js'
 import { WebdavProtocol } from './WebdavProtocol.js'
@@ -36,11 +36,19 @@ interface ActiveRequestInfo {
   sessionId: string
 }
 
+const STATS_CONCURRENCY = 5
+
 export class ProtocolService {
   private protocols = new Map<ProtocolType, FileProtocol>()
   private activeRequests = new Map<string, ActiveRequestInfo>()
   private statsControllers = new Map<string, AbortController>()
   private mainWindow: Electron.BrowserWindow | null = null
+  private hasActiveTasksFn: (sessionId: string) => boolean = () => false
+
+  /** 注入活跃任务检查回调，解耦 transfer 层反向依赖 */
+  setHasActiveTasksChecker(fn: (sessionId: string) => boolean): void {
+    this.hasActiveTasksFn = fn
+  }
 
   cancel(requestId: string): void {
     const info = this.activeRequests.get(requestId)
@@ -263,7 +271,7 @@ export class ProtocolService {
   }
 
   async disconnect(sessionId: string, requestId?: string): Promise<ProtocolResponse<void>> {
-    if (transferService.hasActiveTasks(sessionId)) {
+    if (this.hasActiveTasksFn(sessionId)) {
       return {
         requestId: requestId ?? crypto.randomUUID(),
         success: false,
@@ -412,62 +420,6 @@ export class ProtocolService {
     return protocolResult.value.ping(sessionId)
   }
 
-  private createStatsWorker(ctx: {
-    stats: FolderStatsProgress
-    queue: string[]
-    activeCount: { value: number }
-    protocol: FileProtocol
-    sessionId: string
-    controller: AbortController
-  }): () => Promise<void> {
-    const { stats, queue, activeCount, protocol, sessionId, controller } = ctx
-
-    return async () => {
-      while (true) {
-        if (controller.signal.aborted) return
-
-        const currentPath = queue.shift()
-        if (!currentPath) {
-          if (activeCount.value === 0) return
-          await new Promise<void>((resolve) => setTimeout(resolve, 0))
-          continue
-        }
-
-        activeCount.value++
-        try {
-          stats.currentPath = currentPath
-
-          const listResult = await protocol.list(sessionId, currentPath, controller.signal)
-          if (isErr(listResult)) {
-            stats.errorCount++
-            logger.warn(`Folder stats: failed to list ${currentPath}`)
-            continue
-          }
-
-          for (const file of listResult.value) {
-            if (file.type === FILE_TYPE.DIRECTORY) {
-              stats.folderCount++
-              queue.push(file.absolutePath)
-            } else {
-              stats.fileCount++
-              stats.totalSize += file.size
-            }
-          }
-
-          this.send(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, { sessionId, ...stats })
-        } catch (error) {
-          if (error instanceof Error && error.name === 'AbortError') {
-            return
-          }
-          stats.errorCount++
-          logger.warn(`Folder stats: error listing ${currentPath}: ${String(error)}`)
-        } finally {
-          activeCount.value--
-        }
-      }
-    }
-  }
-
   async calculateFolderStats(sessionId: string, path: string): Promise<Result<void, ErrorInfo>> {
     const protocolResult = this.getProtocolBySessionId(sessionId)
     if (isErr(protocolResult)) {
@@ -487,19 +439,52 @@ export class ProtocolService {
       errorCount: 0,
     }
 
-    const CONCURRENCY = 5
-    const worker = this.createStatsWorker({
-      stats,
-      queue: [path],
-      activeCount: { value: 0 },
-      protocol: protocolResult.value,
-      sessionId,
-      controller,
-    })
+    const protocol = protocolResult.value
+    const limit = pLimit(STATS_CONCURRENCY)
+    const pendingPromises: Promise<void>[] = []
+
+    const processPath = (currentPath: string): void => {
+      const promise = limit(async () => {
+        if (controller.signal.aborted) return
+
+        stats.currentPath = currentPath
+        try {
+          const listResult = await protocol.list(sessionId, currentPath, controller.signal)
+          if (isErr(listResult)) {
+            stats.errorCount++
+            logger.warn(`Folder stats: failed to list ${currentPath}`)
+            return
+          }
+
+          for (const file of listResult.value) {
+            if (file.type === FILE_TYPE.DIRECTORY) {
+              stats.folderCount++
+              processPath(file.absolutePath)
+            } else {
+              stats.fileCount++
+              stats.totalSize += file.size
+            }
+          }
+
+          this.send(IPC_CHANNELS.PROTOCOL.FOLDER_STATS_PROGRESS, { sessionId, ...stats })
+        } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            return
+          }
+          stats.errorCount++
+          logger.warn(`Folder stats: error listing ${currentPath}: ${String(error)}`)
+        }
+      })
+      pendingPromises.push(promise)
+    }
 
     try {
-      const workers = Array.from({ length: CONCURRENCY }, () => worker())
-      await Promise.all(workers)
+      processPath(path)
+
+      while (pendingPromises.length > 0) {
+        const current = pendingPromises.splice(0)
+        await Promise.all(current)
+      }
 
       if (controller.signal.aborted) {
         stats.isCancelled = true

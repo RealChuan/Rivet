@@ -501,20 +501,37 @@ describe('persistence', () => {
       expect(result.value).not.toBe(mockConfig.uiSettings)
     })
 
-    it('should return value for other keys', () => {
-      vi.mocked(getInMemoryConfig).mockReturnValue({
-        ...mockConfig,
-        customKey: 'customValue',
-      } as unknown as ReturnType<typeof getInMemoryConfig>)
+    it('should return value for transferSettings key', () => {
+      vi.mocked(getInMemoryConfig).mockReturnValue(mockConfig)
 
-      const allConfig = getInMemoryConfig() as unknown as Record<string, unknown>
-      const customKey = Object.keys(allConfig).find((k) => k === 'customKey') as keyof ReturnType<
-        typeof getInMemoryConfig
-      >
-      const result = getConfigurationValue(customKey)
+      const result = getConfigurationValue(STORE_KEY.TRANSFER_SETTINGS)
 
       expect(result.success).toBe(true)
-      expect(result.value).toBe('customValue')
+      expect(result.value).toBe(mockConfig.transferSettings)
+    })
+
+    it('should return value for connectionSortOrder key', () => {
+      vi.mocked(getInMemoryConfig).mockReturnValue(mockConfig)
+
+      const result = getConfigurationValue(STORE_KEY.CONNECTION_SORT_ORDER)
+
+      expect(result.success).toBe(true)
+      expect(result.value).toBe(mockConfig.connectionSortOrder)
+    })
+
+    it('should return error for unknown config key', () => {
+      vi.mocked(getInMemoryConfig).mockReturnValue(mockConfig)
+
+      const result = getConfigurationValue('unknownKey')
+
+      expect(result.success).toBe(false)
+      expect(result.error).toEqual(
+        expect.objectContaining({
+          code: 'INVALID_CONFIG',
+          message: 'Unknown config key: unknownKey',
+        }),
+      )
+      expect(getInMemoryConfig).not.toHaveBeenCalled()
     })
 
     it('should return error when getInMemoryConfig throws', () => {

@@ -33,6 +33,7 @@ describe('useApplicationInitialization', () => {
   const mockLoadSortOrderFromSettings = vi.fn().mockResolvedValue(undefined)
   const mockStartTransferListening = vi.fn(() => vi.fn())
   const mockLoadExistingTasks = vi.fn().mockResolvedValue(undefined)
+  const mockLoadConcurrency = vi.fn().mockResolvedValue(undefined)
   const mockConfigGet = vi.fn()
 
   afterEach(() => {
@@ -64,11 +65,13 @@ describe('useApplicationInitialization', () => {
         selector: (state: {
           startListening: typeof mockStartTransferListening
           loadExistingTasks: typeof mockLoadExistingTasks
+          loadConcurrency: typeof mockLoadConcurrency
         }) => unknown,
       ) =>
         selector({
           startListening: mockStartTransferListening,
           loadExistingTasks: mockLoadExistingTasks,
+          loadConcurrency: mockLoadConcurrency,
         }),
     )
     ;(useTranslation as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -158,11 +161,13 @@ describe('useApplicationInitialization', () => {
         selector: (state: {
           startListening: typeof mockStartTransferListening
           loadExistingTasks: typeof mockLoadExistingTasks
+          loadConcurrency: typeof mockLoadConcurrency
         }) => unknown,
       ) =>
         selector({
           startListening: mockStartTransferListening,
           loadExistingTasks: mockLoadExistingTasks,
+          loadConcurrency: mockLoadConcurrency,
         }),
     )
 
@@ -173,6 +178,7 @@ describe('useApplicationInitialization', () => {
       expect(mockLoadSortOrderFromSettings).toHaveBeenCalled()
       expect(mockStartTransferListening).toHaveBeenCalled()
       expect(mockLoadExistingTasks).toHaveBeenCalled()
+      expect(mockLoadConcurrency).toHaveBeenCalled()
     })
   })
 })

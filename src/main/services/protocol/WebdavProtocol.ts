@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import http from 'node:http'
 import https from 'node:https'
+import { pipeline } from 'node:stream/promises'
 import { createClient, type FileStat, type WebDAVClient } from 'webdav'
 
 import { generateSessionId, logger } from '@main/utils/index.js'
@@ -28,9 +29,9 @@ import {
   type Result,
 } from '@shared/types/index.js'
 import { formatErrorMessage, joinPaths } from '@shared/utils/index.js'
-import type { HostVerifier, SessionInfo } from './protocol-types.js'
+import type { HostVerifier } from './protocol-types.js'
 import { sessionRegistry } from '../session-registry.js'
-import { AbstractProtocol } from './abstract-protocol.js'
+import { AbstractProtocol, type SessionInfo } from './abstract-protocol.js'
 
 interface WebDAVSession {
   client: WebDAVClient
@@ -41,7 +42,7 @@ interface WebDAVSession {
 export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
   readonly protocolType = PROTOCOL.WEBDAV
 
-  protected getSessionInfo(sessionId: string): SessionInfo | null {
+  protected getSessionInfo(sessionId: string): SessionInfo<WebDAVSession> | null {
     const handle = sessionRegistry.get<WebDAVSession>(sessionId)
     if (!handle) return null
     return {
@@ -254,11 +255,20 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
 
       const stream = fs.createReadStream(localPath)
       stream.on('data', (chunk: Buffer) => {
-        if (!signal.aborted) {
-          transferred += chunk.length
-          onProgress(transferred)
+        if (signal.aborted) {
+          return
         }
+        transferred += chunk.length
+        onProgress(transferred)
       })
+
+      signal.addEventListener(
+        'abort',
+        () => {
+          stream.destroy()
+        },
+        { once: true },
+      )
 
       await session.client.putFileContents(serverPath, stream, {
         contentLength,
@@ -292,31 +302,14 @@ export class WebdavProtocol extends AbstractProtocol<WebDAVSession> {
       const readStream = session.client.createReadStream(remotePath, { signal })
 
       let totalTransferred = 0
-
-      await new Promise<void>((resolve, reject) => {
-        readStream.on('data', (chunk: Buffer) => {
-          if (!signal.aborted) {
-            totalTransferred += chunk.length
-            onProgress(totalTransferred)
-          }
-        })
-
-        readStream.on('error', (error: Error) => {
-          writeStream.end()
-          reject(error)
-        })
-
-        writeStream.on('error', (error: Error) => {
-          readStream.destroy()
-          reject(error)
-        })
-
-        writeStream.on('finish', () => {
-          resolve()
-        })
-
-        readStream.pipe(writeStream)
+      readStream.on('data', (chunk: Buffer) => {
+        if (!signal.aborted) {
+          totalTransferred += chunk.length
+          onProgress(totalTransferred)
+        }
       })
+
+      await pipeline(readStream, writeStream, { signal })
 
       if (signal.aborted) {
         return err(createErrorInfo(ERROR_CODE.DOWNLOAD_ABORTED, ERROR_MESSAGE.DOWNLOAD_ABORTED))

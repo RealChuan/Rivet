@@ -285,23 +285,16 @@ export class TransferService implements TransferContext {
     const task = this.tasks.find((t) => t.id === op.parentTaskId)
     if (!task) return
 
-    task.status = OPERATION_STATUS.FAILED
-    task.errorMessage = errorMessage
-
-    this.cancelTaskWaitingOperations(task.id)
     this.abortTaskRunningOperations(task.id)
-
-    this.folderRunningOps.delete(task.id)
-    this.decrementRunningTasks(task.direction)
     this.abortControllers.delete(op.id)
-    this.speedSamples.delete(task.id)
-    this.lastProgressTime.delete(task.id)
-
-    this.sendTaskFailed(task)
-    this.scheduleTasks()
+    this.failTaskCommon(task, errorMessage)
   }
 
   failTaskAndCleanup(task: TransferTask, errorMessage: string): void {
+    this.failTaskCommon(task, errorMessage)
+  }
+
+  private failTaskCommon(task: TransferTask, errorMessage: string): void {
     task.status = OPERATION_STATUS.FAILED
     task.errorMessage = errorMessage
     this.cancelTaskWaitingOperations(task.id)

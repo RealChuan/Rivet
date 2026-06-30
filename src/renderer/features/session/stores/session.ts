@@ -11,6 +11,7 @@ export interface SessionStore {
   currentListRequestId: string | null
 
   setActiveSession: (sessionId: string) => void
+  updateSession: (sessionId: string, patch: Partial<Session>) => void
   updateCurrentPath: (sessionId: string, path: string) => void
   setFiles: (sessionId: string, files: FileInfo[]) => void
   setLoading: (sessionId: string, loading: boolean) => void
@@ -72,37 +73,27 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
     set({ activeSessionId: sessionId })
   },
 
-  updateCurrentPath: (sessionId, path) => {
+  updateSession: (sessionId, patch) => {
     set((state) => ({
-      sessions: state.sessions.map((s) =>
-        s.sessionId === sessionId ? { ...s, currentPath: path } : s,
-      ),
+      sessions: state.sessions.map((s) => (s.sessionId === sessionId ? { ...s, ...patch } : s)),
     }))
+  },
+
+  updateCurrentPath: (sessionId, path) => {
+    get().updateSession(sessionId, { currentPath: path })
   },
 
   setFiles: (sessionId, files) => {
     const safeFiles = sanitizeFiles(files)
-    set((state) => ({
-      sessions: state.sessions.map((s) =>
-        s.sessionId === sessionId ? { ...s, files: safeFiles } : s,
-      ),
-    }))
+    get().updateSession(sessionId, { files: safeFiles })
   },
 
   setLoading: (sessionId, loading) => {
-    set((state) => ({
-      sessions: state.sessions.map((s) =>
-        s.sessionId === sessionId ? { ...s, isLoading: loading } : s,
-      ),
-    }))
+    get().updateSession(sessionId, { isLoading: loading })
   },
 
   setOperating: (sessionId, operating) => {
-    set((state) => ({
-      sessions: state.sessions.map((s) =>
-        s.sessionId === sessionId ? { ...s, isOperating: operating } : s,
-      ),
-    }))
+    get().updateSession(sessionId, { isOperating: operating })
   },
 
   refreshCurrentDirectory: async (sessionId) => {

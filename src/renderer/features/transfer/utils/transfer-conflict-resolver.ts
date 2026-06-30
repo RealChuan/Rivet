@@ -1,4 +1,3 @@
-import type { FileType } from '@shared/constants/ui.js'
 import type { ConflictResolution } from '@shared/types/transfer.js'
 import { FILE_TYPE } from '@shared/constants/ui.js'
 import { joinPaths, pathBasename } from '@shared/utils/index.js'
@@ -6,37 +5,6 @@ import type { TargetFileEntry } from './transfer-conflict.js'
 import type { ResolvedTask } from './transfer-task-builder.js'
 import { useTransferConflictStore } from '../stores/transfer-conflict.js'
 import { applyResolutions, detectConflicts } from './transfer-conflict.js'
-
-interface ResolveParams {
-  localPaths: string[]
-  remoteFiles: TargetFileEntry[]
-  remoteDir: string
-  itemType: FileType
-}
-
-export async function resolveConflictsAndBuildTasks(
-  params: ResolveParams,
-): Promise<ResolvedTask[] | null> {
-  const { localPaths, remoteFiles, remoteDir, itemType } = params
-
-  const conflicts = detectConflicts(localPaths, remoteFiles, remoteDir, itemType)
-
-  if (conflicts.length > 0) {
-    const resolutions = await new Promise<ConflictResolution[] | null>((resolve) => {
-      useTransferConflictStore.getState().openDialog(conflicts, resolve)
-    })
-
-    if (!resolutions) return null
-
-    return applyResolutions(localPaths, resolutions, remoteDir, itemType)
-  }
-
-  return localPaths.map((p) => ({
-    localPath: p,
-    remotePath: joinPaths(remoteDir, pathBasename(p)),
-    itemName: pathBasename(p),
-  }))
-}
 
 interface MixedResolveParams {
   filePaths: string[]

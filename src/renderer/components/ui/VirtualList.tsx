@@ -1,4 +1,5 @@
-import React, { type ReactElement, type ReactNode } from 'react'
+import type React from 'react'
+import { type ReactElement, type ReactNode } from 'react'
 import { AutoSizer, type SizeProps } from 'react-virtualized-auto-sizer'
 import { List, type ListImperativeAPI, type RowComponentProps } from 'react-window'
 
@@ -37,14 +38,6 @@ function Row<T>({
   return (<>{element}</>) as ReactElement
 }
 
-const MemoRow = React.memo(Row, (prevProps, nextProps) => {
-  return (
-    prevProps.index === nextProps.index &&
-    prevProps.items[prevProps.index] === nextProps.items[nextProps.index] &&
-    prevProps.renderItem === nextProps.renderItem
-  )
-})
-
 export function VirtualList<T>({
   items: rawItems,
   itemHeight,
@@ -66,7 +59,7 @@ export function VirtualList<T>({
     return (
       <List
         listRef={listRef ?? null}
-        rowComponent={MemoRow as unknown as (props: unknown) => ReactElement | null} // react-window rowComponent 类型与 React.memo 不兼容
+        rowComponent={Row}
         rowCount={items.length}
         rowHeight={itemHeight}
         rowProps={rowProps}

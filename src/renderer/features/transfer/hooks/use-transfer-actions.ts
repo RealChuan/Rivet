@@ -1,6 +1,5 @@
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ConflictAction } from '@shared/constants/transfer.js'
 import type { FileType } from '@shared/constants/ui.js'
 import { useUiStore } from '@renderer/stores/index.js'
 import logger from '@renderer/utils/logger.js'
@@ -8,12 +7,9 @@ import { TOAST_TYPE } from '@shared/constants/index.js'
 import { SIDEBAR_VIEW, TRANSFER_DIRECTION } from '@shared/constants/transfer.js'
 import { FILE_TYPE } from '@shared/constants/ui.js'
 import { useTransferStore } from '../stores/transfer.js'
+import { resolveMixedConflicts } from '../utils/transfer-conflict-resolver.js'
 import {
-  resolveConflictsAndBuildTasks,
-  resolveMixedConflicts,
-} from '../utils/transfer-conflict-resolver.js'
-import {
-  buildDownloadTask,
+  buildDownloadTasksFromResolved,
   buildTransferTask,
   fetchRemoteFiles,
 } from '../utils/transfer-task-builder.js'
@@ -35,7 +31,6 @@ interface UseTransferActionsReturn {
     remoteItems: { path: string; name: string; type: FileType; size: number }[],
     sessionId: string,
     localDir: string,
-    itemType?: FileType,
   ) => Promise<void>
   cancelTask: (taskId: string) => Promise<void>
   cancelAll: (sessionId?: string) => Promise<void>
@@ -128,55 +123,36 @@ export function useTransferActions(): UseTransferActionsReturn {
     remoteItems: { path: string; name: string; type: FileType; size: number }[],
     sessionId: string,
     localDir: string,
-    itemType: FileType = FILE_TYPE.FILE,
   ) => {
     if (remoteItems.length === 0) return
 
     try {
-      const remotePaths = remoteItems.map((item) => item.path)
+      const filePaths = remoteItems
+        .filter((item) => item.type === FILE_TYPE.FILE)
+        .map((item) => item.path)
+      const folderPaths = remoteItems
+        .filter((item) => item.type === FILE_TYPE.DIRECTORY)
+        .map((item) => item.path)
+
       const localFiles = await window.electronAPI.transfer.checkLocalFiles(localDir)
 
-      const resolvedPaths = await resolveConflictsAndBuildTasks({
-        localPaths: remotePaths,
+      const result = await resolveMixedConflicts({
+        filePaths,
+        folderPaths,
         remoteFiles: localFiles,
         remoteDir: localDir,
-        itemType,
       })
 
-      if (!resolvedPaths) return
+      if (!result) return
 
-      const sizeMap = new Map(remoteItems.map((item) => [item.path, item.size]))
+      const tasks = buildDownloadTasksFromResolved(remoteItems, result, sessionId, localDir)
 
-      const resolvedItems: {
-        path: string
-        size: number
-        conflictAction?: ConflictAction
-        renamedName?: string
-      }[] = resolvedPaths.map((r) => ({
-        path: r.localPath,
-        size: sizeMap.get(r.localPath) ?? 0,
-        ...(r.conflictAction ? { conflictAction: r.conflictAction } : {}),
-        ...(r.renamedName ? { renamedName: r.renamedName } : {}),
-      }))
+      const addResult = await window.electronAPI.transfer.add(tasks)
 
-      const tasks = resolvedItems.map((item) =>
-        buildDownloadTask(
-          item.path,
-          sessionId,
-          localDir,
-          itemType,
-          item.size,
-          item.conflictAction,
-          item.renamedName,
-        ),
-      )
-
-      const result = await window.electronAPI.transfer.add(tasks)
-
-      if (result.duplicates.length > 0) {
+      if (addResult.duplicates.length > 0) {
         addToast({
           type: TOAST_TYPE.WARNING,
-          message: t(($) => $.toast.downloadDuplicates, { count: result.duplicates.length }),
+          message: t(($) => $.toast.downloadDuplicates, { count: addResult.duplicates.length }),
         })
       }
 

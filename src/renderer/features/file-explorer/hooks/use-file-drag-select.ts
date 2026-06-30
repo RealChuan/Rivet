@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
+
 import type { FileInfo } from '@shared/types/index.js'
 
 interface Point {
@@ -98,18 +99,19 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
   const dragStartRef = useRef(dragStart)
   const dragEndRef = useRef(dragEnd)
   const dragItemsRef = useRef<FileInfo[]>(items)
-  const onDragStartRef = useRef(onDragStart)
-  const onDragSelectRef = useRef(onDragSelect)
   const lastMouseClientRef = useRef<Point>({ x: 0, y: 0 })
   const scrollRafRef = useRef<number | null>(null)
 
-  useEffect(() => {
-    isDraggingRef.current = isDragging
-    hasStartedDragRef.current = hasStartedDrag
-    dragStartRef.current = dragStart
-    dragEndRef.current = dragEnd
-    onDragStartRef.current = onDragStart
-    onDragSelectRef.current = onDragSelect
+  // State refs above are kept in sync manually inside the event handlers below
+  // (each setState is paired with an immediate ref assignment), so the document
+  // listeners always read the latest values without a per-render sync effect.
+  // The callback props are accessed via useEffectEvent so the document listeners
+  // always invoke the latest callbacks without mirroring them into refs.
+  const callDragStart = useEffectEvent(() => {
+    onDragStart?.()
+  })
+  const callDragSelect = useEffectEvent((files: FileInfo[]) => {
+    onDragSelect?.(files)
   })
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -249,7 +251,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
       if (!currentHasStartedDrag) {
         setHasStartedDrag(true)
         hasStartedDragRef.current = true
-        onDragStartRef.current?.()
+        callDragStart()
       }
 
       setDragSelection(computeFileSelection(currentDragStart, point, currentItems, itemHeight))
@@ -287,7 +289,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
         currentItems,
         itemHeight,
       )
-      onDragSelectRef.current?.(selectFilesByName(currentItems, names))
+      callDragSelect(selectFilesByName(currentItems, names))
 
       setDragSelection(new Set())
       setIsDragging(false)

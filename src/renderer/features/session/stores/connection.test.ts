@@ -301,6 +301,106 @@ describe('useConnectionStore', () => {
     })
   })
 
+  describe('IPC 返回非法数据时不更新 state', () => {
+    it('should not update connections when array contains item missing required id field', async () => {
+      const existing = createConnection({ id: 'conn-1' })
+      useConnectionStore.setState({ connections: [existing] })
+
+      mockConfigGet.mockImplementation((key: string) => {
+        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+          return Promise.resolve(
+            ok([{ name: 'x', host: 'h', username: 'u', port: 22, protocol: 'sftp' }]),
+          )
+        }
+        return Promise.resolve(err(new Error('not found')))
+      })
+
+      await useConnectionStore.getState().loadSavedConnections()
+
+      expect(useConnectionStore.getState().connections).toEqual([existing])
+    })
+
+    it('should not update connections when array contains item with wrong port type', async () => {
+      const existing = createConnection({ id: 'conn-1' })
+      useConnectionStore.setState({ connections: [existing] })
+
+      mockConfigGet.mockImplementation((key: string) => {
+        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+          return Promise.resolve(
+            ok([{ id: '1', name: 'x', host: 'h', username: 'u', port: '22', protocol: 'sftp' }]),
+          )
+        }
+        return Promise.resolve(err(new Error('not found')))
+      })
+
+      await useConnectionStore.getState().loadSavedConnections()
+
+      expect(useConnectionStore.getState().connections).toEqual([existing])
+    })
+
+    it('should not update connections when array contains item with invalid protocol', async () => {
+      const existing = createConnection({ id: 'conn-1' })
+      useConnectionStore.setState({ connections: [existing] })
+
+      mockConfigGet.mockImplementation((key: string) => {
+        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+          return Promise.resolve(
+            ok([{ id: '1', name: 'x', host: 'h', username: 'u', port: 22, protocol: 'ftp' }]),
+          )
+        }
+        return Promise.resolve(err(new Error('not found')))
+      })
+
+      await useConnectionStore.getState().loadSavedConnections()
+
+      expect(useConnectionStore.getState().connections).toEqual([existing])
+    })
+
+    it('should not update connections when array contains non-object item', async () => {
+      const existing = createConnection({ id: 'conn-1' })
+      useConnectionStore.setState({ connections: [existing] })
+
+      mockConfigGet.mockImplementation((key: string) => {
+        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+          return Promise.resolve(ok(['not-an-object']))
+        }
+        return Promise.resolve(err(new Error('not found')))
+      })
+
+      await useConnectionStore.getState().loadSavedConnections()
+
+      expect(useConnectionStore.getState().connections).toEqual([existing])
+    })
+
+    it('should not update sortOrder when config.get returns invalid string value', async () => {
+      useConnectionStore.setState({ sortOrder: SORT_ORDER.ASC })
+      mockConfigGet.mockImplementation((key: string) => {
+        if (key === STORE_KEY.CONNECTION_SORT_ORDER) {
+          return Promise.resolve(ok('invalid-order'))
+        }
+        return Promise.resolve(err(new Error('not found')))
+      })
+
+      await useConnectionStore.getState().loadSortOrderFromSettings()
+
+      expect(useConnectionStore.getState().sortOrder).toBe(SORT_ORDER.ASC)
+    })
+
+    it('should not update sortOrder when config.get returns non-string value', async () => {
+      useConnectionStore.setState({ sortOrder: SORT_ORDER.DESC })
+      mockConfigGet.mockImplementation((key: string) => {
+        if (key === STORE_KEY.CONNECTION_SORT_ORDER) {
+          return Promise.resolve(ok(123))
+        }
+        return Promise.resolve(err(new Error('not found')))
+      })
+
+      await useConnectionStore.getState().loadSortOrderFromSettings()
+
+      expect(useConnectionStore.getState().sortOrder).toBe(SORT_ORDER.DESC)
+    })
+  })
+
   describe('saveConnectionConfigs', () => {
     it('should persist current connections via config.set', async () => {
       const config1 = createConnection({ id: 'conn-1' })

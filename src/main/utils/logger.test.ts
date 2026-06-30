@@ -2,18 +2,22 @@
 import log from 'electron-log/main'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Mock shared utils that logger depends on
-vi.mock('@shared/utils/index.js', () => ({
-  formatMessage: vi.fn((msg: string) => `[formatted] ${msg}`),
-  getCallerInfo: vi.fn(() => 'test-caller'),
-  catchLog: vi.fn(
-    (logFn: (msg: string) => void, error: unknown, context?: Record<string, unknown>) => {
-      const message = error instanceof Error ? error.message : String(error)
-      const contextStr = context ? ` ${JSON.stringify(context)}` : ''
-      logFn(`[formatted] ${message}${contextStr}`)
-    },
-  ),
-}))
+// Mock shared utils that logger depends on（保留 CALLER_DEPTH 等常量真实值）
+vi.mock('@shared/utils/index.js', async (importOriginal) => {
+  const actual: Record<string, unknown> = await importOriginal()
+  return {
+    ...actual,
+    formatMessage: vi.fn((msg: string) => `[formatted] ${msg}`),
+    getCallerInfo: vi.fn(() => 'test-caller'),
+    catchLog: vi.fn(
+      (logFn: (msg: string) => void, error: unknown, context?: Record<string, unknown>) => {
+        const message = error instanceof Error ? error.message : String(error)
+        const contextStr = context ? ` ${JSON.stringify(context)}` : ''
+        logFn(`[formatted] ${message}${contextStr}`)
+      },
+    ),
+  }
+})
 
 describe('main logger', () => {
   beforeEach(() => {

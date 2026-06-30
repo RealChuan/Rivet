@@ -9,6 +9,7 @@
 
 import * as Sentry from '@sentry/electron/main'
 import { app, session } from 'electron'
+
 import { APP_NAME } from '@shared/constants/index.js'
 import { setupIpcHandlers } from '../ipc/index.js'
 import { initializeConfig, startAutoSave } from '../stores/index.js'

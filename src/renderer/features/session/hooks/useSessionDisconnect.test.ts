@@ -9,8 +9,7 @@ const mockGetSessionByConnectionId = vi.fn()
 const mockUnsubscribe = vi.fn()
 
 let capturedCallback:
-  | ((event: { connectionId: string; protocol: string; name: string }) => void)
-  | null = null
+  ((event: { connectionId: string; protocol: string; name: string }) => void) | null = null
 
 const mockOnSessionDisconnected = vi.fn(
   (cb: (event: { connectionId: string; protocol: string; name: string }) => void) => {

@@ -25,6 +25,8 @@ export class SessionRegistry {
   }
 
   get<T>(sessionId: string): SessionHandle<T> | undefined {
+    // 类型安全保证：register<T> 时调用方已通过 protocol 实例的泛型参数约束 T
+    // Map 运行时存储为 unknown，泛型 T 在编译期被擦除，此处断言是不可避免的类型擦除补偿
     return this.sessions.get(sessionId) as SessionHandle<T> | undefined
   }
 

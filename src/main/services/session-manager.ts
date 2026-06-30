@@ -59,18 +59,21 @@ class SessionManager {
 
     sessionRegistry.setClosing(sessionId)
 
+    let timeoutId: NodeJS.Timeout | undefined
     try {
       await Promise.race([
         this.callbacks.disconnect(sessionId),
-        new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error('Disconnect timeout')), TIMEOUTS.DISCONNECT),
-        ),
+        new Promise<void>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Disconnect timeout')), TIMEOUTS.DISCONNECT)
+        }),
       ])
     } catch (e) {
       sessionRegistry.unregister(sessionId)
       return err(
         createErrorInfo(ERROR_CODE.DISCONNECT_ERROR, 'Disconnect failed', formatErrorMessage(e)),
       )
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId)
     }
 
     sessionRegistry.unregister(sessionId)
@@ -131,12 +134,13 @@ class SessionManager {
         const handle = sessionRegistry.get(sessionId)
         if (!handle || handle.isClosing) return
 
+        let timeoutId: NodeJS.Timeout | undefined
         try {
           await Promise.race([
             this.callbacks.ping(sessionId),
-            new Promise<void>((_, reject) =>
-              setTimeout(() => reject(new Error('Ping timeout')), TIMEOUTS.PING),
-            ),
+            new Promise<void>((_, reject) => {
+              timeoutId = setTimeout(() => reject(new Error('Ping timeout')), TIMEOUTS.PING)
+            }),
           ])
         } catch (_error) {
           const protocolType: ProtocolType | undefined = handle.protocolType
@@ -147,6 +151,8 @@ class SessionManager {
             sessionId,
             protocolType,
           })
+        } finally {
+          if (timeoutId) clearTimeout(timeoutId)
         }
       }),
     )

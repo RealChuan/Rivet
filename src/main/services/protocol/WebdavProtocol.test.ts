@@ -13,6 +13,7 @@ const {
   mockCreateClient,
   mockHttpAgentCtor,
   mockHttpsAgentCtor,
+  mockPipeline,
 } = vi.hoisted(() => {
   const mockWebdavClient = {
     getDirectoryContents: vi.fn(),
@@ -22,6 +23,7 @@ const {
     copyFile: vi.fn(),
     stat: vi.fn(),
     putFileContents: vi.fn(),
+    createReadStream: vi.fn<(path: string, options: { signal: AbortSignal }) => unknown>(),
   }
   const mockCreateClient = vi.fn().mockReturnValue(mockWebdavClient)
   const mockHttpAgent = { destroy: vi.fn() }
@@ -38,6 +40,8 @@ const {
     get: vi.fn().mockReturnValue(null),
     setClosing: vi.fn(),
   }
+  const mockPipeline =
+    vi.fn<(a: unknown, b: unknown, options: { signal: AbortSignal }) => Promise<void>>()
   return {
     mockWebdavClient,
     mockHttpAgent,
@@ -46,12 +50,18 @@ const {
     mockCreateClient,
     mockHttpAgentCtor,
     mockHttpsAgentCtor,
+    mockPipeline,
   }
 })
 
 vi.mock('webdav', () => ({
   createClient: mockCreateClient,
 }))
+
+vi.mock('node:stream/promises', () => {
+  const mock = { pipeline: mockPipeline }
+  return { ...mock, default: mock }
+})
 
 vi.mock('node:http', async (importOriginal) => {
   const actual = await importOriginal()
@@ -81,12 +91,19 @@ const { mockFs } = vi.hoisted(() => {
     pipe: vi.fn().mockReturnThis(),
     destroy: vi.fn(),
   }
+  const mockWriteStream = {
+    on: vi.fn().mockReturnThis(),
+    end: vi.fn(),
+    destroy: vi.fn(),
+  }
   const mockFs = {
     promises: {
       stat: vi.fn().mockResolvedValue({ size: 1024 }),
     },
     createReadStream: vi.fn().mockReturnValue(mockReadStream),
+    createWriteStream: vi.fn().mockReturnValue(mockWriteStream),
     _mockReadStream: mockReadStream,
+    _mockWriteStream: mockWriteStream,
   }
   return { mockFs }
 })
@@ -102,6 +119,7 @@ vi.mock('node:fs', async (importOriginal) => {
         stat: mockFs.promises.stat,
       },
       createReadStream: mockFs.createReadStream,
+      createWriteStream: mockFs.createWriteStream,
     },
   }
 })
@@ -170,8 +188,11 @@ describe('WebdavProtocol', () => {
     mockWebdavClient.copyFile.mockResolvedValue(undefined)
     mockWebdavClient.stat.mockResolvedValue({ type: 'directory' })
     mockWebdavClient.putFileContents.mockResolvedValue(undefined)
+    mockWebdavClient.createReadStream.mockReturnValue(mockFs._mockReadStream)
     mockFs.promises.stat.mockResolvedValue({ size: 1024 })
     mockFs.createReadStream.mockReturnValue(mockFs._mockReadStream)
+    mockFs.createWriteStream.mockReturnValue(mockFs._mockWriteStream)
+    mockPipeline.mockResolvedValue(undefined)
   })
 
   /** 注册一个模拟会话，使公共方法（list/mkdir/...）可通过 sessionId 获取 mockWebdavClient */
@@ -527,6 +548,144 @@ describe('WebdavProtocol', () => {
       expect(result.success).toBe(false)
       if (result.success) return
       expect(result.error.code).toBe('UPLOAD_ERROR')
+    })
+
+    it('should destroy stream when abort signal fires', async () => {
+      setupSession()
+
+      let resolvePut: (() => void) | undefined
+      mockWebdavClient.putFileContents.mockReturnValue(
+        new Promise<void>((resolve) => {
+          resolvePut = resolve
+        }),
+      )
+
+      const controller = new AbortController()
+      const onProgress = vi.fn()
+
+      const uploadPromise = webdav.upload(
+        'webdav_test_session',
+        '/local/file.txt',
+        '/remote/file.txt',
+        onProgress,
+        controller.signal,
+      )
+
+      // 等待 stream 创建并注册 abort 监听器
+      await vi.waitFor(() => {
+        expect(mockFs.createReadStream).toHaveBeenCalled()
+      })
+
+      controller.abort()
+
+      await vi.waitFor(() => {
+        expect(mockFs._mockReadStream.destroy).toHaveBeenCalled()
+      })
+
+      resolvePut?.()
+
+      const result = await uploadPromise
+      expect(result.success).toBe(false)
+    })
+  })
+
+  describe('download', () => {
+    it('should download file successfully', async () => {
+      setupSession()
+      mockPipeline.mockResolvedValue(undefined)
+      const onProgress = vi.fn()
+      const result = await webdav.download(
+        'webdav_test_session',
+        '/remote/file.txt',
+        '/local/file.txt',
+        onProgress,
+      )
+      expect(result.success).toBe(true)
+      const createCalls = mockWebdavClient.createReadStream.mock.calls
+      const lastCreateCall = createCalls[createCalls.length - 1]
+      expect(lastCreateCall?.[0]).toBe('/remote/file.txt')
+      expect(lastCreateCall?.[1]?.signal).toBeInstanceOf(AbortSignal)
+      expect(mockFs.createWriteStream).toHaveBeenCalledWith('/local/file.txt')
+      const pipelineCalls = mockPipeline.mock.calls
+      const lastPipelineCall = pipelineCalls[pipelineCalls.length - 1]
+      expect(lastPipelineCall?.[0]).toBe(mockFs._mockReadStream)
+      expect(lastPipelineCall?.[1]).toBe(mockFs._mockWriteStream)
+      expect(lastPipelineCall?.[2]?.signal).toBeInstanceOf(AbortSignal)
+    })
+
+    it('should register progress tracking on readStream data event', async () => {
+      setupSession()
+      mockPipeline.mockResolvedValue(undefined)
+      const onProgress = vi.fn()
+      await webdav.download(
+        'webdav_test_session',
+        '/remote/file.txt',
+        '/local/file.txt',
+        onProgress,
+      )
+      // downloadImpl 在 readStream 上注册 'data' 事件以追踪进度
+      expect(mockFs._mockReadStream.on).toHaveBeenCalledWith('data', expect.any(Function))
+    })
+
+    it('should handle download failure', async () => {
+      setupSession()
+      mockPipeline.mockRejectedValue(new Error('Network error'))
+      const onProgress = vi.fn()
+      const result = await webdav.download(
+        'webdav_test_session',
+        '/remote/file.txt',
+        '/local/file.txt',
+        onProgress,
+      )
+      expect(result.success).toBe(false)
+      if (result.success) return
+      expect(result.error.code).toBe('DOWNLOAD_ERROR')
+    })
+
+    it('should return abort error when signal is already aborted', async () => {
+      setupSession()
+      const controller = new AbortController()
+      controller.abort()
+      const onProgress = vi.fn()
+      const result = await webdav.download(
+        'webdav_test_session',
+        '/remote/file.txt',
+        '/local/file.txt',
+        onProgress,
+        controller.signal,
+      )
+      expect(result.success).toBe(false)
+      if (result.success) return
+      expect(result.error.code).toBe('DOWNLOAD_ABORTED')
+      expect(mockPipeline).not.toHaveBeenCalled()
+    })
+
+    it('should handle abort during download', async () => {
+      setupSession()
+      // pipeline 不立即 resolve，模拟下载进行中
+      mockPipeline.mockReturnValue(new Promise<void>(() => {}))
+      const controller = new AbortController()
+      const onProgress = vi.fn()
+
+      const downloadPromise = webdav.download(
+        'webdav_test_session',
+        '/remote/file.txt',
+        '/local/file.txt',
+        onProgress,
+        controller.signal,
+      )
+
+      // 等待 pipeline 被调用
+      await vi.waitFor(() => {
+        expect(mockPipeline).toHaveBeenCalled()
+      })
+
+      controller.abort()
+
+      const result = await downloadPromise
+      expect(result.success).toBe(false)
+      if (result.success) return
+      expect(result.error.code).toBe('DOWNLOAD_ABORTED')
     })
   })
 })

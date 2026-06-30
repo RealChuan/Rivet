@@ -1,5 +1,6 @@
 import { app } from 'electron'
 import os from 'node:os'
+
 import { ERROR_CODE } from '@shared/constants/index.js'
 import { createErrorInfo, err, type ErrorInfo, ok, type Result } from '@shared/types/index.js'
 import { logger } from './index.js'
@@ -24,24 +25,16 @@ export function supportsGlassEffect(): boolean {
   return false
 }
 
-export function getTempDir(): Result<string, ErrorInfo> {
+function getPathSafe(target: 'temp' | 'downloads', action: string): Result<string, ErrorInfo> {
   try {
-    return ok(app.getPath('temp'))
+    return ok(app.getPath(target))
   } catch (error) {
-    logger.catch(error, { action: 'get-temp-dir' })
+    logger.catch(error, { action })
     return err(
-      createErrorInfo(ERROR_CODE.PATH_ERROR, 'Failed to get temp directory', String(error)),
+      createErrorInfo(ERROR_CODE.PATH_ERROR, `Failed to get ${target} directory`, String(error)),
     )
   }
 }
 
-export function getDownloadDir(): Result<string, ErrorInfo> {
-  try {
-    return ok(app.getPath('downloads'))
-  } catch (error) {
-    logger.catch(error, { action: 'get-download-dir' })
-    return err(
-      createErrorInfo(ERROR_CODE.PATH_ERROR, 'Failed to get download directory', String(error)),
-    )
-  }
-}
+export const getTempDir = () => getPathSafe('temp', 'getTempDir')
+export const getDownloadDir = () => getPathSafe('downloads', 'getDownloadDir')

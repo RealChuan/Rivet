@@ -1,5 +1,7 @@
+import { arrayMove } from '@dnd-kit/sortable'
 import { create } from 'zustand'
 import {
+  PROTOCOL,
   SORT_ORDER,
   type SortOrder,
   type SortOrderWithDirection,
@@ -9,6 +11,33 @@ import { type ConnectionConfig, isOk } from '@shared/types/index.js'
 
 const saveSortOrderToSettings = async (order: SortOrder) => {
   await window.electronAPI.config.set(STORE_KEY.CONNECTION_SORT_ORDER, order)
+}
+
+function isConnectionConfig(item: unknown): item is ConnectionConfig {
+  if (item === null || typeof item !== 'object') return false
+  return (
+    'id' in item &&
+    typeof item.id === 'string' &&
+    'name' in item &&
+    typeof item.name === 'string' &&
+    'host' in item &&
+    typeof item.host === 'string' &&
+    'username' in item &&
+    typeof item.username === 'string' &&
+    'port' in item &&
+    typeof item.port === 'number' &&
+    'protocol' in item &&
+    typeof item.protocol === 'string' &&
+    (item.protocol === PROTOCOL.SFTP || item.protocol === PROTOCOL.WEBDAV)
+  )
+}
+
+function isConnectionConfigArray(value: unknown): value is ConnectionConfig[] {
+  return Array.isArray(value) && value.every(isConnectionConfig)
+}
+
+function isSortOrder(value: unknown): value is SortOrder {
+  return value === SORT_ORDER.NONE || value === SORT_ORDER.ASC || value === SORT_ORDER.DESC
 }
 
 export interface ConnectionStore {
@@ -68,15 +97,15 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
 
   loadSavedConnections: async () => {
     const result = await window.electronAPI.config.get(STORE_KEY.SAVED_CONNECTIONS)
-    if (isOk(result) && Array.isArray(result.value)) {
-      set({ connections: result.value as ConnectionConfig[] }) // IPC 返回值经过 isOk() + Array.isArray 验证
+    if (isOk(result) && isConnectionConfigArray(result.value)) {
+      set({ connections: result.value })
     }
   },
 
   loadSortOrderFromSettings: async () => {
     const result = await window.electronAPI.config.get(STORE_KEY.CONNECTION_SORT_ORDER)
-    if (isOk(result) && result.value) {
-      set({ sortOrder: result.value as SortOrder })
+    if (isOk(result) && isSortOrder(result.value)) {
+      set({ sortOrder: result.value })
     }
   },
 
@@ -98,16 +127,13 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
   },
 
   reorderConnections: async (activeId, overId) => {
-    const connections = [...get().connections]
+    const connections = get().connections
     const oldIndex = connections.findIndex((c) => c.id === activeId)
     const newIndex = connections.findIndex((c) => c.id === overId)
 
     if (oldIndex !== -1 && newIndex !== -1) {
-      const [removed] = connections.splice(oldIndex, 1)
-      if (removed) {
-        connections.splice(newIndex, 0, removed)
-      }
-      set({ connections, sortOrder: SORT_ORDER.NONE })
+      const reordered = arrayMove(connections, oldIndex, newIndex)
+      set({ connections: reordered, sortOrder: SORT_ORDER.NONE })
       await get().saveConnectionConfigs()
       await saveSortOrderToSettings(SORT_ORDER.NONE)
     }

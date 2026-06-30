@@ -13,7 +13,6 @@ import {
   FILE_OPERATION,
   FILE_TYPE,
   type FileType,
-  ROOT_PATH,
   TOAST_TYPE,
 } from '@shared/constants/index.js'
 import {
@@ -25,7 +24,12 @@ import {
   ok,
   type Result,
 } from '@shared/types/index.js'
-import { formatErrorMessage, generateUniqueFilename, isSubPath } from '@shared/utils/index.js'
+import {
+  formatErrorMessage,
+  generateUniqueFilename,
+  isSubPath,
+  joinPaths,
+} from '@shared/utils/index.js'
 
 type CopyMoveOperation = typeof FILE_OPERATION.COPY | typeof FILE_OPERATION.MOVE
 
@@ -76,7 +80,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
   }
 
   const getTargetPath = (fileName: string, targetDir: string): string => {
-    return targetDir === ROOT_PATH ? `/${fileName}` : `${targetDir}/${fileName}`
+    return joinPaths(targetDir, fileName)
   }
 
   const executeOperation = async (

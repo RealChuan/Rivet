@@ -2,17 +2,21 @@
 import log from 'electron-log/renderer'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@shared/utils/index.js', () => ({
-  formatMessage: vi.fn((msg: string) => `[formatted] ${msg}`),
-  getCallerInfo: vi.fn(() => 'test-caller'),
-  catchLog: vi.fn(
-    (logFn: (msg: string) => void, error: unknown, context?: Record<string, unknown>) => {
-      const message = error instanceof Error ? error.message : String(error)
-      const contextStr = context ? ` ${JSON.stringify(context)}` : ''
-      logFn(`[formatted] ${message}${contextStr}`)
-    },
-  ),
-}))
+vi.mock('@shared/utils/index.js', async (importOriginal) => {
+  const actual: Record<string, unknown> = await importOriginal()
+  return {
+    ...actual,
+    formatMessage: vi.fn((msg: string) => `[formatted] ${msg}`),
+    getCallerInfo: vi.fn(() => 'test-caller'),
+    catchLog: vi.fn(
+      (logFn: (msg: string) => void, error: unknown, context?: Record<string, unknown>) => {
+        const message = error instanceof Error ? error.message : String(error)
+        const contextStr = context ? ` ${JSON.stringify(context)}` : ''
+        logFn(`[formatted] ${message}${contextStr}`)
+      },
+    ),
+  }
+})
 
 describe('renderer logger', () => {
   beforeEach(() => {

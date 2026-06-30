@@ -1,6 +1,8 @@
 import type React from 'react'
 import { AlertCircle, TriangleAlert, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+
+import { logger } from '@renderer/utils/index.js'
 import Button from '../../components/ui/Button.js'
 import { GlassDialog } from '../ui/index.js'
 
@@ -17,6 +19,35 @@ interface ConfirmationDialogProps {
   customContent?: React.ReactNode
 }
 
+const dialogConfig: Record<
+  'danger' | 'warning' | 'info',
+  {
+    bgClass: string
+    colorClass: string
+    buttonVariant: 'danger' | 'warning' | 'primary'
+    icon: React.ReactNode
+  }
+> = {
+  danger: {
+    bgClass: 'bg-danger-light',
+    colorClass: 'text-danger',
+    buttonVariant: 'danger',
+    icon: <AlertCircle className="w-5 h-5 stroke-danger stroke-2" />,
+  },
+  warning: {
+    bgClass: 'bg-warning-light',
+    colorClass: 'text-warning',
+    buttonVariant: 'warning',
+    icon: <TriangleAlert className="w-5 h-5 stroke-warning stroke-2" />,
+  },
+  info: {
+    bgClass: 'bg-accent-light',
+    colorClass: 'text-accent',
+    buttonVariant: 'primary',
+    icon: <Info className="w-5 h-5 stroke-accent stroke-2" />,
+  },
+}
+
 export const ConfirmationDialog = ({
   open,
   onClose,
@@ -31,32 +62,16 @@ export const ConfirmationDialog = ({
 }: ConfirmationDialogProps) => {
   const { t } = useTranslation()
 
-  const dialogConfig = {
-    danger: {
-      bgClass: 'bg-danger-light',
-      colorClass: 'text-danger',
-      buttonVariant: 'danger' as const,
-      icon: <AlertCircle className="w-5 h-5 stroke-danger stroke-2" />,
-    },
-    warning: {
-      bgClass: 'bg-warning-light',
-      colorClass: 'text-warning',
-      buttonVariant: 'warning' as const,
-      icon: <TriangleAlert className="w-5 h-5 stroke-warning stroke-2" />,
-    },
-    info: {
-      bgClass: 'bg-accent-light',
-      colorClass: 'text-accent',
-      buttonVariant: 'primary' as const,
-      icon: <Info className="w-5 h-5 stroke-accent stroke-2" />,
-    },
-  }
-
   const config = dialogConfig[type]
 
   const handleConfirm = async () => {
-    await onConfirm()
-    onClose()
+    try {
+      await onConfirm()
+    } catch (error) {
+      logger.catch(error, { action: 'confirmation-dialog-confirm' })
+    } finally {
+      onClose()
+    }
   }
 
   const handleCancel = async () => {

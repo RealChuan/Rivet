@@ -18,7 +18,17 @@ import {
   type Result,
 } from '@shared/types/index.js'
 import { getParentPath, joinPaths, normalizePath, sanitizePath } from '@shared/utils/index.js'
-import type { FileProtocol, HostVerifier, SessionInfo } from './protocol-types.js'
+import type { FileProtocol, HostVerifier } from './protocol-types.js'
+
+/**
+ * 会话信息：泛型 T 为 client 的具体类型，由具体协议子类约束。
+ * 默认 unknown 与 protocol-types.ts 中原始定义保持结构兼容。
+ */
+export interface SessionInfo<T = unknown> {
+  client: T
+  basePath: string
+  isClosing: boolean
+}
 
 export abstract class AbstractProtocol<T> implements FileProtocol {
   abstract readonly protocolType: ProtocolType
@@ -30,7 +40,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
   ): Promise<Result<OperationResult, ErrorInfo>>
   abstract disconnect(sessionId: string): Promise<Result<void, ErrorInfo>>
 
-  protected abstract getSessionInfo(sessionId: string): SessionInfo | null
+  protected abstract getSessionInfo(sessionId: string): SessionInfo<T> | null
   protected abstract setSessionClosing(sessionId: string): void
   protected abstract listImpl(
     client: T,
@@ -95,9 +105,7 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
       return err(createErrorInfo(ERROR_CODE.SESSION_CLOSING, `Session is closing: ${sessionId}`))
     }
 
-    // 类型安全：info.client 由具体子类的 getSessionInfo 保证类型正确
-    // 每个具体协议（SftpProtocol/WebdavProtocol）都正确实现了类型匹配
-    return ok(info.client as T)
+    return ok(info.client)
   }
 
   protected getBasePath(sessionId: string): string {
@@ -237,27 +245,111 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     return result
   }
 
-  async list(
+  /**
+   * 路径操作通用执行器：包裹 executePathOperation + withAbort。
+   * 调用方在 impl 闭包中绑定已清理的路径与具体 *Impl 方法。
+   */
+  private async runPathOp<R>(
     sessionId: string,
-    path: string,
-    signal?: AbortSignal,
-  ): Promise<Result<FileInfo[], ErrorInfo>> {
-    const pathResult = this.sanitizePathOrError(path)
-    if (isErr(pathResult)) return pathResult
-    const sanitizedPath = pathResult.value
-
+    impl: (client: T, basePath: string) => Promise<Result<R, ErrorInfo>>,
+    logAction: string,
+    logData: Record<string, unknown>,
+    signal: AbortSignal | undefined,
+    timeout: number | undefined,
+    timeoutErrorCode: string | undefined,
+    abortedErrorCode: string,
+  ): Promise<Result<R, ErrorInfo>> {
     return this.executePathOperation(
       sessionId,
       (client, basePath) =>
         this.withAbort(
           signal,
-          () => this.listImpl(client, sanitizedPath, basePath),
-          TIMEOUTS.LIST,
-          ERROR_CODE.LIST_TIMEOUT,
-          ERROR_CODE.LIST_ABORTED,
+          () => impl(client, basePath),
+          timeout,
+          timeoutErrorCode,
+          abortedErrorCode,
         ),
+      logAction,
+      logData,
+    )
+  }
+
+  /**
+   * 单路径操作快捷方法：清理单个路径后委托 runPathOp，logData 形如 { path }。
+   */
+  private async runSinglePathOp<R>(
+    sessionId: string,
+    path: string,
+    impl: (client: T, basePath: string, sanitizedPath: string) => Promise<Result<R, ErrorInfo>>,
+    logAction: string,
+    signal: AbortSignal | undefined,
+    timeout: number | undefined,
+    timeoutErrorCode: string | undefined,
+    abortedErrorCode: string,
+  ): Promise<Result<R, ErrorInfo>> {
+    const sanitized = this.sanitizePathOrError(path)
+    if (isErr(sanitized)) return sanitized
+    return this.runPathOp(
+      sessionId,
+      (client, basePath) => impl(client, basePath, sanitized.value),
+      logAction,
+      { path: sanitized.value },
+      signal,
+      timeout,
+      timeoutErrorCode,
+      abortedErrorCode,
+    )
+  }
+
+  /**
+   * 双路径操作快捷方法：依次清理两个独立路径后委托 runPathOp，logData 形如 { from, to }。
+   */
+  private async runDualPathOp<R>(
+    sessionId: string,
+    sourcePath: string,
+    targetPath: string,
+    impl: (
+      client: T,
+      basePath: string,
+      sanitizedSource: string,
+      sanitizedTarget: string,
+    ) => Promise<Result<R, ErrorInfo>>,
+    logAction: string,
+    signal: AbortSignal | undefined,
+    timeout: number | undefined,
+    timeoutErrorCode: string | undefined,
+    abortedErrorCode: string,
+  ): Promise<Result<R, ErrorInfo>> {
+    const sourceResult = this.sanitizePathOrError(sourcePath)
+    if (isErr(sourceResult)) return sourceResult
+    const targetResult = this.sanitizePathOrError(targetPath)
+    if (isErr(targetResult)) return targetResult
+    return this.runPathOp(
+      sessionId,
+      (client, basePath) => impl(client, basePath, sourceResult.value, targetResult.value),
+      logAction,
+      { from: sourceResult.value, to: targetResult.value },
+      signal,
+      timeout,
+      timeoutErrorCode,
+      abortedErrorCode,
+    )
+  }
+
+  async list(
+    sessionId: string,
+    path: string,
+    signal?: AbortSignal,
+  ): Promise<Result<FileInfo[], ErrorInfo>> {
+    return this.runSinglePathOp(
+      sessionId,
+      path,
+      (client, basePath, sanitizedPath) => this.listImpl(client, sanitizedPath, basePath),
       FILE_OPERATION.LIST,
-      { path: sanitizedPath },
+      signal,
+      TIMEOUTS.LIST,
+      ERROR_CODE.LIST_TIMEOUT,
+      ERROR_CODE.LIST_ABORTED,
     )
   }
 
@@ -266,22 +358,15 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     path: string,
     signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
-    const pathResult = this.sanitizePathOrError(path)
-    if (isErr(pathResult)) return pathResult
-    const sanitizedPath = pathResult.value
-
-    return this.executePathOperation(
+    return this.runSinglePathOp(
       sessionId,
-      (client, basePath) =>
-        this.withAbort(
-          signal,
-          () => this.mkdirImpl(client, sanitizedPath, basePath),
-          TIMEOUTS.MKDIR,
-          ERROR_CODE.MKDIR_TIMEOUT,
-          ERROR_CODE.MKDIR_ABORTED,
-        ),
+      path,
+      (client, basePath, sanitizedPath) => this.mkdirImpl(client, sanitizedPath, basePath),
       FILE_OPERATION.MKDIR,
-      { path: sanitizedPath },
+      signal,
+      TIMEOUTS.MKDIR,
+      ERROR_CODE.MKDIR_TIMEOUT,
+      ERROR_CODE.MKDIR_ABORTED,
     )
   }
 
@@ -291,27 +376,19 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     newName: string,
     signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
-    const currentPathResult = this.sanitizePathOrError(file.absolutePath)
-    if (isErr(currentPathResult)) return currentPathResult
-    const sanitizedCurrentPath = currentPathResult.value
-
-    const parentPath = getParentPath(sanitizedCurrentPath)
-    const newPathResult = this.sanitizePathOrError(joinPaths(parentPath, newName))
-    if (isErr(newPathResult)) return newPathResult
-    const sanitizedNewPath = newPathResult.value
-
-    return this.executePathOperation(
+    // getParentPath 过滤空段、joinPaths 经 normalizePath，故从原路径计算新路径等价于从 sanitized 路径计算
+    const newPath = joinPaths(getParentPath(file.absolutePath), newName)
+    return this.runDualPathOp(
       sessionId,
-      (client, basePath) =>
-        this.withAbort(
-          signal,
-          () => this.renameImpl(client, sanitizedCurrentPath, sanitizedNewPath, basePath),
-          TIMEOUTS.RENAME,
-          ERROR_CODE.RENAME_TIMEOUT,
-          ERROR_CODE.RENAME_ABORTED,
-        ),
+      file.absolutePath,
+      newPath,
+      (client, basePath, sanitizedCurrent, sanitizedNew) =>
+        this.renameImpl(client, sanitizedCurrent, sanitizedNew, basePath),
       FILE_OPERATION.RENAME,
-      { from: sanitizedCurrentPath, to: sanitizedNewPath },
+      signal,
+      TIMEOUTS.RENAME,
+      ERROR_CODE.RENAME_TIMEOUT,
+      ERROR_CODE.RENAME_ABORTED,
     )
   }
 
@@ -320,22 +397,16 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     file: FileInfo,
     signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
-    const pathResult = this.sanitizePathOrError(file.absolutePath)
-    if (isErr(pathResult)) return pathResult
-    const sanitizedPath = pathResult.value
-
-    return this.executePathOperation(
+    return this.runSinglePathOp(
       sessionId,
-      (client, basePath) =>
-        this.withAbort(
-          signal,
-          () => this.deleteImpl(client, sanitizedPath, basePath, file.type),
-          TIMEOUTS.DELETE,
-          ERROR_CODE.DELETE_TIMEOUT,
-          ERROR_CODE.DELETE_ABORTED,
-        ),
+      file.absolutePath,
+      (client, basePath, sanitizedPath) =>
+        this.deleteImpl(client, sanitizedPath, basePath, file.type),
       FILE_OPERATION.DELETE,
-      { path: sanitizedPath },
+      signal,
+      TIMEOUTS.DELETE,
+      ERROR_CODE.DELETE_TIMEOUT,
+      ERROR_CODE.DELETE_ABORTED,
     )
   }
 
@@ -345,27 +416,17 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     targetPath: string,
     signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
-    const sourcePathResult = this.sanitizePathOrError(file.absolutePath)
-    if (isErr(sourcePathResult)) return sourcePathResult
-    const sanitizedSourcePath = sourcePathResult.value
-
-    const targetPathResult = this.sanitizePathOrError(targetPath)
-    if (isErr(targetPathResult)) return targetPathResult
-    const sanitizedTargetPath = targetPathResult.value
-
-    return this.executePathOperation(
+    return this.runDualPathOp(
       sessionId,
-      (client, basePath) =>
-        this.withAbort(
-          signal,
-          () =>
-            this.copyImpl(client, sanitizedSourcePath, sanitizedTargetPath, basePath, file.type),
-          undefined,
-          undefined,
-          ERROR_CODE.COPY_ABORTED,
-        ),
+      file.absolutePath,
+      targetPath,
+      (client, basePath, sanitizedSource, sanitizedTarget) =>
+        this.copyImpl(client, sanitizedSource, sanitizedTarget, basePath, file.type),
       FILE_OPERATION.COPY,
-      { from: sanitizedSourcePath, to: sanitizedTargetPath },
+      signal,
+      undefined,
+      undefined,
+      ERROR_CODE.COPY_ABORTED,
     )
   }
 
@@ -375,26 +436,17 @@ export abstract class AbstractProtocol<T> implements FileProtocol {
     targetPath: string,
     signal?: AbortSignal,
   ): Promise<Result<void, ErrorInfo>> {
-    const sourcePathResult = this.sanitizePathOrError(file.absolutePath)
-    if (isErr(sourcePathResult)) return sourcePathResult
-    const sanitizedSourcePath = sourcePathResult.value
-
-    const targetPathResult = this.sanitizePathOrError(targetPath)
-    if (isErr(targetPathResult)) return targetPathResult
-    const sanitizedTargetPath = targetPathResult.value
-
-    return this.executePathOperation(
+    return this.runDualPathOp(
       sessionId,
-      (client, basePath) =>
-        this.withAbort(
-          signal,
-          () => this.moveImpl(client, sanitizedSourcePath, sanitizedTargetPath, basePath),
-          undefined,
-          undefined,
-          ERROR_CODE.MOVE_ABORTED,
-        ),
+      file.absolutePath,
+      targetPath,
+      (client, basePath, sanitizedSource, sanitizedTarget) =>
+        this.moveImpl(client, sanitizedSource, sanitizedTarget, basePath),
       FILE_OPERATION.MOVE,
-      { from: sanitizedSourcePath, to: sanitizedTargetPath },
+      signal,
+      undefined,
+      undefined,
+      ERROR_CODE.MOVE_ABORTED,
     )
   }
 

@@ -18,7 +18,6 @@ interface TransferActions {
     remoteItems: { path: string; name: string; type: FileType; size: number }[],
     sessionId: string,
     localDir: string,
-    itemType?: FileType,
   ) => Promise<void>
 }
 
