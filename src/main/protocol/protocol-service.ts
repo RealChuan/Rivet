@@ -371,18 +371,14 @@ export class ProtocolService {
       async (provider, signal) => {
         const path = sanitize(remotePath)
         const entries: FileInfo[] = []
-        let warned = false
 
         for await (const entry of provider.list(path, { signal })) {
           if (entries.length >= MAX_LIST_ENTRIES) {
-            if (!warned) {
-              warned = true
-              logger.warn('Directory listing truncated', {
-                sessionId,
-                path,
-                limit: MAX_LIST_ENTRIES,
-              })
-            }
+            logger.warn('Directory listing truncated', {
+              sessionId,
+              path,
+              limit: MAX_LIST_ENTRIES,
+            })
             break
           }
           entries.push(toFileInfo(entry))
