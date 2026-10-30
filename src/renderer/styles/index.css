@@ -6,6 +6,8 @@
 @theme {
   /* 颜色 */
   --color-bg: rgba(255, 255, 255, 0.6);
+  /* WCO 标题栏表面色，与 TITLEBAR_OVERLAY_COLORS 一致 */
+  --color-titlebar: #ffffff;
   --color-border: #e5e5e5;
   --color-text: #171717;
   --color-text-muted: #737373;
@@ -74,6 +76,7 @@
 /* ========== Dark 模式覆盖 ========== */
 .dark {
   --color-bg: rgba(30, 30, 30, 0.6);
+  --color-titlebar: #1e1e1e;
   --color-border: #2e2e2e;
   --color-text: #e5e5e5;
   --color-text-muted: #a3a3a3;

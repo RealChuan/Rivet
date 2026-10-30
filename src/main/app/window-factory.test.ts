@@ -18,11 +18,6 @@ vi.mock('../utils/index.js', () => ({
   supportsGlassEffect: vi.fn(() => false),
 }))
 
-vi.mock('node:path', () => {
-  const path = { join: vi.fn(() => '/mocked/preload/path') }
-  return { default: path, ...path }
-})
-
 describe('window-factory', () => {
   let createAppWindow: typeof import('./window-factory.js').createAppWindow
   let createUtilityWindow: typeof import('./window-factory.js').createUtilityWindow
@@ -70,6 +65,25 @@ describe('window-factory', () => {
           additionalArguments: ['--rivet-window-chrome=wco'],
         }),
       }),
+    )
+  })
+
+  it('resolves preload and renderer paths from the app root', async () => {
+    const { app } = await import('electron')
+    const path = (await import('node:path')).default
+    const win = createAppWindow('light')
+
+    expect(vi.mocked(app.getAppPath)).toHaveBeenCalled()
+    expect(BrowserWindow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        webPreferences: expect.objectContaining({
+          preload: path.join('/app', '.vite', 'build', 'index.cjs'),
+        }),
+      }),
+    )
+    expect(win.loadFile).toHaveBeenCalledWith(
+      path.join('/app', '.vite', 'renderer', 'main_window', 'index.html'),
+      undefined,
     )
   })
 

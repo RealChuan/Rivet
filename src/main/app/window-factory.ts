@@ -1,4 +1,4 @@
-import { BrowserWindow, nativeTheme, type BrowserWindowConstructorOptions } from 'electron'
+import { app, BrowserWindow, nativeTheme, type BrowserWindowConstructorOptions } from 'electron'
 import path from 'node:path'
 import {
   APP_NAME,
@@ -24,6 +24,14 @@ export interface UtilityWindowOptions {
   title?: string
 }
 
+/**
+ * 以 app 根为基准解析产物路径：开发态是项目根，打包后是 app.asar。
+ * 不能用 __dirname —— 主进程以 ESM 输出，构建期固化会在打包后指向构建机的绝对路径。
+ */
+function resolveAppPath(...segments: string[]): string {
+  return path.join(app.getAppPath(), ...segments)
+}
+
 function loadRenderer(win: BrowserWindow, route?: string): void {
   const hash = route ? `#${route.replace(/^#/, '')}` : ''
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -31,7 +39,7 @@ function loadRenderer(win: BrowserWindow, route?: string): void {
     return
   }
   void win.loadFile(
-    path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+    resolveAppPath('.vite', 'renderer', MAIN_WINDOW_VITE_NAME, 'index.html'),
     hash ? { hash: hash.slice(1) } : undefined,
   )
 }
@@ -88,7 +96,7 @@ export function createAppWindow(theme: Theme = 'system'): BrowserWindow {
     ...chromeOptions,
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, './index.cjs'),
+      preload: resolveAppPath('.vite', 'build', 'index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -131,7 +139,7 @@ export function createUtilityWindow(options: UtilityWindowOptions): BrowserWindo
     ...(parent ? { parent } : {}),
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, './index.cjs'),
+      preload: resolveAppPath('.vite', 'build', 'index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,

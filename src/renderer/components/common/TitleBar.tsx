@@ -9,6 +9,7 @@ import {
 } from '@shared/constants/index.js'
 import { getWindowChrome } from '../../api/env.js'
 import { windowApi } from '../../api/window.js'
+import { cn } from '../../utils/index.js'
 import { AppLogo } from './AppLogo.js'
 
 interface TitleBarProps {
@@ -44,6 +45,8 @@ export function TitleBar({
 
   const isWco = windowChrome === 'wco'
   const isCustom = windowChrome === 'custom'
+  // WCO 的 caption 区由系统不透明填充，Web 侧须同色实心；边框进不了 overlay 区，故不加。
+  const surfaceClassName = isWco ? 'bg-titlebar' : 'border-b border-border'
   const themeLabel =
     theme === THEME.LIGHT
       ? t(($) => $.mainLayout.lightMode)
@@ -57,7 +60,10 @@ export function TitleBar({
       data-chrome={windowChrome}
       aria-label={t(($) => $.titleBar.dragToMove)}
       onDoubleClick={isCustom ? () => windowApi.toggleMaximize() : undefined}
-      className="fixed top-0 left-0 flex items-center border-b border-border draggable titlebar-text shrink-0"
+      className={cn(
+        'fixed top-0 left-0 flex items-center draggable titlebar-text shrink-0',
+        surfaceClassName,
+      )}
       style={
         isWco
           ? {

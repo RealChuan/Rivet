@@ -37,6 +37,7 @@ export const app = {
   }),
   getName: vi.fn(() => 'Rivet'),
   isPackaged: vi.fn(() => false),
+  getAppPath: vi.fn(() => '/app'),
   getLocale: vi.fn(() => 'zh-CN'),
   on: vi.fn(),
   quit: vi.fn(),

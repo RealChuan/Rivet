@@ -41,6 +41,14 @@ describe('TitleBar', () => {
     expect(screen.queryByLabelText(/minimize/i)).toBeNull()
   })
 
+  it('uses an opaque surface instead of a border in wco mode', () => {
+    render(<TitleBar {...baseProps} />)
+
+    const classes = screen.getByTestId('titlebar').className.split(' ')
+    expect(classes).toContain('bg-titlebar')
+    expect(classes).not.toContain('border-b')
+  })
+
   it('renders a full-width 36px drag strip with 80px padding on macOS', () => {
     chromeState.value = 'mac-hidden'
     render(<TitleBar {...baseProps} />)

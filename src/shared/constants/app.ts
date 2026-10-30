@@ -60,7 +60,7 @@ export const DEFAULT_CHILD_WINDOW_MIN_HEIGHT = MIN_MAIN_WINDOW_HEIGHT
 export const MACOS_TRAFFIC_LIGHT_POSITION = { x: 16, y: 12 } as const
 /** WCO 标题栏高度 */
 export const TITLEBAR_HEIGHT = 36
-/** WCO 覆盖层颜色（取 no-glass 的不透明表面色） */
+/** WCO 覆盖层颜色（不透明表面色，与渲染层 --color-titlebar 同步） */
 export const TITLEBAR_OVERLAY_COLORS = {
   light: { color: '#ffffff', symbolColor: '#171717' },
   dark: { color: '#1e1e1e', symbolColor: '#e5e5e5' },
