@@ -1,55 +1,47 @@
-import { ipcMain } from 'electron'
-import type { TransferDirection } from '@shared/constants/index.js'
-import type { LastDirKey } from '@shared/constants/index.js'
-import type { TransferTask } from '@shared/types/transfer.js'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
+import { TRANSFER_DIRECTION } from '@shared/constants/index.js'
+import { transferContract } from '@shared/contract/transfer.contract.js'
+import { ok } from '@shared/domain/result.js'
 import { transferService } from '../services/transfer/index.js'
+import { getTransferSettings, setTransferSettings } from '../stores/index.js'
+import { registerContract } from './register.js'
 
 export function setupTransferIpcHandlers(): void {
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.ADD, (_, tasks: TransferTask[]) => {
-    return transferService.addTasks(tasks)
-  })
-
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.CANCEL, (_, taskId: string) => {
-    transferService.cancel(taskId)
-  })
-
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.CANCEL_ALL, (_, sessionId?: string) => {
-    transferService.cancelAll(sessionId)
-  })
-
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.RETRY, (_, taskId: string) => {
-    transferService.retry(taskId)
-  })
-
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.RETRY_ALL, (_, sessionId?: string) => {
-    transferService.retryAll(sessionId)
-  })
-
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.GET_TASKS, (_, sessionId?: string) => {
-    return transferService.getTasks(sessionId)
-  })
-
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.GET_CONCURRENCY, (_, direction: TransferDirection) => {
-    return transferService.getConcurrency(direction)
-  })
-
-  ipcMain.handle(
-    IPC_CHANNELS.TRANSFER.SET_CONCURRENCY,
-    (_, max: number, direction: TransferDirection) => {
-      transferService.setConcurrency(max, direction)
+  registerContract(transferContract, {
+    'transfer.add': async (tasks) => ok(await transferService.addTasks(tasks)),
+    'transfer.cancel': async (taskId) => {
+      await transferService.cancel(taskId)
+      return ok(undefined)
     },
-  )
-
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.CHECK_LOCAL_FILES, (_event, localDir: string) => {
-    return transferService.checkLocalFiles(localDir)
-  })
-
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.GET_LAST_DIR, (_, key: LastDirKey) => {
-    return transferService.getLastDir(key)
-  })
-
-  ipcMain.handle(IPC_CHANNELS.TRANSFER.SET_LAST_DIR, (_, key: LastDirKey, dir: string) => {
-    transferService.setLastDir(key, dir)
+    'transfer.cancelAll': (sessionId) => {
+      transferService.cancelAll(sessionId)
+      return ok(undefined)
+    },
+    'transfer.retry': async (taskId) => {
+      await transferService.retry(taskId)
+      return ok(undefined)
+    },
+    'transfer.retryAll': (sessionId) => {
+      transferService.retryAll(sessionId)
+      return ok(undefined)
+    },
+    'transfer.getTasks': (sessionId) => ok(transferService.getTasks(sessionId)),
+    'transfer.getConcurrency': (direction) => ok(transferService.getConcurrency(direction)),
+    'transfer.setConcurrency': (max, direction) => {
+      transferService.setConcurrency(max, direction)
+      const current = getTransferSettings()
+      const value = transferService.getConcurrency(direction)
+      return setTransferSettings(
+        direction === TRANSFER_DIRECTION.UPLOAD
+          ? { ...current, maxUploadConcurrency: value }
+          : { ...current, maxDownloadConcurrency: value },
+      )
+    },
+    'transfer.checkLocalFiles': async (localDir) =>
+      ok(await transferService.checkLocalFiles(localDir)),
+    'transfer.getLastDir': (key) => ok(transferService.getLastDir(key)),
+    'transfer.setLastDir': (key, dir) => {
+      transferService.setLastDir(key, dir)
+      return ok(undefined)
+    },
   })
 }

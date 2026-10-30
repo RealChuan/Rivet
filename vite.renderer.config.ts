@@ -31,13 +31,6 @@ export default defineConfig({
             return 'vendor-i18n'
           }
           if (
-            id.includes('node_modules/react-window/') ||
-            id.includes('node_modules/react-virtualized-auto-sizer/') ||
-            id.includes('node_modules/@dnd-kit/')
-          ) {
-            return 'vendor-ui'
-          }
-          if (
             id.includes('node_modules/zustand/') ||
             id.includes('node_modules/clsx/') ||
             id.includes('node_modules/tailwind-merge/')
@@ -50,10 +43,5 @@ export default defineConfig({
   },
   resolve: {
     tsconfigPaths: true,
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@renderer': path.resolve(__dirname, './src/renderer'),
-      '@shared': path.resolve(__dirname, './src/shared'),
-    },
   },
 })

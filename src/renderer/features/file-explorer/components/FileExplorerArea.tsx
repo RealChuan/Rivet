@@ -1,12 +1,12 @@
 import { Plug } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { TransferConflictDialog } from '@renderer/features/transfer/components/TransferConflictDialog.js'
-import { useTransferActions } from '@renderer/features/transfer/hooks/use-transfer-actions.js'
+import { useSessionStore } from '../../session/stores/session.js'
+import { TransferConflictDialog } from '../../transfer/components/TransferConflictDialog.js'
+import { useTransferActions } from '../../transfer/hooks/use-transfer-actions.js'
 import { TransferActionsContext } from '../contexts/transfer-actions.js'
 import FileExplorerBreadcrumb from './FileExplorerBreadcrumb.js'
-import FileExplorerList from './FileExplorerList.js'
 import FileExplorerToolbar from './FileExplorerToolbar.js'
+import FileView from './FileView.js'
 
 interface FileExplorerAreaProps {
   sessionId: string
@@ -52,10 +52,7 @@ export const FileExplorerArea = ({ sessionId }: FileExplorerAreaProps) => {
           <FileExplorerToolbar sessionId={activeSession.sessionId} />
         </div>
         <div className="flex-1 overflow-hidden bg-transparent">
-          <FileExplorerList
-            sessionId={activeSession.sessionId}
-            currentPath={activeSession.currentPath}
-          />
+          <FileView sessionId={activeSession.sessionId} currentPath={activeSession.currentPath} />
         </div>
         <TransferConflictDialog />
       </div>

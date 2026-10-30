@@ -1,13 +1,10 @@
-import { ipcMain } from 'electron'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
+import { configContract } from '@shared/contract/config.contract.js'
 import { getConfigurationValue, setConfigurationValue } from '../stores/index.js'
+import { registerContract } from './register.js'
 
 export function setupConfigIpcHandlers(): void {
-  ipcMain.handle(IPC_CHANNELS.CONFIG.GET, (_, key: string) => {
-    return getConfigurationValue(key)
-  })
-
-  ipcMain.handle(IPC_CHANNELS.CONFIG.SET, (_, key: string, value: unknown) => {
-    return setConfigurationValue(key, value)
+  registerContract(configContract, {
+    'config.get': (key) => getConfigurationValue(key),
+    'config.set': (key, value) => setConfigurationValue(key, value),
   })
 }

@@ -1,9 +1,9 @@
 import { X } from 'lucide-react'
 import { useRef, useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import GlassDialog from '@renderer/components/ui/GlassDialog.js'
-import { useUiStore } from '@renderer/stores/index.js'
 import { DIALOG_SIZE, TOAST_TYPE } from '@shared/constants/index.js'
+import GlassDialog from '../../../components/ui/GlassDialog.js'
+import { useUiStore } from '../../../stores/index.js'
 
 /** 剪贴板复制按钮反馈显示时长 */
 const COPY_FEEDBACK_DURATION = 2000

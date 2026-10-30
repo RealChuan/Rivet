@@ -37,18 +37,13 @@ export const MIN_PANEL_WIDTH = 100
 export const MAX_PANEL_WIDTH = 400
 
 export const STORE_KEY = {
-  SAVED_CONNECTIONS: 'savedConnections',
-  UI_SETTINGS: 'uiSettings',
-  TRANSFER_SETTINGS: 'transferSettings',
-  KNOWN_HOSTS: 'knownHosts',
+  UI: 'ui',
+  TRANSFER: 'transfer',
+  CONNECTIONS: 'connections',
   CONNECTION_SORT_ORDER: 'connectionSortOrder',
 } as const
 
 export type StoreKey = (typeof STORE_KEY)[keyof typeof STORE_KEY]
-
-export const STORE_NAME = {
-  KNOWN_HOSTS: 'known-hosts',
-} as const
 
 export const ROOT_PATH = '/'
 export const DEFAULT_ROUTE = '/'
@@ -62,12 +57,17 @@ export const DEFAULT_CHILD_WINDOW_MIN_WIDTH = MIN_MAIN_WINDOW_WIDTH
 /** 子窗口最小高度 */
 export const DEFAULT_CHILD_WINDOW_MIN_HEIGHT = MIN_MAIN_WINDOW_HEIGHT
 /** macOS 交通灯位置 */
-export const MACOS_TRAFFIC_LIGHT_POSITION = { x: 16, y: 14 } as const
+export const MACOS_TRAFFIC_LIGHT_POSITION = { x: 16, y: 12 } as const
+/** WCO 标题栏高度 */
+export const TITLEBAR_HEIGHT = 36
+/** WCO 覆盖层颜色（取 no-glass 的不透明表面色） */
+export const TITLEBAR_OVERLAY_COLORS = {
+  light: { color: '#ffffff', symbolColor: '#171717' },
+  dark: { color: '#1e1e1e', symbolColor: '#e5e5e5' },
+} as const
 /** 连接面板默认宽度 */
 export const DEFAULT_CONNECTION_PANEL_WIDTH = 260
 /** 传输面板默认宽度 */
 export const DEFAULT_TRANSFER_PANEL_WIDTH = 260
 /** 队列抽屉默认宽度 */
 export const DEFAULT_QUEUE_DRAWER_WIDTH = 360
-/** 文件列表项高度 (px) */
-export const FILE_ITEM_HEIGHT = 40

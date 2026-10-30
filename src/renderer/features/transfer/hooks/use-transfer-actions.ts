@@ -1,11 +1,12 @@
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { FileType } from '@shared/constants/ui.js'
-import { useUiStore } from '@renderer/stores/index.js'
-import logger from '@renderer/utils/logger.js'
 import { TOAST_TYPE } from '@shared/constants/index.js'
 import { SIDEBAR_VIEW, TRANSFER_DIRECTION } from '@shared/constants/transfer.js'
 import { FILE_TYPE } from '@shared/constants/ui.js'
+import { transferApi } from '../../../api/transfer.js'
+import { useUiStore } from '../../../stores/index.js'
+import logger from '../../../utils/logger.js'
 import { useTransferStore } from '../stores/transfer.js'
 import { resolveMixedConflicts } from '../utils/transfer-conflict-resolver.js'
 import {
@@ -83,7 +84,14 @@ export function useTransferActions(): UseTransferActionsReturn {
           ),
         ]
 
-        const addResult = await window.electronAPI.transfer.add(tasks)
+        let addResult: { added: unknown[]; duplicates: unknown[] }
+        try {
+          addResult = await transferApi.add(tasks)
+        } catch (error) {
+          logger.catch(error, { action: 'startMixedUpload.add' })
+          addToast({ type: TOAST_TYPE.ERROR, message: t(($) => $.toast.uploadFailed) })
+          return
+        }
 
         if (addResult.duplicates.length > 0) {
           addToast({
@@ -134,7 +142,14 @@ export function useTransferActions(): UseTransferActionsReturn {
         .filter((item) => item.type === FILE_TYPE.DIRECTORY)
         .map((item) => item.path)
 
-      const localFiles = await window.electronAPI.transfer.checkLocalFiles(localDir)
+      let localFiles: Awaited<ReturnType<typeof transferApi.checkLocalFiles>>
+      try {
+        localFiles = await transferApi.checkLocalFiles(localDir)
+      } catch (error) {
+        logger.catch(error, { action: 'startDownload.checkLocalFiles' })
+        addToast({ type: TOAST_TYPE.ERROR, message: t(($) => $.toast.downloadFailed) })
+        return
+      }
 
       const result = await resolveMixedConflicts({
         filePaths,
@@ -147,7 +162,14 @@ export function useTransferActions(): UseTransferActionsReturn {
 
       const tasks = buildDownloadTasksFromResolved(remoteItems, result, sessionId, localDir)
 
-      const addResult = await window.electronAPI.transfer.add(tasks)
+      let addResult: { added: unknown[]; duplicates: unknown[] }
+      try {
+        addResult = await transferApi.add(tasks)
+      } catch (error) {
+        logger.catch(error, { action: 'startDownload.add' })
+        addToast({ type: TOAST_TYPE.ERROR, message: t(($) => $.toast.downloadFailed) })
+        return
+      }
 
       if (addResult.duplicates.length > 0) {
         addToast({
@@ -168,19 +190,19 @@ export function useTransferActions(): UseTransferActionsReturn {
   }
 
   const cancelTask = async (taskId: string) => {
-    await window.electronAPI.transfer.cancel(taskId)
+    await transferApi.cancel(taskId)
   }
 
   const cancelAll = async (sessionId?: string) => {
-    await window.electronAPI.transfer.cancelAll(sessionId)
+    await transferApi.cancelAll(sessionId)
   }
 
   const retryTask = async (taskId: string) => {
-    await window.electronAPI.transfer.retry(taskId)
+    await transferApi.retry(taskId)
   }
 
   const retryAll = async (sessionId?: string) => {
-    await window.electronAPI.transfer.retryAll(sessionId)
+    await transferApi.retryAll(sessionId)
   }
 
   return {

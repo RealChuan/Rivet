@@ -1,16 +1,17 @@
-export * from './protocol/index.js'
+export { SessionRegistry } from '../providers/session-registry.js'
+export type { SessionHandle } from '../providers/session-registry.js'
+export { providerSessionRegistry as sessionRegistry } from '../providers/session-registry.js'
 export { SessionManager } from './session-manager.js'
-export * from './session-registry.js'
-export { sessionRegistry } from './session-registry.js'
 
-import { protocolService } from './protocol/protocol-service.js'
+import { protocolService } from '../protocol/protocol-service.js'
 import { SessionManager } from './session-manager.js'
 import { transferService } from './transfer/index.js'
 
-// 解耦注入：让 protocolService 能查询活跃任务，避免 protocol → transfer 反向依赖
 protocolService.setHasActiveTasksChecker((sessionId) => transferService.hasActiveTasks(sessionId))
 
 export const sessionManager = new SessionManager({
   disconnect: (sessionId) => protocolService.disconnect(sessionId),
   ping: (sessionId) => protocolService.ping(sessionId),
 })
+
+protocolService.setSessionOpenedHandler(() => sessionManager.startHeartbeat())

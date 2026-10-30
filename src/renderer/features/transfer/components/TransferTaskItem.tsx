@@ -1,13 +1,10 @@
 import type React from 'react'
-import * as ContextMenuPrimitive from '@radix-ui/react-context-menu'
 import { Info, RotateCcw, Trash, X } from 'lucide-react'
+import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { OperationProgressInfo, TransferTask } from '@shared/types/transfer.js'
-import { FileIcon } from '@renderer/components/common/index.js'
-import { useTransferStore } from '@renderer/features/transfer/stores/transfer.js'
-import { cn } from '@renderer/utils/index.js'
 import { FILE_TYPE } from '@shared/constants/index.js'
 import {
   TRANSFER_CONFIG,
@@ -15,6 +12,9 @@ import {
   TRANSFER_OPERATION_TYPE,
 } from '@shared/constants/transfer.js'
 import { formatFileSize } from '@shared/utils/index.js'
+import { FileIcon } from '../../../components/common/index.js'
+import { cn } from '../../../utils/index.js'
+import { useTransferStore } from '../stores/transfer.js'
 import { ErrorDetailDialog } from './ErrorDetailDialog.js'
 import { TransferProgressBar } from './TransferProgressBar.js'
 

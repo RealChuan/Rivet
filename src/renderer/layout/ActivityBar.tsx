@@ -52,6 +52,8 @@ export const ActivityBar = ({ activeView, onViewChange }: ActivityBarProps) => {
         label={t(($) => $.activityBar.transfers)}
         onClick={() => onViewChange(SIDEBAR_VIEW.TRANSFERS)}
       />
+
+      <div className="flex-1" />
     </nav>
   )
 }

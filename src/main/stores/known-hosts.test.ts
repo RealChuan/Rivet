@@ -1,91 +1,84 @@
-/* eslint-disable @typescript-eslint/consistent-type-imports -- typeof import() 用于获取值导出的类型 */
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-const mockLogger = {
-  info: vi.fn(),
-  error: vi.fn(),
-  warn: vi.fn(),
-  catch: vi.fn(),
-}
+/* eslint-disable @typescript-eslint/consistent-type-imports -- typeof import() 用于取模块类型 */
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../utils/index.js', () => ({
-  logger: mockLogger,
-}))
-
-vi.mock('@shared/types/index.js', () => ({
-  ok: <T>(value: T): { success: true; value: T; error?: never } => ({
-    success: true as const,
-    value,
-  }),
-  err: <E>(error: E): { success: false; error: E; value?: never } => ({
-    success: false as const,
-    error,
-  }),
-  createErrorInfo: (code: string, message: string) => ({ code, message }),
+  logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), catch: vi.fn() },
 }))
 
 describe('known-hosts store', () => {
-  let getHostKeyRecord: typeof import('./known-hosts.js').getHostKeyRecord
-  let saveHostKeyRecord: typeof import('./known-hosts.js').saveHostKeyRecord
-  let removeHostKeyRecord: typeof import('./known-hosts.js').removeHostKeyRecord
+  let dir: string
+  let getKnownHost: typeof import('./known-hosts.js').getKnownHost
+  let trustHostKey: typeof import('./known-hosts.js').trustHostKey
+  let disposeKnownHosts: typeof import('./known-hosts.js').disposeKnownHosts
 
   beforeEach(async () => {
-    vi.clearAllMocks()
-
+    dir = mkdtempSync(join(tmpdir(), 'rivet-known-hosts-'))
     const module = await import('./known-hosts.js')
-    getHostKeyRecord = module.getHostKeyRecord
-    saveHostKeyRecord = module.saveHostKeyRecord
-    removeHostKeyRecord = module.removeHostKeyRecord
+    module.initializeKnownHosts(dir)
+    getKnownHost = module.getKnownHost
+    trustHostKey = module.trustHostKey
+    disposeKnownHosts = module.disposeKnownHosts
   })
 
-  describe('getHostKeyRecord', () => {
-    it('should return ok with undefined when no host found', () => {
-      const result = getHostKeyRecord('non-existent')
+  afterEach(async () => {
+    await disposeKnownHosts()
+    rmSync(dir, { recursive: true, force: true })
+  })
 
-      expect(result.success).toBe(true)
-      expect(result.value).toBeUndefined()
+  it('returns undefined when no host matches', () => {
+    const result = getKnownHost('example.com', 22, 'ssh-ed25519')
+
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.value).toBeUndefined()
+  })
+
+  it('trusts and reads a host key with normalized host', () => {
+    const trusted = trustHostKey({
+      host: 'Example.COM',
+      port: 22,
+      algorithm: 'ssh-ed25519',
+      fingerprint: 'SHA256:abc',
     })
-  })
 
-  describe('saveHostKeyRecord', () => {
-    it('should save new host key record successfully', () => {
-      const result = saveHostKeyRecord({
-        connectionId: 'new-conn',
-        hash: 'ssh-ed25519 AAAA...',
+    expect(trusted.success).toBe(true)
+    const found = getKnownHost('example.com', 22, 'ssh-ed25519')
+    expect(found.success).toBe(true)
+    if (found.success) {
+      expect(found.value).toMatchObject({
+        host: 'example.com',
+        port: 22,
+        algorithm: 'ssh-ed25519',
+        fingerprint: 'SHA256:abc',
       })
-
-      expect(result.success).toBe(true)
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Saved host key'))
-    })
-
-    it('should log connection id when saving', () => {
-      saveHostKeyRecord({
-        connectionId: 'test-conn-123',
-        hash: 'some-hash',
-      })
-
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('test-conn-123'))
-    })
+    }
   })
 
-  describe('removeHostKeyRecord', () => {
-    it('should complete removal operation successfully', () => {
-      const result = removeHostKeyRecord('to-remove')
-
-      expect(result.success).toBe(true)
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('Deleted host key'))
+  it('replaces the same host/port/algorithm and keeps other algorithms separate', () => {
+    trustHostKey({
+      host: 'example.com',
+      port: 22,
+      algorithm: 'ssh-ed25519',
+      fingerprint: 'SHA256:old',
+    })
+    trustHostKey({
+      host: 'example.com',
+      port: 22,
+      algorithm: 'ssh-ed25519',
+      fingerprint: 'SHA256:new',
+    })
+    trustHostKey({
+      host: 'example.com',
+      port: 22,
+      algorithm: 'ssh-rsa',
+      fingerprint: 'SHA256:rsa',
     })
 
-    it('should handle removing non-existent record gracefully', () => {
-      const result = removeHostKeyRecord('non-existent')
-
-      expect(result.success).toBe(true)
-    })
-
-    it('should log connection id when removing', () => {
-      removeHostKeyRecord('remove-conn-456')
-
-      expect(mockLogger.info).toHaveBeenCalledWith(expect.stringContaining('remove-conn-456'))
-    })
+    const ed = getKnownHost('example.com', 22, 'ssh-ed25519')
+    const rsa = getKnownHost('example.com', 22, 'ssh-rsa')
+    if (ed.success) expect(ed.value?.fingerprint).toBe('SHA256:new')
+    if (rsa.success) expect(rsa.value?.fingerprint).toBe('SHA256:rsa')
   })
 })

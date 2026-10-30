@@ -63,7 +63,7 @@ export const ConnectionList = ({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (over && active.id !== over.id) {
-      void onReorderConnections(String(active.id), String(over.id))
+      onReorderConnections(String(active.id), String(over.id))
     }
   }
 
@@ -91,10 +91,10 @@ export const ConnectionList = ({
         </span>
         <SortButton sortOrder={sortOrder} onClick={onSortClick} />
       </div>
-      <div className="flex-1 overflow-y-auto overflow-x-auto px-2 pb-2 space-y-2">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 pb-2 space-y-2">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
-            items={connections.map((c) => c.id)}
+            items={connections.map((connection) => connection.id)}
             strategy={verticalListSortingStrategy}
           >
             {connections.map((connection) => {

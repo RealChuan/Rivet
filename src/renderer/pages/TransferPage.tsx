@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
 import { Group, Panel } from 'react-resizable-panels'
 
-import { ResizeSeparator } from '@renderer/components/ui/ResizeSeparator.js'
-import { useUiStore } from '@renderer/stores/index.js'
 import { MAX_PANEL_WIDTH, MIN_PANEL_WIDTH } from '@shared/constants/index.js'
+import { ResizeSeparator } from '../components/ui/ResizeSeparator.js'
 import { TransferContainer } from '../features/transfer/components/TransferContainer.js'
 import { TransferServerList } from '../features/transfer/components/TransferServerList.js'
 import { useTransferStore } from '../features/transfer/stores/transfer.js'
+import { useUiStore } from '../stores/index.js'
 
 export const TransferPage = () => {
   const setVisible = useTransferStore((state) => state.setVisible)

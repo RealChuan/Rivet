@@ -15,6 +15,7 @@ const mockTransferStore = {
 vi.mock('../stores/transfer.js', () => ({
   useTransferStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector(mockTransferStore),
+  selectSessionIds: (state: typeof mockTransferStore) => state.sessionIds,
   selectTasksForSessionByDirection: (
     state: Record<string, unknown>,
     sessionId: string,

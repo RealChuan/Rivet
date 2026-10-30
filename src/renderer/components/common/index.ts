@@ -1,7 +1,6 @@
 export { AppLogo } from './AppLogo.js'
 export { ConfirmationDialog } from './ConfirmationDialog.js'
-export { ConflictDialogBase, CONFLICT_STRATEGY } from './ConflictDialogBase.js'
-export type { ConflictStrategy } from './ConflictDialogBase.js'
+export { ConflictDialogBase } from './ConflictDialogBase.js'
 export { ErrorBoundary } from './ErrorBoundary.js'
 export { FileIcon } from './FileIcon.js'
 export { LoaderIcon } from './LoaderIcon.js'

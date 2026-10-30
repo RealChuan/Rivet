@@ -1,0 +1,12 @@
+services:
+  sftp:
+    image: atmoz/sftp:alpine
+    command: testuser:testpass:1001::upload
+    ports: ['2222:22']
+  webdav:
+    image: bytemark/webdav
+    environment:
+      AUTH_TYPE: Basic
+      USERNAME: testuser
+      PASSWORD: testpass
+    ports: ['8080:80']

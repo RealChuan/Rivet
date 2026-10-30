@@ -1,7 +1,7 @@
 import type React from 'react'
-import * as RadioGroupPrimitive from '@radix-ui/react-radio-group'
+import { RadioGroup as RadioGroupPrimitive } from 'radix-ui'
 
-import { cn } from '@renderer/utils/index.js'
+import { cn } from '../../utils/index.js'
 
 interface RadioGroupProps {
   value: string

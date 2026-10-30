@@ -1,7 +1,7 @@
 import type React from 'react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@renderer/utils/index.js'
 import { PROTOCOL } from '@shared/constants/index.js'
+import { cn } from '../../../utils/index.js'
 
 interface TransferServerItemProps {
   sessionId: string

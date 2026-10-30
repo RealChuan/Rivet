@@ -34,6 +34,8 @@ Thumbs.db
 
 # Testing
 coverage/
+playwright-report/
+test-results/
 
 # Environment
 .env
@@ -43,3 +45,9 @@ coverage/
 # Misc
 # Generated .d.ts files (keep source .d.ts files like vite-env.d.ts)
 node_modules/**/*.d.ts
+
+# Agent scratch workspace
+.superpowers/
+
+# Tool caches
+.eslintcache

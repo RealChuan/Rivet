@@ -1,17 +1,14 @@
 import type React from 'react'
-import { RefreshCw, FolderPlus, Upload, FolderUp } from 'lucide-react'
+import { RefreshCw, FolderPlus, Upload, FolderUp, LayoutGrid, List } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
-import {
-  useFolderCreation,
-  useTransferDialog,
-} from '@renderer/features/file-explorer/hooks/index.js'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useClickOutside } from '@renderer/hooks/index.js'
-import { useUiStore } from '@renderer/stores/index.js'
-import { TOAST_TYPE } from '@shared/constants/index.js'
-import { formatErrorMessage } from '@shared/utils/index.js'
+import { FILE_VIEW_MODE, TOAST_TYPE } from '@shared/constants/index.js'
+import TextInputDialog from '../../../components/common/TextInputDialog.js'
+import { useClickOutside } from '../../../hooks/index.js'
+import { resolveErrorMessage } from '../../../i18n/error-message.js'
+import { useUiStore } from '../../../stores/index.js'
+import { useSessionStore } from '../../session/stores/session.js'
+import { useDirectoryInvalidation, useFolderCreation, useTransferDialog } from '../hooks/index.js'
 
 interface FileExplorerToolbarProps {
   sessionId: string
@@ -21,11 +18,13 @@ interface ToolButtonProps {
   onClick: () => void
   title: string
   isActive?: boolean
+  testId?: string
   children: React.ReactNode
 }
 
-const ToolButton = ({ onClick, title, isActive = false, children }: ToolButtonProps) => (
+const ToolButton = ({ onClick, title, isActive = false, testId, children }: ToolButtonProps) => (
   <button
+    {...(testId ? { 'data-testid': testId } : {})}
     onClick={onClick}
     title={title}
     aria-label={title}
@@ -42,11 +41,12 @@ const ToolButton = ({ onClick, title, isActive = false, children }: ToolButtonPr
 
 export const FileExplorerToolbar = ({ sessionId }: FileExplorerToolbarProps) => {
   const { t } = useTranslation()
-  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
+  const { invalidateSession } = useDirectoryInvalidation()
   const sessions = useSessionStore((state) => state.sessions)
   const addToast = useUiStore((state) => state.addToast)
-
   const session = sessions.find((s) => s.sessionId === sessionId)
+  const fileViewMode = useUiStore((state) => state.fileViewModes[sessionId] ?? FILE_VIEW_MODE.LIST)
+  const setFileViewMode = useUiStore((state) => state.setFileViewMode)
 
   const { openFilePicker, openFolderPicker } = useTransferDialog({
     sessionId,
@@ -68,11 +68,11 @@ export const FileExplorerToolbar = ({ sessionId }: FileExplorerToolbarProps) => 
 
   const handleRefresh = async () => {
     try {
-      await refreshCurrentDirectory(sessionId)
+      await invalidateSession(sessionId)
     } catch (error) {
       addToast({
         type: TOAST_TYPE.ERROR,
-        message: `${t(($) => $.toast.refreshFailed)}: ${formatErrorMessage(error) || t(($) => $.error.unknown)}`,
+        message: `${t(($) => $.toast.refreshFailed)}: ${resolveErrorMessage(t, error)}`,
       })
     }
   }
@@ -87,13 +87,33 @@ export const FileExplorerToolbar = ({ sessionId }: FileExplorerToolbarProps) => 
       <ToolButton
         onClick={() => void handleRefresh()}
         title={`${t(($) => $.common.action.refresh)} (F5)`}
+        testId="toolbar-refresh"
       >
         <RefreshCw className="w-4 h-4 stroke-current stroke-2" />
       </ToolButton>
 
       <ToolButton
+        onClick={() => setFileViewMode(sessionId, FILE_VIEW_MODE.LIST)}
+        title={t(($) => $.fileExplorerList.viewList)}
+        isActive={fileViewMode === FILE_VIEW_MODE.LIST}
+        testId="view-mode-list"
+      >
+        <List className="w-4 h-4 stroke-current stroke-2" />
+      </ToolButton>
+
+      <ToolButton
+        onClick={() => setFileViewMode(sessionId, FILE_VIEW_MODE.GRID)}
+        title={t(($) => $.fileExplorerList.viewGrid)}
+        isActive={fileViewMode === FILE_VIEW_MODE.GRID}
+        testId="view-mode-grid"
+      >
+        <LayoutGrid className="w-4 h-4 stroke-current stroke-2" />
+      </ToolButton>
+
+      <ToolButton
         onClick={() => setNewFolderDialogOpen(true)}
         title={t(($) => $.file.action.newFolder)}
+        testId="toolbar-new-folder"
       >
         <FolderPlus className="w-4 h-4 stroke-current stroke-2" />
       </ToolButton>

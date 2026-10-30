@@ -12,8 +12,6 @@ export const TIMEOUTS = {
   DISCONNECT: 5000,
   /** SFTP 连接就绪超时时间（20秒） */
   SFTP_READY: 20000,
-  /** HTTP/HTTPS Agent 超时时间（30秒） */
-  AGENT: 30000,
   /** 错误 Toast 显示时长（6秒） */
   TOAST_ERROR_DURATION: 6000,
   /** 默认 Toast 显示时长（3秒） */
@@ -34,14 +32,4 @@ export const TIMEOUTS = {
   AUTO_SAVE_INTERVAL: 300000,
   /** 传输进度批量刷新间隔 (ms) */
   PROGRESS_FLUSH_MS: 250,
-} as const
-
-/**
- * HTTP Agent 配置常量
- */
-export const HTTP_AGENT = {
-  /** 最大连接数 */
-  MAX_SOCKETS: 10,
-  /** 最大空闲连接数 */
-  MAX_FREE_SOCKETS: 5,
 } as const

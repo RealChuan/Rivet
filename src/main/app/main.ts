@@ -2,27 +2,22 @@
  * Rivet 主进程入口
  *
  * 职责：
- * 1. 注册全局 IPC 处理器（窗口控制、子窗口管理）
+ * 1. 注册全局 IPC 处理器
  * 2. 初始化应用配置、日志、业务 IPC
- * 3. 使用 WindowManager 创建主窗口
+ * 3. 创建唯一主窗口
  */
 
-import * as Sentry from '@sentry/electron/main'
 import { app, session } from 'electron'
 
 import { APP_NAME } from '@shared/constants/index.js'
 import { setupIpcHandlers } from '../ipc/index.js'
-import { initializeConfig, startAutoSave } from '../stores/index.js'
+import { applyPersistedConcurrency } from '../services/transfer/index.js'
+import { initializeStores } from '../stores/index.js'
 import { logger } from '../utils/index.js'
 import { createMainWindow, setupAppLifecycle } from './index.js'
+import { initSentry } from './sentry.js'
 
-// 初始化 Sentry 崩溃报告（仅生产环境且配置了 DSN 时启用）
-Sentry.init({
-  dsn: process.env.SENTRY_DSN ?? '',
-  environment: app.isPackaged ? 'production' : 'development',
-  enabled: app.isPackaged && !!process.env.SENTRY_DSN,
-  sendDefaultPii: false,
-})
+initSentry()
 
 app.setName(APP_NAME)
 app.enableSandbox()
@@ -51,8 +46,8 @@ void app.whenReady().then(() => {
     })
   })
 
-  initializeConfig()
-  startAutoSave()
+  initializeStores()
+  applyPersistedConcurrency()
   setupIpcHandlers()
   createMainWindow()
 })

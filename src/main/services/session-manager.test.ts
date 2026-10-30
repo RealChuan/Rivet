@@ -1,14 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { IPC_CHANNELS, PROTOCOL, TIMEOUTS } from '@shared/constants/index.js'
+import type { ConnectionConfig } from '@shared/types/connection.js'
+import { PROTOCOL, TIMEOUTS } from '@shared/constants/index.js'
+import { EVENT_CHANNEL } from '@shared/contract/events.contract.js'
+import { providerSessionRegistry, type SessionHandle } from '../providers/session-registry.js'
+import { createFakeProvider } from '../providers/test-utils/fake-provider.js'
 import { SessionManager } from './session-manager.js'
-import { sessionRegistry, type SessionHandle } from './session-registry.js'
 
-const mockBroadcast = vi.fn()
+const mockSend = vi.fn()
 
-vi.mock('../app/window-factory.js', () => ({
-  WindowManager: {
-    broadcast: (...args: unknown[]): unknown => mockBroadcast(...args),
-  },
+vi.mock('../app/main-window.js', () => ({
+  sendToMainWindow: (...args: unknown[]): unknown => mockSend(...args),
 }))
 
 vi.mock('../utils/logger.js', () => ({
@@ -19,27 +20,42 @@ vi.mock('../utils/logger.js', () => ({
   },
 }))
 
-describe('SessionManager', () => {
-  const mockConfig = {
-    id: 'conn-1',
-    name: 'Test Connection',
-    protocol: PROTOCOL.SFTP,
-    host: 'localhost',
-    port: 22,
-    username: 'user',
-    savePassword: false,
-  }
+const sftpConfig: ConnectionConfig = {
+  id: 'conn-1',
+  name: 'Test Connection',
+  protocol: PROTOCOL.SFTP,
+  host: 'localhost',
+  port: 22,
+  username: 'user',
+  authKind: 'password',
+}
 
+const webdavConfig: ConnectionConfig = { ...sftpConfig, id: 'conn-2', protocol: PROTOCOL.WEBDAV }
+
+describe('SessionManager', () => {
   const mockDisconnect = vi.fn().mockResolvedValue(undefined)
   const mockPing = vi.fn().mockResolvedValue(undefined)
 
   let sessionManager: SessionManager
 
+  function register(
+    sessionId: string,
+    protocolType: 'sftp' | 'webdav' = 'sftp',
+    config: ConnectionConfig = sftpConfig,
+  ): void {
+    providerSessionRegistry.register(sessionId, {
+      provider: createFakeProvider(protocolType),
+      config,
+      protocolType,
+      isClosing: false,
+    })
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
     mockDisconnect.mockResolvedValue(undefined)
     mockPing.mockResolvedValue(undefined)
-    sessionRegistry.clear()
+    providerSessionRegistry.clear()
     sessionManager = new SessionManager({ disconnect: mockDisconnect, ping: mockPing })
   })
 
@@ -47,32 +63,13 @@ describe('SessionManager', () => {
     sessionManager.destroy()
   })
 
-  describe('register', () => {
-    it('should register a new session', () => {
-      const mockClient = { connect: vi.fn() }
-      sessionManager.register('session-1', mockClient, mockConfig, PROTOCOL.SFTP)
-
-      expect(sessionRegistry.has('session-1')).toBe(true)
-      expect(sessionRegistry.count).toBe(1)
-    })
-
-    it('should allow multiple sessions', () => {
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      sessionManager.register('session-2', {}, { ...mockConfig, id: 'conn-2' }, PROTOCOL.WEBDAV)
-
-      expect(sessionRegistry.count).toBe(2)
-      expect(sessionRegistry.has('session-1')).toBe(true)
-      expect(sessionRegistry.has('session-2')).toBe(true)
-    })
-  })
-
   describe('unregister', () => {
     it('should unregister an existing session', () => {
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
       sessionManager.unregister('session-1')
 
-      expect(sessionRegistry.has('session-1')).toBe(false)
-      expect(sessionRegistry.count).toBe(0)
+      expect(providerSessionRegistry.has('session-1')).toBe(false)
+      expect(providerSessionRegistry.count).toBe(0)
     })
 
     it('should not throw when unregistering non-existent session', () => {
@@ -80,70 +77,12 @@ describe('SessionManager', () => {
     })
   })
 
-  describe('get', () => {
-    it('should return session handle for existing session', () => {
-      const mockClient = { key: 'value' }
-      sessionManager.register('session-1', mockClient, mockConfig, PROTOCOL.SFTP)
-
-      const handle = sessionRegistry.get('session-1')
-
-      expect(handle).toBeDefined()
-      expect(handle?.client).toEqual(mockClient)
-      expect(handle?.config).toEqual(mockConfig)
-      expect(handle?.protocolType).toBe(PROTOCOL.SFTP)
-    })
-
-    it('should return undefined for non-existent session', () => {
-      expect(sessionRegistry.get('nonexistent')).toBeUndefined()
-    })
-  })
-
-  describe('has', () => {
-    it('should return true for existing session', () => {
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      expect(sessionRegistry.has('session-1')).toBe(true)
-    })
-
-    it('should return false for non-existent session', () => {
-      expect(sessionRegistry.has('nonexistent')).toBe(false)
-    })
-  })
-
-  describe('getAllIds', () => {
-    it('should return all session ids', () => {
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      sessionManager.register('session-2', {}, { ...mockConfig, id: 'conn-2' }, PROTOCOL.WEBDAV)
-
-      const ids = sessionRegistry.getAllIds()
-
-      expect(ids.length).toBe(2)
-      expect(ids).toContain('session-1')
-      expect(ids).toContain('session-2')
-    })
-
-    it('should return empty array when no sessions', () => {
-      expect(sessionRegistry.getAllIds()).toEqual([])
-    })
-  })
-
-  describe('clear', () => {
-    it('should clear all sessions', () => {
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      sessionManager.register('session-2', {}, { ...mockConfig, id: 'conn-2' }, PROTOCOL.WEBDAV)
-
-      sessionRegistry.clear()
-
-      expect(sessionRegistry.count).toBe(0)
-      expect(sessionRegistry.getAllIds()).toEqual([])
-    })
-  })
-
   describe('setClosing', () => {
     it('should mark session as closing', () => {
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
 
-      sessionRegistry.setClosing('session-1')
-      const handle = sessionRegistry.get('session-1') as SessionHandle
+      providerSessionRegistry.setClosing('session-1')
+      const handle = providerSessionRegistry.get('session-1') as SessionHandle
 
       expect(handle.isClosing).toBe(true)
     })
@@ -156,54 +95,27 @@ describe('SessionManager', () => {
     })
 
     it('should return ok for already closing session', async () => {
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      sessionRegistry.setClosing('session-1')
+      register('session-1')
+      providerSessionRegistry.setClosing('session-1')
 
       const result = await sessionManager.safeUnregister('session-1')
       expect(result.success).toBe(true)
     })
 
     it('should disconnect and unregister session', async () => {
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
 
       const result = await sessionManager.safeUnregister('session-1')
 
       expect(result.success).toBe(true)
-      expect(sessionRegistry.has('session-1')).toBe(false)
-    })
-  })
-
-  describe('safeUnregisterAll', () => {
-    it('should return ok when no sessions', async () => {
-      const result = await sessionManager.safeUnregisterAll()
-      expect(result.success).toBe(true)
-      expect(result.value).toBe(true)
-    })
-
-    it('should cleanup all sessions', async () => {
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      sessionManager.register('session-2', {}, { ...mockConfig, id: 'conn-2' }, PROTOCOL.WEBDAV)
-
-      const result = await sessionManager.safeUnregisterAll()
-
-      expect(result.success).toBe(true)
-      if (result.success) {
-        expect(result.value).toBe(true)
-      }
-      expect(sessionRegistry.count).toBe(0)
-    })
-  })
-
-  describe('safeUnregister - additional', () => {
-    afterEach(() => {
-      vi.useRealTimers()
+      expect(providerSessionRegistry.has('session-1')).toBe(false)
     })
 
     it('should return DISCONNECT_ERROR on disconnect timeout', async () => {
       vi.useFakeTimers()
       mockDisconnect.mockImplementation(() => new Promise(() => {}))
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
 
       const resultPromise = sessionManager.safeUnregister('session-1')
       await vi.advanceTimersByTimeAsync(TIMEOUTS.DISCONNECT + 1)
@@ -218,7 +130,7 @@ describe('SessionManager', () => {
     it('should still delete session on disconnect failure', async () => {
       mockDisconnect.mockRejectedValue(new Error('disconnect failed'))
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
 
       const result = await sessionManager.safeUnregister('session-1')
 
@@ -226,14 +138,14 @@ describe('SessionManager', () => {
       if (!result.success) {
         expect(result.error.code).toBe('DISCONNECT_ERROR')
       }
-      expect(sessionRegistry.has('session-1')).toBe(false)
+      expect(providerSessionRegistry.has('session-1')).toBe(false)
     })
 
     it('should clear disconnect timeout on successful disconnect', async () => {
       vi.useFakeTimers()
       const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
 
       const result = await sessionManager.safeUnregister('session-1')
 
@@ -244,15 +156,34 @@ describe('SessionManager', () => {
     })
   })
 
-  describe('safeUnregisterAll - additional', () => {
+  describe('safeUnregisterAll', () => {
+    it('should return ok when no sessions', async () => {
+      const result = await sessionManager.safeUnregisterAll()
+      expect(result.success).toBe(true)
+      expect(result.value).toBe(true)
+    })
+
+    it('should cleanup all sessions', async () => {
+      register('session-1')
+      register('session-2', 'webdav', webdavConfig)
+
+      const result = await sessionManager.safeUnregisterAll()
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.value).toBe(true)
+      }
+      expect(providerSessionRegistry.count).toBe(0)
+    })
+
     it('should return ok(false) on partial failure', async () => {
       mockDisconnect.mockImplementation((id: string) => {
         if (id === 'session-1') return Promise.reject(new Error('disconnect failed'))
         return Promise.resolve(undefined)
       })
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      sessionManager.register('session-2', {}, { ...mockConfig, id: 'conn-2' }, PROTOCOL.WEBDAV)
+      register('session-1')
+      register('session-2', 'webdav', webdavConfig)
 
       const result = await sessionManager.safeUnregisterAll()
 
@@ -268,35 +199,42 @@ describe('SessionManager', () => {
       vi.useFakeTimers()
       mockPing.mockRejectedValue(new Error('ping failed'))
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
+      sessionManager.startHeartbeat()
 
-      // Trigger a heartbeat check
       await vi.advanceTimersByTimeAsync(TIMEOUTS.HEARTBEAT_INTERVAL + 1)
 
-      expect(mockBroadcast).toHaveBeenCalledWith(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, {
+      expect(mockSend).toHaveBeenCalledWith(EVENT_CHANNEL.SESSION_DISCONNECTED, {
         sessionId: 'session-1',
-        protocolType: PROTOCOL.SFTP,
+        connectionId: 'conn-1',
+        protocol: PROTOCOL.SFTP,
+        name: 'Test Connection',
       })
 
       vi.useRealTimers()
     })
 
-    it('should broadcast SESSION_DISCONNECTED with correct protocolType for each session', async () => {
+    it('should broadcast SESSION_DISCONNECTED with correct protocol for each session', async () => {
       vi.useFakeTimers()
       mockPing.mockRejectedValue(new Error('ping failed'))
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      sessionManager.register('session-2', {}, { ...mockConfig, id: 'conn-2' }, PROTOCOL.WEBDAV)
+      register('session-1')
+      register('session-2', 'webdav', webdavConfig)
+      sessionManager.startHeartbeat()
 
       await vi.advanceTimersByTimeAsync(TIMEOUTS.HEARTBEAT_INTERVAL + 1)
 
-      expect(mockBroadcast).toHaveBeenCalledWith(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, {
+      expect(mockSend).toHaveBeenCalledWith(EVENT_CHANNEL.SESSION_DISCONNECTED, {
         sessionId: 'session-1',
-        protocolType: PROTOCOL.SFTP,
+        connectionId: 'conn-1',
+        protocol: PROTOCOL.SFTP,
+        name: 'Test Connection',
       })
-      expect(mockBroadcast).toHaveBeenCalledWith(IPC_CHANNELS.EVENTS.SESSION_DISCONNECTED, {
+      expect(mockSend).toHaveBeenCalledWith(EVENT_CHANNEL.SESSION_DISCONNECTED, {
         sessionId: 'session-2',
-        protocolType: PROTOCOL.WEBDAV,
+        connectionId: 'conn-2',
+        protocol: PROTOCOL.WEBDAV,
+        name: 'Test Connection',
       })
 
       vi.useRealTimers()
@@ -306,11 +244,12 @@ describe('SessionManager', () => {
       vi.useFakeTimers()
       mockPing.mockResolvedValue(undefined)
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
+      sessionManager.startHeartbeat()
 
       await vi.advanceTimersByTimeAsync(TIMEOUTS.HEARTBEAT_INTERVAL + 1)
 
-      expect(mockBroadcast).not.toHaveBeenCalled()
+      expect(mockSend).not.toHaveBeenCalled()
 
       vi.useRealTimers()
     })
@@ -319,12 +258,13 @@ describe('SessionManager', () => {
       vi.useFakeTimers()
       const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
+      sessionManager.startHeartbeat()
 
       await vi.advanceTimersByTimeAsync(TIMEOUTS.HEARTBEAT_INTERVAL + 1)
 
       expect(clearTimeoutSpy).toHaveBeenCalledTimes(1)
-      expect(mockBroadcast).not.toHaveBeenCalled()
+      expect(mockSend).not.toHaveBeenCalled()
 
       clearTimeoutSpy.mockRestore()
       vi.useRealTimers()
@@ -335,7 +275,8 @@ describe('SessionManager', () => {
     it('should stop heartbeat', () => {
       const clearIntervalSpy = vi.spyOn(global, 'clearInterval')
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
+      sessionManager.startHeartbeat()
       sessionManager.destroy()
 
       expect(clearIntervalSpy).toHaveBeenCalledTimes(1)
@@ -348,7 +289,8 @@ describe('SessionManager', () => {
     it('should stop heartbeat when last session is unregistered', () => {
       const clearIntervalSpy = vi.spyOn(global, 'clearInterval')
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
+      register('session-1')
+      sessionManager.startHeartbeat()
       sessionManager.unregister('session-1')
 
       expect(clearIntervalSpy).toHaveBeenCalledTimes(1)
@@ -356,12 +298,15 @@ describe('SessionManager', () => {
       clearIntervalSpy.mockRestore()
     })
 
-    it('should start heartbeat only once for multiple registers', () => {
+    it('should start heartbeat only once for multiple starts', () => {
       const setIntervalSpy = vi.spyOn(global, 'setInterval')
 
-      sessionManager.register('session-1', {}, mockConfig, PROTOCOL.SFTP)
-      sessionManager.register('session-2', {}, { ...mockConfig, id: 'conn-2' }, PROTOCOL.WEBDAV)
-      sessionManager.register('session-3', {}, { ...mockConfig, id: 'conn-3' }, PROTOCOL.SFTP)
+      register('session-1')
+      register('session-2', 'webdav', webdavConfig)
+      register('session-3')
+      sessionManager.startHeartbeat()
+      sessionManager.startHeartbeat()
+      sessionManager.startHeartbeat()
 
       expect(setIntervalSpy).toHaveBeenCalledTimes(1)
 

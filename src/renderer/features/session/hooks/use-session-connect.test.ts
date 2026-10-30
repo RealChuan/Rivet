@@ -1,26 +1,17 @@
 import { renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ConnectionConfig } from '@shared/types/index.js'
+import type { ConnectionConfig, ConnectRequest } from '@shared/types/index.js'
 import { useSessionConnect } from './use-session-connect.js'
 
 const mockHandleConnectWithHostKey = vi.fn()
 const mockReplaceSession = vi.fn()
-const mockRefreshCurrentDirectory = vi.fn()
 const mockGetConnectionById = vi.fn()
 
-const mockSessions: Array<{
-  sessionId: string
-  connectionId: string
-  currentPath: string
-  files: unknown[]
-  isConnected: boolean
-  isLoading: boolean
-  error: string | null
-}> = []
+const mockSessions: Array<{ sessionId: string }> = []
 
 vi.mock('./host-key-connect.js', () => ({
   handleConnectWithHostKey: (...args: unknown[]): Promise<unknown> =>
-    mockHandleConnectWithHostKey(...(args as [ConnectionConfig])) as Promise<unknown>,
+    Promise.resolve(mockHandleConnectWithHostKey(...(args as [ConnectRequest]))),
 }))
 
 vi.mock('../stores/session.js', () => ({
@@ -28,7 +19,6 @@ vi.mock('../stores/session.js', () => ({
     getState: () => ({
       sessions: mockSessions,
       replaceSession: mockReplaceSession,
-      refreshCurrentDirectory: mockRefreshCurrentDirectory,
     }),
   },
 }))
@@ -43,7 +33,6 @@ vi.mock('../stores/connection.js', () => ({
 
 vi.mock('@shared/constants/index.js', () => ({
   ROOT_PATH: '/',
-  HOST_KEY_DIALOG_TYPE: { FIRST_CONNECT: 'first-connect', CHANGED: 'changed' },
 }))
 
 const mockConfig: ConnectionConfig = {
@@ -59,7 +48,6 @@ describe('useSessionConnect', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSessions.length = 0
-    mockRefreshCurrentDirectory.mockResolvedValue(undefined)
     mockHandleConnectWithHostKey.mockResolvedValue({
       success: true,
       sessionId: 'sess-1',
@@ -72,12 +60,11 @@ describe('useSessionConnect', () => {
     it('should add session to store and return true on successful connection', async () => {
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.connectSession(mockConfig)
+      const success = await result.current.connectSession({ connection: mockConfig })
 
       expect(success).toBe(true)
-      expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith(mockConfig)
+      expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith({ connection: mockConfig })
       expect(mockReplaceSession).toHaveBeenCalled()
-      expect(mockRefreshCurrentDirectory).toHaveBeenCalledWith('sess-1')
     })
 
     it('should return false on failed connection', async () => {
@@ -89,11 +76,10 @@ describe('useSessionConnect', () => {
 
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.connectSession(mockConfig)
+      const success = await result.current.connectSession({ connection: mockConfig })
 
       expect(success).toBe(false)
       expect(mockReplaceSession).not.toHaveBeenCalled()
-      expect(mockRefreshCurrentDirectory).not.toHaveBeenCalled()
     })
 
     it('should retry when first call returns retry=true then succeed', async () => {
@@ -103,11 +89,10 @@ describe('useSessionConnect', () => {
 
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.connectSession(mockConfig)
+      const success = await result.current.connectSession({ connection: mockConfig })
 
       expect(success).toBe(true)
       expect(mockHandleConnectWithHostKey).toHaveBeenCalledTimes(2)
-      expect(mockRefreshCurrentDirectory).toHaveBeenCalledWith('sess-1')
     })
 
     it('should return false after retry then failure', async () => {
@@ -117,12 +102,11 @@ describe('useSessionConnect', () => {
 
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.connectSession(mockConfig)
+      const success = await result.current.connectSession({ connection: mockConfig })
 
       expect(success).toBe(false)
       expect(mockHandleConnectWithHostKey).toHaveBeenCalledTimes(2)
       expect(mockReplaceSession).not.toHaveBeenCalled()
-      expect(mockRefreshCurrentDirectory).not.toHaveBeenCalled()
     })
   })
 
@@ -144,20 +128,19 @@ describe('useSessionConnect', () => {
 
       expect(success).toBe(true)
       expect(mockGetConnectionById).toHaveBeenCalledWith('conn-1')
-      expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith(mockConfig)
+      expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith({ connection: mockConfig })
     })
 
-    it('should merge passwordConfig into connection config', async () => {
-      const passwordConfig = { password: 'secret', savePassword: true }
-
+    it('should pass the secret and saveSecret to connectSession', async () => {
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.reconnectSession('conn-1', passwordConfig)
+      const success = await result.current.reconnectSession('conn-1', 'secret', true)
 
       expect(success).toBe(true)
       expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith({
-        ...mockConfig,
-        ...passwordConfig,
+        connection: mockConfig,
+        secret: 'secret',
+        saveSecret: true,
       })
     })
   })

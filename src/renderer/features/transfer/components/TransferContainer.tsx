@@ -1,11 +1,11 @@
 import { ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useTransferStore } from '../stores/transfer.js'
+import { selectSessionIds, useTransferStore } from '../stores/transfer.js'
 import { TransferArea } from './TransferArea.js'
 
 export const TransferContainer = () => {
   const { t } = useTranslation()
-  const sessionIds = useTransferStore((state) => state.sessionIds)
+  const sessionIds = useTransferStore(selectSessionIds)
   const selectedSessionId = useTransferStore((state) => state.selectedSessionId)
 
   if (sessionIds.length === 0 || !selectedSessionId) {

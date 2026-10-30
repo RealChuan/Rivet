@@ -3,6 +3,7 @@ export const OPERATION_STATUS = {
   RUNNING: 'running',
   COMPLETED: 'completed',
   FAILED: 'failed',
+  CANCELLED: 'cancelled',
 } as const
 
 export type OperationStatus = (typeof OPERATION_STATUS)[keyof typeof OPERATION_STATUS]
@@ -48,13 +49,20 @@ export type TransferOperationType =
   (typeof TRANSFER_OPERATION_TYPE)[keyof typeof TRANSFER_OPERATION_TYPE]
 
 export const TRANSFER_CONFIG = {
-  PROGRESS_THROTTLE_MS: 500,
+  /** 单文件分块进度合并窗口；与主进程聚合窗口同量级，避免高频 IPC 之外的重复计算。 */
+  PROGRESS_THROTTLE_MS: 200,
   ROTATION_INTERVAL_MS: 3000,
   DEFAULT_CONCURRENCY: 5,
   MIN_CONCURRENCY: 1,
   MAX_CONCURRENCY: 10,
   MAX_INLINE_OPERATIONS: 3,
 } as const
+
+/** 主进程进度聚合窗口：同一 task 在窗口内只保留最后一条快照。 */
+export const PROGRESS_BATCH_MS = 200
+
+/** 失败任务历史上限；超出按 createdAt 淘汰最旧的。 */
+export const MAX_FINISHED_TASKS = 500
 
 export const LAST_DIR_KEY = {
   UPLOAD: 'lastUploadDir',

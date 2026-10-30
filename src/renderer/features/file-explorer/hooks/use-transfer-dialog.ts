@@ -1,6 +1,8 @@
 import { LAST_DIR_KEY } from '@shared/constants/transfer.js'
 import { FILE_TYPE, type FileType } from '@shared/constants/ui.js'
-import { isOk } from '@shared/types/index.js'
+import { dialogApi } from '../../../api/dialog.js'
+import { systemApi } from '../../../api/system.js'
+import { transferApi } from '../../../api/transfer.js'
 import { useFileExplorerTransferActions } from '../contexts/transfer-actions.js'
 
 interface RemoteItem {
@@ -16,10 +18,13 @@ interface UseTransferDialogOptions {
 }
 
 async function getDefaultPath(lastDirKey: 'UPLOAD' | 'DOWNLOAD'): Promise<string | undefined> {
-  const lastDir = await window.electronAPI.transfer.getLastDir(LAST_DIR_KEY[lastDirKey])
-  if (lastDir) return lastDir
-  const downloadDirResult = await window.electronAPI.system.getDownloadDir()
-  return downloadDirResult.success ? downloadDirResult.value : undefined
+  try {
+    const lastDir = await transferApi.getLastDir(LAST_DIR_KEY[lastDirKey])
+    if (lastDir) return lastDir
+    return await systemApi.getDownloadDir()
+  } catch {
+    return undefined
+  }
 }
 
 export function useTransferDialog({ sessionId, currentPath }: UseTransferDialogOptions) {
@@ -27,39 +32,37 @@ export function useTransferDialog({ sessionId, currentPath }: UseTransferDialogO
 
   const openFilePicker = async () => {
     const defaultPath = await getDefaultPath('UPLOAD')
-    const result = await window.electronAPI.dialog.showOpenDialog({
+    const result = await dialogApi.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
       defaultPath,
     })
-    if (!isOk(result) || !result.value) return
-    if (result.value.canceled || result.value.filePaths.length === 0) return
+    if (!result || result.canceled || result.filePaths.length === 0) return
 
-    if (result.value.filePaths[0]) {
-      const parts = result.value.filePaths[0].replace(/\\/g, '/').split('/')
+    if (result.filePaths[0]) {
+      const parts = result.filePaths[0].replace(/\\/g, '/').split('/')
       parts.pop()
       const parentDir = parts.join('/')
       if (parentDir) {
-        await window.electronAPI.transfer.setLastDir(LAST_DIR_KEY.UPLOAD, parentDir)
+        await transferApi.setLastDir(LAST_DIR_KEY.UPLOAD, parentDir)
       }
     }
 
-    await startUpload(result.value.filePaths, sessionId, currentPath, FILE_TYPE.FILE)
+    await startUpload(result.filePaths, sessionId, currentPath, FILE_TYPE.FILE)
   }
 
   const openFolderPicker = async () => {
     const defaultPath = await getDefaultPath('UPLOAD')
-    const result = await window.electronAPI.dialog.showOpenDialog({
+    const result = await dialogApi.showOpenDialog({
       properties: ['openDirectory'],
       defaultPath,
     })
-    if (!isOk(result) || !result.value) return
-    if (result.value.canceled || result.value.filePaths.length === 0) return
+    if (!result || result.canceled || result.filePaths.length === 0) return
 
-    if (result.value.filePaths[0]) {
-      await window.electronAPI.transfer.setLastDir(LAST_DIR_KEY.UPLOAD, result.value.filePaths[0])
+    if (result.filePaths[0]) {
+      await transferApi.setLastDir(LAST_DIR_KEY.UPLOAD, result.filePaths[0])
     }
 
-    await startUpload(result.value.filePaths, sessionId, currentPath, FILE_TYPE.DIRECTORY)
+    await startUpload(result.filePaths, sessionId, currentPath, FILE_TYPE.DIRECTORY)
   }
 
   const openDownloadDialog = async (remoteItems: RemoteItem[]) => {
@@ -67,17 +70,16 @@ export function useTransferDialog({ sessionId, currentPath }: UseTransferDialogO
 
     const defaultPath = await getDefaultPath('DOWNLOAD')
 
-    const result = await window.electronAPI.dialog.showOpenDialog({
+    const result = await dialogApi.showOpenDialog({
       properties: ['openDirectory'],
       defaultPath,
     })
-    if (!isOk(result) || !result.value) return
-    if (result.value.canceled || result.value.filePaths.length === 0) return
+    if (!result || result.canceled || result.filePaths.length === 0) return
 
-    const localDir = result.value.filePaths[0]
+    const localDir = result.filePaths[0]
     if (!localDir) return
 
-    await window.electronAPI.transfer.setLastDir(LAST_DIR_KEY.DOWNLOAD, localDir)
+    await transferApi.setLastDir(LAST_DIR_KEY.DOWNLOAD, localDir)
 
     await startDownload(remoteItems, sessionId, localDir)
   }

@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { logger } from '@renderer/utils/index.js'
 import { DEFAULT_LANGUAGE, DEFAULT_THEME_VALUE, STORE_KEY } from '@shared/constants/index.js'
-import { isErr, type UiSettings } from '@shared/types/index.js'
+import { type UiSettings } from '@shared/types/index.js'
+import { configApi } from '../api/config.js'
 import { useConnectionStore } from '../features/session/stores/connection.js'
 import { useTransferStore } from '../features/transfer/stores/transfer.js'
 import { useUiStore } from '../stores/index.js'
+import { logger } from '../utils/index.js'
 
 export const useApplicationInitialization = () => {
   const { i18n } = useTranslation()
@@ -19,16 +20,16 @@ export const useApplicationInitialization = () => {
 
   useEffect(() => {
     const initApp = async () => {
-      const result = await window.electronAPI.config.get(STORE_KEY.UI_SETTINGS)
-
-      if (isErr(result)) {
-        logger.catch(result.error, { action: 'load-settings' })
+      let savedSettings: UiSettings | null = null
+      try {
+        savedSettings = await configApi.get<UiSettings>(STORE_KEY.UI)
+      } catch (error) {
+        logger.catch(error, { action: 'load-settings' })
         initialize({ appearance: DEFAULT_THEME_VALUE, locale: DEFAULT_LANGUAGE })
         await i18n.changeLanguage(DEFAULT_LANGUAGE)
         return
       }
 
-      const savedSettings = result.value as UiSettings | null // IPC 返回值，主进程保证类型
       const appearance = savedSettings?.appearance ?? DEFAULT_THEME_VALUE
       const locale = savedSettings?.locale ?? DEFAULT_LANGUAGE
 

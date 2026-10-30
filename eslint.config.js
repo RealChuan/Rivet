@@ -8,7 +8,17 @@ import globals from 'globals'
 
 export default [
   {
-    ignores: ['**/.vite/**', 'node_modules/**', 'out/**', 'coverage/**', '.trae/**'],
+    ignores: [
+      '**/.vite/**',
+      'node_modules/**',
+      'out/**',
+      'coverage/**',
+      '.trae/**',
+      'docs/**',
+      '.superpowers/**',
+      // i18next-cli 生成的资源类型不参与手写代码规则（重复文案会形成重复的联合类型成员）。
+      'src/renderer/i18n/resources.d.ts',
+    ],
   },
 
   js.configs.recommended,
@@ -29,7 +39,7 @@ export default [
         ecmaVersion: 'latest',
         sourceType: 'module',
         ecmaFeatures: { jsx: true },
-        project: ['tsconfig.json', 'tsconfig.main.json'],
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
       globals: {
@@ -60,7 +70,7 @@ export default [
             'unknown',
           ],
           newlinesBetween: 'ignore',
-          internalPattern: ['^@shared/', '^@renderer/', '^@main/'],
+          internalPattern: ['^@shared/'],
         },
       ],
       'perfectionist/sort-exports': ['error', { type: 'natural', order: 'asc' }],

@@ -1,7 +1,7 @@
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@renderer/utils/index.js'
 import { SORT_ORDER, type SortOrder } from '@shared/constants/index.js'
+import { cn } from '../../../utils/index.js'
 
 interface SortButtonProps {
   sortOrder: SortOrder

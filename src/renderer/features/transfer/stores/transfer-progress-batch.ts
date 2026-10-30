@@ -2,16 +2,6 @@ import type { OperationProgressInfo, TransferProgressData } from '@shared/types/
 import { OPERATION_STATUS } from '@shared/constants/index.js'
 import type { TaskProgress } from './transfer.js'
 
-/** Progress data separated from task list to avoid triggering list re-renders */
-interface ProgressBatchState {
-  buffer: TransferProgressData[]
-  timerId: ReturnType<typeof setTimeout> | null
-}
-
-export function createProgressBatchState(): ProgressBatchState {
-  return { buffer: [], timerId: null }
-}
-
 function hasProgressChanged(
   current: TaskProgress | undefined,
   data: TransferProgressData,
@@ -139,18 +129,4 @@ export function applyProgressBatch<T extends { id: string; status: string }>(
     result.statusChanged = true
   }
   return result
-}
-
-export function flushProgressBatch(
-  batchState: ProgressBatchState,
-  applyBatch: (batch: TransferProgressData[]) => void,
-): void {
-  if (batchState.timerId !== null) {
-    clearTimeout(batchState.timerId)
-    batchState.timerId = null
-  }
-  const batch = batchState.buffer
-  batchState.buffer = []
-  if (batch.length === 0) return
-  applyBatch(batch)
 }

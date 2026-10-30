@@ -4,12 +4,49 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const nodeTest = {
+  globals: true,
+  setupFiles: ['./vitest.setup.ts'],
+  clearMocks: true,
+}
+
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'jsdom',
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    clearMocks: true,
+    // 关闭模块级磁盘缓存：缓存目录损坏时 vitest 会整目录清空，
+    // 在受限环境里会触发批量删除保护而整体失败；重跑成本远低于此风险。
+    fsModuleCache: false,
     setupFiles: ['./vitest.setup.ts'],
+    projects: [
+      {
+        extends: true,
+        test: {
+          ...nodeTest,
+          name: 'main',
+          environment: 'node',
+          include: ['src/main/**/*.test.ts', 'src/preload/**/*.test.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          ...nodeTest,
+          name: 'shared',
+          environment: 'node',
+          include: ['src/shared/**/*.test.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'renderer',
+          environment: 'jsdom',
+          include: ['src/renderer/**/*.test.{ts,tsx}'],
+          setupFiles: ['./vitest.setup.ts', './vitest.setup.dom.ts'],
+        },
+      },
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -30,15 +67,10 @@ export default defineConfig({
         statements: 60,
       },
     },
-    clearMocks: true,
   },
   resolve: {
     tsconfigPaths: true,
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@renderer': path.resolve(__dirname, './src/renderer'),
-      '@main': path.resolve(__dirname, './src/main'),
-      '@shared': path.resolve(__dirname, './src/shared'),
       // Electron 依赖隔离：测试时重定向到 mock 模块
       'electron-log/renderer': path.resolve(
         __dirname,
@@ -48,7 +80,6 @@ export default defineConfig({
         __dirname,
         './src/shared/test-utils/mocks/electron-log-main.ts',
       ),
-      'electron-store': path.resolve(__dirname, './src/shared/test-utils/mocks/electron-store.ts'),
       electron: path.resolve(__dirname, './src/shared/test-utils/mocks/electron.ts'),
     },
   },

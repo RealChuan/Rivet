@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import ConfirmationDialog from '@renderer/components/common/ConfirmationDialog.js'
-import { HostKeyVerificationDialog } from '@renderer/features/host-key/index.js'
-import { useConnectionActions } from '@renderer/features/session/hooks/use-connection-actions.js'
-import { useSessionDisconnect } from '@renderer/features/session/hooks/use-session-disconnect.js'
-import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { SORT_ORDER } from '@shared/constants/index.js'
+import ConfirmationDialog from '../../../components/common/ConfirmationDialog.js'
+import { HostKeyVerificationDialog } from '../../host-key/index.js'
+import { useConnectionActions } from '../hooks/use-connection-actions.js'
+import { useSessionDisconnect } from '../hooks/use-session-disconnect.js'
+import { useConnectionStore } from '../stores/connection.js'
+import { useSessionStore } from '../stores/session.js'
 import ConnectionDialog from './ConnectionDialog.js'
 import ConnectionList from './ConnectionList.js'
 import SidebarHeader from './SidebarHeader.js'
@@ -94,7 +94,7 @@ export const ConnectionSidebar = () => {
 
   return (
     <>
-      <div className="h-full flex flex-col bg-transparent">
+      <div className="h-full flex flex-col bg-transparent" data-testid="connection-page">
         <SidebarHeader onNewConnection={handleNewConnection} />
 
         <div className="flex-1 overflow-hidden">

@@ -1,7 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig, Session } from '@shared/types/index.js'
+import { useDirectoryLoading } from '../../file-explorer/hooks/use-directory-list.js'
 import { ConnectionItem } from './ConnectionItem.js'
+
+vi.mock('../../file-explorer/hooks/use-directory-list.js', () => ({
+  useDirectoryLoading: vi.fn(() => false),
+}))
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -34,17 +39,15 @@ const mockConnection: ConnectionConfig = {
   host: 'example.com',
   port: 22,
   username: 'user',
+  authKind: 'password',
 }
 
 const mockConnectedSession: Session = {
   sessionId: 'sess-1',
   connectionId: 'conn-1',
   currentPath: '/home',
-  files: [],
   isConnected: true,
-  isLoading: false,
   isOperating: false,
-  error: null,
 }
 
 const defaultProps = {
@@ -57,6 +60,10 @@ const defaultProps = {
   onDelete: vi.fn(),
   onEdit: vi.fn(),
 }
+
+beforeEach(() => {
+  vi.mocked(useDirectoryLoading).mockReturnValue(false)
+})
 
 describe('ConnectionItem', () => {
   it('should display connection name', () => {
@@ -74,6 +81,16 @@ describe('ConnectionItem', () => {
   it('should display host address', () => {
     render(<ConnectionItem {...defaultProps} />)
     expect(screen.getByText('example.com')).not.toBeNull()
+  })
+
+  it('shows the needs-password badge when askPasswordOnConnect is true', () => {
+    render(
+      <ConnectionItem
+        {...defaultProps}
+        connection={{ ...mockConnection, askPasswordOnConnect: true }}
+      />,
+    )
+    expect(screen.getByTestId('connection-needs-password')).not.toBeNull()
   })
 
   it('should display protocol badge', () => {
@@ -128,11 +145,8 @@ describe('ConnectionItem', () => {
   })
 
   it('should show loading spinner when session is loading', () => {
-    const loadingSession: Session = {
-      ...mockConnectedSession,
-      isLoading: true,
-    }
-    render(<ConnectionItem {...defaultProps} session={loadingSession} />)
+    vi.mocked(useDirectoryLoading).mockReturnValue(true)
+    render(<ConnectionItem {...defaultProps} session={mockConnectedSession} />)
     const nameElement = screen.getByText('Test Server')
     const container = nameElement.closest('div[class*="mx-2"]')
     if (!container) throw new Error('Container not found')

@@ -1,22 +1,13 @@
-import { ipcMain } from 'electron'
 import crypto from 'node:crypto'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
+import { systemContract } from '@shared/contract/system.contract.js'
 import { getDownloadDir, getTempDir, supportsGlassEffect } from '../utils/index.js'
+import { registerContract } from './register.js'
 
 export function setupSystemIpcHandlers(): void {
-  ipcMain.handle(IPC_CHANNELS.SYSTEM.GET_TEMP_DIR, () => {
-    return getTempDir()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.SYSTEM.GET_DOWNLOAD_DIR, () => {
-    return getDownloadDir()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.SYSTEM.SUPPORTS_GLASS, () => {
-    return supportsGlassEffect()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.SYSTEM.GENERATE_UUID, () => {
-    return crypto.randomUUID()
+  registerContract(systemContract, {
+    'system.getTempDir': () => getTempDir(),
+    'system.getDownloadDir': () => getDownloadDir(),
+    'system.supportsGlass': () => supportsGlassEffect(),
+    'system.generateUuid': () => crypto.randomUUID(),
   })
 }

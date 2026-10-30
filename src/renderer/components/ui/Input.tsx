@@ -1,6 +1,6 @@
 import type React from 'react'
 
-import { cn } from '@renderer/utils/index.js'
+import { cn } from '../../utils/index.js'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement | HTMLTextAreaElement> {
   as?: 'input' | 'textarea'

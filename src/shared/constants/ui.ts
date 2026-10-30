@@ -27,11 +27,18 @@ export const FILE_TYPE = {
 export type FileType = (typeof FILE_TYPE)[keyof typeof FILE_TYPE]
 
 export const HOST_KEY_DIALOG_TYPE = {
-  FIRST_CONNECT: 'first-connect',
+  UNKNOWN: 'unknown',
   MISMATCH: 'mismatch',
 } as const
 
 export type HostKeyDialogType = (typeof HOST_KEY_DIALOG_TYPE)[keyof typeof HOST_KEY_DIALOG_TYPE]
+
+export const FILE_VIEW_MODE = {
+  LIST: 'list',
+  GRID: 'grid',
+} as const
+
+export type FileViewMode = (typeof FILE_VIEW_MODE)[keyof typeof FILE_VIEW_MODE]
 
 export const DIALOG_SIZE = {
   STANDARD: { width: 420, height: 400 },

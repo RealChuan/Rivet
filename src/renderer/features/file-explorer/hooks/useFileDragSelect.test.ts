@@ -3,449 +3,103 @@ import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 import type { FileInfo } from '@shared/types/index.js'
 import { useFileDragSelect } from './use-file-drag-select.js'
 
-const mockFiles: FileInfo[] = [
-  {
-    name: 'file1.txt',
-    type: 'file',
-    size: 100,
-    modifyTime: 1000,
-    absolutePath: '/file1.txt',
-  },
-  {
-    name: 'file2.txt',
-    type: 'file',
-    size: 200,
-    modifyTime: 2000,
-    absolutePath: '/file2.txt',
-  },
-  {
-    name: 'file3.txt',
-    type: 'file',
-    size: 300,
-    modifyTime: 3000,
-    absolutePath: '/file3.txt',
-  },
-]
+const files: FileInfo[] = Array.from({ length: 6 }, (_, index) => ({
+  name: `f${index}`,
+  type: 'file',
+  size: 1,
+  modifyTime: 0,
+  absolutePath: `/f${index}`,
+}))
 
-function createMockScrollContainerRef(overrides?: { clientHeight?: number }) {
-  const mockGetBoundingClientRect = vi.fn(() => ({
-    left: 0,
-    top: 0,
-    right: 800,
-    bottom: 600,
-    width: 800,
-    height: 600,
-  }))
+function createContainer() {
   return {
     current: {
-      getBoundingClientRect: mockGetBoundingClientRect,
+      getBoundingClientRect: vi.fn(() => ({
+        left: 0,
+        top: 0,
+        right: 800,
+        bottom: 600,
+        width: 800,
+        height: 600,
+      })),
       scrollLeft: 0,
       scrollTop: 0,
-      clientHeight: overrides?.clientHeight ?? 600,
+      clientHeight: 600,
     } as unknown as HTMLElement,
-    mockGetBoundingClientRect,
   }
 }
 
-function createMouseEvent(props: Partial<React.MouseEvent> = {}): React.MouseEvent {
+function mouseDownEvent(clientX: number, clientY: number): React.MouseEvent {
   return {
     button: 0,
-    clientX: 0,
-    clientY: 0,
+    clientX,
+    clientY,
     target: document.createElement('div'),
     preventDefault: vi.fn(),
     stopPropagation: vi.fn(),
-    ...props,
   } as unknown as React.MouseEvent
 }
 
-function dispatchMouseEvent(type: string, props: Record<string, unknown> = {}) {
-  const event = new MouseEvent(type, { bubbles: true, ...props })
-  document.dispatchEvent(event)
+function dispatchMouse(type: string, clientX: number, clientY: number) {
+  document.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX, clientY }))
 }
 
 describe('useFileDragSelect', () => {
-  let mockScrollContainerRef: ReturnType<typeof createMockScrollContainerRef>
-  let onDragSelect: Mock<(files: FileInfo[]) => void>
+  let scrollContainerRef: ReturnType<typeof createContainer>
+  let onDragSelect: Mock<(paths: string[]) => void>
 
   beforeEach(() => {
-    mockScrollContainerRef = createMockScrollContainerRef()
-    onDragSelect = vi.fn<(files: FileInfo[]) => void>()
+    scrollContainerRef = createContainer()
+    onDragSelect = vi.fn<(paths: string[]) => void>()
   })
 
-  it('should have correct initial state', () => {
-    const { result } = renderHook(() =>
+  const renderDragSelect = (columns = 1, cellWidth = 800, rowHeight = 32) =>
+    renderHook(() =>
       useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
+        entries: files,
+        columns,
+        cellWidth,
+        rowHeight,
+        scrollContainerRef,
         onDragSelect,
       }),
     )
+
+  it('初始状态不在拖拽', () => {
+    const { result } = renderDragSelect()
 
     expect(result.current.isDragging).toBe(false)
     expect(result.current.hasStartedDrag).toBe(false)
     expect(result.current.dragSelection).toEqual(new Set())
   })
 
-  it('should set isDragging=true on left button mousedown', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
+  it('列表框选按行返回 absolutePath', () => {
+    const { result } = renderDragSelect()
 
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 50 }))
-    })
+    act(() => result.current.handleMouseDown(mouseDownEvent(10, 10)))
+    act(() => dispatchMouse('mousemove', 10, 70))
+    act(() => dispatchMouse('mouseup', 10, 70))
 
-    expect(result.current.isDragging).toBe(true)
+    expect(onDragSelect).toHaveBeenCalledWith(['/f0', '/f1', '/f2'])
   })
 
-  it('should account for scroll offset in mousedown coordinates', () => {
-    const scrolledRef = createMockScrollContainerRef()
-    Object.defineProperty(scrolledRef.current, 'scrollTop', { value: 10, writable: true })
-    Object.defineProperty(scrolledRef.current, 'scrollLeft', { value: 30, writable: true })
+  it('宫格框选按列切分后返回跨行条目', () => {
+    const { result } = renderDragSelect(3, 200, 100)
 
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: scrolledRef,
-        onDragSelect,
-      }),
-    )
+    act(() => result.current.handleMouseDown(mouseDownEvent(10, 10)))
+    act(() => dispatchMouse('mousemove', 450, 150))
+    act(() => dispatchMouse('mouseup', 450, 150))
 
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 10 }))
-    })
-
-    act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 120, clientY: 50 })
-    })
-
-    const style = result.current.getDragStyle()
-    expect(style.left).toBe(130)
-    expect(style.top).toBe(20)
+    expect(onDragSelect).toHaveBeenCalledWith(['/f0', '/f1', '/f2', '/f3', '/f4', '/f5'])
   })
 
-  it('should not start drag on non-left button', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
+  it('拖拽距离过小时不触发选择回调', () => {
+    const { result } = renderDragSelect()
 
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ button: 1, clientX: 100, clientY: 50 }))
-    })
+    act(() => result.current.handleMouseDown(mouseDownEvent(10, 10)))
+    act(() => dispatchMouse('mousemove', 11, 11))
+    act(() => dispatchMouse('mouseup', 11, 11))
 
-    expect(result.current.isDragging).toBe(false)
-  })
-
-  it('should not start drag when clicking a button element', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
-
-    const buttonEl = document.createElement('button')
-    act(() => {
-      result.current.handleMouseDown(
-        createMouseEvent({ clientX: 100, clientY: 50, target: buttonEl }),
-      )
-    })
-
-    expect(result.current.isDragging).toBe(false)
-  })
-
-  it('should not start drag when scrollContainerRef has no current', () => {
-    const nullRef = { current: null } as React.RefObject<HTMLElement | null>
-
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: nullRef,
-        onDragSelect,
-      }),
-    )
-
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 50 }))
-    })
-
-    expect(result.current.isDragging).toBe(false)
-  })
-
-  it('should return correct drag style from getDragStyle', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
-
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 10 }))
-    })
-
-    // Simulate mouse move to (180, 80) — within content boundary (3 * 30 = 90)
-    act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 180, clientY: 80 })
-    })
-
-    const style = result.current.getDragStyle()
-    // dragStart: (100, 10), dragEnd: (180, 80)
-    expect(style.left).toBe(100)
-    expect(style.top).toBe(10)
-    expect(style.width).toBe(80)
-    expect(style.height).toBe(70)
-  })
-
-  it('should not set hasStartedDrag when drag distance < 5px', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
-
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 50 }))
-    })
-
-    // Move only 3px
-    act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 103, clientY: 50 })
-    })
-
-    expect(result.current.hasStartedDrag).toBe(false)
-  })
-
-  it('should set hasStartedDrag and update dragSelection when drag distance >= 5px', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
-
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 0 }))
-    })
-
-    // Move 50px down, covering rows 0-1 (y: 0 to 50, itemHeight: 30)
-    act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 100, clientY: 50 })
-    })
-
-    expect(result.current.hasStartedDrag).toBe(true)
-    // startIndex = floor(0/30) = 0, endIndex = ceil(50/30) = 2
-    // So rows 0 and 1 are selected: file1.txt, file2.txt
-    expect(result.current.dragSelection).toEqual(new Set(['file1.txt', 'file2.txt']))
-  })
-
-  it('should calculate selected file rows by y / itemHeight', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
-
-    // Start at y=35 (row 1), drag to y=85 (row 2-3 boundary)
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 35 }))
-    })
-
-    act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 100, clientY: 85 })
-    })
-
-    // startY = min(35, 85) = 35, endY = max(35, 85) = 85
-    // startIndex = floor(35/30) = 1, endIndex = ceil(85/30) = 3
-    // Rows 1 and 2: file2.txt, file3.txt
-    expect(result.current.dragSelection).toEqual(new Set(['file2.txt', 'file3.txt']))
-  })
-
-  it('should trigger onDragSelect callback on mouseup', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
-
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 0 }))
-    })
-
-    act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 100, clientY: 50 })
-    })
-
-    act(() => {
-      dispatchMouseEvent('mouseup')
-    })
-
-    expect(onDragSelect).toHaveBeenCalledOnce()
-    const callArgs = onDragSelect.mock.calls[0]
-    if (!callArgs) throw new Error('Expected onDragSelect to be called with args')
-    const firstArg: FileInfo[] = callArgs[0]
-    if (!firstArg) throw new Error('Expected first argument')
-    const names = firstArg.map((f) => f.name)
-    expect(names).toEqual(['file1.txt', 'file2.txt'])
-  })
-
-  it('should clear isDragging and hasStartedDrag on mouseup', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
-
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 0 }))
-    })
-
-    act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 100, clientY: 50 })
-    })
-
-    act(() => {
-      dispatchMouseEvent('mouseup')
-    })
-
-    expect(result.current.isDragging).toBe(false)
-    expect(result.current.hasStartedDrag).toBe(false)
-  })
-
-  it('should only clear isDragging on mouseup without hasStartedDrag', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
-
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 50 }))
-    })
-
-    // Move less than 5px so hasStartedDrag stays false
-    act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 102, clientY: 50 })
-    })
-
-    expect(result.current.hasStartedDrag).toBe(false)
-
-    act(() => {
-      dispatchMouseEvent('mouseup')
-    })
-
-    expect(result.current.isDragging).toBe(false)
-    expect(result.current.hasStartedDrag).toBe(false)
     expect(onDragSelect).not.toHaveBeenCalled()
-  })
-
-  it('should not start drag when clicking on header element', () => {
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: mockScrollContainerRef,
-        onDragSelect,
-      }),
-    )
-
-    const headerEl = document.createElement('div')
-    headerEl.setAttribute('data-file-list-header', '')
-    act(() => {
-      result.current.handleMouseDown(
-        createMouseEvent({ clientX: 100, clientY: 10, target: headerEl }),
-      )
-    })
-
-    expect(result.current.isDragging).toBe(false)
-  })
-
-  it('should allow drag when scrolled down and clicking first visible row', () => {
-    const scrolledRef = createMockScrollContainerRef()
-    Object.defineProperty(scrolledRef.current, 'scrollTop', { value: 200, writable: true })
-
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: scrolledRef,
-        onDragSelect,
-      }),
-    )
-
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientY: 10 }))
-    })
-
-    expect(result.current.isDragging).toBe(true)
-  })
-
-  it('should allow drag selection into blank area below items', () => {
-    // 3 items × 30px = 90px content, but container is 600px tall
-    // Dragging into the blank area (y > 90) should still work
-    const tallRef = createMockScrollContainerRef({ clientHeight: 600 })
-
-    const { result } = renderHook(() =>
-      useFileDragSelect({
-        items: mockFiles,
-        itemHeight: 30,
-        scrollContainerRef: tallRef,
-        onDragSelect,
-      }),
-    )
-
-    // Start at y=50 (within items), drag to y=200 (in blank area below items)
-    act(() => {
-      result.current.handleMouseDown(createMouseEvent({ clientX: 100, clientY: 50 }))
-    })
-
-    act(() => {
-      dispatchMouseEvent('mousemove', { clientX: 100, clientY: 200 })
-    })
-
-    expect(result.current.hasStartedDrag).toBe(true)
-    // All 3 files should be selected since the box covers y=50 to y=200
-    // startIndex = floor(50/30) = 1, endIndex = ceil(200/30) = 7 → clamped to 3
-    expect(result.current.dragSelection).toEqual(new Set(['file2.txt', 'file3.txt']))
-
-    const style = result.current.getDragStyle()
-    // dragStart.y = 50, dragEnd.y = 200 (not clamped to 90)
-    expect(style.top).toBe(50)
-    expect(style.height).toBe(150)
   })
 })

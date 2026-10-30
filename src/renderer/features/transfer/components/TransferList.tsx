@@ -3,13 +3,13 @@ import { ArrowUpDown } from 'lucide-react'
 import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TransferTask } from '@shared/types/transfer.js'
-import VirtualList from '@renderer/components/ui/VirtualList.js'
 import { FILE_TYPE } from '@shared/constants/index.js'
 import { TRANSFER_CONFIG } from '@shared/constants/transfer.js'
 import { useTransferActions } from '../hooks/use-transfer-actions.js'
 import { useTransferSort } from '../hooks/use-transfer-sort.js'
 import { TransferActionBar } from './TransferActionBar.js'
 import { TransferTaskItem } from './TransferTaskItem.js'
+import { VirtualRows } from './VirtualRows.js'
 
 // Main row: h-10 (40px) + border-b (1px) = 41px
 const FILE_ROW_HEIGHT = 41
@@ -20,6 +20,16 @@ const FOLDER_HEADER_HEIGHT = 41
 const FOLDER_OP_ROW_HEIGHT = 32
 // Folder sub-ops container border-b (1px)
 const FOLDER_OPS_BORDER = 1
+
+export function taskRowHeight(task: TransferTask | undefined): number {
+  if (task?.itemType !== FILE_TYPE.DIRECTORY) return FILE_ROW_HEIGHT + PATH_ROWS_HEIGHT
+  return (
+    FOLDER_HEADER_HEIGHT +
+    PATH_ROWS_HEIGHT +
+    TRANSFER_CONFIG.MAX_INLINE_OPERATIONS * FOLDER_OP_ROW_HEIGHT +
+    FOLDER_OPS_BORDER
+  )
+}
 
 interface TransferListProps {
   tasks: TransferTask[]
@@ -59,18 +69,8 @@ export const TransferList = ({ tasks, onCancelAll }: TransferListProps) => {
     [handleCancel, handleRetry],
   )
 
-  const getItemHeightForIndex = useCallback(
-    (index: number) => {
-      const task = sortedTasks[index]
-      if (!task) return FILE_ROW_HEIGHT + PATH_ROWS_HEIGHT
-      if (task.itemType !== FILE_TYPE.DIRECTORY) return FILE_ROW_HEIGHT + PATH_ROWS_HEIGHT
-      return (
-        FOLDER_HEADER_HEIGHT +
-        PATH_ROWS_HEIGHT +
-        TRANSFER_CONFIG.MAX_INLINE_OPERATIONS * FOLDER_OP_ROW_HEIGHT +
-        FOLDER_OPS_BORDER
-      )
-    },
+  const estimateSize = useCallback(
+    (index: number) => taskRowHeight(sortedTasks[index]),
     [sortedTasks],
   )
 
@@ -99,12 +99,7 @@ export const TransferList = ({ tasks, onCancelAll }: TransferListProps) => {
             </div>
           </div>
         ) : (
-          <VirtualList
-            items={sortedTasks}
-            itemHeight={getItemHeightForIndex}
-            width="100%"
-            renderItem={renderItem}
-          />
+          <VirtualRows items={sortedTasks} estimateSize={estimateSize} renderRow={renderItem} />
         )}
       </div>
     </div>

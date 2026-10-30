@@ -18,23 +18,12 @@ export default defineConfig({
     // 让 Error.stack 映射回原始 .ts 文件/行号，使日志 callerInfo 显示真实源文件
     sourcemap: true,
     rollupOptions: {
-      external: [
-        'electron',
-        'ssh2-sftp-client',
-        'webdav',
-        'electron-log/main',
-        'electron-store',
-        '@sentry/electron/main',
-      ],
+      external: ['electron', 'ssh2', 'undici', 'electron-log/main', '@sentry/electron/main'],
     },
     outDir: '.vite/build',
     emptyOutDir: false,
   },
   resolve: {
     tsconfigPaths: true,
-    alias: {
-      '@shared': path.resolve(__dirname, './src/shared'),
-      '@main': path.resolve(__dirname, './src/main'),
-    },
   },
 })

@@ -6,7 +6,7 @@
     },
     "app": {
       "name": "Rivet",
-      "subtitle": "SFTP / WebDAV File Explorer"
+      "subtitle": "SFTP / WebDAV File Browser"
     },
     "common": {
       "action": {
@@ -55,44 +55,94 @@
       "noConnections": "No connections"
     },
     "connectionDialog": {
+      "agentPath": "SSH agent path",
+      "agentPathPlaceholder": "Leave empty for the default agent",
+      "askPasswordOnConnect": "Password required on every connect",
+      "authAgent": "SSH agent",
+      "authKind": "Authentication",
+      "authPassword": "Password",
+      "authPrivateKey": "Private key",
       "basePath": "Base Path",
       "basePathPlaceholder": "/dav/files",
+      "browse": "Browse",
       "certWarningMessage": "You are connecting to a server with an invalid certificate. Proceed at your own risk.",
       "certWarningTitle": "Certificate Warning",
       "connectFailed": "Connection failed",
       "connecting": "Connecting...",
       "continue": "Continue",
-      "decryptFailed": "Password decryption failed, please re-enter",
       "editTitle": "Edit Connection",
-      "encryptFailed": "Password encryption failed, cannot connect",
       "fillRequired": "Please fill in all required fields",
       "host": "Host",
       "hostPlaceholder": "192.168.1.100",
       "invalidPort": "Invalid port number",
       "name": "Name",
       "namePlaceholder": "Enter connection name",
+      "passphrase": "Key passphrase",
+      "passphrasePlaceholder": "Enter passphrase (optional)",
       "password": "Password",
       "passwordPlaceholder": "Enter password",
+      "passwordRequired": "Password is required",
       "port": "Port",
+      "privateKeyPath": "Private key file",
+      "privateKeyPathPlaceholder": "Choose or enter a private key path",
+      "privateKeyRequired": "Private key file is required",
       "protocol": "Protocol",
       "protocolSftp": "SFTP",
       "protocolWebdav": "WebDAV",
       "rejectUnauthorized": "Reject unauthorized certificates",
       "save": "Save",
-      "savePassword": "Save password",
+      "saveSecret": "Save secret",
       "scheme": "Scheme",
       "schemeHttp": "HTTP",
       "schemeHttps": "HTTPS",
+      "secretSavedPlaceholder": "Saved — leave empty to keep it",
       "subtitle": "Create a new connection",
       "username": "Username",
       "usernamePlaceholder": "Enter username"
     },
     "error": {
-      "listDirectoryFailed": "Failed to list directory",
       "noOperationPending": "No operation pending",
       "unknown": "Unknown error",
       "unknownName": "Unknown",
       "unknownProtocol": "Unknown protocol"
+    },
+    "errors": {
+      "AGENT_NO_IDENTITY": "No identity found in the SSH agent",
+      "AGENT_NOT_AVAILABLE": "SSH agent is not available",
+      "ALREADY_EXISTS": "Target already exists",
+      "AUTH_ERROR": "Authentication failed",
+      "CONFIG_ERROR": "Failed to read or write configuration",
+      "CONN_FAILED": "Connection failed",
+      "CONN_NOT_FOUND": "Connection not found",
+      "COPY_ERROR": "Copy failed",
+      "DECRYPT_FORMAT_ERROR": "Unsupported secret format, please re-enter",
+      "DECRYPT_UNAVAILABLE": "System keychain is unavailable",
+      "DECRYPTION_ERROR": "Failed to decrypt the secret",
+      "DELETE_ERROR": "Delete failed",
+      "DOWNLOAD_ERROR": "Download failed",
+      "HOST_KEY_ERROR": "Host key verification failed",
+      "HOST_KEY_MISMATCH": "Host key changed; connection blocked",
+      "HOST_KEY_UNKNOWN": "Unknown host key; confirm it before connecting",
+      "INVALID_CONFIG": "Invalid configuration",
+      "INVALID_STATE": "Operation is not allowed in the current state",
+      "KEY_FILE_UNREADABLE": "Cannot read the private key file",
+      "KEY_PARSE_FAILED": "Cannot parse the private key",
+      "LIST_FAILED": "Failed to list the directory",
+      "LIST_TIMEOUT": "Listing the directory timed out",
+      "MKDIR_ERROR": "Failed to create the folder",
+      "MOVE_ERROR": "Move failed",
+      "NOT_FOUND": "Target not found",
+      "NOT_SUPPORTED": "The server does not support this operation",
+      "PASSPHRASE_REQUIRED": "Key passphrase is required",
+      "PATH_ERROR": "Path handling failed",
+      "PATH_TRAVERSAL": "Path traversal rejected",
+      "PERMISSION_DENIED": "Permission denied",
+      "RENAME_ERROR": "Rename failed",
+      "REQUEST_ABORTED": "Request cancelled",
+      "REQUEST_TIMEOUT": "Request timed out",
+      "SELF_CONTAINED": "Cannot operate on itself or its subfolder",
+      "UNKNOWN": "Operation failed",
+      "UPLOAD_ERROR": "Upload failed"
     },
     "file": {
       "action": {
@@ -120,7 +170,10 @@
       "permissions": "Permissions",
       "reconnectHint": "Click to reconnect",
       "retry": "Retry",
-      "size": "Size"
+      "size": "Size",
+      "truncated": "Directory has more than 20,000 entries; showing the first 20,000.",
+      "viewGrid": "Grid view",
+      "viewList": "List view"
     },
     "folderProperties": {
       "calculate": "Calculate",
@@ -141,15 +194,16 @@
       "size": "Size"
     },
     "hostKey": {
-      "currentHash": "Host Key Fingerprint",
-      "disconnect": "Disconnect",
-      "firstConnectTitle": "Verify Host Key",
-      "firstConnectWarning": "You are connecting to this server for the first time. Verify the host key fingerprint below matches the one provided by your server administrator.",
+      "algorithm": "Key algorithm",
+      "fingerprint": "Host key fingerprint",
+      "host": "Host",
       "mismatchTitle": "Host Key Mismatch",
       "mismatchWarning": "The host key fingerprint has changed. This could indicate a man-in-the-middle attack. Verify with your server administrator before proceeding.",
-      "previousHash": "Previous Fingerprint",
-      "trustAndSave": "Trust and Connect",
-      "trustNew": "Trust New Key"
+      "previousFingerprint": "Previous fingerprint",
+      "trustAndConnect": "Trust and Connect",
+      "trustNew": "Trust New Key",
+      "unknownTitle": "Verify Host Key",
+      "unknownWarning": "You are connecting to this server for the first time. Verify the host key fingerprint below matches the one provided by your server administrator."
     },
     "language": {
       "chinese": "中文",
@@ -179,7 +233,7 @@
     },
     "titleBar": {
       "close": "Close",
-      "dragToMove": "Drag to move window. Double-click to maximize.",
+      "dragToMove": "Drag to move",
       "maximize": "Maximize",
       "minimize": "Minimize",
       "restore": "Restore"
@@ -223,6 +277,10 @@
       "concurrency": {
         "download": "Download Concurrency",
         "upload": "Upload Concurrency"
+      },
+      "confirmClose": {
+        "message": "Transfers are still running. Closing the window will cancel them.",
+        "title": "Close window?"
       },
       "confirmDisconnect": {
         "message": "There are active uploads. Do you want to cancel them and disconnect?",

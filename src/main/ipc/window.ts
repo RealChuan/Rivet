@@ -1,51 +1,29 @@
-import { app, ipcMain } from 'electron'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
-import { WindowManager } from '../app/window-factory.js'
+import { BrowserWindow } from 'electron'
+import { windowContract, windowOneWayContract } from '@shared/contract/window.contract.js'
+import { ok } from '@shared/types/index.js'
+import { registerContractWithSender, registerOneWay } from './register.js'
+
+function windowOf(sender: Electron.WebContents): BrowserWindow | null {
+  return BrowserWindow.fromWebContents(sender)
+}
 
 export function setupWindowIpcHandlers(): void {
-  ipcMain.handle(IPC_CHANNELS.WINDOW.GET_META, (event) => {
-    return WindowManager.getMeta(event.sender)
+  registerContractWithSender(windowContract, {
+    'window.getState': (sender) => ok({ isMaximized: windowOf(sender)?.isMaximized() ?? false }),
   })
 
-  ipcMain.on(IPC_CHANNELS.WINDOW.MINIMIZE, (event) => {
-    WindowManager.minimize(event.sender)
-  })
-
-  ipcMain.on(IPC_CHANNELS.WINDOW.MAXIMIZE, (event) => {
-    WindowManager.maximize(event.sender)
-  })
-
-  ipcMain.on(IPC_CHANNELS.WINDOW.CLOSE, (event) => {
-    WindowManager.closeBySender(event.sender)
-  })
-
-  ipcMain.on(IPC_CHANNELS.WINDOW.QUIT, () => {
-    app.quit()
-  })
-
-  ipcMain.handle(IPC_CHANNELS.WINDOW.GET_STATE, (event) => {
-    return WindowManager.getState(event.sender)
-  })
-
-  ipcMain.handle(
-    IPC_CHANNELS.WINDOW.CREATE_CHILD,
-    (
-      _event,
-      options: {
-        id: string
-        route: string
-        width?: number
-        height?: number
-        title?: string
-      },
-    ) => {
-      WindowManager.create(options)
-      return options.id
+  registerOneWay(windowOneWayContract, {
+    'window.minimize': (sender) => {
+      windowOf(sender)?.minimize()
     },
-  )
-
-  ipcMain.handle(IPC_CHANNELS.WINDOW.CLOSE_CHILD, (_event, id: string) => {
-    WindowManager.close(id)
-    return true
+    'window.toggleMaximize': (sender) => {
+      const win = windowOf(sender)
+      if (!win) return
+      if (win.isMaximized()) win.unmaximize()
+      else win.maximize()
+    },
+    'window.close': (sender) => {
+      windowOf(sender)?.close()
+    },
   })
 }

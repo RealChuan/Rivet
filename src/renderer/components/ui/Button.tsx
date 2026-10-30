@@ -1,7 +1,7 @@
 import type React from 'react'
 
-import { LoaderIcon } from '@renderer/components/common/index.js'
-import { cn } from '@renderer/utils/index.js'
+import { cn } from '../../utils/index.js'
+import { LoaderIcon } from '../common/index.js'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'warning'

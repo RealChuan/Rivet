@@ -7,19 +7,19 @@ import { TransferArea } from './TransferArea.js'
 
 // --- Mocks ---
 
-vi.mock('react-virtualized-auto-sizer', () => ({
-  AutoSizer: ({
-    renderProp,
+vi.mock('./VirtualRows.js', () => ({
+  VirtualRows: <T,>({
+    items,
+    renderRow,
   }: {
-    renderProp: (size: { height: number; width: number }) => React.ReactNode
-  }) => {
-    return renderProp({ height: 400, width: 800 })
-  },
+    items: T[]
+    renderRow: (item: T, index: number, style: React.CSSProperties) => React.ReactNode
+  }) => <>{items.map((item, index) => renderRow(item, index, {}))}</>,
 }))
 
 const mockElectronAPI = {
   transfer: {
-    cancelAll: vi.fn().mockResolvedValue(undefined),
+    cancelAll: vi.fn().mockResolvedValue({ success: true, value: null, error: null }),
     retry: vi.fn(),
     cancel: vi.fn(),
     onTasksEnqueued: vi.fn(() => vi.fn()),
@@ -59,13 +59,14 @@ function createTask(overrides: Partial<TransferTask> = {}): TransferTask {
 describe('TransferArea', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockElectronAPI.transfer.cancelAll.mockResolvedValue(undefined)
+    mockElectronAPI.transfer.cancelAll.mockResolvedValue({
+      success: true,
+      value: null,
+      error: null,
+    })
     useTransferStore.setState({
       tasks: [],
       taskProgress: new Map(),
-      sessionTaskSummaries: [],
-      sessionIds: [],
-      runningTaskCount: 0,
       selectedSessionId: null,
       activeOperations: new Map(),
       activeTab: TRANSFER_DIRECTION.UPLOAD,

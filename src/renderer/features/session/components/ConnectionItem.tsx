@@ -1,11 +1,21 @@
-import { Terminal, Globe, Plug, EllipsisVertical, LogOut, Pencil, Trash } from 'lucide-react'
+import {
+  Terminal,
+  Globe,
+  Plug,
+  EllipsisVertical,
+  KeyRound,
+  LogOut,
+  Pencil,
+  Trash,
+} from 'lucide-react'
 import { useState, useRef, useEffect, type CSSProperties } from 'react'
 import ReactDOM from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { LoaderIcon } from '@renderer/components/common/index.js'
-import { cn } from '@renderer/utils/index.js'
 import { PROTOCOL } from '@shared/constants/index.js'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'
+import { LoaderIcon } from '../../../components/common/index.js'
+import { cn } from '../../../utils/index.js'
+import { useDirectoryLoading } from '../../file-explorer/hooks/use-directory-list.js'
 
 interface ConnectionItemProps {
   connection: ConnectionConfig
@@ -40,7 +50,7 @@ export const ConnectionItem = ({
   } | null>(null)
 
   const isConnected = session?.isConnected ?? false
-  const isLoading = session?.isLoading ?? false
+  const isLoading = useDirectoryLoading(session?.sessionId ?? '')
 
   useEffect(() => {
     if (showMenu && buttonRef.current) {
@@ -60,7 +70,12 @@ export const ConnectionItem = ({
     )
 
   return (
-    <div className="relative" style={{ ...style, minWidth: 200 }}>
+    <div
+      className="relative min-w-0"
+      style={style}
+      data-testid="connection-item"
+      data-connection-id={connection.id}
+    >
       <div
         onClick={onSelect}
         className={cn(
@@ -107,6 +122,13 @@ export const ConnectionItem = ({
           </div>
           <div className="text-xs text-text-muted truncate">{connection.host}</div>
         </div>
+        {connection.askPasswordOnConnect && (
+          <KeyRound
+            className="w-3.5 h-3.5 shrink-0 text-status-disconnected"
+            data-testid="connection-needs-password"
+            aria-label={t(($) => $.connectionDialog.askPasswordOnConnect)}
+          />
+        )}
         <button
           ref={buttonRef}
           onClick={(e) => {

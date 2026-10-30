@@ -1,9 +1,9 @@
 import { Home, ChevronRight } from 'lucide-react'
 import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { cn } from '@renderer/utils/index.js'
 import { ROOT_PATH } from '@shared/constants/index.js'
+import { cn } from '../../../utils/index.js'
+import { useSessionStore } from '../../session/stores/session.js'
 
 interface FileExplorerBreadcrumbProps {
   path: string
@@ -18,17 +18,15 @@ export const FileExplorerBreadcrumb = ({
 }: FileExplorerBreadcrumbProps) => {
   const { t } = useTranslation()
   const updateCurrentPath = useSessionStore((state) => state.updateCurrentPath)
-  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
 
   const pathParts = path.split('/').filter(Boolean)
 
-  const handleNavigate = async (targetPath: string) => {
+  const handleNavigate = (targetPath: string) => {
     if (onNavigate) {
       onNavigate(targetPath)
-    } else {
-      updateCurrentPath(sessionId, targetPath)
-      await refreshCurrentDirectory(sessionId)
+      return
     }
+    updateCurrentPath(sessionId, targetPath)
   }
 
   return (

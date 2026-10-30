@@ -1,50 +1,20 @@
 import type React from 'react'
 import { Folder, HardDrive, FileText, FolderOpen, AlertTriangle, X, Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { FileInfo, FolderStatsProgress } from '@shared/types/index.js'
-import Button from '@renderer/components/ui/Button.js'
-import { GlassDialog } from '@renderer/components/ui/GlassDialog.js'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useUiStore } from '@renderer/stores/index.js'
-import { cn } from '@renderer/utils/index.js'
-import { TOAST_TYPE } from '@shared/constants/index.js'
-import { isErr } from '@shared/types/index.js'
+import type { FileInfo } from '@shared/types/index.js'
 import { formatDate, formatFileSize } from '@shared/utils/index.js'
-
-export const STATS_STATUS = {
-  IDLE: 'idle',
-  CALCULATING: 'calculating',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
-  ERROR: 'error',
-} as const
-
-export type StatsStatus = (typeof STATS_STATUS)[keyof typeof STATS_STATUS]
+import Button from '../../../components/ui/Button.js'
+import { GlassDialog } from '../../../components/ui/GlassDialog.js'
+import { cn } from '../../../utils/index.js'
+import { useSessionStore } from '../../session/stores/session.js'
+import { useFolderStats } from '../hooks/use-folder-stats.js'
 
 interface FolderPropertiesDialogProps {
   open: boolean
   onClose: () => void
   file: FileInfo | null
   isSftp?: boolean | undefined
-}
-
-interface StatsState {
-  status: StatsStatus
-  fileCount: number
-  folderCount: number
-  totalSize: number
-  currentPath: string
-  errorCount: number
-}
-
-const initialStats: StatsState = {
-  status: STATS_STATUS.IDLE,
-  fileCount: 0,
-  folderCount: 0,
-  totalSize: 0,
-  currentPath: '',
-  errorCount: 0,
 }
 
 interface StatCardProps {
@@ -75,82 +45,40 @@ interface FolderPropertiesDialogContentProps {
   file: FileInfo
   onClose: () => void
   isSftp?: boolean | undefined
+  open: boolean
 }
 
 const FolderPropertiesDialogContent = ({
   file,
   onClose,
   isSftp,
+  open,
 }: FolderPropertiesDialogContentProps) => {
   const { i18n, t } = useTranslation()
   const lng = i18n.language
   const sessionId = useSessionStore((state) => state.activeSessionId)
-  const addToast = useUiStore((state) => state.addToast)
-  const [stats, setStats] = useState<StatsState>(initialStats)
+  const { progress, isCalculating, error, start, cancel } = useFolderStats({
+    sessionId: sessionId ?? '',
+    path: file.absolutePath,
+    enabled: open,
+  })
 
-  const startCalculation = useCallback(() => {
-    if (!sessionId) return
-    setStats({
-      status: STATS_STATUS.CALCULATING,
-      fileCount: 0,
-      folderCount: 0,
-      totalSize: 0,
-      currentPath: '',
-      errorCount: 0,
-    })
-    window.electronAPI.protocol
-      .calculateFolderStats(sessionId, file.absolutePath)
-      .then((result) => {
-        if (isErr(result)) {
-          setStats((prev) => ({ ...prev, status: STATS_STATUS.ERROR }))
-          addToast({ type: TOAST_TYPE.ERROR, message: result.error.message })
-        }
-      })
-      .catch(() => {
-        setStats((prev) => ({ ...prev, status: STATS_STATUS.ERROR }))
-      })
-  }, [sessionId, file.absolutePath, addToast])
-
-  const cancelCalculation = useCallback(() => {
-    if (!sessionId) return
-    void window.electronAPI.protocol.cancelCalculateFolderStats(sessionId)
-  }, [sessionId])
-
-  useEffect(() => {
-    const unsubscribe = window.electronAPI.protocol.onFolderStatsProgress(
-      (data: FolderStatsProgress & { sessionId: string }) => {
-        if (data.sessionId !== sessionId) return
-
-        setStats({
-          status: data.isCancelled
-            ? STATS_STATUS.CANCELLED
-            : data.isComplete
-              ? STATS_STATUS.COMPLETED
-              : STATS_STATUS.CALCULATING,
-          fileCount: data.fileCount,
-          folderCount: data.folderCount,
-          totalSize: data.totalSize,
-          currentPath: data.currentPath,
-          errorCount: data.errorCount,
-        })
-      },
-    )
-
-    return unsubscribe
-  }, [sessionId])
-
-  const handleClose = useCallback(() => {
-    if (stats.status === STATS_STATUS.CALCULATING) {
-      cancelCalculation()
+  const handleClose = () => {
+    if (isCalculating) {
+      cancel()
     }
     onClose()
-  }, [stats.status, cancelCalculation, onClose])
+  }
 
-  const isCalculating = stats.status === STATS_STATUS.CALCULATING
-  const isIdle = stats.status === STATS_STATUS.IDLE
-  const isCancelled = stats.status === STATS_STATUS.CANCELLED
-  const isCompleted = stats.status === STATS_STATUS.COMPLETED
-  const isError = stats.status === STATS_STATUS.ERROR
+  const isIdle = !isCalculating && !error && progress === null
+  const isCancelled = progress?.isCancelled === true
+  const isCompleted = progress?.isComplete === true
+  const isError = error !== null
+  const fileCount = progress?.fileCount ?? 0
+  const folderCount = progress?.folderCount ?? 0
+  const totalSize = progress?.totalSize ?? 0
+  const currentPath = progress?.currentPath ?? ''
+  const errorCount = progress?.errorCount ?? 0
 
   return (
     <div className="flex flex-col h-full">
@@ -208,7 +136,7 @@ const FolderPropertiesDialogContent = ({
               isIdle ? (
                 <span className="text-text-muted font-normal">--</span>
               ) : (
-                formatFileSize(stats.totalSize, lng)
+                formatFileSize(totalSize, lng)
               )
             }
             icon={<HardDrive className="w-3.5 h-3.5" />}
@@ -220,7 +148,7 @@ const FolderPropertiesDialogContent = ({
               isIdle ? (
                 <span className="text-text-muted font-normal">--</span>
               ) : (
-                stats.fileCount.toLocaleString()
+                fileCount.toLocaleString()
               )
             }
             icon={<FileText className="w-3.5 h-3.5" />}
@@ -231,7 +159,7 @@ const FolderPropertiesDialogContent = ({
               isIdle ? (
                 <span className="text-text-muted font-normal">--</span>
               ) : (
-                stats.folderCount.toLocaleString()
+                folderCount.toLocaleString()
               )
             }
             icon={<FolderOpen className="w-3.5 h-3.5" />}
@@ -243,9 +171,9 @@ const FolderPropertiesDialogContent = ({
           {isCalculating && (
             <div className="flex items-center gap-2 px-3 py-2 bg-accent/5 rounded-md border border-accent/10">
               <Loader2 className="w-3.5 h-3.5 stroke-accent animate-spin shrink-0" />
-              <span className="text-xs text-text-secondary truncate" title={stats.currentPath}>
+              <span className="text-xs text-text-secondary truncate" title={currentPath}>
                 {t(($) => $.folderProperties.scanning, {
-                  path: stats.currentPath || t(($) => $.folderProperties.calculating),
+                  path: currentPath || t(($) => $.folderProperties.calculating),
                 })}
               </span>
             </div>
@@ -270,9 +198,9 @@ const FolderPropertiesDialogContent = ({
                   {t(($) => $.folderProperties.cancelled)}
                 </span>
               </div>
-              {stats.errorCount > 0 && (
+              {errorCount > 0 && (
                 <span className="text-xs text-text-muted">
-                  {t(($) => $.folderProperties.errorCount, { count: stats.errorCount })}
+                  {t(($) => $.folderProperties.errorCount, { count: errorCount })}
                 </span>
               )}
             </div>
@@ -290,17 +218,17 @@ const FolderPropertiesDialogContent = ({
       {/* Footer Buttons */}
       <div className="flex justify-end gap-2.5 pt-4 mt-3 border-t border-border shrink-0">
         {isIdle && (
-          <Button variant="primary" onClick={startCalculation}>
+          <Button variant="primary" onClick={start}>
             {t(($) => $.folderProperties.calculate)}
           </Button>
         )}
         {isCalculating && (
-          <Button variant="secondary" onClick={cancelCalculation}>
+          <Button variant="secondary" onClick={cancel}>
             {t(($) => $.folderProperties.cancelCalculation)}
           </Button>
         )}
         {(isCompleted || isCancelled || isError) && (
-          <Button variant="secondary" onClick={startCalculation}>
+          <Button variant="secondary" onClick={start}>
             {t(($) => $.folderProperties.recalculate)}
           </Button>
         )}
@@ -331,6 +259,7 @@ export const FolderPropertiesDialog = ({
         file={file}
         onClose={handleClose}
         isSftp={isSftp}
+        open={open}
       />
     </GlassDialog>
   )

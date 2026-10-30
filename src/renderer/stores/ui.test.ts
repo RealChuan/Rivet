@@ -32,6 +32,7 @@ describe('useUiStore', () => {
       queueDrawerOpen: false,
       queueDrawerWidth: 360,
       initialized: false,
+      fileViewModes: {},
       toasts: [],
     })
   })
@@ -80,7 +81,7 @@ describe('useUiStore', () => {
     it('should persist appearance via config.set', () => {
       useUiStore.getState().setAppearance(THEME.LIGHT)
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI, {
         appearance: THEME.LIGHT,
         locale: DEFAULT_LANGUAGE,
       })
@@ -90,7 +91,7 @@ describe('useUiStore', () => {
       useUiStore.setState({ locale: SUPPORTED_LANGUAGE.ZH_CN })
       useUiStore.getState().setAppearance(THEME.DARK)
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI, {
         appearance: THEME.DARK,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
       })
@@ -107,7 +108,7 @@ describe('useUiStore', () => {
     it('should persist locale via config.set', () => {
       useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN)
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI, {
         appearance: DEFAULT_THEME_VALUE,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
       })
@@ -117,10 +118,23 @@ describe('useUiStore', () => {
       useUiStore.setState({ appearance: THEME.DARK })
       useUiStore.getState().setLocale(SUPPORTED_LANGUAGE.ZH_CN)
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI_SETTINGS, {
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI, {
         appearance: THEME.DARK,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
       })
+    })
+  })
+
+  describe('setFileViewMode', () => {
+    it('keeps view modes isolated per session and never persists them', () => {
+      useUiStore.getState().setFileViewMode('session-1', 'grid')
+      useUiStore.getState().setFileViewMode('session-2', 'list')
+
+      expect(useUiStore.getState().fileViewModes).toEqual({
+        'session-1': 'grid',
+        'session-2': 'list',
+      })
+      expect(mockConfigSet).not.toHaveBeenCalled()
     })
   })
 

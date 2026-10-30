@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment -- expect.any() 返回 any */
 import { renderHook, act } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig } from '@shared/types/index.js'
@@ -27,6 +28,7 @@ const mockAddConnection = vi.fn()
 const mockUpdateConnection = vi.fn()
 const mockDeleteConnection = vi.fn()
 const mockSaveConnectionConfigs = vi.fn()
+const mockLoadSavedConnections = vi.fn()
 const mockConnections: ConnectionConfig[] = []
 vi.mock('../stores/connection.js', () => ({
   useConnectionStore: (selector: (state: Record<string, unknown>) => unknown) =>
@@ -36,27 +38,23 @@ vi.mock('../stores/connection.js', () => ({
       updateConnection: mockUpdateConnection,
       deleteConnection: mockDeleteConnection,
       saveConnectionConfigs: mockSaveConnectionConfigs,
+      loadSavedConnections: mockLoadSavedConnections,
     }),
 }))
 
 const mockAddToast = vi.fn()
-vi.mock('@renderer/stores/index.js', () => ({
+vi.mock('../../../stores/index.js', () => ({
   useUiStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({ addToast: mockAddToast }),
 }))
 
-vi.mock('@renderer/utils/index.js', () => ({
+vi.mock('../../../utils/index.js', () => ({
   logger: {
     catch: vi.fn(),
   },
 }))
 
-vi.mock('../utils/password-crypto.js', () => ({
-  encryptPassword: vi.fn().mockResolvedValue('encrypted-pw'),
-  decryptPassword: vi.fn().mockResolvedValue('decrypted-pw'),
-}))
-
-vi.mock('@renderer/hooks/use-active-task-guard.js', () => ({
+vi.mock('../../../hooks/use-active-task-guard.js', () => ({
   useActiveTaskGuard: () => ({
     guard: (action: () => void) => action(),
     confirmOpen: false,
@@ -68,7 +66,9 @@ vi.mock('@renderer/hooks/use-active-task-guard.js', () => ({
 }))
 
 // Mock window.electronAPI following project convention (vi.stubGlobal)
-const mockProtocolDisconnect = vi.fn()
+const mockProtocolDisconnect = vi
+  .fn()
+  .mockResolvedValue({ success: true, value: null, error: null })
 vi.stubGlobal('window', {
   electronAPI: {
     protocol: { disconnect: mockProtocolDisconnect },
@@ -83,6 +83,7 @@ const baseConfig = {
   host: '192.168.1.1',
   port: 22,
   username: 'admin',
+  authKind: 'password',
 } as const
 
 const fullConnection: ConnectionConfig = {
@@ -92,8 +93,7 @@ const fullConnection: ConnectionConfig = {
   host: '192.168.1.1',
   port: 22,
   username: 'admin',
-  savePassword: false,
-  password: '',
+  authKind: 'password',
   basePath: '',
   scheme: 'https',
   rejectUnauthorized: true,
@@ -116,14 +116,19 @@ describe('useConnectionActions', () => {
 
       await act(async () => {
         await result.current.handleSaveConnection(
-          { ...baseConfig, password: 'secret', savePassword: true },
+          { connection: baseConfig, secret: 'secret', saveSecret: true },
           onSuccess,
         )
       })
 
-      expect(mockConnectSession).toHaveBeenCalledOnce()
+      expect(mockConnectSession).toHaveBeenCalledWith({
+        connection: expect.objectContaining({ id: expect.any(String) }),
+        secret: 'secret',
+        saveSecret: true,
+      })
       expect(mockAddConnection).toHaveBeenCalledOnce()
       expect(mockSaveConnectionConfigs).toHaveBeenCalledOnce()
+      expect(mockLoadSavedConnections).toHaveBeenCalledOnce()
       expect(mockAddToast).toHaveBeenCalledWith(
         expect.objectContaining({ type: TOAST_TYPE.SUCCESS }),
       )
@@ -140,7 +145,11 @@ describe('useConnectionActions', () => {
       })
 
       await act(async () => {
-        await result.current.handleSaveConnection({ ...baseConfig, password: 'new-pw' })
+        await result.current.handleSaveConnection({
+          connection: baseConfig,
+          secret: 'new-pw',
+          saveSecret: false,
+        })
       })
 
       expect(mockUpdateConnection).toHaveBeenCalledOnce()
@@ -154,26 +163,13 @@ describe('useConnectionActions', () => {
 
       await act(async () => {
         try {
-          await result.current.handleSaveConnection({ ...baseConfig, password: 'pw' })
+          await result.current.handleSaveConnection({
+            connection: baseConfig,
+            secret: 'pw',
+            saveSecret: false,
+          })
         } catch {
           // handleSaveConnection throws on failure
-        }
-      })
-
-      expect(mockAddToast).toHaveBeenCalledWith(expect.objectContaining({ type: TOAST_TYPE.ERROR }))
-    })
-
-    it('should show error toast when password encryption fails', async () => {
-      const { encryptPassword } = await import('../utils/password-crypto.js')
-      vi.mocked(encryptPassword).mockRejectedValueOnce(new Error('encrypt failed'))
-
-      const { result } = renderHook(() => useConnectionActions())
-
-      await act(async () => {
-        try {
-          await result.current.handleSaveConnection({ ...baseConfig, password: 'pw' })
-        } catch {
-          // encrypt failure throws
         }
       })
 
@@ -184,7 +180,7 @@ describe('useConnectionActions', () => {
   describe('handleDisconnect', () => {
     it('should disconnect session when session exists', async () => {
       mockGetSessionByConnectionId.mockReturnValue({ sessionId: 'sess-1' })
-      mockProtocolDisconnect.mockResolvedValue(undefined)
+      mockProtocolDisconnect.mockResolvedValue({ success: true, value: null, error: null })
 
       const { result } = renderHook(() => useConnectionActions())
 
@@ -193,9 +189,9 @@ describe('useConnectionActions', () => {
       })
 
       await vi.waitFor(() => {
-        expect(mockProtocolDisconnect).toHaveBeenCalledWith('sess-1')
+        expect(mockProtocolDisconnect).toHaveBeenCalledWith('sess-1', undefined)
       })
-      expect(mockRemoveSession).toHaveBeenCalledWith('sess-1')
+      await vi.waitFor(() => expect(mockRemoveSession).toHaveBeenCalledWith('sess-1'))
       expect(mockAddToast).toHaveBeenCalledWith(expect.objectContaining({ type: TOAST_TYPE.INFO }))
     })
 
@@ -234,7 +230,7 @@ describe('useConnectionActions', () => {
     it('should disconnect session and delete connection', async () => {
       mockGetSessionByConnectionId.mockReturnValue({ sessionId: 'sess-1' })
       mockDeleteConnection.mockResolvedValue(undefined)
-      mockProtocolDisconnect.mockResolvedValue(undefined)
+      mockProtocolDisconnect.mockResolvedValue({ success: true, value: null, error: null })
 
       const { result } = renderHook(() => useConnectionActions())
 
@@ -246,8 +242,8 @@ describe('useConnectionActions', () => {
         await result.current.handleConfirmDelete()
       })
 
-      expect(mockProtocolDisconnect).toHaveBeenCalledWith('sess-1')
-      expect(mockRemoveSession).toHaveBeenCalledWith('sess-1')
+      expect(mockProtocolDisconnect).toHaveBeenCalledWith('sess-1', undefined)
+      await vi.waitFor(() => expect(mockRemoveSession).toHaveBeenCalledWith('sess-1'))
       expect(mockDeleteConnection).toHaveBeenCalledWith('conn-1')
       expect(mockAddToast).toHaveBeenCalledWith(expect.objectContaining({ type: TOAST_TYPE.INFO }))
       expect(result.current.deleteConfirmOpen).toBe(false)
@@ -284,20 +280,17 @@ describe('useConnectionActions', () => {
   })
 
   describe('handleReconnect', () => {
-    it('should reconnect directly when saved password decrypts and connects', async () => {
-      mockReconnectSession.mockResolvedValue(true)
+    it('should reconnect directly when a stored secret exists', async () => {
+      mockConnectSession.mockResolvedValue(true)
 
       const { result } = renderHook(() => useConnectionActions())
       const onOpenDialog = vi.fn()
-      const connection = { ...fullConnection, password: 'encrypted-pw' }
 
       await act(async () => {
-        await result.current.handleReconnect(connection, onOpenDialog)
+        await result.current.handleReconnect(fullConnection, onOpenDialog)
       })
 
-      expect(mockReconnectSession).toHaveBeenCalledWith('conn-1', {
-        password: 'encrypted-pw',
-      })
+      expect(mockConnectSession).toHaveBeenCalledWith({ connection: fullConnection })
       expect(mockAddToast).toHaveBeenCalledWith(
         expect.objectContaining({ type: TOAST_TYPE.SUCCESS }),
       )
@@ -305,29 +298,29 @@ describe('useConnectionActions', () => {
     })
 
     it('should open reconnect dialog when connection fails', async () => {
-      mockReconnectSession.mockResolvedValue(false)
+      mockConnectSession.mockResolvedValue(false)
 
       const { result } = renderHook(() => useConnectionActions())
       const onOpenDialog = vi.fn()
-      const connection = { ...fullConnection, password: 'encrypted-pw' }
 
       await act(async () => {
-        await result.current.handleReconnect(connection, onOpenDialog)
+        await result.current.handleReconnect(fullConnection, onOpenDialog)
       })
 
-      expect(result.current.reconnectConfig).toBe(connection)
+      expect(result.current.reconnectConfig).toBe(fullConnection)
       expect(onOpenDialog).toHaveBeenCalledOnce()
     })
 
-    it('should open reconnect dialog when no saved password', async () => {
+    it('should open reconnect dialog when askPasswordOnConnect is true', async () => {
       const { result } = renderHook(() => useConnectionActions())
       const onOpenDialog = vi.fn()
-      const connection = { ...fullConnection, password: '' }
+      const connection = { ...fullConnection, askPasswordOnConnect: true }
 
       await act(async () => {
         await result.current.handleReconnect(connection, onOpenDialog)
       })
 
+      expect(mockConnectSession).not.toHaveBeenCalled()
       expect(result.current.reconnectConfig).toBe(connection)
       expect(onOpenDialog).toHaveBeenCalledOnce()
     })
@@ -336,7 +329,7 @@ describe('useConnectionActions', () => {
   describe('handleEdit', () => {
     it('should disconnect session before editing', async () => {
       mockGetSessionByConnectionId.mockReturnValue({ sessionId: 'sess-1' })
-      mockProtocolDisconnect.mockResolvedValue(undefined)
+      mockProtocolDisconnect.mockResolvedValue({ success: true, value: null, error: null })
 
       const { result } = renderHook(() => useConnectionActions())
       const onOpenDialog = vi.fn()
@@ -345,8 +338,8 @@ describe('useConnectionActions', () => {
         await result.current.handleEdit(fullConnection, onOpenDialog)
       })
 
-      expect(mockProtocolDisconnect).toHaveBeenCalledWith('sess-1')
-      expect(mockRemoveSession).toHaveBeenCalledWith('sess-1')
+      expect(mockProtocolDisconnect).toHaveBeenCalledWith('sess-1', undefined)
+      await vi.waitFor(() => expect(mockRemoveSession).toHaveBeenCalledWith('sess-1'))
       expect(result.current.editConfig).toEqual(fullConnection)
       expect(onOpenDialog).toHaveBeenCalledOnce()
     })

@@ -34,3 +34,6 @@ export const LOG_ACTION = {
 
 export const PORT_SFTP = 22
 export const PORT_WEBDAV_HTTPS = 443
+
+/** 单次目录列举的上限。超过后截断并记录一条警告，UI 标注留给计划 3。 */
+export const MAX_LIST_ENTRIES = 20000

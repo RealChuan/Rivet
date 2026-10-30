@@ -1,15 +1,12 @@
 import type React from 'react'
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { ConflictStrategy } from '@renderer/components/common/ConflictDialogBase.js'
+import type { ConflictAction } from '@shared/constants/index.js'
 import type { FileInfo } from '@shared/types/index.js'
-import {
-  CONFLICT_STRATEGY,
-  ConflictDialogBase,
-} from '@renderer/components/common/ConflictDialogBase.js'
-import { FileIcon } from '@renderer/components/common/index.js'
-import { logger } from '@renderer/utils/index.js'
-import { FILE_OPERATION } from '@shared/constants/index.js'
+import { CONFLICT_ACTION, FILE_OPERATION } from '@shared/constants/index.js'
+import { ConflictDialogBase } from '../../../components/common/ConflictDialogBase.js'
+import { FileIcon } from '../../../components/common/index.js'
+import { logger } from '../../../utils/index.js'
 
 export interface ConflictItem {
   sourceFile: FileInfo
@@ -20,7 +17,7 @@ export interface ConflictItem {
 export interface ConflictResolution {
   sourceFile: FileInfo
   targetFile: FileInfo
-  strategy: ConflictStrategy
+  strategy: ConflictAction
 }
 
 type CopyMoveOperation = typeof FILE_OPERATION.COPY | typeof FILE_OPERATION.MOVE
@@ -60,12 +57,12 @@ export const ConflictDialog = ({
     return sourceType === targetType
   }
 
-  const handleConfirm = (strategies: ConflictStrategy[]) => {
+  const handleConfirm = (strategies: ConflictAction[]) => {
     logger.info('[Copy] ConflictDialog handleConfirm called')
     const resolutions: ConflictResolution[] = conflicts.map((c, i) => ({
       sourceFile: c.sourceFile,
       targetFile: c.targetFile ?? c.sourceFile,
-      strategy: strategies[i] ?? CONFLICT_STRATEGY.KEEP_BOTH,
+      strategy: strategies[i] ?? CONFLICT_ACTION.KEEP_BOTH,
     }))
     if (onConfirm) {
       void onConfirm(resolutions, operation, files, targetDir)

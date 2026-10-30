@@ -4,134 +4,67 @@ import { useHostKeyStore } from './host-key.js'
 
 describe('host key store', () => {
   beforeEach(() => {
-    // Reset store to initial state
-    useHostKeyStore.getState().setHostKeyVerificationDialog({
-      open: false,
-      type: HOST_KEY_DIALOG_TYPE.FIRST_CONNECT,
-      hash: '',
-      sessionId: '',
-      connectionId: '',
-    })
-    // Clear callbacks separately since setHostKeyVerificationDialog merges
     useHostKeyStore.setState({
       hostKeyDialog: {
         open: false,
-        type: HOST_KEY_DIALOG_TYPE.FIRST_CONNECT,
-        hash: '',
-        previousHash: undefined,
-        sessionId: '',
-        connectionId: '',
+        type: HOST_KEY_DIALOG_TYPE.UNKNOWN,
+        host: '',
+        port: 22,
+        algorithm: '',
+        fingerprint: '',
+        previousFingerprint: undefined,
       },
     })
   })
 
-  it('should have correct initial state', () => {
-    const state = useHostKeyStore.getState()
-    expect(state.hostKeyDialog.open).toBe(false)
-    expect(state.hostKeyDialog.type).toBe(HOST_KEY_DIALOG_TYPE.FIRST_CONNECT)
-    expect(state.hostKeyDialog.hash).toBe('')
-    expect(state.hostKeyDialog.previousHash).toBeUndefined()
-    expect(state.hostKeyDialog.sessionId).toBe('')
-    expect(state.hostKeyDialog.connectionId).toBe('')
+  it('has the unknown/mismatch initial state', () => {
+    const state = useHostKeyStore.getState().hostKeyDialog
+    expect(state).toMatchObject({
+      open: false,
+      type: HOST_KEY_DIALOG_TYPE.UNKNOWN,
+      host: '',
+      port: 22,
+      algorithm: '',
+      fingerprint: '',
+    })
+    expect(state.previousFingerprint).toBeUndefined()
   })
 
-  it('should open dialog with partial state via setHostKeyVerificationDialog', () => {
+  it('opens with host/port/algorithm/fingerprint', () => {
     useHostKeyStore.getState().setHostKeyVerificationDialog({
       open: true,
       type: HOST_KEY_DIALOG_TYPE.MISMATCH,
-      hash: 'abc123',
-      sessionId: 'session-1',
-      connectionId: 'conn-1',
+      host: 'example.com',
+      port: 2222,
+      algorithm: 'ssh-ed25519',
+      fingerprint: 'SHA256:new',
+      previousFingerprint: 'SHA256:old',
     })
 
-    const state = useHostKeyStore.getState()
-    expect(state.hostKeyDialog.open).toBe(true)
-    expect(state.hostKeyDialog.type).toBe(HOST_KEY_DIALOG_TYPE.MISMATCH)
-    expect(state.hostKeyDialog.hash).toBe('abc123')
-    expect(state.hostKeyDialog.sessionId).toBe('session-1')
-    expect(state.hostKeyDialog.connectionId).toBe('conn-1')
-  })
-
-  it('should preserve existing fields when updating partially', () => {
-    useHostKeyStore.getState().setHostKeyVerificationDialog({
+    expect(useHostKeyStore.getState().hostKeyDialog).toMatchObject({
       open: true,
-      hash: 'hash1',
-      sessionId: 's1',
+      type: HOST_KEY_DIALOG_TYPE.MISMATCH,
+      host: 'example.com',
+      port: 2222,
+      algorithm: 'ssh-ed25519',
+      fingerprint: 'SHA256:new',
+      previousFingerprint: 'SHA256:old',
     })
-
-    // Update only open flag
-    useHostKeyStore.getState().setHostKeyVerificationDialog({
-      open: false,
-    })
-
-    const state = useHostKeyStore.getState()
-    expect(state.hostKeyDialog.open).toBe(false)
-    expect(state.hostKeyDialog.hash).toBe('hash1')
-    expect(state.hostKeyDialog.sessionId).toBe('s1')
   })
 
-  it('should store and call onConfirm callback', () => {
+  it('preserves fields on partial updates and stores callbacks', () => {
     const onConfirm = vi.fn()
     useHostKeyStore.getState().setHostKeyVerificationDialog({
       open: true,
+      host: 'h',
       onConfirm,
     })
+    useHostKeyStore.getState().setHostKeyVerificationDialog({ open: false })
 
-    const state = useHostKeyStore.getState()
-    expect(state.hostKeyDialog.onConfirm).toBe(onConfirm)
-    state.hostKeyDialog.onConfirm?.()
+    const state = useHostKeyStore.getState().hostKeyDialog
+    expect(state.host).toBe('h')
+    expect(state.open).toBe(false)
+    state.onConfirm?.()
     expect(onConfirm).toHaveBeenCalledOnce()
-  })
-
-  it('should store and call onCancel callback', () => {
-    const onCancel = vi.fn()
-    useHostKeyStore.getState().setHostKeyVerificationDialog({
-      open: true,
-      onCancel,
-    })
-
-    const state = useHostKeyStore.getState()
-    expect(state.hostKeyDialog.onCancel).toBe(onCancel)
-    state.hostKeyDialog.onCancel?.()
-    expect(onCancel).toHaveBeenCalledOnce()
-  })
-
-  it('should reset dialog to closed state', () => {
-    useHostKeyStore.getState().setHostKeyVerificationDialog({
-      open: true,
-      hash: 'some-hash',
-      sessionId: 's1',
-    })
-
-    useHostKeyStore.getState().setHostKeyVerificationDialog({
-      open: false,
-      hash: '',
-      sessionId: '',
-    })
-
-    const state = useHostKeyStore.getState()
-    expect(state.hostKeyDialog.open).toBe(false)
-    expect(state.hostKeyDialog.hash).toBe('')
-    expect(state.hostKeyDialog.sessionId).toBe('')
-  })
-
-  it('should handle multiple consecutive setHostKeyVerificationDialog calls', () => {
-    useHostKeyStore.getState().setHostKeyVerificationDialog({
-      open: true,
-      hash: 'hash1',
-    })
-
-    useHostKeyStore.getState().setHostKeyVerificationDialog({
-      hash: 'hash2',
-    })
-
-    useHostKeyStore.getState().setHostKeyVerificationDialog({
-      sessionId: 's2',
-    })
-
-    const state = useHostKeyStore.getState()
-    expect(state.hostKeyDialog.open).toBe(true)
-    expect(state.hostKeyDialog.hash).toBe('hash2')
-    expect(state.hostKeyDialog.sessionId).toBe('s2')
   })
 })

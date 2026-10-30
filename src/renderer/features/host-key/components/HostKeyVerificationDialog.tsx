@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { ConfirmationDialog } from '@renderer/components/common/ConfirmationDialog.js'
 import { HOST_KEY_DIALOG_TYPE } from '@shared/constants/index.js'
+import { ConfirmationDialog } from '../../../components/common/ConfirmationDialog.js'
 import { useHostKeyStore } from '../stores/host-key.js'
 import { HostKeyNotification } from './HostKeyNotification.js'
 
@@ -12,16 +12,12 @@ export const HostKeyVerificationDialog = () => {
   )
 
   const handleTrust = () => {
-    if (hostKeyDialog.onConfirm) {
-      hostKeyDialog.onConfirm()
-    }
+    hostKeyDialog.onConfirm?.()
     setHostKeyVerificationDialog({ open: false })
   }
 
   const handleCancel = () => {
-    if (hostKeyDialog.onCancel) {
-      hostKeyDialog.onCancel()
-    }
+    hostKeyDialog.onCancel?.()
     setHostKeyVerificationDialog({ open: false })
   }
 
@@ -34,15 +30,19 @@ export const HostKeyVerificationDialog = () => {
       open={hostKeyDialog.open}
       onClose={handleCancel}
       onConfirm={handleTrust}
-      title={isMismatch ? t(($) => $.hostKey.mismatchTitle) : t(($) => $.hostKey.firstConnectTitle)}
+      title={isMismatch ? t(($) => $.hostKey.mismatchTitle) : t(($) => $.hostKey.unknownTitle)}
       type={isMismatch ? 'danger' : 'info'}
-      confirmText={isMismatch ? t(($) => $.hostKey.trustNew) : t(($) => $.hostKey.trustAndSave)}
-      cancelText={isMismatch ? t(($) => $.common.action.close) : t(($) => $.hostKey.disconnect)}
+      confirmTestId="host-key-confirm"
+      confirmText={isMismatch ? t(($) => $.hostKey.trustNew) : t(($) => $.hostKey.trustAndConnect)}
+      cancelText={t(($) => $.common.action.cancel)}
       customContent={
         <HostKeyNotification
           type={hostKeyDialog.type}
-          hash={hostKeyDialog.hash}
-          previousHash={hostKeyDialog.previousHash}
+          host={hostKeyDialog.host}
+          port={hostKeyDialog.port}
+          algorithm={hostKeyDialog.algorithm}
+          fingerprint={hostKeyDialog.fingerprint}
+          previousFingerprint={hostKeyDialog.previousFingerprint}
         />
       }
     />

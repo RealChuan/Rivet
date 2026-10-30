@@ -1,260 +1,146 @@
-/**
- * WindowFactory — 无边框窗口工厂
- *
- * 所有 Rivet 窗口（主窗口、子窗口、对话框）的统一创建入口。
- * 自动应用平台适配的无边框配置，复用同一套 Preload 脚本。
- */
-
-import { BrowserWindow, type BrowserWindowConstructorOptions, type WebContents } from 'electron'
+import { BrowserWindow, nativeTheme, type BrowserWindowConstructorOptions } from 'electron'
 import path from 'node:path'
 import {
-  DEFAULT_CHILD_WINDOW_HEIGHT,
-  DEFAULT_CHILD_WINDOW_MIN_HEIGHT,
-  DEFAULT_CHILD_WINDOW_MIN_WIDTH,
-  DEFAULT_CHILD_WINDOW_WIDTH,
-  DEFAULT_ROUTE,
-  MACOS_TRAFFIC_LIGHT_POSITION,
   APP_NAME,
+  DEFAULT_MAIN_WINDOW_HEIGHT,
+  DEFAULT_MAIN_WINDOW_WIDTH,
+  DIALOG_SIZE,
+  MACOS_TRAFFIC_LIGHT_POSITION,
+  MIN_MAIN_WINDOW_HEIGHT,
+  MIN_MAIN_WINDOW_WIDTH,
+  TITLEBAR_HEIGHT,
+  TITLEBAR_OVERLAY_COLORS,
+  type Theme,
 } from '@shared/constants/index.js'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
+import { EVENT_CHANNEL } from '@shared/contract/events.contract.js'
 import { supportsGlassEffect } from '../utils/index.js'
-import { getWindowMeta } from '../utils/window-meta.js'
-import { registerWindowMeta, unregisterWindowMeta } from '../utils/window-meta.js'
+import { getMainWindow } from './main-window.js'
+import { getWindowChromeMode } from './window-chrome.js'
 
-// ============================================================
-// 类型定义
-// ============================================================
-
-export interface FramelessWindowOptions {
-  /** 窗口唯一标识，用于 IPC 区分和 WindowManager 管理 */
-  id: string
-  /** 渲染进程路由路径，如 '/' 或 '/settings' */
-  route?: string
-  /** 窗口标题 */
-  title?: string
+export interface UtilityWindowOptions {
+  route: string
   width?: number
   height?: number
-  minWidth?: number
-  minHeight?: number
-  /** 父窗口（设置此项可创建模态对话框） */
-  parent?: BrowserWindow
-  /** 是否为模态窗口 */
-  modal?: boolean
-  /** 是否置顶 */
-  alwaysOnTop?: boolean
-  /** 是否可调整大小 */
-  resizable?: boolean
-  /** 是否显示（默认 false，等待 ready-to-show） */
-  show?: boolean
+  title?: string
 }
 
-// ============================================================
-// 窗口工厂
-// ============================================================
+function loadRenderer(win: BrowserWindow, route?: string): void {
+  const hash = route ? `#${route.replace(/^#/, '')}` : ''
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    void win.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}${hash}`)
+    return
+  }
+  void win.loadFile(
+    path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+    hash ? { hash: hash.slice(1) } : undefined,
+  )
+}
+
+function hardenWebContents(win: BrowserWindow): void {
+  win.webContents.on('will-navigate', (event) => {
+    event.preventDefault()
+  })
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+}
+
+function showWhenReady(win: BrowserWindow): void {
+  win.once('ready-to-show', () => {
+    win.show()
+    win.focus()
+  })
+}
 
 /**
- * 创建无边框窗口
- *
- * 平台差异：
- * - macOS: titleBarStyle='hidden' + frame=true，保留系统交通灯按钮
- * - Windows/Linux: frame=false，完全由 React 接管标题栏
+ * 唯一主窗口。WCO 只在 Windows 11 启用；macOS 用 hidden titlebar + 红绿灯；
+ * Windows 10/Linux 用原生 frame。
  */
-export function createFramelessWindow(options: FramelessWindowOptions): BrowserWindow {
-  const isMac = process.platform === 'darwin'
-  const isWindows = process.platform === 'win32'
+export function createAppWindow(theme: Theme = 'system'): BrowserWindow {
+  const chrome = getWindowChromeMode()
   const supportsGlass = supportsGlassEffect()
+  const dark = theme === 'dark' || (theme === 'system' && nativeTheme.shouldUseDarkColors)
 
-  const browserOptions: BrowserWindowConstructorOptions = {
-    width: options.width ?? DEFAULT_CHILD_WINDOW_WIDTH,
-    height: options.height ?? DEFAULT_CHILD_WINDOW_HEIGHT,
-    minWidth: options.minWidth ?? DEFAULT_CHILD_WINDOW_MIN_WIDTH,
-    minHeight: options.minHeight ?? DEFAULT_CHILD_WINDOW_MIN_HEIGHT,
+  const chromeOptions: BrowserWindowConstructorOptions =
+    chrome === 'wco'
+      ? {
+          titleBarStyle: 'hidden',
+          titleBarOverlay: {
+            ...TITLEBAR_OVERLAY_COLORS[dark ? 'dark' : 'light'],
+            height: TITLEBAR_HEIGHT,
+          },
+          ...(supportsGlass ? { backgroundMaterial: 'acrylic' as const } : {}),
+        }
+      : chrome === 'mac-hidden'
+        ? {
+            titleBarStyle: 'hidden',
+            trafficLightPosition: MACOS_TRAFFIC_LIGHT_POSITION,
+            ...(supportsGlass ? { vibrancy: 'under-window' as const } : {}),
+          }
+        : {}
+
+  const options: BrowserWindowConstructorOptions = {
+    width: DEFAULT_MAIN_WINDOW_WIDTH,
+    height: DEFAULT_MAIN_WINDOW_HEIGHT,
+    minWidth: MIN_MAIN_WINDOW_WIDTH,
+    minHeight: MIN_MAIN_WINDOW_HEIGHT,
+    title: APP_NAME,
+    frame: chrome === 'custom' ? false : true,
+    backgroundColor: chrome === 'custom' ? (dark ? '#1e1e1e' : '#ffffff') : '#00000000',
+    ...chromeOptions,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, './index.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      additionalArguments: [`--rivet-window-chrome=${chrome}`],
+    },
+  }
+
+  const win = new BrowserWindow(options)
+
+  const sendState = (): void => {
+    if (!win.isDestroyed()) {
+      win.webContents.send(EVENT_CHANNEL.WINDOW_STATE_CHANGED, { isMaximized: win.isMaximized() })
+    }
+  }
+  win.on('maximize', sendState)
+  win.on('unmaximize', sendState)
+
+  loadRenderer(win)
+  hardenWebContents(win)
+  showWhenReady(win)
+
+  return win
+}
+
+/**
+ * D3 逃生舱：只给未来确实需要原生子窗口时使用。
+ * 不注册窗口表、不暴露 IPC。
+ */
+export function createUtilityWindow(options: UtilityWindowOptions): BrowserWindow {
+  const parent = getMainWindow()
+  const size = DIALOG_SIZE.STANDARD
+  const win = new BrowserWindow({
+    width: options.width ?? size.width,
+    height: options.height ?? size.height,
     title: options.title ?? APP_NAME,
-
-    // ========== 无边框核心配置 ==========
-    titleBarStyle: 'hidden',
-    frame: isMac,
-    ...(isMac ? { trafficLightPosition: MACOS_TRAFFIC_LIGHT_POSITION } : {}),
-
-    // ========== 毛玻璃效果（仅支持原生毛玻璃的平台） ==========
-    ...(isMac && supportsGlass ? { vibrancy: 'under-window' } : {}),
-    ...(isWindows && supportsGlass ? { backgroundMaterial: 'acrylic' } : {}),
-
-    // 窗口行为
-    show: options.show ?? false,
-    resizable: options.resizable ?? true,
-    alwaysOnTop: options.alwaysOnTop ?? false,
-    parent: options.parent as BrowserWindow,
-    modal: options.modal ?? false,
-
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    modal: true,
+    ...(parent ? { parent } : {}),
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, './index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
     },
-  }
-
-  const win = new BrowserWindow(browserOptions)
-
-  // ========== 窗口状态事件转发（带窗口ID）==========
-  win.on('maximize', () => {
-    if (!win.isDestroyed()) {
-      win.webContents.send(IPC_CHANNELS.WINDOW.STATE_CHANGED, {
-        windowId: options.id,
-        isMaximized: true,
-      })
-    }
   })
 
-  win.on('unmaximize', () => {
-    if (!win.isDestroyed()) {
-      win.webContents.send(IPC_CHANNELS.WINDOW.STATE_CHANGED, {
-        windowId: options.id,
-        isMaximized: false,
-      })
-    }
-  })
-
-  // ========== 加载页面 ==========
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    void win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
-  } else {
-    void win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
-  }
-
-  // ========== 安全：阻止导航和打开新窗口 ==========
-  win.webContents.on('will-navigate', (event) => {
-    event.preventDefault()
-  })
-
-  win.webContents.setWindowOpenHandler(() => ({
-    action: 'deny',
-  }))
-
-  // 防止闪烁：等页面 ready 后再显示
-  win.once('ready-to-show', () => {
-    win.show()
-    win.focus()
-  })
+  loadRenderer(win, options.route)
+  hardenWebContents(win)
+  showWhenReady(win)
 
   return win
 }
-
-// ============================================================
-// WindowManager — 窗口生命周期管理
-// ============================================================
-
-const windowMap = new Map<string, BrowserWindow>()
-
-export const WindowManager = {
-  /**
-   * 创建并注册窗口
-   */
-  create(options: FramelessWindowOptions): BrowserWindow {
-    const existing = windowMap.get(options.id)
-    if (existing && !existing.isDestroyed()) {
-      existing.focus()
-      return existing
-    }
-
-    const win = createFramelessWindow(options)
-    windowMap.set(options.id, win)
-
-    registerWindowMeta(win, options.id, options.route ?? '/')
-
-    win.on('closed', () => {
-      windowMap.delete(options.id)
-      unregisterWindowMeta(win)
-    })
-
-    return win
-  },
-
-  /**
-   * 通过 ID 获取窗口
-   */
-  get(id: string): BrowserWindow | undefined {
-    const win = windowMap.get(id)
-    return win && !win.isDestroyed() ? win : undefined
-  },
-
-  /**
-   * 通过 ID 关闭窗口
-   */
-  close(id: string): void {
-    const win = windowMap.get(id)
-    if (win && !win.isDestroyed()) {
-      win.close()
-    }
-    windowMap.delete(id)
-  },
-
-  /**
-   * 获取所有存活窗口
-   */
-  getAll(): BrowserWindow[] {
-    return Array.from(windowMap.values()).filter((w) => !w.isDestroyed())
-  },
-
-  /**
-   * 向所有存活窗口广播 IPC 消息
-   */
-  broadcast(
-    channel: (typeof IPC_CHANNELS.EVENTS)[keyof typeof IPC_CHANNELS.EVENTS],
-    ...args: unknown[]
-  ): void {
-    windowMap.forEach((win) => {
-      if (!win.isDestroyed()) {
-        win.webContents.send(channel, ...(args as Parameters<typeof win.webContents.send>))
-      }
-    })
-  },
-
-  /**
-   * 通过 sender 最小化窗口
-   */
-  minimize(sender: WebContents): void {
-    BrowserWindow.fromWebContents(sender)?.minimize()
-  },
-
-  /**
-   * 通过 sender 切换最大化/还原
-   */
-  maximize(sender: WebContents): void {
-    const win = BrowserWindow.fromWebContents(sender)
-    if (!win) return
-    if (win.isMaximized()) {
-      win.unmaximize()
-    } else {
-      win.maximize()
-    }
-  },
-
-  /**
-   * 通过 sender 关闭窗口
-   */
-  closeBySender(sender: WebContents): void {
-    BrowserWindow.fromWebContents(sender)?.close()
-  },
-
-  /**
-   * 通过 sender 获取窗口状态
-   */
-  getState(sender: WebContents): { isMaximized: boolean; platform: string } {
-    const win = BrowserWindow.fromWebContents(sender)
-    return {
-      isMaximized: win?.isMaximized() ?? false,
-      platform: process.platform,
-    }
-  },
-
-  /**
-   * 通过 sender 获取窗口元数据
-   */
-  getMeta(sender: WebContents): { windowId: string; route: string } {
-    const win = BrowserWindow.fromWebContents(sender)
-    if (!win) return { windowId: 'unknown', route: DEFAULT_ROUTE }
-    return getWindowMeta(win) ?? { windowId: 'unknown', route: DEFAULT_ROUTE }
-  },
-} as const

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<d:multistatus xmlns:d="DAV:">
+  <d:response>
+    <d:href>https://example.com/dav/a%20b.txt</d:href>
+    <d:propstat>
+      <d:prop>
+        <d:getcontentlength>3</d:getcontentlength>
+        <d:resourcetype/>
+      </d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>

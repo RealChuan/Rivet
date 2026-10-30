@@ -1,18 +1,18 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useActiveTaskGuard } from '@renderer/hooks/use-active-task-guard.js'
-import { useUiStore } from '@renderer/stores/index.js'
-import { logger } from '@renderer/utils/index.js'
-import { SCHEME, TOAST_TYPE } from '@shared/constants/index.js'
-import { type ConnectionConfig } from '@shared/types/index.js'
+import type { ConnectionConfig, ConnectionSaveInput } from '@shared/types/index.js'
+import { TOAST_TYPE } from '@shared/constants/index.js'
+import { protocolApi } from '../../../api/protocol.js'
+import { useActiveTaskGuard } from '../../../hooks/use-active-task-guard.js'
+import { useUiStore } from '../../../stores/index.js'
+import { logger } from '../../../utils/index.js'
 import { useConnectionStore } from '../stores/connection.js'
 import { useSessionStore } from '../stores/session.js'
-import { decryptPassword, encryptPassword } from '../utils/password-crypto.js'
 import { useSessionConnect } from './use-session-connect.js'
 
 export const useConnectionActions = () => {
   const { t } = useTranslation()
-  const { connectSession, reconnectSession } = useSessionConnect()
+  const { connectSession } = useSessionConnect()
   const removeSession = useSessionStore((state) => state.removeSession)
   const getSessionByConnectionId = useSessionStore((state) => state.getSessionByConnectionId)
   const connections = useConnectionStore((state) => state.connections)
@@ -20,6 +20,7 @@ export const useConnectionActions = () => {
   const updateConnection = useConnectionStore((state) => state.updateConnection)
   const deleteConnection = useConnectionStore((state) => state.deleteConnection)
   const saveConnectionConfigs = useConnectionStore((state) => state.saveConnectionConfigs)
+  const loadSavedConnections = useConnectionStore((state) => state.loadSavedConnections)
   const addToast = useUiStore((state) => state.addToast)
   const { guard, confirmOpen, handleConfirm, handleCancel, title, message } = useActiveTaskGuard()
 
@@ -46,49 +47,28 @@ export const useConnectionActions = () => {
     })
   }
 
-  const handleSaveConnection = async (
-    config: Omit<ConnectionConfig, 'id'> & { password?: string },
-    onSuccess?: () => void,
-  ) => {
-    let encryptedPassword: string | undefined
-    if (config.password) {
-      try {
-        encryptedPassword = await encryptPassword(config.password)
-      } catch {
-        addToast({ type: TOAST_TYPE.ERROR, message: t(($) => $.connectionDialog.encryptFailed) })
-        throw new Error(t(($) => $.connectionDialog.encryptFailed))
-      }
+  const handleSaveConnection = async (input: ConnectionSaveInput, onSuccess?: () => void) => {
+    const connection: ConnectionConfig = {
+      ...input.connection,
+      id: editConfig?.id ?? crypto.randomUUID(),
     }
-
-    const connectionId = editConfig?.id ?? crypto.randomUUID()
-    const fullConfig: ConnectionConfig = {
-      id: connectionId,
-      name: config.name,
-      protocol: config.protocol,
-      host: config.host,
-      port: config.port,
-      username: config.username,
-      savePassword: config.savePassword ?? false,
-      basePath: config.basePath ?? '',
-      password: encryptedPassword ?? '',
-      scheme: config.scheme ?? SCHEME.HTTPS,
-      rejectUnauthorized: config.rejectUnauthorized ?? true,
-    }
-
-    const success = await connectSession(fullConfig)
+    const success = await connectSession({
+      connection,
+      ...(input.secret ? { secret: input.secret } : {}),
+      saveSecret: input.saveSecret,
+    })
 
     if (!success) {
-      showConnectionToast(TOAST_TYPE.ERROR, config)
+      showConnectionToast(TOAST_TYPE.ERROR, connection)
       throw new Error(t(($) => $.connectionDialog.connectFailed))
     }
 
-    if (editConfig) {
-      updateConnection(fullConfig)
-    } else {
-      addConnection(fullConfig)
-    }
+    if (editConfig) updateConnection(connection)
+    else addConnection(connection)
+
     await saveConnectionConfigs()
-    showConnectionToast(TOAST_TYPE.SUCCESS, config)
+    await loadSavedConnections()
+    showConnectionToast(TOAST_TYPE.SUCCESS, connection)
     onSuccess?.()
     setEditConfig(null)
   }
@@ -100,7 +80,7 @@ export const useConnectionActions = () => {
     const doDisconnect = async () => {
       try {
         if (session) {
-          await window.electronAPI.protocol.disconnect(session.sessionId)
+          await protocolApi.disconnect(session.sessionId)
           removeSession(session.sessionId)
         }
         addToast({
@@ -143,17 +123,14 @@ export const useConnectionActions = () => {
     try {
       const session = getSessionByConnectionId(connectionToDelete)
       if (session) {
-        await window.electronAPI.protocol.disconnect(session.sessionId)
+        await protocolApi.disconnect(session.sessionId)
         removeSession(session.sessionId)
       }
       await deleteConnection(connectionToDelete)
       addToast({ type: TOAST_TYPE.INFO, message: t(($) => $.toast.deleteConnectionSuccess) })
     } catch (error) {
       logger.catch(error, { connectionId: connectionToDelete, action: 'delete-connection' })
-      addToast({
-        type: TOAST_TYPE.ERROR,
-        message: t(($) => $.toast.deleteFailed),
-      })
+      addToast({ type: TOAST_TYPE.ERROR, message: t(($) => $.toast.deleteFailed) })
     } finally {
       setDeleteConfirmOpen(false)
       setConnectionToDelete(null)
@@ -161,67 +138,36 @@ export const useConnectionActions = () => {
   }
 
   const handleReconnect = async (connection: ConnectionConfig, onOpenDialog?: () => void) => {
-    if (connection.password) {
-      try {
-        await decryptPassword(connection.password)
-        const success = await reconnectSession(connection.id, {
-          password: connection.password,
-        })
-        if (success) {
-          showConnectionToast(TOAST_TYPE.SUCCESS, connection)
-          return
-        }
-        // 连接失败，打开重连对话框让用户重新输入密码
-      } catch (error) {
-        logger.catch(error, { action: 'decrypt-password' })
-        addToast({
-          type: TOAST_TYPE.ERROR,
-          message: t(($) => $.connectionDialog.decryptFailed),
-        })
-      }
+    if (connection.askPasswordOnConnect) {
+      setReconnectConfig(connection)
+      onOpenDialog?.()
+      return
+    }
+
+    const success = await connectSession({ connection })
+    if (success) {
+      showConnectionToast(TOAST_TYPE.SUCCESS, connection)
+      return
     }
     setReconnectConfig(connection)
     onOpenDialog?.()
   }
 
-  const handleReconnectSubmit = async (
-    config: Omit<ConnectionConfig, 'id'> & { password?: string },
-  ) => {
+  const handleReconnectSubmit = async (input: ConnectionSaveInput) => {
     if (!reconnectConfig) return
     try {
-      let encryptedPassword: string | undefined
-
-      if (config.password) {
-        try {
-          encryptedPassword = await encryptPassword(config.password)
-        } catch {
-          addToast({ type: TOAST_TYPE.ERROR, message: t(($) => $.connectionDialog.encryptFailed) })
-          throw new Error(t(($) => $.connectionDialog.encryptFailed))
-        }
-      }
-
-      const passwordConfig: { password?: string; savePassword?: boolean } = {}
-      if (config.savePassword) {
-        passwordConfig.savePassword = true
-      }
-      if (encryptedPassword) {
-        passwordConfig.password = encryptedPassword
-      }
-
-      const success = await reconnectSession(reconnectConfig.id, passwordConfig)
+      const success = await connectSession({
+        connection: reconnectConfig,
+        ...(input.secret ? { secret: input.secret } : {}),
+        saveSecret: input.saveSecret,
+      })
       if (success) {
-        // 连接成功后更新连接配置并持久化到磁盘
-        const updatedConfig: ConnectionConfig = {
-          ...reconnectConfig,
-          savePassword: config.savePassword ?? false,
-          password: encryptedPassword ?? '',
-        }
-        updateConnection(updatedConfig)
         await saveConnectionConfigs()
+        await loadSavedConnections()
         showConnectionToast(TOAST_TYPE.SUCCESS, reconnectConfig)
       }
     } catch (error) {
-      logger.catch(error, { connectionId: reconnectConfig?.id, action: 'reconnect' })
+      logger.catch(error, { connectionId: reconnectConfig.id, action: 'reconnect' })
       showConnectionToast(TOAST_TYPE.ERROR, reconnectConfig)
       throw error
     }
@@ -231,7 +177,7 @@ export const useConnectionActions = () => {
     const session = getSessionByConnectionId(connection.id)
     if (session) {
       try {
-        await window.electronAPI.protocol.disconnect(session.sessionId)
+        await protocolApi.disconnect(session.sessionId)
         removeSession(session.sessionId)
       } catch (err) {
         logger.catch(err, { action: 'edit-disconnect', connectionId: connection.id })

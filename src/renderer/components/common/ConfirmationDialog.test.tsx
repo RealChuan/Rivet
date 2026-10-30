@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ConfirmationDialog } from './ConfirmationDialog.js'
 
-vi.mock('@renderer/utils/index.js', () => ({
+vi.mock('../../utils/index.js', () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
   logger: {
     info: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock('@renderer/utils/index.js', () => ({
   },
 }))
 
-import { logger } from '@renderer/utils/index.js'
+import { logger } from '../../utils/index.js'
 
 const baseProps = {
   open: true,

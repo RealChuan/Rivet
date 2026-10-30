@@ -5,16 +5,12 @@ import { useConnectionStore } from './connection.js'
 
 const mockConfigGet = vi.fn()
 const mockConfigSet = vi.fn()
-const mockHostKeyDelete = vi.fn()
 
 vi.stubGlobal('window', {
   electronAPI: {
     config: {
       get: mockConfigGet,
       set: mockConfigSet,
-    },
-    hostKey: {
-      delete: mockHostKeyDelete,
     },
   },
 })
@@ -27,6 +23,7 @@ function createConnection(overrides: Partial<ConnectionConfig> = {}): Connection
     host: 'example.com',
     port: 22,
     username: 'user',
+    authKind: 'password',
     ...overrides,
   }
 }
@@ -45,7 +42,6 @@ describe('useConnectionStore', () => {
     // Default mock implementations
     mockConfigGet.mockResolvedValue({ success: true, value: [] })
     mockConfigSet.mockResolvedValue({ success: true })
-    mockHostKeyDelete.mockResolvedValue({ success: true })
   })
 
   describe('initial state', () => {
@@ -166,16 +162,7 @@ describe('useConnectionStore', () => {
 
       await useConnectionStore.getState().deleteConnection('conn-1')
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, [config2])
-    })
-
-    it('should call hostKey.delete with the connection id', async () => {
-      const config = createConnection({ id: 'conn-1' })
-      useConnectionStore.getState().addConnection(config)
-
-      await useConnectionStore.getState().deleteConnection('conn-1')
-
-      expect(mockHostKeyDelete).toHaveBeenCalledWith('conn-1')
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTIONS, [config2])
     })
 
     it('should not affect other connections', async () => {
@@ -200,9 +187,7 @@ describe('useConnectionStore', () => {
 
       expect(useConnectionStore.getState().connections).toHaveLength(1)
       // Should still call config.set with the unchanged list
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, [config])
-      // Should still call hostKey.delete for the non-existent id
-      expect(mockHostKeyDelete).toHaveBeenCalledWith('conn-nonexistent')
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTIONS, [config])
     })
   })
 
@@ -213,7 +198,7 @@ describe('useConnectionStore', () => {
         createConnection({ id: 'conn-2', name: 'Saved 2' }),
       ]
       mockConfigGet.mockImplementation((key: string) => {
-        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+        if (key === STORE_KEY.CONNECTIONS) {
           return Promise.resolve(ok(savedConnections))
         }
         return Promise.resolve(err(new Error('not found')))
@@ -229,7 +214,7 @@ describe('useConnectionStore', () => {
       useConnectionStore.setState({ connections: [existing] })
 
       mockConfigGet.mockImplementation((key: string) => {
-        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+        if (key === STORE_KEY.CONNECTIONS) {
           return Promise.resolve(err(new Error('failed')))
         }
         return Promise.resolve(err(new Error('not found')))
@@ -246,7 +231,7 @@ describe('useConnectionStore', () => {
       useConnectionStore.setState({ connections: [existing] })
 
       mockConfigGet.mockImplementation((key: string) => {
-        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+        if (key === STORE_KEY.CONNECTIONS) {
           return Promise.resolve(ok('not an array'))
         }
         return Promise.resolve(err(new Error('not found')))
@@ -260,7 +245,7 @@ describe('useConnectionStore', () => {
     it('should call config.get with SAVED_CONNECTIONS store key', async () => {
       await useConnectionStore.getState().loadSavedConnections()
 
-      expect(mockConfigGet).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS)
+      expect(mockConfigGet).toHaveBeenCalledWith(STORE_KEY.CONNECTIONS)
     })
   })
 
@@ -307,7 +292,7 @@ describe('useConnectionStore', () => {
       useConnectionStore.setState({ connections: [existing] })
 
       mockConfigGet.mockImplementation((key: string) => {
-        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+        if (key === STORE_KEY.CONNECTIONS) {
           return Promise.resolve(
             ok([{ name: 'x', host: 'h', username: 'u', port: 22, protocol: 'sftp' }]),
           )
@@ -325,7 +310,7 @@ describe('useConnectionStore', () => {
       useConnectionStore.setState({ connections: [existing] })
 
       mockConfigGet.mockImplementation((key: string) => {
-        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+        if (key === STORE_KEY.CONNECTIONS) {
           return Promise.resolve(
             ok([{ id: '1', name: 'x', host: 'h', username: 'u', port: '22', protocol: 'sftp' }]),
           )
@@ -343,7 +328,7 @@ describe('useConnectionStore', () => {
       useConnectionStore.setState({ connections: [existing] })
 
       mockConfigGet.mockImplementation((key: string) => {
-        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+        if (key === STORE_KEY.CONNECTIONS) {
           return Promise.resolve(
             ok([{ id: '1', name: 'x', host: 'h', username: 'u', port: 22, protocol: 'ftp' }]),
           )
@@ -361,7 +346,7 @@ describe('useConnectionStore', () => {
       useConnectionStore.setState({ connections: [existing] })
 
       mockConfigGet.mockImplementation((key: string) => {
-        if (key === STORE_KEY.SAVED_CONNECTIONS) {
+        if (key === STORE_KEY.CONNECTIONS) {
           return Promise.resolve(ok(['not-an-object']))
         }
         return Promise.resolve(err(new Error('not found')))
@@ -409,13 +394,13 @@ describe('useConnectionStore', () => {
 
       await useConnectionStore.getState().saveConnectionConfigs()
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, [config1, config2])
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTIONS, [config1, config2])
     })
 
     it('should persist empty array when no connections', async () => {
       await useConnectionStore.getState().saveConnectionConfigs()
 
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, [])
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTIONS, [])
     })
   })
 
@@ -474,77 +459,44 @@ describe('useConnectionStore', () => {
   })
 
   describe('reorderConnections', () => {
-    it('should move a connection before another', async () => {
+    it('reorders and persists the new order', async () => {
       const conn1 = createConnection({ id: 'conn-1', name: 'A' })
       const conn2 = createConnection({ id: 'conn-2', name: 'B' })
       const conn3 = createConnection({ id: 'conn-3', name: 'C' })
       useConnectionStore.setState({ connections: [conn1, conn2, conn3] })
 
-      // Move conn-3 before conn-1
       await useConnectionStore.getState().reorderConnections('conn-3', 'conn-1')
 
       const ids = useConnectionStore.getState().connections.map((c) => c.id)
       expect(ids).toEqual(['conn-3', 'conn-1', 'conn-2'])
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTIONS, expect.any(Array))
     })
 
-    it('should move a connection forward', async () => {
-      const conn1 = createConnection({ id: 'conn-1', name: 'A' })
-      const conn2 = createConnection({ id: 'conn-2', name: 'B' })
-      const conn3 = createConnection({ id: 'conn-3', name: 'C' })
-      useConnectionStore.setState({ connections: [conn1, conn2, conn3] })
-
-      // Move conn-1 before conn-3: splice removes conn-1, then inserts at index 2
-      await useConnectionStore.getState().reorderConnections('conn-1', 'conn-3')
-
-      const ids = useConnectionStore.getState().connections.map((c) => c.id)
-      expect(ids).toEqual(['conn-2', 'conn-3', 'conn-1'])
-    })
-
-    it('should reset sortOrder to none after reorder', async () => {
+    it('moves down and resets sortOrder to none', async () => {
       const conn1 = createConnection({ id: 'conn-1', name: 'A' })
       const conn2 = createConnection({ id: 'conn-2', name: 'B' })
       useConnectionStore.setState({ connections: [conn1, conn2], sortOrder: SORT_ORDER.ASC })
 
-      await useConnectionStore.getState().reorderConnections('conn-2', 'conn-1')
+      await useConnectionStore.getState().reorderConnections('conn-1', 'conn-2')
 
+      const ids = useConnectionStore.getState().connections.map((c) => c.id)
+      expect(ids).toEqual(['conn-2', 'conn-1'])
       expect(useConnectionStore.getState().sortOrder).toBe(SORT_ORDER.NONE)
-    })
-
-    it('should persist connections and sortOrder after reorder', async () => {
-      const conn1 = createConnection({ id: 'conn-1', name: 'A' })
-      const conn2 = createConnection({ id: 'conn-2', name: 'B' })
-      useConnectionStore.setState({ connections: [conn1, conn2] })
-
-      await useConnectionStore.getState().reorderConnections('conn-2', 'conn-1')
-
-      // saveConnectionConfigs should be called
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, expect.any(Array))
-      // saveSortOrderToSettings should be called with CONNECTION_SORT_ORDER key
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTION_SORT_ORDER, SORT_ORDER.NONE)
     })
 
-    it('should not change order when activeId is not found', async () => {
+    it('does nothing for unknown or identical ids', async () => {
       const conn1 = createConnection({ id: 'conn-1', name: 'A' })
       const conn2 = createConnection({ id: 'conn-2', name: 'B' })
       useConnectionStore.setState({ connections: [conn1, conn2] })
 
+      await useConnectionStore.getState().reorderConnections('conn-1', 'conn-1')
       await useConnectionStore.getState().reorderConnections('conn-999', 'conn-1')
-
-      const ids = useConnectionStore.getState().connections.map((c) => c.id)
-      expect(ids).toEqual(['conn-1', 'conn-2'])
-      // Should not persist when no reorder happened
-      expect(mockConfigSet).not.toHaveBeenCalled()
-    })
-
-    it('should not change order when overId is not found', async () => {
-      const conn1 = createConnection({ id: 'conn-1', name: 'A' })
-      const conn2 = createConnection({ id: 'conn-2', name: 'B' })
-      useConnectionStore.setState({ connections: [conn1, conn2] })
-
       await useConnectionStore.getState().reorderConnections('conn-1', 'conn-999')
 
       const ids = useConnectionStore.getState().connections.map((c) => c.id)
       expect(ids).toEqual(['conn-1', 'conn-2'])
+      expect(mockConfigSet).not.toHaveBeenCalled()
     })
   })
 
@@ -592,7 +544,7 @@ describe('useConnectionStore', () => {
       await useConnectionStore.getState().sortConnections(SORT_ORDER.ASC)
 
       // saveConnectionConfigs should be called with sorted connections
-      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.SAVED_CONNECTIONS, expect.any(Array))
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTIONS, expect.any(Array))
       // saveSortOrderToSettings should be called with CONNECTION_SORT_ORDER key
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.CONNECTION_SORT_ORDER, SORT_ORDER.ASC)
     })

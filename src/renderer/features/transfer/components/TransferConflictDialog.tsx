@@ -1,23 +1,13 @@
 import type React from 'react'
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { ConflictStrategy } from '@renderer/components/common/ConflictDialogBase.js'
 import type { ConflictAction } from '@shared/constants/index.js'
 import type { ConflictResolution } from '@shared/types/index.js'
-import {
-  ConflictDialogBase,
-  CONFLICT_STRATEGY,
-} from '@renderer/components/common/ConflictDialogBase.js'
-import { FileIcon } from '@renderer/components/common/index.js'
 import { CONFLICT_ACTION } from '@shared/constants/index.js'
 import { generateUniqueFilename } from '@shared/utils/index.js'
+import { ConflictDialogBase } from '../../../components/common/ConflictDialogBase.js'
+import { FileIcon } from '../../../components/common/index.js'
 import { useTransferConflictStore } from '../stores/transfer-conflict.js'
-
-const strategyToAction = (strategy: ConflictStrategy): ConflictAction => {
-  if (strategy === CONFLICT_STRATEGY.SKIP) return CONFLICT_ACTION.SKIP
-  if (strategy === CONFLICT_STRATEGY.OVERWRITE) return CONFLICT_ACTION.OVERWRITE
-  return CONFLICT_ACTION.KEEP_BOTH
-}
 
 export const TransferConflictDialog = () => {
   const { t } = useTranslation()
@@ -30,14 +20,17 @@ export const TransferConflictDialog = () => {
     return conflict.itemType === conflict.remoteFileType
   }
 
-  const handleConfirm = (strategies: ConflictStrategy[]) => {
-    const result: ConflictResolution[] = conflicts.map((c, i) => ({
-      localPath: c.localPath,
-      action: strategyToAction(strategies[i] ?? CONFLICT_STRATEGY.KEEP_BOTH),
-      ...(strategies[i] === CONFLICT_STRATEGY.KEEP_BOTH
-        ? { newName: generateUniqueFilename(c.itemName) }
-        : {}),
-    }))
+  const handleConfirm = (strategies: ConflictAction[]) => {
+    const result: ConflictResolution[] = conflicts.map((c, i) => {
+      const action = strategies[i] ?? CONFLICT_ACTION.KEEP_BOTH
+      return {
+        localPath: c.localPath,
+        action,
+        ...(action === CONFLICT_ACTION.KEEP_BOTH
+          ? { newName: generateUniqueFilename(c.itemName) }
+          : {}),
+      }
+    })
     useTransferConflictStore.getState().confirm(result)
   }
 

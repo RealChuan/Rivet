@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/unbound-method -- vitest expect() 需要分离方法引用 */
 import { ipcMain } from 'electron'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { IPC_CHANNELS, TRANSFER_DIRECTION } from '@shared/constants/index.js'
+import { TRANSFER_DIRECTION } from '@shared/constants/index.js'
+import { transferContract } from '@shared/contract/transfer.contract.js'
+
+vi.mock('../stores/index.js', () => ({
+  getTransferSettings: vi.fn(() => ({ maxUploadConcurrency: 5, maxDownloadConcurrency: 5 })),
+  setTransferSettings: vi.fn(() => ({ success: true, value: undefined, error: null })),
+}))
 
 vi.mock('../services/transfer/index.js', () => ({
   transferService: {
@@ -11,98 +17,144 @@ vi.mock('../services/transfer/index.js', () => ({
     retry: vi.fn(),
     retryAll: vi.fn(),
     getTasks: vi.fn().mockReturnValue([]),
+    getConcurrency: vi.fn().mockReturnValue(3),
     setConcurrency: vi.fn(),
+    checkLocalFiles: vi.fn().mockReturnValue([]),
+    getLastDir: vi.fn().mockReturnValue(null),
+    setLastDir: vi.fn(),
   },
 }))
 
+type Handler = (event: unknown, ...args: unknown[]) => Promise<unknown>
+
+const handleMock = (ipcMain as unknown as { handle: { mock: { calls: Array<[string, Handler]> } } })
+  .handle
+
+function getHandler(channel: string): Handler {
+  const call = handleMock.mock.calls.find(([name]) => name === channel)
+  if (!call) throw new Error(`channel not registered: ${channel}`)
+  return call[1]
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
+
+afterEach(() => {
+  vi.clearAllMocks()
+})
+
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve: (() => void) | undefined
+  const promise = new Promise<void>((r) => {
+    resolve = r
+  })
+  return { promise, resolve: () => resolve?.() }
+}
+
 describe('transfer IPC handlers', () => {
-  beforeEach(() => {
-    vi.mocked(ipcMain.handle).mockClear()
-  })
-
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it('should setup transfer handlers', async () => {
+  it('注册契约里的全部通道（含此前遗漏的 4 个）', async () => {
     const { setupTransferIpcHandlers } = await import('./transfer.js')
     setupTransferIpcHandlers()
 
-    expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.TRANSFER.ADD, expect.any(Function))
-    expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.TRANSFER.CANCEL, expect.any(Function))
-    expect(ipcMain.handle).toHaveBeenCalledWith(
-      IPC_CHANNELS.TRANSFER.CANCEL_ALL,
-      expect.any(Function),
-    )
-    expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.TRANSFER.RETRY, expect.any(Function))
-    expect(ipcMain.handle).toHaveBeenCalledWith(
-      IPC_CHANNELS.TRANSFER.RETRY_ALL,
-      expect.any(Function),
-    )
-    expect(ipcMain.handle).toHaveBeenCalledWith(
-      IPC_CHANNELS.TRANSFER.GET_TASKS,
-      expect.any(Function),
-    )
-    expect(ipcMain.handle).toHaveBeenCalledWith(
-      IPC_CHANNELS.TRANSFER.SET_CONCURRENCY,
-      expect.any(Function),
+    expect(handleMock.mock.calls.map(([channel]) => channel).sort()).toEqual(
+      Object.keys(transferContract).sort(),
     )
   })
 
-  it('should call transferService.addTasks on ADD', async () => {
+  it('add 转发任务数组', async () => {
     const { setupTransferIpcHandlers } = await import('./transfer.js')
+    const { transferService } = await import('../services/transfer/index.js')
     setupTransferIpcHandlers()
-
-    const calls = vi.mocked(ipcMain.handle).mock.calls
-    const addCall = calls.find((c) => c[0] === IPC_CHANNELS.TRANSFER.ADD)
-    const handler = addCall?.[1] as (...args: unknown[]) => unknown
 
     const tasks = [{ id: '1' }]
-    handler({}, tasks)
+    await getHandler('transfer.add')({}, tasks)
 
-    const { transferService } = await import('../services/transfer/index.js')
     expect(transferService.addTasks).toHaveBeenCalledWith(tasks)
   })
 
-  it('should call transferService.cancel on CANCEL', async () => {
+  it('cancel 转发 taskId', async () => {
     const { setupTransferIpcHandlers } = await import('./transfer.js')
+    const { transferService } = await import('../services/transfer/index.js')
     setupTransferIpcHandlers()
 
-    const calls = vi.mocked(ipcMain.handle).mock.calls
-    const cancelCall = calls.find((c) => c[0] === IPC_CHANNELS.TRANSFER.CANCEL)
-    const handler = cancelCall?.[1] as (...args: unknown[]) => unknown
+    await getHandler('transfer.cancel')({}, 'task-1')
 
-    handler({}, 'task-1')
-
-    const { transferService } = await import('../services/transfer/index.js')
     expect(transferService.cancel).toHaveBeenCalledWith('task-1')
   })
 
-  it('should call transferService.getTasks on GET_TASKS', async () => {
+  it('getTasks 转发 sessionId', async () => {
     const { setupTransferIpcHandlers } = await import('./transfer.js')
+    const { transferService } = await import('../services/transfer/index.js')
     setupTransferIpcHandlers()
 
-    const calls = vi.mocked(ipcMain.handle).mock.calls
-    const getTasksCall = calls.find((c) => c[0] === IPC_CHANNELS.TRANSFER.GET_TASKS)
-    const handler = getTasksCall?.[1] as (...args: unknown[]) => unknown
+    await getHandler('transfer.getTasks')({}, 'session-1')
 
-    handler({}, 'session-1')
-
-    const { transferService } = await import('../services/transfer/index.js')
     expect(transferService.getTasks).toHaveBeenCalledWith('session-1')
   })
 
-  it('should call transferService.setConcurrency on SET_CONCURRENCY', async () => {
+  it('setConcurrency 转发并发数与方向', async () => {
+    const { setupTransferIpcHandlers } = await import('./transfer.js')
+    const { transferService } = await import('../services/transfer/index.js')
+    vi.mocked(transferService.getConcurrency).mockReturnValue(3)
+    setupTransferIpcHandlers()
+
+    await getHandler('transfer.setConcurrency')({}, 5, TRANSFER_DIRECTION.UPLOAD)
+
+    expect(transferService.setConcurrency).toHaveBeenCalledWith(5, TRANSFER_DIRECTION.UPLOAD)
+    const { setTransferSettings } = await import('../stores/index.js')
+    expect(setTransferSettings).toHaveBeenCalledWith({
+      maxUploadConcurrency: 3,
+      maxDownloadConcurrency: 5,
+    })
+  })
+
+  it('cancel 等待服务方法完成并返回 Result', async () => {
+    const { setupTransferIpcHandlers } = await import('./transfer.js')
+    const { transferService } = await import('../services/transfer/index.js')
+    setupTransferIpcHandlers()
+    const gate = deferred()
+    vi.mocked(transferService.cancel).mockImplementation(() => gate.promise)
+
+    let settled = false
+    const pending = getHandler('transfer.cancel')({}, 'task-1').then((result) => {
+      settled = true
+      return result
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(settled).toBe(false)
+
+    gate.resolve()
+    const result = await pending
+    expect(result).toMatchObject({ success: true })
+  })
+
+  it('retry 等待服务方法完成并返回 Result', async () => {
+    const { setupTransferIpcHandlers } = await import('./transfer.js')
+    const { transferService } = await import('../services/transfer/index.js')
+    setupTransferIpcHandlers()
+    const gate = deferred()
+    vi.mocked(transferService.retry).mockImplementation(() => gate.promise)
+
+    let settled = false
+    const pending = getHandler('transfer.retry')({}, 'task-1').then((result) => {
+      settled = true
+      return result
+    })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(settled).toBe(false)
+
+    gate.resolve()
+    const result = await pending
+    expect(result).toMatchObject({ success: true })
+  })
+
+  it('max 不是数字时返回 INVALID_CONFIG', async () => {
     const { setupTransferIpcHandlers } = await import('./transfer.js')
     setupTransferIpcHandlers()
 
-    const calls = vi.mocked(ipcMain.handle).mock.calls
-    const setConcurrencyCall = calls.find((c) => c[0] === IPC_CHANNELS.TRANSFER.SET_CONCURRENCY)
-    const handler = setConcurrencyCall?.[1] as (...args: unknown[]) => unknown
+    const result = await getHandler('transfer.setConcurrency')({}, '5', TRANSFER_DIRECTION.UPLOAD)
 
-    handler({}, 5, TRANSFER_DIRECTION.UPLOAD)
-
-    const { transferService } = await import('../services/transfer/index.js')
-    expect(transferService.setConcurrency).toHaveBeenCalledWith(5, TRANSFER_DIRECTION.UPLOAD)
+    expect(result).toMatchObject({ success: false, error: { code: 'INVALID_CONFIG' } })
   })
 })

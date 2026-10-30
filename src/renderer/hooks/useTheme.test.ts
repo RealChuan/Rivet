@@ -9,6 +9,7 @@ vi.mock('../stores/index.js', () => ({
 
 describe('useApplicationTheme', () => {
   const mockSetAppearance = vi.fn()
+  const mockSetTheme = vi.fn()
 
   afterEach(() => {
     vi.clearAllMocks()
@@ -23,16 +24,17 @@ describe('useApplicationTheme', () => {
       (selector: (state: typeof mockState) => unknown) => selector(mockState),
     )
     vi.stubGlobal('electronAPI', {
-      window: { getState: vi.fn().mockResolvedValue({ platform: 'win32' }) },
+      app: { setTheme: mockSetTheme },
       system: { supportsGlass: vi.fn().mockResolvedValue(true) },
     })
   }
 
-  it('should return default theme', () => {
+  it('should return default theme and push it to the main process', () => {
     setupMocks('system')
     const { result } = renderHook(() => useApplicationTheme())
     expect(result.current.theme).toBe('system')
     expect(result.current.resolvedTheme).toBe('light')
+    expect(mockSetTheme).toHaveBeenCalledWith('system')
   })
 
   it('should cycle theme from light to dark', () => {
@@ -84,15 +86,15 @@ describe('useApplicationTheme', () => {
     )
     const mockSupportsGlass = vi.fn().mockResolvedValue(false)
     vi.stubGlobal('electronAPI', {
+      app: { setTheme: mockSetTheme },
       system: { supportsGlass: mockSupportsGlass },
     })
 
     renderHook(() => useApplicationTheme())
 
     await vi.waitFor(() => {
-      expect(mockSupportsGlass).toHaveBeenCalled()
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(document.documentElement.classList.add).toHaveBeenCalledWith('no-glass')
     })
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(document.documentElement.classList.add).toHaveBeenCalledWith('no-glass')
   })
 })

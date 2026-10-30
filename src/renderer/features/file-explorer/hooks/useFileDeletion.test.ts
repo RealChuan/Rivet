@@ -25,20 +25,26 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-const mockRefreshCurrentDirectory = vi.fn().mockResolvedValue(undefined)
+const mockInvalidateSession = vi.fn().mockResolvedValue(undefined)
 const mockSetOperating = vi.fn()
 const mockAddToast = vi.fn()
 
-vi.mock('@renderer/features/session/stores/session.js', () => ({
+vi.mock('./use-directory-invalidation.js', () => ({
+  useDirectoryInvalidation: () => ({
+    invalidateSession: mockInvalidateSession,
+    invalidatePath: vi.fn(),
+  }),
+}))
+
+vi.mock('../../session/stores/session.js', () => ({
   useSessionStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
-      refreshCurrentDirectory: mockRefreshCurrentDirectory,
       setOperating: mockSetOperating,
       sessions: [],
     }),
 }))
 
-vi.mock('@renderer/stores/index.js', () => ({
+vi.mock('../../../stores/index.js', () => ({
   useUiStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({ addToast: mockAddToast }),
 }))
@@ -69,7 +75,7 @@ describe('useFileDeletion', () => {
       },
     })
     mockDelete.mockReset()
-    mockRefreshCurrentDirectory.mockReset().mockResolvedValue(undefined)
+    mockInvalidateSession.mockReset().mockResolvedValue(undefined)
     mockAddToast.mockReset()
   })
 
@@ -81,7 +87,7 @@ describe('useFileDeletion', () => {
 
     expect(mockDelete).not.toHaveBeenCalled()
     expect(mockAddToast).not.toHaveBeenCalled()
-    expect(mockRefreshCurrentDirectory).not.toHaveBeenCalled()
+    expect(mockInvalidateSession).not.toHaveBeenCalled()
   })
 
   it('should call delete for each file and show success toast when all succeed', async () => {
@@ -101,7 +107,7 @@ describe('useFileDeletion', () => {
     expect(mockDelete).toHaveBeenCalledWith('session-1', mockFile2)
     expect(mockDelete).toHaveBeenCalledTimes(2)
     expect(mockAddToast).toHaveBeenCalledWith({ type: 'success', message: 'toast.deleteSuccess' })
-    expect(mockRefreshCurrentDirectory).toHaveBeenCalledWith('session-1')
+    expect(mockInvalidateSession).toHaveBeenCalledWith('session-1')
   })
 
   it('should stop on first failure and show error toast', async () => {
@@ -123,9 +129,9 @@ describe('useFileDeletion', () => {
     expect(mockDelete).toHaveBeenCalledTimes(2)
     expect(mockAddToast).toHaveBeenCalledWith({
       type: 'error',
-      message: `toast.deleteFailed: ${JSON.stringify(errorObj)}`,
+      message: 'toast.deleteFailed: errors.UNKNOWN',
     })
-    expect(mockRefreshCurrentDirectory).not.toHaveBeenCalled()
+    expect(mockInvalidateSession).not.toHaveBeenCalled()
   })
 
   it('should show Unknown error when formatErrorMessage returns empty', async () => {
@@ -143,7 +149,7 @@ describe('useFileDeletion', () => {
 
     expect(mockAddToast).toHaveBeenCalledWith({
       type: 'error',
-      message: 'toast.deleteFailed: error.unknown',
+      message: 'toast.deleteFailed: errors.UNKNOWN',
     })
   })
 
@@ -162,6 +168,6 @@ describe('useFileDeletion', () => {
 
     expect(mockDelete).toHaveBeenCalledWith('session-1', mockFile1)
     expect(mockAddToast).toHaveBeenCalledWith({ type: 'success', message: 'toast.deleteSuccess' })
-    expect(mockRefreshCurrentDirectory).toHaveBeenCalledWith('session-1')
+    expect(mockInvalidateSession).toHaveBeenCalledWith('session-1')
   })
 })

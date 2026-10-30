@@ -1,52 +1,34 @@
-/* eslint-disable @typescript-eslint/unbound-method -- vitest expect() 需要分离方法引用 */
-import { BrowserWindow, ipcMain } from 'electron'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
+import { ipcMain } from 'electron'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../app/window-factory.js', () => ({
-  WindowManager: {
-    create: vi.fn(),
-    close: vi.fn(),
-  },
-}))
+type Handler = (event: unknown, ...args: unknown[]) => unknown
 
-vi.mock('../utils/window-meta.js', () => ({
-  getWindowMeta: vi.fn().mockReturnValue({ windowId: 'test-id', route: '/' }),
-}))
+const handleMock = (ipcMain as unknown as { handle: { mock: { calls: Array<[string, Handler]> } } })
+  .handle
+const onMock = (ipcMain as unknown as { on: { mock: { calls: Array<[string, Handler]> } } }).on
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('window IPC handlers', () => {
-  beforeEach(() => {
-    vi.mocked(ipcMain.handle).mockClear()
-    vi.mocked(ipcMain.on).mockClear()
-    vi.mocked(BrowserWindow.fromWebContents).mockReturnValue({
-      minimize: vi.fn(),
-      maximize: vi.fn(),
-      unmaximize: vi.fn(),
-      isMaximized: vi.fn(() => false),
-      close: vi.fn(),
-    } as never)
-  })
-
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it('should setup window handlers', async () => {
+  it('registers the window contract and returns the sender maximized state', async () => {
     const { setupWindowIpcHandlers } = await import('./window.js')
     setupWindowIpcHandlers()
 
-    expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW.GET_META, expect.any(Function))
-    expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW.GET_STATE, expect.any(Function))
-    expect(ipcMain.handle).toHaveBeenCalledWith(
-      IPC_CHANNELS.WINDOW.CREATE_CHILD,
-      expect.any(Function),
-    )
-    expect(ipcMain.handle).toHaveBeenCalledWith(
-      IPC_CHANNELS.WINDOW.CLOSE_CHILD,
-      expect.any(Function),
-    )
-    expect(ipcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW.MINIMIZE, expect.any(Function))
-    expect(ipcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW.MAXIMIZE, expect.any(Function))
-    expect(ipcMain.on).toHaveBeenCalledWith(IPC_CHANNELS.WINDOW.CLOSE, expect.any(Function))
+    expect(handleMock.mock.calls.map(([channel]) => channel)).toEqual(['window.getState'])
+    expect(onMock.mock.calls.map(([channel]) => channel)).toEqual([
+      'window.minimize',
+      'window.toggleMaximize',
+      'window.close',
+    ])
+
+    const handler = handleMock.mock.calls[0]?.[1]
+    if (!handler) throw new Error('window.getState not registered')
+    await expect(handler({ sender: {} })).resolves.toEqual({
+      success: true,
+      value: { isMaximized: false },
+      error: null,
+    })
   })
 })

@@ -66,6 +66,9 @@ class MockBrowserWindow {
   maximize = vi.fn()
   unmaximize = vi.fn()
   isMaximized = vi.fn(() => false)
+  setVibrancy = vi.fn()
+  setTitleBarOverlay = vi.fn()
+  setBackgroundMaterial = vi.fn()
 }
 
 export const BrowserWindow = Object.assign(
@@ -78,11 +81,18 @@ export const BrowserWindow = Object.assign(
   },
 )
 
+// === NativeTheme ===
+export const nativeTheme = {
+  themeSource: 'system',
+  shouldUseDarkColors: false,
+  on: vi.fn(),
+}
+
 // === SafeStorage ===
 export const safeStorage = {
-  isEncryptionAvailable: vi.fn(() => false),
-  encryptString: vi.fn(() => Buffer.from('encrypted')),
-  decryptString: vi.fn(() => 'decrypted'),
+  isAsyncEncryptionAvailable: vi.fn(() => Promise.resolve(false)),
+  encryptStringAsync: vi.fn(() => Promise.resolve(Buffer.from('encrypted'))),
+  decryptStringAsync: vi.fn(() => Promise.resolve({ result: 'decrypted', shouldReEncrypt: false })),
 }
 
 // === ContextBridge（preload 用）===

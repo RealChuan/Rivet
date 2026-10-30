@@ -1,8 +1,5 @@
 nodeLinker: hoisted
 
-# 可选：控制 hoisting 范围（v11.5.0+）
-hoistingLimits: none # none | workspaces | dependencies
-
 # 允许 exotic 子依赖（解决 @electron/node-gyp 问题）
 blockExoticSubdeps: false
 
@@ -13,10 +10,12 @@ overrides:
 
 allowBuilds:
   '@swc/core': true
-  cpu-features: true
   fs-xattr: true
   macos-alias: true
   ssh2: true
 
 minimumReleaseAgeExclude:
-  - globals@17.8.0
+  - '@tanstack/react-virtual@3.14.24'
+  - '@tanstack/virtual-core@3.19.9'
+  - lucide-react@1.64.0
+  - react-resizable-panels@4.15.2

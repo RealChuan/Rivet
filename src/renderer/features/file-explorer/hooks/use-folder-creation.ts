@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next'
-import { useFileOperation } from '@renderer/features/file-explorer/hooks/use-file-operation.js'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useUiStore } from '@renderer/stores/index.js'
 import { ROOT_PATH, TOAST_TYPE } from '@shared/constants/index.js'
-import { isProtocolResponseErr } from '@shared/types/index.js'
-import { formatErrorMessage } from '@shared/utils/index.js'
+import { protocolApi } from '../../../api/protocol.js'
+import { resolveErrorMessage } from '../../../i18n/error-message.js'
+import { useUiStore } from '../../../stores/index.js'
+import { useDirectoryInvalidation } from './use-directory-invalidation.js'
+import { useFileOperation } from './use-file-operation.js'
 
 interface UseFolderCreationReturn {
   handleCreateFolder: (currentPath: string, folderName: string) => Promise<void>
@@ -12,7 +12,7 @@ interface UseFolderCreationReturn {
 
 export const useFolderCreation = (sessionId: string): UseFolderCreationReturn => {
   const { t } = useTranslation()
-  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
+  const { invalidateSession } = useDirectoryInvalidation()
   const addToast = useUiStore((state) => state.addToast)
   const { execute } = useFileOperation(sessionId)
 
@@ -21,16 +21,18 @@ export const useFolderCreation = (sessionId: string): UseFolderCreationReturn =>
       currentPath === ROOT_PATH ? `/${folderName}` : `${currentPath}/${folderName}`
 
     await execute(async () => {
-      const result = await window.electronAPI.protocol.mkdir(sessionId, newFolderPath)
-
-      if (isProtocolResponseErr(result)) {
-        throw new Error(
-          `${t(($) => $.toast.createFolderFailed)}: ${formatErrorMessage(result.error) || t(($) => $.error.unknown)}`,
-        )
+      try {
+        await protocolApi.mkdir(sessionId, newFolderPath)
+      } catch (error) {
+        addToast({
+          type: TOAST_TYPE.ERROR,
+          message: `${t(($) => $.toast.createFolderFailed)}: ${resolveErrorMessage(t, error)}`,
+        })
+        return
       }
 
       addToast({ type: TOAST_TYPE.SUCCESS, message: t(($) => $.toast.createFolderSuccess) })
-      await refreshCurrentDirectory(sessionId)
+      await invalidateSession(sessionId)
     })
   }
 

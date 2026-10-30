@@ -12,29 +12,26 @@ export const DragOverlayContent = ({
   getSessionByConnectionId,
 }: DragOverlayContentProps) => {
   const { active } = useDndContext()
+  const activeConnection = active
+    ? connections.find((connection) => connection.id === String(active.id))
+    : undefined
+
+  if (!activeConnection) return null
 
   return (
     <DragOverlay>
-      {active ? (
-        <div className="shadow-dropdown">
-          {(() => {
-            const connection = connections.find((c) => c.id === String(active.id))
-            if (!connection) return null
-            return (
-              <ConnectionItem
-                connection={connection}
-                session={getSessionByConnectionId(String(active.id))}
-                isActive={false}
-                onSelect={() => {}}
-                onDisconnect={() => {}}
-                onReconnect={() => {}}
-                onEdit={() => {}}
-                onDelete={() => {}}
-              />
-            )
-          })()}
-        </div>
-      ) : null}
+      <div className="w-56 opacity-90 shadow-dropdown">
+        <ConnectionItem
+          connection={activeConnection}
+          session={getSessionByConnectionId(activeConnection.id)}
+          isActive={false}
+          onSelect={() => {}}
+          onDisconnect={() => {}}
+          onReconnect={() => {}}
+          onEdit={() => {}}
+          onDelete={() => {}}
+        />
+      </div>
     </DragOverlay>
   )
 }

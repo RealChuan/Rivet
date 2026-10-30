@@ -32,37 +32,36 @@ const mockConnectionStore = {
 vi.mock('../stores/transfer.js', () => ({
   useTransferStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector(mockTransferStore),
+  selectSessionTaskSummaries: (state: typeof mockTransferStore) => state.sessionTaskSummaries,
+  selectRunningTaskCount: (state: typeof mockTransferStore) => state.runningTaskCount,
 }))
 
-vi.mock('@renderer/features/session/stores/session.js', () => ({
+vi.mock('../../session/stores/session.js', () => ({
   useSessionStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector(mockSessionStore),
 }))
 
-vi.mock('@renderer/features/session/stores/connection.js', () => ({
+vi.mock('../../session/stores/connection.js', () => ({
   useConnectionStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector(mockConnectionStore),
 }))
 
-vi.mock('react-virtualized-auto-sizer', () => ({
-  AutoSizer: ({
-    renderProp,
+vi.mock('./VirtualRows.js', () => ({
+  VirtualRows: <T,>({
+    items,
+    renderRow,
   }: {
-    renderProp: (size: { height: number; width: number }) => React.ReactNode
-  }) => {
-    return renderProp({ height: 400, width: 800 })
-  },
+    items: T[]
+    renderRow: (item: T, index: number, style: React.CSSProperties) => React.ReactNode
+  }) => <>{items.map((item, index) => renderRow(item, index, {}))}</>,
 }))
 
 const makeSession = (overrides: Partial<Session> = {}): Session => ({
   sessionId: 'sess-1',
   connectionId: 'conn-1',
   currentPath: '/home',
-  files: [],
   isConnected: true,
-  isLoading: false,
   isOperating: false,
-  error: null,
   ...overrides,
 })
 

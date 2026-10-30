@@ -1,13 +1,11 @@
-import { ipcMain, type OpenDialogOptions, type SaveDialogOptions } from 'electron'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
+import type { OpenDialogOptions, SaveDialogOptions } from 'electron'
+import { dialogContract } from '@shared/contract/dialog.contract.js'
 import { showOpenDialog, showSaveDialog } from '../utils/index.js'
+import { registerContract } from './register.js'
 
 export function setupDialogIpcHandlers(): void {
-  ipcMain.handle(IPC_CHANNELS.DIALOG.SHOW_SAVE_DIALOG, async (_, options: SaveDialogOptions) => {
-    return await showSaveDialog(options)
-  })
-
-  ipcMain.handle(IPC_CHANNELS.DIALOG.SHOW_OPEN_DIALOG, async (_, options: OpenDialogOptions) => {
-    return await showOpenDialog(options)
+  registerContract(dialogContract, {
+    'dialog.showOpenDialog': (options) => showOpenDialog(options as unknown as OpenDialogOptions),
+    'dialog.showSaveDialog': (options) => showSaveDialog(options as unknown as SaveDialogOptions),
   })
 }

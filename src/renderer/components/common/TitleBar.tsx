@@ -1,194 +1,157 @@
-/**
- * TitleBar — 跨平台无边框窗口标题栏
- *
- * 特性：
- * - 自动识别平台（macOS / Windows / Linux）
- * - macOS: 仅显示占位条，系统交通灯自动渲染
- * - Windows/Linux: 完整自定义按钮（最小化/最大化/关闭）
- * - 支持 childMode: 子窗口隐藏最大化按钮，仅显示关闭
- * - 支持自定义中间内容和左侧内容
- * - 支持主题切换（通过 CSS 变量）
- */
-
-import { Minus, Square, Maximize2, X } from 'lucide-react'
+import { Copy, Minus, Monitor, Moon, Square, Sun, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import logger from '@renderer/utils/logger.js'
+import {
+  SUPPORTED_LANGUAGE,
+  THEME,
+  type SupportedLanguageLiteral,
+  type Theme,
+} from '@shared/constants/index.js'
+import { getWindowChrome } from '../../api/env.js'
+import { windowApi } from '../../api/window.js'
 import { AppLogo } from './AppLogo.js'
 
 interface TitleBarProps {
-  /**
-   * 子窗口模式
-   * - true: 隐藏最小化/最大化，仅显示关闭按钮
-   * - false: 显示完整窗口控制按钮
-   */
-  childMode?: boolean
-  /**
-   * 标题栏中间区域自定义内容
-   * 例如：标签页、面包屑、搜索框
-   */
-  centerContent?: React.ReactNode
-  /**
-   * 标题栏左侧额外内容（在 Logo/标题之后）
-   */
-  leftContent?: React.ReactNode
-  /**
-   * 自定义标题文字
-   */
   title?: string
-  /**
-   * 自定义关闭按钮处理（可用于活跃任务守卫）
-   * 不传则直接调用 window.electronAPI.window.close()
-   */
-  onClose?: () => void
+  subtitle?: string
+  theme: Theme
+  onCycleTheme: () => void
+  language: SupportedLanguageLiteral
+  onChangeLanguage: (language: SupportedLanguageLiteral) => void
 }
 
-// ============================================================
-// 组件实现
-// ============================================================
-
+/**
+ * WCO / macOS hidden titlebar / Win10+Linux 自绘标题栏共用。
+ * Win11 的 caption 按钮由系统 overlay 绘制，custom 模式才渲染右侧按钮。
+ */
 export function TitleBar({
-  childMode = false,
-  centerContent,
-  leftContent,
   title,
-  onClose,
+  subtitle,
+  theme,
+  onCycleTheme,
+  language,
+  onChangeLanguage,
 }: TitleBarProps) {
   const { t } = useTranslation()
+  const windowChrome = getWindowChrome()
   const [isMaximized, setIsMaximized] = useState(false)
-  const [platform, setPlatform] = useState<string>('win32')
 
-  // 初始化窗口状态 + 订阅变化
   useEffect(() => {
-    let cancelled = false
-    let unsubscribe: (() => void) | undefined
+    if (windowChrome !== 'custom') return
+    void windowApi.getState().then((state) => setIsMaximized(state.isMaximized))
+    return windowApi.onStateChanged((state) => setIsMaximized(state.isMaximized))
+  }, [windowChrome])
 
-    const init = async () => {
-      try {
-        const state = await window.electronAPI.window.getState()
-        // 组件已卸载：不更新状态、不订阅，避免监听器泄漏
-        if (cancelled) return
-        if (state) {
-          const isMaximized = typeof state.isMaximized === 'boolean' ? state.isMaximized : false
-          const platform = typeof state.platform === 'string' ? state.platform : 'win32'
-          setIsMaximized(isMaximized)
-          setPlatform(platform)
-        }
+  const isWco = windowChrome === 'wco'
+  const isCustom = windowChrome === 'custom'
+  const themeLabel =
+    theme === THEME.LIGHT
+      ? t(($) => $.mainLayout.lightMode)
+      : theme === THEME.DARK
+        ? t(($) => $.mainLayout.darkMode)
+        : t(($) => $.mainLayout.system)
 
-        unsubscribe = window.electronAPI.window.onStateChange(
-          (newState: { isMaximized: boolean }) => {
-            if (!cancelled) setIsMaximized(newState.isMaximized)
-          },
-        )
-      } catch (err) {
-        logger.catch(err, { action: 'initialize-window-state' })
-      }
-    }
-
-    void init()
-    return () => {
-      cancelled = true
-      unsubscribe?.()
-    }
-  }, [])
-
-  const handleMinimize = () => {
-    window.electronAPI.window.minimize()
-  }
-
-  const handleMaximize = () => {
-    window.electronAPI.window.maximize()
-  }
-
-  const handleClose = () => {
-    if (onClose) {
-      onClose()
-    } else {
-      window.electronAPI.window.close()
-    }
-  }
-
-  const isMac = platform === 'darwin'
-
-  // ==================== macOS 标题栏 ====================
-  if (isMac) {
-    return (
-      <header
-        className="h-9 bg-transparent border-b border-border flex items-center justify-center draggable titlebar-text shrink-0"
-        data-testid="titlebar-macos"
-      >
-        <span className="text-xs text-text-muted font-medium tracking-wide">{title}</span>
-      </header>
-    )
-  }
-
-  // ==================== Windows / Linux 标题栏 ====================
   return (
     <header
-      className="h-9 bg-transparent border-b border-border flex items-center justify-between shrink-0"
-      data-testid="titlebar-win32"
+      data-testid="titlebar"
+      data-chrome={windowChrome}
+      aria-label={t(($) => $.titleBar.dragToMove)}
+      onDoubleClick={isCustom ? () => windowApi.toggleMaximize() : undefined}
+      className="fixed top-0 left-0 flex items-center border-b border-border draggable titlebar-text shrink-0"
+      style={
+        isWco
+          ? {
+              left: 'env(titlebar-area-x, 0px)',
+              top: 'env(titlebar-area-y, 0px)',
+              width: 'env(titlebar-area-width, 100%)',
+              height: 'env(titlebar-area-height, 36px)',
+              paddingLeft: 12,
+            }
+          : {
+              left: 0,
+              top: 0,
+              width: '100%',
+              height: 36,
+              paddingLeft: windowChrome === 'mac-hidden' ? 80 : 12,
+            }
+      }
     >
-      {/* 左侧：拖拽区 + 应用标识（双击可最大化） */}
-      <div
-        className="flex-1 flex items-center h-full px-3 draggable titlebar-text"
-        onDoubleClick={childMode ? undefined : handleMaximize}
-        role="button"
-        aria-label={t(($) => $.titleBar.dragToMove)}
-      >
-        <div className="flex items-center gap-2 no-drag">
-          {/* 应用 Logo */}
-          <AppLogo />
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-text font-semibold">{t(($) => $.app.name)}</span>
-            <span className="text-xs text-text-muted">{t(($) => $.app.subtitle)}</span>
-          </div>
-          {leftContent}
-        </div>
+      <div className="flex items-center gap-2 no-drag min-w-0">
+        <AppLogo />
+        <span className="text-sm text-text font-semibold truncate">{title}</span>
+        {subtitle && (
+          <span className="text-xs text-text-muted truncate hidden sm:inline">{subtitle}</span>
+        )}
       </div>
 
-      {/* 右侧：功能按钮 + 系统控制按钮 */}
-      <div className="flex h-full items-center gap-1 px-2 no-drag">
-        {centerContent}
+      <div className="ml-auto flex items-center no-drag self-stretch">
+        <button
+          type="button"
+          onClick={() =>
+            onChangeLanguage(
+              language === SUPPORTED_LANGUAGE.EN_US
+                ? SUPPORTED_LANGUAGE.ZH_CN
+                : SUPPORTED_LANGUAGE.EN_US,
+            )
+          }
+          title={
+            language === SUPPORTED_LANGUAGE.EN_US
+              ? t(($) => $.language.english)
+              : t(($) => $.language.chinese)
+          }
+          className="px-2 h-7 rounded text-[11px] font-semibold text-text-muted hover:text-text hover:bg-hover transition-colors border-none bg-transparent cursor-pointer"
+        >
+          {language === SUPPORTED_LANGUAGE.EN_US
+            ? t(($) => $.language.enShort)
+            : t(($) => $.language.zhShort)}
+        </button>
 
-        {/* 分隔线 */}
-        {centerContent && !childMode && <div className="w-px h-4 bg-border mx-1" />}
+        <button
+          type="button"
+          onClick={onCycleTheme}
+          title={themeLabel}
+          aria-label={themeLabel}
+          className="w-8 h-7 rounded flex items-center justify-center text-text-muted hover:text-text hover:bg-hover transition-colors border-none bg-transparent cursor-pointer"
+        >
+          {theme === THEME.LIGHT ? (
+            <Sun className="w-3.5 h-3.5" />
+          ) : theme === THEME.DARK ? (
+            <Moon className="w-3.5 h-3.5" />
+          ) : (
+            <Monitor className="w-3.5 h-3.5" />
+          )}
+        </button>
 
-        {/* 窗口控制按钮 */}
-        {!childMode && (
+        {isCustom && (
           <>
             <button
-              onClick={handleMinimize}
-              className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 cursor-default"
-              aria-label={t(($) => $.titleBar.minimize)}
-              title={t(($) => $.titleBar.minimize)}
               type="button"
+              aria-label={t(($) => $.titleBar.minimize)}
+              onClick={() => windowApi.minimize()}
+              className="w-11 h-full flex items-center justify-center text-text-muted hover:bg-hover transition-colors border-none bg-transparent cursor-pointer"
             >
-              <Minus className="w-3.5 h-3.5" />
+              <Minus className="w-4 h-4" />
             </button>
-
             <button
-              onClick={handleMaximize}
-              className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-hover hover:text-text transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 cursor-default"
+              type="button"
               aria-label={
                 isMaximized ? t(($) => $.titleBar.restore) : t(($) => $.titleBar.maximize)
               }
-              title={isMaximized ? t(($) => $.titleBar.restore) : t(($) => $.titleBar.maximize)}
-              type="button"
+              onClick={() => windowApi.toggleMaximize()}
+              className="w-11 h-full flex items-center justify-center text-text-muted hover:bg-hover transition-colors border-none bg-transparent cursor-pointer"
             >
-              {isMaximized ? <Maximize2 className="w-3 h-3" /> : <Square className="w-3 h-3" />}
+              {isMaximized ? <Copy className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              type="button"
+              aria-label={t(($) => $.titleBar.close)}
+              onClick={() => windowApi.close()}
+              className="w-11 h-full flex items-center justify-center text-text-muted hover:bg-danger hover:text-white transition-colors border-none bg-transparent cursor-pointer"
+            >
+              <X className="w-4 h-4" />
             </button>
           </>
         )}
-
-        <button
-          onClick={handleClose}
-          className="w-8 h-6 flex items-center justify-center text-text-muted hover:bg-danger hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 cursor-default"
-          aria-label={t(($) => $.titleBar.close)}
-          title={t(($) => $.titleBar.close)}
-          type="button"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
       </div>
     </header>
   )

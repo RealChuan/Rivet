@@ -1,11 +1,11 @@
 import { ChevronDown } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '@renderer/utils/index.js'
 import {
   type FileExplorerSortField,
   SORT_ORDER,
   type SortOrderWithDirection,
 } from '@shared/constants/index.js'
+import { cn } from '../../../utils/index.js'
 
 interface ColumnWidths {
   name: number

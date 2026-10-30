@@ -3,7 +3,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { cn } from '@renderer/utils/index.js'
+import { cn } from '../../utils/index.js'
 import Input from './Input.js'
 
 interface PasswordInputProps {
@@ -11,6 +11,7 @@ interface PasswordInputProps {
   onChange: (value: string) => void
   placeholder?: string
   className?: string
+  testId?: string
 }
 
 export const PasswordInput = ({
@@ -18,6 +19,7 @@ export const PasswordInput = ({
   onChange,
   placeholder = '',
   className,
+  testId,
 }: PasswordInputProps) => {
   const [showPassword, setShowPassword] = useState(false)
   const { t } = useTranslation()
@@ -26,6 +28,7 @@ export const PasswordInput = ({
     <div className="relative flex items-center">
       <Input
         type={showPassword ? 'text' : 'password'}
+        data-testid={testId}
         value={value}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}

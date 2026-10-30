@@ -1,21 +1,36 @@
-/**
- * 主机密钥记录接口
- * 用于存储 SSH 服务器的已知主机密钥信息
- *
- * @remarks
- * 当用户首次连接到 SSH 服务器时，会提示确认主机密钥指纹
- * 确认后将密钥指纹存储在此记录中，后续连接时进行验证
- */
-export interface HostKey {
-  /** 关联的连接唯一标识 */
-  connectionId: string
+import { z } from 'zod'
 
-  /** 服务器主机密钥指纹（哈希值） */
-  hash: string
-
-  /** 记录创建时间戳 */
+export interface KnownHostRecord {
+  host: string
+  port: number
+  algorithm: string
+  fingerprint: string
   createdAt: number
+}
 
-  /** 数据一致性校验和（可选） */
-  checksum?: string
+export interface HostKeyTrustRequest {
+  host: string
+  port: number
+  algorithm: string
+  fingerprint: string
+}
+
+export const hostKeyTrustRequestSchema = z.object({
+  host: z.string().min(1),
+  port: z.number().int().min(1).max(65535),
+  algorithm: z.string().min(1),
+  fingerprint: z.string().min(1),
+})
+
+export type HostKeyErrorDetail = HostKeyTrustRequest & {
+  previousFingerprint?: string | undefined
+}
+
+export const hostKeyErrorDetailSchema = hostKeyTrustRequestSchema.extend({
+  previousFingerprint: z.string().optional(),
+})
+
+export function parseHostKeyErrorDetail(detail: unknown): HostKeyErrorDetail | null {
+  const parsed = hostKeyErrorDetailSchema.safeParse(detail)
+  return parsed.success ? parsed.data : null
 }

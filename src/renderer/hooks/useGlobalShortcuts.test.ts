@@ -3,14 +3,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSessionStore } from '../features/session/stores/session.js'
 import { useGlobalShortcuts } from './use-global-shortcuts.js'
 
+const mockInvalidateSession = vi.fn().mockResolvedValue(undefined)
+
+vi.mock('../features/file-explorer/hooks/index.js', () => ({
+  useDirectoryInvalidation: () => ({
+    invalidateSession: mockInvalidateSession,
+    invalidatePath: vi.fn(),
+  }),
+}))
+
 vi.mock('../features/session/stores/session.js', () => ({
   useSessionStore: vi.fn(),
 }))
 
 describe('useGlobalShortcuts', () => {
-  const mockRefreshCurrentDirectory = vi.fn().mockResolvedValue(undefined)
-
   beforeEach(() => {
+    mockInvalidateSession.mockClear()
     ;(window as unknown as Record<string, unknown>).electronAPI = {
       transfer: {},
       window: {},
@@ -24,8 +32,8 @@ describe('useGlobalShortcuts', () => {
 
   function setupMocks(activeSessionId: string | null = 'session-1') {
     const mockState = {
-      refreshCurrentDirectory: mockRefreshCurrentDirectory,
       activeSessionId,
+      sessions: activeSessionId ? [{ sessionId: activeSessionId, connectionId: 'conn-1' }] : [],
     }
     ;(useSessionStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: typeof mockState) => unknown) => selector(mockState),
@@ -53,7 +61,7 @@ describe('useGlobalShortcuts', () => {
     removeSpy.mockRestore()
   })
 
-  it('should call refreshCurrentDirectory on F5 key press with activeSessionId', () => {
+  it('should invalidate the active session directory on F5', () => {
     setupMocks('session-1')
 
     renderHook(() => useGlobalShortcuts())
@@ -63,28 +71,26 @@ describe('useGlobalShortcuts', () => {
     window.dispatchEvent(event)
 
     expect(preventDefaultSpy).toHaveBeenCalled()
-    expect(mockRefreshCurrentDirectory).toHaveBeenCalledWith('session-1')
+    expect(mockInvalidateSession).toHaveBeenCalledWith('session-1')
   })
 
-  it('should not call refreshCurrentDirectory when activeSessionId is null', () => {
+  it('should not invalidate when activeSessionId is null', () => {
     setupMocks(null)
 
     renderHook(() => useGlobalShortcuts())
 
-    const event = new KeyboardEvent('keydown', { key: 'F5' })
-    window.dispatchEvent(event)
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'F5' }))
 
-    expect(mockRefreshCurrentDirectory).not.toHaveBeenCalled()
+    expect(mockInvalidateSession).not.toHaveBeenCalled()
   })
 
-  it('should not call refreshCurrentDirectory on non-F5 keys', () => {
+  it('should not invalidate on non-F5 keys', () => {
     setupMocks('session-1')
 
     renderHook(() => useGlobalShortcuts())
 
-    const event = new KeyboardEvent('keydown', { key: 'Enter' })
-    window.dispatchEvent(event)
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
 
-    expect(mockRefreshCurrentDirectory).not.toHaveBeenCalled()
+    expect(mockInvalidateSession).not.toHaveBeenCalled()
   })
 })

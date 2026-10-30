@@ -25,20 +25,26 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-const mockRefreshCurrentDirectory = vi.fn().mockResolvedValue(undefined)
+const mockInvalidateSession = vi.fn().mockResolvedValue(undefined)
 const mockSetOperating = vi.fn()
 const mockAddToast = vi.fn()
 
-vi.mock('@renderer/features/session/stores/session.js', () => ({
+vi.mock('./use-directory-invalidation.js', () => ({
+  useDirectoryInvalidation: () => ({
+    invalidateSession: mockInvalidateSession,
+    invalidatePath: vi.fn(),
+  }),
+}))
+
+vi.mock('../../session/stores/session.js', () => ({
   useSessionStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
-      refreshCurrentDirectory: mockRefreshCurrentDirectory,
       setOperating: mockSetOperating,
       sessions: [],
     }),
 }))
 
-vi.mock('@renderer/stores/index.js', () => ({
+vi.mock('../../../stores/index.js', () => ({
   useUiStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({ addToast: mockAddToast }),
 }))
@@ -61,7 +67,7 @@ describe('useFileRenaming', () => {
       },
     })
     mockRename.mockReset()
-    mockRefreshCurrentDirectory.mockReset().mockResolvedValue(undefined)
+    mockInvalidateSession.mockReset().mockResolvedValue(undefined)
     mockAddToast.mockReset()
   })
 
@@ -95,7 +101,7 @@ describe('useFileRenaming', () => {
     })
 
     expect(mockAddToast).toHaveBeenCalledWith({ type: 'success', message: 'toast.renameSuccess' })
-    expect(mockRefreshCurrentDirectory).toHaveBeenCalledWith('session-1')
+    expect(mockInvalidateSession).toHaveBeenCalledWith('session-1')
   })
 
   it('should show error toast and not refresh on failure', async () => {
@@ -114,9 +120,9 @@ describe('useFileRenaming', () => {
 
     expect(mockAddToast).toHaveBeenCalledWith({
       type: 'error',
-      message: `toast.renameFailed: ${JSON.stringify(errorObj)}`,
+      message: 'toast.renameFailed: errors.UNKNOWN',
     })
-    expect(mockRefreshCurrentDirectory).not.toHaveBeenCalled()
+    expect(mockInvalidateSession).not.toHaveBeenCalled()
   })
 
   it('should show Unknown error when formatErrorMessage returns empty', async () => {
@@ -134,7 +140,7 @@ describe('useFileRenaming', () => {
 
     expect(mockAddToast).toHaveBeenCalledWith({
       type: 'error',
-      message: 'toast.renameFailed: error.unknown',
+      message: 'toast.renameFailed: errors.UNKNOWN',
     })
   })
 })

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { toggleSortOrder } from '@renderer/utils/sort-utils.js'
 import {
   FILE_TYPE,
   type FileExplorerSortField,
@@ -8,6 +7,7 @@ import {
   type SortOrderWithDirection,
 } from '@shared/constants/index.js'
 import { type FileInfo } from '@shared/types/index.js'
+import { toggleSortOrder } from '../../../utils/sort-utils.js'
 
 export const useFileSort = (files: FileInfo[]) => {
   const [sortBy, setSortBy] = useState<FileExplorerSortField>(SORT_FIELD.NAME)

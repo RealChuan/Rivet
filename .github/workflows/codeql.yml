@@ -37,7 +37,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: latest
+          # 与 build.yml 保持一致：Forge 工具链停在 24.x（原因见 build.yml 的 env 注释）。
+          node-version: '24'
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:

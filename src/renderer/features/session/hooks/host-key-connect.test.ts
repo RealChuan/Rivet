@@ -1,15 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ConnectionConfig } from '@shared/types/index.js'
-import { ProtocolStatus, SftpStatus, HOST_KEY_DIALOG_TYPE } from '@shared/constants/index.js'
+import type { ConnectRequest } from '@shared/types/index.js'
+import { HOST_KEY_DIALOG_TYPE } from '@shared/constants/index.js'
 import { handleConnectWithHostKey } from './host-key-connect.js'
 
 const mockConnect = vi.fn()
-const mockDisconnect = vi.fn()
-const mockHostKeySave = vi.fn()
-const mockHostKeyDelete = vi.fn()
+const mockTrust = vi.fn()
 const mockSetHostKeyVerificationDialog = vi.fn()
 
-vi.mock('@renderer/features/host-key/stores/host-key.js', () => ({
+vi.mock('../../host-key/stores/host-key.js', () => ({
   useHostKeyStore: {
     getState: () => ({
       setHostKeyVerificationDialog: mockSetHostKeyVerificationDialog,
@@ -17,178 +15,155 @@ vi.mock('@renderer/features/host-key/stores/host-key.js', () => ({
   },
 }))
 
-const baseConfig: ConnectionConfig = {
-  id: 'conn-1',
-  name: 'TestServer',
-  protocol: 'sftp',
-  host: 'example.com',
-  port: 22,
-  username: 'user',
+const request: ConnectRequest = {
+  connection: {
+    id: 'conn-1',
+    name: 'TestServer',
+    protocol: 'sftp',
+    host: 'example.com',
+    port: 22,
+    username: 'user',
+    authKind: 'password',
+  },
+}
+
+const unknownError = {
+  code: 'HOST_KEY_UNKNOWN',
+  message: 'Unknown host key',
+  detail: {
+    host: 'example.com',
+    port: 22,
+    algorithm: 'ssh-ed25519',
+    fingerprint: 'SHA256:new',
+  },
+}
+
+const mismatchError = {
+  code: 'HOST_KEY_MISMATCH',
+  message: 'Host key mismatch',
+  detail: {
+    host: 'example.com',
+    port: 22,
+    algorithm: 'ssh-ed25519',
+    fingerprint: 'SHA256:new',
+    previousFingerprint: 'SHA256:old',
+  },
+}
+
+function confirmDialog(): void {
+  mockSetHostKeyVerificationDialog.mockImplementation((dialog: Record<string, unknown>) => {
+    if (dialog.open && dialog.onConfirm) {
+      const onConfirm = dialog.onConfirm as () => void
+      onConfirm()
+    }
+  })
+}
+
+function cancelDialog(): void {
+  mockSetHostKeyVerificationDialog.mockImplementation((dialog: Record<string, unknown>) => {
+    if (dialog.open && dialog.onCancel) {
+      const onCancel = dialog.onCancel as () => void
+      onCancel()
+    }
+  })
 }
 
 describe('handleConnectWithHostKey', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    ;(window as any).electronAPI = {
-      protocol: {
-        connect: mockConnect,
-        disconnect: mockDisconnect,
+    mockTrust.mockResolvedValue({ success: true, value: null, error: null })
+    Object.assign(window, {
+      electronAPI: {
+        protocol: { connect: mockConnect },
+        hostKey: { trust: mockTrust },
       },
-      hostKey: {
-        save: mockHostKeySave,
-        delete: mockHostKeyDelete,
-      },
-    }
+    })
   })
 
-  it('returns success true on OK status', async () => {
+  it('returns success on a successful connect', async () => {
     mockConnect.mockResolvedValue({
       success: true,
-      value: { sessionId: 'sess-1', statusCode: ProtocolStatus.OK, detail: {} },
+      value: { sessionId: 'sess-1', capabilities: {} },
     })
 
-    const result = await handleConnectWithHostKey(baseConfig)
-
-    expect(result).toEqual({ success: true, sessionId: 'sess-1', retry: false })
+    await expect(handleConnectWithHostKey(request)).resolves.toEqual({
+      success: true,
+      sessionId: 'sess-1',
+      retry: false,
+    })
     expect(mockSetHostKeyVerificationDialog).not.toHaveBeenCalled()
   })
 
-  it('throws Error on error response', async () => {
+  it('throws non-host-key errors', async () => {
     mockConnect.mockResolvedValue({
       success: false,
-      error: { message: 'Connection refused' },
+      error: { code: 'CONN_FAILED', message: 'Connection refused' },
     })
 
-    await expect(handleConnectWithHostKey(baseConfig)).rejects.toThrow('Connection refused')
+    await expect(handleConnectWithHostKey(request)).rejects.toThrow('Connection refused')
   })
 
-  it('saves host key and returns success on FIRST_CONNECT with user confirm', async () => {
-    mockConnect.mockResolvedValue({
-      success: true,
-      value: {
-        sessionId: 'sess-2',
-        statusCode: ProtocolStatus.FIRST_CONNECT,
-        detail: { hash: 'abc123' },
-      },
-    })
+  it('trusts an unknown key and asks for a retry', async () => {
+    mockConnect.mockResolvedValue({ success: false, error: unknownError })
+    confirmDialog()
 
-    mockSetHostKeyVerificationDialog.mockImplementation((dialog: Record<string, unknown>) => {
-      if (dialog.open && dialog.onConfirm) {
-        const onConfirm = dialog.onConfirm as () => void
-        onConfirm()
-      }
-    })
-
-    const result = await handleConnectWithHostKey(baseConfig)
+    const result = await handleConnectWithHostKey(request)
 
     expect(mockSetHostKeyVerificationDialog).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: HOST_KEY_DIALOG_TYPE.FIRST_CONNECT,
-        hash: 'abc123',
-        previousHash: undefined,
-        sessionId: 'sess-2',
-        connectionId: 'conn-1',
+        type: HOST_KEY_DIALOG_TYPE.UNKNOWN,
+        host: 'example.com',
+        port: 22,
+        algorithm: 'ssh-ed25519',
+        fingerprint: 'SHA256:new',
         open: true,
       }),
     )
-    expect(mockHostKeySave).toHaveBeenCalledWith({ connectionId: 'conn-1', hash: 'abc123' })
-    expect(result).toEqual({ success: true, sessionId: 'sess-2', retry: false })
+    expect(mockTrust).toHaveBeenCalledWith({
+      host: 'example.com',
+      port: 22,
+      algorithm: 'ssh-ed25519',
+      fingerprint: 'SHA256:new',
+    })
+    expect(result).toEqual({ success: false, sessionId: null, retry: true })
   })
 
-  it('disconnects, deletes host key, and returns failure on FIRST_CONNECT with user cancel', async () => {
-    mockConnect.mockResolvedValue({
-      success: true,
-      value: {
-        sessionId: 'sess-3',
-        statusCode: ProtocolStatus.FIRST_CONNECT,
-        detail: { hash: 'abc123' },
-      },
+  it('returns failure when the user cancels an unknown key', async () => {
+    mockConnect.mockResolvedValue({ success: false, error: unknownError })
+    cancelDialog()
+
+    await expect(handleConnectWithHostKey(request)).resolves.toEqual({
+      success: false,
+      sessionId: null,
+      retry: false,
     })
-
-    mockSetHostKeyVerificationDialog.mockImplementation((dialog: Record<string, unknown>) => {
-      if (dialog.open && dialog.onCancel) {
-        const onCancel = dialog.onCancel as () => void
-        onCancel()
-      }
-    })
-
-    const result = await handleConnectWithHostKey(baseConfig)
-
-    expect(mockDisconnect).toHaveBeenCalledWith('sess-3')
-    expect(mockHostKeyDelete).toHaveBeenCalledWith('conn-1')
-    expect(result).toEqual({ success: false, sessionId: null, retry: false })
+    expect(mockTrust).not.toHaveBeenCalled()
   })
 
-  it('saves host key and returns retry true on HOST_KEY_MISMATCH with user confirm', async () => {
-    mockConnect.mockResolvedValue({
-      success: true,
-      value: {
-        sessionId: '',
-        statusCode: SftpStatus.HOST_KEY_MISMATCH,
-        detail: { hash: 'def456', previousHash: 'abc123' },
-      },
-    })
+  it('shows the previous fingerprint on mismatch', async () => {
+    mockConnect.mockResolvedValue({ success: false, error: mismatchError })
+    confirmDialog()
 
-    mockSetHostKeyVerificationDialog.mockImplementation((dialog: Record<string, unknown>) => {
-      if (dialog.open && dialog.onConfirm) {
-        const onConfirm = dialog.onConfirm as () => void
-        onConfirm()
-      }
-    })
-
-    const result = await handleConnectWithHostKey(baseConfig)
+    const result = await handleConnectWithHostKey(request)
 
     expect(mockSetHostKeyVerificationDialog).toHaveBeenCalledWith(
       expect.objectContaining({
         type: HOST_KEY_DIALOG_TYPE.MISMATCH,
-        hash: 'def456',
-        previousHash: 'abc123',
-        sessionId: '',
-        connectionId: 'conn-1',
-        open: true,
+        previousFingerprint: 'SHA256:old',
       }),
     )
-    expect(mockHostKeySave).toHaveBeenCalledWith({ connectionId: 'conn-1', hash: 'def456' })
     expect(result).toEqual({ success: false, sessionId: null, retry: true })
   })
 
-  it('returns failure without saving on HOST_KEY_MISMATCH with user cancel', async () => {
-    mockConnect.mockResolvedValue({
-      success: true,
-      value: {
-        sessionId: '',
-        statusCode: SftpStatus.HOST_KEY_MISMATCH,
-        detail: { hash: 'def456', previousHash: 'abc123' },
-      },
+  it('returns failure when the user cancels a mismatch', async () => {
+    mockConnect.mockResolvedValue({ success: false, error: mismatchError })
+    cancelDialog()
+
+    await expect(handleConnectWithHostKey(request)).resolves.toEqual({
+      success: false,
+      sessionId: null,
+      retry: false,
     })
-
-    mockSetHostKeyVerificationDialog.mockImplementation((dialog: Record<string, unknown>) => {
-      if (dialog.open && dialog.onCancel) {
-        const onCancel = dialog.onCancel as () => void
-        onCancel()
-      }
-    })
-
-    const result = await handleConnectWithHostKey(baseConfig)
-
-    expect(mockHostKeySave).not.toHaveBeenCalled()
-    expect(result).toEqual({ success: false, sessionId: null, retry: false })
-  })
-
-  it('returns failure on unknown status', async () => {
-    mockConnect.mockResolvedValue({
-      success: true,
-      value: { sessionId: 'sess-4', statusCode: 9999, detail: {} },
-    })
-
-    const result = await handleConnectWithHostKey(baseConfig)
-
-    expect(result).toEqual({ success: false, sessionId: null, retry: false })
-    expect(mockSetHostKeyVerificationDialog).not.toHaveBeenCalled()
-    expect(mockHostKeySave).not.toHaveBeenCalled()
-    expect(mockDisconnect).not.toHaveBeenCalled()
-    expect(mockHostKeyDelete).not.toHaveBeenCalled()
+    expect(mockTrust).not.toHaveBeenCalled()
   })
 })

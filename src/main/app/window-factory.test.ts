@@ -1,186 +1,129 @@
 /* eslint-disable @typescript-eslint/unbound-method -- vitest expect() 需要分离方法引用 */
-/* eslint-disable @typescript-eslint/no-unsafe-return -- mock 工厂函数透传 any 参数 */
-/* eslint-disable @typescript-eslint/require-await -- vitest it() 保持 async 签名一致性 */
-/* eslint-disable @typescript-eslint/consistent-type-imports -- typeof import() 用于获取值导出的类型 */
+/* eslint-disable @typescript-eslint/no-unsafe-return -- mock 工厂透传 any 参数 */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment -- globalThis 注入 Vite 全局 */
+/* eslint-disable @typescript-eslint/consistent-type-imports -- typeof import() 用于取模块类型 */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mockRegisterWindowMeta = vi.fn()
-const mockUnregisterWindowMeta = vi.fn()
+const mockGetMainWindow = vi.fn()
 
-vi.mock('../utils/window-meta.js', () => ({
-  registerWindowMeta: (...args: unknown[]) => mockRegisterWindowMeta(...args),
-  unregisterWindowMeta: (...args: unknown[]) => mockUnregisterWindowMeta(...args),
+vi.mock('./main-window.js', () => ({
+  getMainWindow: () => mockGetMainWindow(),
+}))
+
+vi.mock('./window-chrome.js', () => ({
+  getWindowChromeMode: vi.fn(() => 'wco'),
 }))
 
 vi.mock('../utils/index.js', () => ({
   supportsGlassEffect: vi.fn(() => false),
 }))
 
-vi.mock('@shared/constants/index.js', async (importOriginal) => {
-  const actual: Record<string, unknown> = await importOriginal()
-  return {
-    ...actual,
-    IPC_CHANNELS: {
-      WINDOW: {
-        STATE_CHANGED: 'window-state-changed',
-      },
-      EVENTS: {},
-    },
-  }
-})
-
 vi.mock('node:path', () => {
-  const path = {
-    join: vi.fn(() => '/mocked/preload/path'),
-  }
+  const path = { join: vi.fn(() => '/mocked/preload/path') }
   return { default: path, ...path }
 })
 
-vi.mock('node:url', () => {
-  return {
-    fileURLToPath: vi.fn(() => '/mocked/dirname'),
-    URL: class MockURL {
-      constructor(_href: string, _base?: string) {}
-    },
-    default: {
-      fileURLToPath: vi.fn(() => '/mocked/dirname'),
-      URL: class MockURL {
-        constructor(_href: string, _base?: string) {}
-      },
-    },
-  }
-})
-
 describe('window-factory', () => {
-  let createFramelessWindow: typeof import('./window-factory.js').createFramelessWindow
-  let WindowManager: typeof import('./window-factory.js').WindowManager
+  let createAppWindow: typeof import('./window-factory.js').createAppWindow
+  let createUtilityWindow: typeof import('./window-factory.js').createUtilityWindow
+  let BrowserWindow: typeof import('electron').BrowserWindow
+  let getWindowChromeMode: typeof import('./window-chrome.js').getWindowChromeMode
 
   beforeEach(async () => {
     vi.clearAllMocks()
-    // Forge Vite 插件注入的全局变量，测试环境中需要手动定义
+    mockGetMainWindow.mockReturnValue(undefined)
     ;(globalThis as Record<string, unknown>).MAIN_WINDOW_VITE_DEV_SERVER_URL = ''
     ;(globalThis as Record<string, unknown>).MAIN_WINDOW_VITE_NAME = 'main_window'
     const module = await import('./window-factory.js')
-    createFramelessWindow = module.createFramelessWindow
-    WindowManager = module.WindowManager
+    createAppWindow = module.createAppWindow
+    createUtilityWindow = module.createUtilityWindow
+    BrowserWindow = (await import('electron')).BrowserWindow
+    getWindowChromeMode = (await import('./window-chrome.js')).getWindowChromeMode
+    vi.mocked(getWindowChromeMode).mockReturnValue('wco')
   })
 
-  describe('createFramelessWindow', () => {
-    it('should create a BrowserWindow with default options', () => {
-      const win = createFramelessWindow({ id: 'test-window' })
+  it('creates the main window hidden until ready', () => {
+    const win = createAppWindow()
 
-      expect(win).toBeDefined()
-      expect(win.show).not.toHaveBeenCalled()
-    })
-
-    it('should call ready-to-show handler to show and focus window', () => {
-      const win = createFramelessWindow({ id: 'ready-window' })
-
-      expect(win.once).toHaveBeenCalledWith('ready-to-show', expect.any(Function))
-    })
-
-    it('should register maximize event handler', () => {
-      const win = createFramelessWindow({ id: 'maximize-window' })
-
-      expect(win.on).toHaveBeenCalledWith('maximize', expect.any(Function))
-    })
-
-    it('should register unmaximize event handler', () => {
-      const win = createFramelessWindow({ id: 'unmaximize-window' })
-
-      expect(win.on).toHaveBeenCalledWith('unmaximize', expect.any(Function))
-    })
+    expect(BrowserWindow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        titleBarStyle: 'hidden',
+        show: false,
+        webPreferences: expect.objectContaining({
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true,
+        }),
+      }),
+    )
+    expect(win.once).toHaveBeenCalledWith('ready-to-show', expect.any(Function))
   })
 
-  describe('WindowManager.create', () => {
-    it('should create and register a new window', () => {
-      const win = WindowManager.create({ id: 'new-window' })
+  it('adds WCO overlay and chrome argument on Windows 11', () => {
+    createAppWindow('dark')
 
-      expect(win).toBeDefined()
-      expect(mockRegisterWindowMeta).toHaveBeenCalled()
-    })
-
-    it('should call registerWindowMeta with correct parameters', () => {
-      WindowManager.create({ id: 'meta-window', route: '/test-route' })
-
-      expect(mockRegisterWindowMeta).toHaveBeenCalledWith(
-        expect.any(Object),
-        'meta-window',
-        '/test-route',
-      )
-    })
-
-    it('should focus existing window if not destroyed', () => {
-      const win1 = WindowManager.create({ id: 'reuse-window' })
-      const win2 = WindowManager.create({ id: 'reuse-window' })
-
-      expect(win1).toBe(win2)
-      expect(win1.focus).toHaveBeenCalled()
-    })
+    expect(BrowserWindow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        titleBarStyle: 'hidden',
+        titleBarOverlay: expect.objectContaining({ height: 36 }),
+        webPreferences: expect.objectContaining({
+          additionalArguments: ['--rivet-window-chrome=wco'],
+        }),
+      }),
+    )
   })
 
-  describe('WindowManager.get', () => {
-    it('should return undefined for non-existent id', () => {
-      const win = WindowManager.get('non-existent')
-      expect(win).toBeUndefined()
-    })
+  it('uses the frameless custom titlebar on Windows 10 and Linux', () => {
+    vi.mocked(getWindowChromeMode).mockReturnValue('custom')
+    createAppWindow('light')
 
-    it('should return created window by id', () => {
-      const createdWin = WindowManager.create({ id: 'get-test-window' })
-      const retrievedWin = WindowManager.get('get-test-window')
-
-      expect(retrievedWin).toBe(createdWin)
-    })
+    const options = vi.mocked(BrowserWindow).mock.calls.at(-1)?.[0]
+    expect(options).not.toHaveProperty('titleBarStyle')
+    expect(options).not.toHaveProperty('titleBarOverlay')
+    expect(options?.frame).toBe(false)
+    expect(options?.backgroundColor).toBe('#ffffff')
+    expect(options?.webPreferences).toEqual(
+      expect.objectContaining({ additionalArguments: ['--rivet-window-chrome=custom'] }),
+    )
   })
 
-  describe('WindowManager.close', () => {
-    it('should close window by id', () => {
-      const win = WindowManager.create({ id: 'close-test-window' })
-      WindowManager.close('close-test-window')
+  it('uses traffic lights and no overlay on macOS', () => {
+    vi.mocked(getWindowChromeMode).mockReturnValue('mac-hidden')
+    createAppWindow('light')
 
-      expect(win.close).toHaveBeenCalled()
-      expect(WindowManager.get('close-test-window')).toBeUndefined()
-    })
-
-    it('should handle closing non-existent window gracefully', () => {
-      expect(() => WindowManager.close('non-existent')).not.toThrow()
-    })
+    const options = vi.mocked(BrowserWindow).mock.calls.at(-1)?.[0]
+    expect(options).toEqual(
+      expect.objectContaining({
+        titleBarStyle: 'hidden',
+        trafficLightPosition: { x: 16, y: 12 },
+      }),
+    )
+    expect(options).not.toHaveProperty('titleBarOverlay')
   })
 
-  describe('WindowManager.getAll', () => {
-    it('should return all created windows', () => {
-      const win1 = WindowManager.create({ id: 'getall-win-1' })
-      const win2 = WindowManager.create({ id: 'getall-win-2' })
+  it('blocks navigation and new windows', () => {
+    const win = createAppWindow()
 
-      const allWindows = WindowManager.getAll()
-
-      expect(allWindows).toContain(win1)
-      expect(allWindows).toContain(win2)
-    })
-
-    it('should only return non-destroyed windows', async () => {
-      const win1 = WindowManager.create({ id: 'filter-win-1' })
-      WindowManager.create({ id: 'filter-win-2' })
-
-      win1.isDestroyed = vi.fn(() => true)
-
-      const allWindows = WindowManager.getAll()
-      expect(allWindows).not.toContain(win1)
-    })
+    expect(win.webContents.on).toHaveBeenCalledWith('will-navigate', expect.any(Function))
+    expect(win.webContents.setWindowOpenHandler).toHaveBeenCalled()
   })
 
-  describe('WindowManager.broadcast', () => {
-    it('should send message to all windows', () => {
-      const win1 = WindowManager.create({ id: 'broadcast-1' })
-      WindowManager.create({ id: 'broadcast-2' })
+  it('creates a fixed-size modal utility window with the route hash', () => {
+    const parent = { isDestroyed: () => false }
+    mockGetMainWindow.mockReturnValue(parent)
 
-      WindowManager.broadcast('test-channel' as never, 'arg1', 'arg2')
+    const win = createUtilityWindow({ route: '/settings', width: 300, height: 200, title: 'T' })
 
-      expect(win1.webContents.send).toHaveBeenCalledWith('test-channel', 'arg1', 'arg2')
-    })
-
-    it('should do nothing when no windows exist', () => {
-      expect(() => WindowManager.broadcast('empty-channel' as never)).not.toThrow()
-    })
+    expect(BrowserWindow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        width: 300,
+        height: 200,
+        resizable: false,
+        maximizable: false,
+        modal: true,
+        parent,
+      }),
+    )
+    expect(win.loadFile).toHaveBeenCalledWith(expect.any(String), { hash: '/settings' })
   })
 })

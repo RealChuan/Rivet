@@ -1,2 +1,3 @@
 export * from './lifecycle.js'
-export { WindowManager } from './window-factory.js'
+export { getMainWindow, sendToMainWindow, setMainWindow } from './main-window.js'
+export { createAppWindow, createUtilityWindow } from './window-factory.js'

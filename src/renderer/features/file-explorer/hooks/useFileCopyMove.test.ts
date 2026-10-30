@@ -1,12 +1,19 @@
 import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ConflictResolution } from '@renderer/features/file-explorer/components/ConflictDialog.js'
 import type { FileInfo } from '@shared/types/index.js'
+import type { ConflictResolution } from '../components/ConflictDialog.js'
 import { useFileCopyMove } from './use-file-copy-move.js'
 
-const mockRefreshCurrentDirectory = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
+const mockInvalidateSession = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
 const mockSetOperating = vi.fn()
 const mockAddToast = vi.fn()
+
+vi.mock('./use-directory-invalidation.js', () => ({
+  useDirectoryInvalidation: () => ({
+    invalidateSession: mockInvalidateSession,
+    invalidatePath: vi.fn(),
+  }),
+}))
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -31,21 +38,20 @@ vi.mock('react-i18next', () => ({
   initReactI18next: vi.fn(),
 }))
 
-vi.mock('@renderer/features/session/stores/session.js', () => ({
+vi.mock('../../session/stores/session.js', () => ({
   useSessionStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
-      refreshCurrentDirectory: mockRefreshCurrentDirectory,
       setOperating: mockSetOperating,
       sessions: [],
     }),
 }))
 
-vi.mock('@renderer/stores/index.js', () => ({
+vi.mock('../../../stores/index.js', () => ({
   useUiStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({ addToast: mockAddToast }),
 }))
 
-vi.mock('@renderer/utils/index.js', () => ({
+vi.mock('../../../utils/index.js', () => ({
   logger: { info: vi.fn(), catch: vi.fn() },
 }))
 
@@ -91,7 +97,7 @@ const errorResponse = (code = 'ERR', message = 'fail') => ({
 describe('useFileCopyMove', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRefreshCurrentDirectory.mockResolvedValue(undefined)
+    mockInvalidateSession.mockResolvedValue(undefined)
     mockAddToast.mockReset()
     mockProtocolList.mockReset()
     mockProtocolCopy.mockReset()
@@ -194,7 +200,7 @@ describe('useFileCopyMove', () => {
     expect(res).toEqual({
       success: false,
       value: null,
-      error: { code: 'LIST_FAILED', message: '{"code":"LIST_ERR","message":"cannot list"}' },
+      error: { code: 'LIST_FAILED', message: 'cannot list' },
     })
   })
 
@@ -357,7 +363,7 @@ describe('useFileCopyMove', () => {
 
     expect(mockAddToast).toHaveBeenCalledWith({
       type: 'error',
-      message: 'toast.copyFailed: {"code":"COPY_ERR","message":"copy failed"}',
+      message: 'toast.copyFailed: errors.UNKNOWN',
     })
   })
 
@@ -381,7 +387,7 @@ describe('useFileCopyMove', () => {
 
     expect(mockAddToast).toHaveBeenCalledWith({
       type: 'error',
-      message: 'toast.moveFailed: {"code":"MOVE_ERR","message":"move failed"}',
+      message: 'toast.moveFailed: errors.UNKNOWN',
     })
   })
 

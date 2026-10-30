@@ -2,8 +2,8 @@ import type React from 'react'
 import { AlertCircle, TriangleAlert, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { logger } from '@renderer/utils/index.js'
 import Button from '../../components/ui/Button.js'
+import { logger } from '../../utils/index.js'
 import { GlassDialog } from '../ui/index.js'
 
 interface ConfirmationDialogProps {
@@ -15,6 +15,7 @@ interface ConfirmationDialogProps {
   message?: string | React.ReactNode
   confirmText?: string
   cancelText?: string
+  confirmTestId?: string
   type?: 'danger' | 'warning' | 'info'
   customContent?: React.ReactNode
 }
@@ -57,6 +58,7 @@ export const ConfirmationDialog = ({
   message,
   confirmText,
   cancelText,
+  confirmTestId,
   type = 'danger',
   customContent,
 }: ConfirmationDialogProps) => {
@@ -101,7 +103,11 @@ export const ConfirmationDialog = ({
           <Button variant="secondary" onClick={() => void handleCancel()}>
             {cancelText ?? t(($) => $.common.action.cancel)}
           </Button>
-          <Button variant={config.buttonVariant} onClick={() => void handleConfirm()}>
+          <Button
+            variant={config.buttonVariant}
+            onClick={() => void handleConfirm()}
+            {...(confirmTestId ? { 'data-testid': confirmTestId } : {})}
+          >
             {confirmText ?? t(($) => $.common.action.confirm)}
           </Button>
         </div>

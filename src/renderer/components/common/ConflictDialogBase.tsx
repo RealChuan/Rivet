@@ -1,26 +1,18 @@
 import type React from 'react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-
-import Button from '@renderer/components/ui/Button.js'
-import { Checkbox } from '@renderer/components/ui/Checkbox.js'
-import GlassDialog from '@renderer/components/ui/GlassDialog.js'
-import { RadioButton, RadioGroup } from '@renderer/components/ui/RadioButton.js'
-import { cn } from '@renderer/utils/index.js'
-import { DIALOG_SIZE } from '@shared/constants/index.js'
-
-export const CONFLICT_STRATEGY = {
-  OVERWRITE: 'overwrite',
-  SKIP: 'skip',
-  KEEP_BOTH: 'keepBoth',
-} as const
-
-export type ConflictStrategy = (typeof CONFLICT_STRATEGY)[keyof typeof CONFLICT_STRATEGY]
+import type { ConflictAction } from '@shared/constants/index.js'
+import { CONFLICT_ACTION, DIALOG_SIZE } from '@shared/constants/index.js'
+import { cn } from '../../utils/index.js'
+import Button from '../ui/Button.js'
+import { Checkbox } from '../ui/Checkbox.js'
+import GlassDialog from '../ui/GlassDialog.js'
+import { RadioButton, RadioGroup } from '../ui/RadioButton.js'
 
 interface ConflictDialogBaseProps {
   open: boolean
   onClose: () => void
-  onConfirm: (strategies: ConflictStrategy[]) => void
+  onConfirm: (strategies: ConflictAction[]) => void
   conflictCount: number
   hideOverwrite?: boolean
   canOverwrite?: (index: number) => boolean
@@ -37,15 +29,13 @@ export const ConflictDialogBase = ({
   renderConflictInfo,
 }: ConflictDialogBaseProps) => {
   const { t } = useTranslation()
-  const [strategies, setStrategies] = useState<ConflictStrategy[]>(() =>
-    Array.from({ length: conflictCount }, () => CONFLICT_STRATEGY.KEEP_BOTH),
+  const [strategies, setStrategies] = useState<ConflictAction[]>(() =>
+    Array.from({ length: conflictCount }, () => CONFLICT_ACTION.KEEP_BOTH),
   )
   const [applyToAll, setApplyToAll] = useState(false)
-  const [globalStrategy, setGlobalStrategy] = useState<ConflictStrategy>(
-    CONFLICT_STRATEGY.KEEP_BOTH,
-  )
+  const [globalStrategy, setGlobalStrategy] = useState<ConflictAction>(CONFLICT_ACTION.KEEP_BOTH)
 
-  const handleStrategyChange = (index: number, strategy: ConflictStrategy) => {
+  const handleStrategyChange = (index: number, strategy: ConflictAction) => {
     if (applyToAll) {
       setStrategies((prev) => prev.map(() => strategy))
       setGlobalStrategy(strategy)
@@ -66,7 +56,7 @@ export const ConflictDialogBase = ({
     onClose()
   }
 
-  const handleGlobalStrategyChange = (strategy: ConflictStrategy) => {
+  const handleGlobalStrategyChange = (strategy: ConflictAction) => {
     setGlobalStrategy(strategy)
     setStrategies((prev) => prev.map(() => strategy))
   }
@@ -87,7 +77,7 @@ export const ConflictDialogBase = ({
 
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-glass-bg rounded-md border border-border min-h-10">
           {Array.from({ length: conflictCount }, (_, index) => {
-            const strategy = strategies[index] ?? CONFLICT_STRATEGY.KEEP_BOTH
+            const strategy = strategies[index] ?? CONFLICT_ACTION.KEEP_BOTH
             const cannotOverwrite = canOverwrite ? !canOverwrite(index) : false
 
             return (
@@ -96,18 +86,18 @@ export const ConflictDialogBase = ({
 
                 <RadioGroup
                   value={strategy}
-                  onValueChange={(val) => handleStrategyChange(index, val as ConflictStrategy)}
+                  onValueChange={(val) => handleStrategyChange(index, val as ConflictAction)}
                   className="flex gap-4 justify-end"
                 >
-                  <RadioButton value={CONFLICT_STRATEGY.SKIP} label={t(($) => $.conflict.skip)} />
+                  <RadioButton value={CONFLICT_ACTION.SKIP} label={t(($) => $.conflict.skip)} />
                   <RadioButton
-                    value={CONFLICT_STRATEGY.KEEP_BOTH}
+                    value={CONFLICT_ACTION.KEEP_BOTH}
                     label={t(($) => $.conflict.keepBoth)}
                     labelClassName="text-accent"
                   />
                   {!hideOverwrite && (
                     <RadioButton
-                      value={CONFLICT_STRATEGY.OVERWRITE}
+                      value={CONFLICT_ACTION.OVERWRITE}
                       label={t(($) => $.conflict.overwrite)}
                       labelClassName={cn(
                         'text-danger',
@@ -150,18 +140,18 @@ export const ConflictDialogBase = ({
             <span className="text-xs text-text-muted">{t(($) => $.conflict.globalAction)}:</span>
             <RadioGroup
               value={globalStrategy}
-              onValueChange={(val) => handleGlobalStrategyChange(val as ConflictStrategy)}
+              onValueChange={(val) => handleGlobalStrategyChange(val as ConflictAction)}
               className="flex items-center gap-4"
             >
-              <RadioButton value={CONFLICT_STRATEGY.SKIP} label={t(($) => $.conflict.skip)} />
+              <RadioButton value={CONFLICT_ACTION.SKIP} label={t(($) => $.conflict.skip)} />
               <RadioButton
-                value={CONFLICT_STRATEGY.KEEP_BOTH}
+                value={CONFLICT_ACTION.KEEP_BOTH}
                 label={t(($) => $.conflict.keepBoth)}
                 labelClassName="text-accent"
               />
               {!hideOverwrite && (
                 <RadioButton
-                  value={CONFLICT_STRATEGY.OVERWRITE}
+                  value={CONFLICT_ACTION.OVERWRITE}
                   label={t(($) => $.conflict.overwrite)}
                   labelClassName="text-danger"
                 />

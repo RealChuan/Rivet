@@ -1,9 +1,9 @@
 import type React from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
+import { Dialog } from 'radix-ui'
 
-import { useDraggable } from '@renderer/hooks/use-draggable.js'
-import { cn } from '@renderer/utils/index.js'
 import { DIALOG_SIZE } from '@shared/constants/index.js'
+import { useDraggable } from '../../hooks/use-draggable.js'
+import { cn } from '../../utils/index.js'
 
 interface GlassDialogProps {
   open: boolean

@@ -1,8 +1,8 @@
-import * as SelectPrimitive from '@radix-ui/react-select'
 import { ChevronDown } from 'lucide-react'
+import { Select as SelectPrimitive } from 'radix-ui'
 import { useTranslation } from 'react-i18next'
 
-import { cn } from '@renderer/utils/index.js'
+import { cn } from '../../utils/index.js'
 
 interface SelectOption {
   value: string
@@ -14,14 +14,16 @@ interface SelectProps {
   onChange: (value: string) => void
   options: SelectOption[]
   className?: string
+  testId?: string
 }
 
-export const Select = ({ value, onChange, options, className }: SelectProps) => {
+export const Select = ({ value, onChange, options, className, testId }: SelectProps) => {
   const { t } = useTranslation()
 
   return (
     <SelectPrimitive.Root value={value} onValueChange={onChange}>
       <SelectPrimitive.Trigger
+        {...(testId ? { 'data-testid': testId } : {})}
         className={cn(
           'w-full px-3 pr-8 py-2 bg-glass-bg border border-border rounded-md',
           'text-text text-left flex items-center justify-between relative cursor-pointer',

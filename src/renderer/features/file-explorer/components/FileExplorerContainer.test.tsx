@@ -8,7 +8,7 @@ const mockSessionStore = {
   activeSessionId: null as string | null,
 }
 
-vi.mock('@renderer/features/session/stores/session.js', () => ({
+vi.mock('../../session/stores/session.js', () => ({
   useSessionStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector(mockSessionStore),
 }))
@@ -23,11 +23,8 @@ const makeSession = (overrides: Partial<Session> = {}): Session => ({
   sessionId: 'sess-1',
   connectionId: 'conn-1',
   currentPath: '/home',
-  files: [],
   isConnected: true,
-  isLoading: false,
   isOperating: false,
-  error: null,
   ...overrides,
 })
 

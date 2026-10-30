@@ -1,26 +1,27 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import logger from '@renderer/utils/logger.js'
 import { OPERATION_STATUS } from '@shared/constants/transfer.js'
-import { useTransferStore } from '../features/transfer/stores/transfer.js'
+import { appApi } from '../api/app.js'
+import { transferApi } from '../api/transfer.js'
+import { selectRunningTaskCount, useTransferStore } from '../features/transfer/stores/transfer.js'
+import logger from '../utils/logger.js'
+
+type CloseReason = 'close' | 'quit'
 
 /**
- * 活跃传输任务守卫 hook
+ * 关闭/断开连接前的活跃任务守卫。
  *
- * 统一处理"有活跃任务时弹出确认框"的逻辑，适用于：
- * - 关闭窗口（全局检查）
- * - 断开连接（按 sessionId 检查）
- *
- * 使用 getState() 读取 tasks，避免订阅整个数组导致不必要的重渲染。
- * hasActiveTasks 是命令式调用（用户点击时），不需要响应式订阅。
+ * 关闭意图由主进程发起（`app.closeRequested`），渲染层只负责取消任务并确认；
+ * 断开连接仍由渲染层 `guard` 按 sessionId 检查。
  */
 export function useActiveTaskGuard() {
   const { t } = useTranslation()
-  const runningTaskCount = useTransferStore((state) => state.runningTaskCount)
+  const runningTaskCount = useTransferStore(selectRunningTaskCount)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
   const [pendingSessionId, setPendingSessionId] = useState<string | undefined>(undefined)
+  const [pendingReason, setPendingReason] = useState<CloseReason | null>(null)
 
   const hasActiveTasks = useCallback(
     (sessionId?: string): boolean => {
@@ -38,13 +39,13 @@ export function useActiveTaskGuard() {
   )
 
   /**
-   * 守卫函数：检查活跃任务，有则弹窗，无则直接执行
-   * @param action 无活跃任务（或用户确认后）要执行的操作
-   * @param sessionId 可选，按会话检查；不传则检查全部
+   * 守卫函数：检查活跃任务，有则弹窗，无则直接执行。
+   * 只用于断开连接；窗口关闭由主进程事件驱动。
    */
   const guard = useCallback(
     (action: () => void, sessionId?: string) => {
       if (hasActiveTasks(sessionId)) {
+        setPendingReason(null)
         setPendingAction(() => action)
         setPendingSessionId(sessionId)
         setConfirmOpen(true)
@@ -55,27 +56,31 @@ export function useActiveTaskGuard() {
     [hasActiveTasks],
   )
 
-  // 监听主进程系统级关闭拦截（Alt+F4 等）
   useEffect(() => {
-    const unsubscribe = window.electronAPI.transfer.onHasActiveTasks(() => {
-      guard(() => window.electronAPI.window.quit())
+    const unsubscribe = appApi.onCloseRequested(({ reason }) => {
+      setPendingReason(reason)
+      setPendingAction(null)
+      setPendingSessionId(undefined)
+      setConfirmOpen(true)
     })
     return unsubscribe
-  }, [guard])
+  }, [])
 
   const handleConfirm = async () => {
-    if (!pendingAction) return
     try {
-      await window.electronAPI.transfer.cancelAll(pendingSessionId)
-      pendingAction()
+      await transferApi.cancelAll(pendingSessionId)
+      if (pendingReason) {
+        await appApi.confirmClose()
+      } else {
+        pendingAction?.()
+      }
     } catch (error) {
-      // 渲染进程错误上报主进程（electron-log/renderer 转发至主进程写入文件）
       logger.catch(error, { action: 'useActiveTaskGuard.handleConfirm' })
     } finally {
-      // 无论成功失败都重置状态，避免脏状态
       setConfirmOpen(false)
       setPendingAction(null)
       setPendingSessionId(undefined)
+      setPendingReason(null)
     }
   }
 
@@ -83,9 +88,11 @@ export function useActiveTaskGuard() {
     setConfirmOpen(false)
     setPendingAction(null)
     setPendingSessionId(undefined)
+    setPendingReason(null)
   }
 
-  const isQuit = !pendingSessionId
+  const isQuit = pendingReason === 'quit'
+  const isClose = pendingReason === 'close'
 
   return {
     guard,
@@ -93,9 +100,20 @@ export function useActiveTaskGuard() {
     confirmOpen,
     handleConfirm,
     handleCancel,
-    title: t(($) => (isQuit ? $.transfer.confirmQuit.title : $.transfer.confirmDisconnect.title)),
+    pendingReason,
+    title: t(($) =>
+      isQuit
+        ? $.transfer.confirmQuit.title
+        : isClose
+          ? $.transfer.confirmClose.title
+          : $.transfer.confirmDisconnect.title,
+    ),
     message: t(($) =>
-      isQuit ? $.transfer.confirmQuit.message : $.transfer.confirmDisconnect.message,
+      isQuit
+        ? $.transfer.confirmQuit.message
+        : isClose
+          ? $.transfer.confirmClose.message
+          : $.transfer.confirmDisconnect.message,
     ),
   }
 }

@@ -1,19 +1,18 @@
-import { useHostKeyStore } from '@renderer/features/host-key/stores/host-key.js'
+import { HOST_KEY_DIALOG_TYPE } from '@shared/constants/index.js'
 import {
-  HOST_KEY_DIALOG_TYPE,
-  type HostKeyDialogType,
-  ProtocolStatus,
-  SftpStatus,
-} from '@shared/constants/index.js'
-import { type ConnectionConfig, isProtocolResponseErr } from '@shared/types/index.js'
+  parseHostKeyErrorDetail,
+  type ConnectRequest,
+  type HostKeyErrorDetail,
+} from '@shared/types/index.js'
+import { hostKeyApi } from '../../../api/hostKey.js'
+import { protocolApi } from '../../../api/protocol.js'
+import { isApiError } from '../../../api/result.js'
+import { useHostKeyStore } from '../../host-key/stores/host-key.js'
 
-const showHostKeyVerificationDialog = async (config: {
-  type: HostKeyDialogType
-  hash: string
-  previousHash: string | undefined
-  sessionId: string
-  connectionId: string
-}) => {
+const showHostKeyVerificationDialog = async (
+  detail: HostKeyErrorDetail,
+  type: typeof HOST_KEY_DIALOG_TYPE.UNKNOWN | typeof HOST_KEY_DIALOG_TYPE.MISMATCH,
+) => {
   const hostKeyStore = useHostKeyStore.getState()
 
   return new Promise<boolean>((resolve) => {
@@ -21,18 +20,18 @@ const showHostKeyVerificationDialog = async (config: {
       hostKeyStore.setHostKeyVerificationDialog({ open: false })
       resolve(true)
     }
-
     const handleCancel = () => {
       hostKeyStore.setHostKeyVerificationDialog({ open: false })
       resolve(false)
     }
 
     hostKeyStore.setHostKeyVerificationDialog({
-      type: config.type,
-      hash: config.hash,
-      previousHash: config.previousHash,
-      sessionId: config.sessionId,
-      connectionId: config.connectionId,
+      type,
+      host: detail.host,
+      port: detail.port,
+      algorithm: detail.algorithm,
+      fingerprint: detail.fingerprint,
+      previousFingerprint: detail.previousFingerprint,
       onConfirm: handleConfirm,
       onCancel: handleCancel,
       open: true,
@@ -41,63 +40,32 @@ const showHostKeyVerificationDialog = async (config: {
 }
 
 export const handleConnectWithHostKey = async (
-  fullConfig: ConnectionConfig,
+  request: ConnectRequest,
 ): Promise<{ success: boolean; sessionId: string | null; retry: boolean }> => {
-  const response = await window.electronAPI.protocol.connect(fullConfig)
+  try {
+    const result = await protocolApi.connect(request)
+    return { success: true, sessionId: result.sessionId, retry: false }
+  } catch (error) {
+    if (!isApiError(error)) throw error
 
-  if (isProtocolResponseErr(response)) {
-    throw new Error(response.error.message)
-  }
+    const detail = parseHostKeyErrorDetail(error.appError.detail)
+    if (!detail) throw error
 
-  const operationResult = response.value
-
-  if (operationResult.statusCode === ProtocolStatus.OK) {
-    return { success: true, sessionId: operationResult.sessionId, retry: false }
-  }
-
-  if (operationResult.statusCode === ProtocolStatus.FIRST_CONNECT) {
-    const userConfirmed = await showHostKeyVerificationDialog({
-      type: HOST_KEY_DIALOG_TYPE.FIRST_CONNECT,
-      hash: operationResult.detail.hash,
-      previousHash: undefined,
-      sessionId: operationResult.sessionId,
-      connectionId: fullConfig.id,
-    })
-
-    if (!userConfirmed) {
-      await window.electronAPI.protocol.disconnect(operationResult.sessionId)
-      await window.electronAPI.hostKey.delete(fullConfig.id)
+    const type =
+      error.code === 'HOST_KEY_MISMATCH'
+        ? HOST_KEY_DIALOG_TYPE.MISMATCH
+        : HOST_KEY_DIALOG_TYPE.UNKNOWN
+    const confirmed = await showHostKeyVerificationDialog(detail, type)
+    if (!confirmed) {
       return { success: false, sessionId: null, retry: false }
     }
 
-    await window.electronAPI.hostKey.save({
-      connectionId: fullConfig.id,
-      hash: operationResult.detail.hash,
+    await hostKeyApi.trust({
+      host: detail.host,
+      port: detail.port,
+      algorithm: detail.algorithm,
+      fingerprint: detail.fingerprint,
     })
-
-    return { success: true, sessionId: operationResult.sessionId, retry: false }
-  }
-
-  if (operationResult.statusCode === SftpStatus.HOST_KEY_MISMATCH) {
-    const userConfirmed = await showHostKeyVerificationDialog({
-      type: HOST_KEY_DIALOG_TYPE.MISMATCH,
-      hash: operationResult.detail.hash,
-      previousHash: operationResult.detail.previousHash,
-      sessionId: '',
-      connectionId: fullConfig.id,
-    })
-
-    if (!userConfirmed) {
-      return { success: false, sessionId: null, retry: false }
-    }
-
-    await window.electronAPI.hostKey.save({
-      connectionId: fullConfig.id,
-      hash: operationResult.detail.hash,
-    })
-
     return { success: false, sessionId: null, retry: true }
   }
-
-  return { success: false, sessionId: null, retry: false }
 }

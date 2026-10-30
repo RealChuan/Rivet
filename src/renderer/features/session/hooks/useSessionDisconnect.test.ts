@@ -48,7 +48,7 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-vi.mock('@renderer/features/session/stores/session.js', () => ({
+vi.mock('../stores/session.js', () => ({
   useSessionStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
       removeSession: mockRemoveSession,
@@ -56,7 +56,7 @@ vi.mock('@renderer/features/session/stores/session.js', () => ({
     }),
 }))
 
-vi.mock('@renderer/stores/index.js', () => ({
+vi.mock('../../../stores/index.js', () => ({
   useUiStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({ addToast: mockAddToast }),
 }))
@@ -85,11 +85,8 @@ describe('useSessionDisconnect', () => {
       sessionId: 'sess-1',
       connectionId: 'conn-1',
       currentPath: '/home',
-      files: [],
       isConnected: true,
-      isLoading: false,
       isOperating: false,
-      error: null,
     }
     mockGetSessionByConnectionId.mockReturnValue(mockSession)
 
@@ -107,11 +104,8 @@ describe('useSessionDisconnect', () => {
       sessionId: 'sess-1',
       connectionId: 'conn-1',
       currentPath: '/home',
-      files: [],
       isConnected: true,
-      isLoading: false,
       isOperating: false,
-      error: null,
     }
     mockGetSessionByConnectionId.mockReturnValue(mockSession)
 

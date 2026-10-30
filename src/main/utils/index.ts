@@ -1,6 +1,4 @@
 export { showOpenDialog, showSaveDialog } from './dialog.js'
-export { decryptPassword, encryptPassword } from './encryption.js'
 export { generateSessionId } from './generate-session-id.js'
-export { logger } from './logger.js'
+export { cleanupExpiredLogs, logger } from './logger.js'
 export { getDownloadDir, getTempDir, supportsGlassEffect } from './system.js'
-export { getWindowMeta, registerWindowMeta, unregisterWindowMeta } from './window-meta.js'

@@ -12,11 +12,12 @@ export const useHostKeyStore = create<{
 }>((set) => ({
   hostKeyDialog: {
     open: false,
-    type: HOST_KEY_DIALOG_TYPE.FIRST_CONNECT,
-    hash: '',
-    previousHash: undefined,
-    sessionId: '',
-    connectionId: '',
+    type: HOST_KEY_DIALOG_TYPE.UNKNOWN,
+    host: '',
+    port: 22,
+    algorithm: '',
+    fingerprint: '',
+    previousFingerprint: undefined,
   },
 
   setHostKeyVerificationDialog: (state) => {

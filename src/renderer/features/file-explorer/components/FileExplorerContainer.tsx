@@ -1,7 +1,7 @@
 import { Plug } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { cn } from '@renderer/utils/index.js'
+import { cn } from '../../../utils/index.js'
+import { useSessionStore } from '../../session/stores/session.js'
 import FileExplorerArea from './FileExplorerArea.js'
 
 export const FileExplorerContainer = () => {

@@ -11,6 +11,7 @@ export const SidebarHeader = ({ onNewConnection }: SidebarHeaderProps) => {
   return (
     <div className="p-4 border-b border-border">
       <button
+        data-testid="connection-new"
         onClick={onNewConnection}
         className={`
           w-full px-3 py-2 rounded-md bg-accent text-white

@@ -1,14 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  type ConflictItem,
-  type ConflictResolution,
-} from '@renderer/features/file-explorer/components/ConflictDialog.js'
-import { useFileOperation } from '@renderer/features/file-explorer/hooks/use-file-operation.js'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useUiStore } from '@renderer/stores/index.js'
-import { logger } from '@renderer/utils/index.js'
-import {
   ERROR_CODE,
   FILE_OPERATION,
   FILE_TYPE,
@@ -20,16 +12,17 @@ import {
   err,
   type ErrorInfo,
   type FileInfo,
-  isProtocolResponseErr,
   ok,
   type Result,
 } from '@shared/types/index.js'
-import {
-  formatErrorMessage,
-  generateUniqueFilename,
-  isSubPath,
-  joinPaths,
-} from '@shared/utils/index.js'
+import { generateUniqueFilename, isSubPath, joinPaths } from '@shared/utils/index.js'
+import { protocolApi } from '../../../api/protocol.js'
+import { resolveErrorMessage } from '../../../i18n/error-message.js'
+import { useUiStore } from '../../../stores/index.js'
+import { logger } from '../../../utils/index.js'
+import { type ConflictItem, type ConflictResolution } from '../components/ConflictDialog.js'
+import { useDirectoryInvalidation } from './use-directory-invalidation.js'
+import { useFileOperation } from './use-file-operation.js'
 
 type CopyMoveOperation = typeof FILE_OPERATION.COPY | typeof FILE_OPERATION.MOVE
 
@@ -55,7 +48,7 @@ interface UseFileCopyMoveReturn {
 
 export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
   const { t } = useTranslation()
-  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
+  const { invalidateSession } = useDirectoryInvalidation()
   const addToast = useUiStore((state) => state.addToast)
   const { execute } = useFileOperation(sessionId)
 
@@ -126,20 +119,21 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
 
     return execute(async () => {
       for (const { file, targetPath } of itemsToProcess) {
-        let result
-        if (op === FILE_OPERATION.COPY) {
-          result = await window.electronAPI.protocol.copy(sessionId, file, targetPath)
-        } else {
-          result = await window.electronAPI.protocol.move(sessionId, file, targetPath)
-        }
-
-        if (isProtocolResponseErr(result)) {
-          const errorMsg = formatErrorMessage(result.error) || t(($) => $.error.unknown)
-          throw new Error(
-            op === FILE_OPERATION.COPY
-              ? `${t(($) => $.toast.copyFailed)}: ${errorMsg}`
-              : `${t(($) => $.toast.moveFailed)}: ${errorMsg}`,
-          )
+        try {
+          if (op === FILE_OPERATION.COPY) {
+            await protocolApi.copy(sessionId, file, targetPath)
+          } else {
+            await protocolApi.move(sessionId, file, targetPath)
+          }
+        } catch (error) {
+          addToast({
+            type: TOAST_TYPE.ERROR,
+            message:
+              op === FILE_OPERATION.COPY
+                ? `${t(($) => $.toast.copyFailed)}: ${resolveErrorMessage(t, error)}`
+                : `${t(($) => $.toast.moveFailed)}: ${resolveErrorMessage(t, error)}`,
+          })
+          return
         }
       }
 
@@ -149,7 +143,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
         addToast({ type: TOAST_TYPE.SUCCESS, message: t(($) => $.toast.moveSuccess) })
       }
 
-      await refreshCurrentDirectory(sessionId)
+      await invalidateSession(sessionId)
     })
   }
 
@@ -178,14 +172,14 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
       }
     }
 
-    const listResult = await window.electronAPI.protocol.list(sessionId, targetDir.absolutePath)
-
-    if (isProtocolResponseErr(listResult)) {
-      const msg = formatErrorMessage(listResult.error) || t(($) => $.error.unknown)
+    let targetFiles: FileInfo[]
+    try {
+      targetFiles = await protocolApi.list(sessionId, targetDir.absolutePath)
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : t(($) => $.error.unknown)
       return err(createErrorInfo(ERROR_CODE.LIST_FAILED, msg))
     }
 
-    const targetFiles = listResult.value
     const existingFiles = new Map(targetFiles.map((f) => [f.name, f]))
     setTargetFilesCache(new Map(targetFiles.map((f) => [f.name, f.type])))
 

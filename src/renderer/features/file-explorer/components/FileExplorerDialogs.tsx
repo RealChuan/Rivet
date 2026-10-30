@@ -1,16 +1,16 @@
 import { useTranslation } from 'react-i18next'
 
-import ConfirmationDialog from '@renderer/components/common/ConfirmationDialog.js'
-import TextInputDialog from '@renderer/components/common/TextInputDialog.js'
-import { useFileCopyMove } from '@renderer/features/file-explorer/hooks/use-file-copy-move.js'
-import { useFileDeletion } from '@renderer/features/file-explorer/hooks/use-file-deletion.js'
-import { type UseFileListStateReturn } from '@renderer/features/file-explorer/hooks/use-file-list-state.js'
-import { useFileRenaming } from '@renderer/features/file-explorer/hooks/use-file-renaming.js'
-import { useFolderCreation } from '@renderer/features/file-explorer/hooks/use-folder-creation.js'
-import { useTransferDialog } from '@renderer/features/file-explorer/hooks/use-transfer-dialog.js'
-import { useUiStore } from '@renderer/stores/index.js'
 import { TOAST_TYPE } from '@shared/constants/index.js'
 import { isOk } from '@shared/types/index.js'
+import ConfirmationDialog from '../../../components/common/ConfirmationDialog.js'
+import TextInputDialog from '../../../components/common/TextInputDialog.js'
+import { useUiStore } from '../../../stores/index.js'
+import { useFileCopyMove } from '../hooks/use-file-copy-move.js'
+import { useFileDeletion } from '../hooks/use-file-deletion.js'
+import { type UseFileListStateReturn } from '../hooks/use-file-list-state.js'
+import { useFileRenaming } from '../hooks/use-file-renaming.js'
+import { useFolderCreation } from '../hooks/use-folder-creation.js'
+import { useTransferDialog } from '../hooks/use-transfer-dialog.js'
 import ConflictDialog from './ConflictDialog.js'
 import FileExplorerContextMenu from './FileExplorerContextMenu.js'
 import FolderPropertiesDialog from './FolderPropertiesDialog.js'
@@ -21,6 +21,7 @@ interface FileExplorerDialogsProps {
   currentPath: string
   listState: UseFileListStateReturn
   isSftp?: boolean | undefined
+  onClearSelection: () => void
 }
 
 export const FileExplorerDialogs = ({
@@ -28,6 +29,7 @@ export const FileExplorerDialogs = ({
   currentPath,
   listState,
   isSftp,
+  onClearSelection,
 }: FileExplorerDialogsProps) => {
   const { t } = useTranslation()
   const addToast = useUiStore((state) => state.addToast)
@@ -42,18 +44,17 @@ export const FileExplorerDialogs = ({
   })
 
   const {
-    selectedFile,
     deleteDialogOpen,
     closeDeleteDialog,
     fileToDelete,
     renameDialogOpen,
+    renameTarget,
     closeRenameDialog,
     newFolderDialogOpen,
     setNewFolderDialogOpen,
     contextMenu,
     openDeleteDialog,
     openRenameDialog,
-    clearSelection,
     propertiesDialogOpen,
     propertiesDialogFile,
     openPropertiesDialog,
@@ -75,8 +76,8 @@ export const FileExplorerDialogs = ({
   } = fileCopyMoveState
 
   const handleRenameWrapper = (newName: string) => {
-    if (selectedFile) {
-      void handleRename(selectedFile, newName)
+    if (renameTarget) {
+      void handleRename(renameTarget, newName)
       closeRenameDialog()
     }
   }
@@ -107,7 +108,7 @@ export const FileExplorerDialogs = ({
         onConfirm={() => {
           if (fileToDelete) {
             void handleDelete(fileToDelete).then(() => {
-              clearSelection()
+              onClearSelection()
             })
           }
           closeDeleteDialog()
@@ -119,7 +120,7 @@ export const FileExplorerDialogs = ({
         onClose={closeRenameDialog}
         title={t(($) => $.file.action.rename)}
         placeholder={t(($) => $.textInputDialog.newNamePlaceholder)}
-        defaultValue={selectedFile?.name ?? ''}
+        defaultValue={renameTarget?.name ?? ''}
         submitText={t(($) => $.file.action.rename)}
         onSubmit={handleRenameWrapper}
       />

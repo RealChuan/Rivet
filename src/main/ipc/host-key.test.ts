@@ -1,27 +1,33 @@
-/* eslint-disable @typescript-eslint/unbound-method -- vitest expect() 需要分离方法引用 */
 import { ipcMain } from 'electron'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mockTrustHostKey = vi.fn(() => ({ success: true, value: undefined, error: null }))
 
 vi.mock('../stores/known-hosts.js', () => ({
-  saveHostKeyRecord: vi.fn().mockReturnValue(true),
-  removeHostKeyRecord: vi.fn().mockReturnValue(true),
+  trustHostKey: mockTrustHostKey,
 }))
 
+type Handler = (event: unknown, ...args: unknown[]) => Promise<unknown>
+
+const handleMock = (ipcMain as unknown as { handle: { mock: { calls: Array<[string, Handler]> } } })
+  .handle
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
+
 describe('host-key IPC handlers', () => {
-  beforeEach(() => {
-    vi.mocked(ipcMain.handle).mockClear()
-  })
-
-  afterEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it('should setup host-key handlers', async () => {
+  it('registers hostKey.trust and forwards the record', async () => {
     const { setupHostKeyIpcHandlers } = await import('./host-key.js')
     setupHostKeyIpcHandlers()
 
-    expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.HOST_KEY.SAVE, expect.any(Function))
-    expect(ipcMain.handle).toHaveBeenCalledWith(IPC_CHANNELS.HOST_KEY.DELETE, expect.any(Function))
+    expect(handleMock.mock.calls.map(([channel]) => channel)).toEqual(['hostKey.trust'])
+
+    const handler = handleMock.mock.calls[0]?.[1]
+    if (!handler) throw new Error('hostKey.trust not registered')
+    const record = { host: 'h', port: 22, algorithm: 'a', fingerprint: 'f' }
+    await handler({}, record)
+
+    expect(mockTrustHostKey).toHaveBeenCalledWith(record)
   })
 })

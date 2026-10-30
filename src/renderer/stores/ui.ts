@@ -6,6 +6,7 @@ import {
   DEFAULT_QUEUE_DRAWER_WIDTH,
   DEFAULT_THEME_VALUE,
   DEFAULT_TRANSFER_PANEL_WIDTH,
+  type FileViewMode,
   STORE_KEY,
   type SupportedLanguageLiteral,
   type Theme,
@@ -14,6 +15,7 @@ import {
   type ToastType,
 } from '@shared/constants/index.js'
 import { SIDEBAR_VIEW, type SidebarView } from '@shared/constants/transfer.js'
+import { configApi } from '../api/config.js'
 
 interface UiStore {
   appearance: Theme
@@ -24,8 +26,11 @@ interface UiStore {
   queueDrawerWidth: number
   initialized: boolean
   activeView: SidebarView
+  /** 每个 session/页面独立的视图模式；仅内存，默认 list */
+  fileViewModes: Record<string, FileViewMode>
   toasts: Toast[]
   setAppearance: (appearance: Theme) => void
+  setFileViewMode: (sessionId: string, mode: FileViewMode) => void
   setLocale: (locale: SupportedLanguageLiteral) => void
   setConnectionPanelWidth: (width: number) => void
   setTransferPanelWidth: (width: number) => void
@@ -57,24 +62,25 @@ export const useUiStore = create<UiStore>((set, get) => ({
   queueDrawerWidth: DEFAULT_QUEUE_DRAWER_WIDTH,
   initialized: false,
   activeView: SIDEBAR_VIEW.CONNECTIONS,
+  fileViewModes: {},
   toasts: [],
 
   setAppearance: (appearance) => {
     set({ appearance })
     const { locale } = get()
-    void window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
-      appearance,
-      locale,
-    })
+    void configApi.set(STORE_KEY.UI, { appearance, locale })
+  },
+
+  setFileViewMode: (sessionId, fileViewMode) => {
+    set((state) => ({
+      fileViewModes: { ...state.fileViewModes, [sessionId]: fileViewMode },
+    }))
   },
 
   setLocale: (locale) => {
     set({ locale })
     const { appearance } = get()
-    void window.electronAPI.config.set(STORE_KEY.UI_SETTINGS, {
-      appearance,
-      locale,
-    })
+    void configApi.set(STORE_KEY.UI, { appearance, locale })
   },
 
   setConnectionPanelWidth: (connectionPanelWidth) => {
@@ -93,6 +99,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
     set({
       appearance: settings.appearance ?? DEFAULT_THEME_VALUE,
       locale: settings.locale ?? DEFAULT_LANGUAGE,
+      fileViewModes: {},
       activeView: SIDEBAR_VIEW.CONNECTIONS,
       initialized: true,
     })

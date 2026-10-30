@@ -1,4 +1,3 @@
-import { arrayMove } from '@dnd-kit/sortable'
 import { create } from 'zustand'
 import {
   PROTOCOL,
@@ -7,10 +6,11 @@ import {
   type SortOrderWithDirection,
   STORE_KEY,
 } from '@shared/constants/index.js'
-import { type ConnectionConfig, isOk } from '@shared/types/index.js'
+import { type ConnectionConfig } from '@shared/types/index.js'
+import { configApi } from '../../../api/config.js'
 
 const saveSortOrderToSettings = async (order: SortOrder) => {
-  await window.electronAPI.config.set(STORE_KEY.CONNECTION_SORT_ORDER, order)
+  await configApi.set(STORE_KEY.CONNECTION_SORT_ORDER, order)
 }
 
 function isConnectionConfig(item: unknown): item is ConnectionConfig {
@@ -28,7 +28,9 @@ function isConnectionConfig(item: unknown): item is ConnectionConfig {
     typeof item.port === 'number' &&
     'protocol' in item &&
     typeof item.protocol === 'string' &&
-    (item.protocol === PROTOCOL.SFTP || item.protocol === PROTOCOL.WEBDAV)
+    (item.protocol === PROTOCOL.SFTP || item.protocol === PROTOCOL.WEBDAV) &&
+    'authKind' in item &&
+    (item.authKind === 'password' || item.authKind === 'privateKey' || item.authKind === 'agent')
   )
 }
 
@@ -91,26 +93,33 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
     const updatedConnections = get().connections.filter((c) => c.id !== connectionId)
     set({ connections: updatedConnections })
 
-    await window.electronAPI.config.set(STORE_KEY.SAVED_CONNECTIONS, updatedConnections)
-    await window.electronAPI.hostKey.delete(connectionId)
+    await configApi.set(STORE_KEY.CONNECTIONS, updatedConnections)
   },
 
   loadSavedConnections: async () => {
-    const result = await window.electronAPI.config.get(STORE_KEY.SAVED_CONNECTIONS)
-    if (isOk(result) && isConnectionConfigArray(result.value)) {
-      set({ connections: result.value })
+    try {
+      const value = await configApi.get<unknown>(STORE_KEY.CONNECTIONS)
+      if (isConnectionConfigArray(value)) {
+        set({ connections: value })
+      }
+    } catch {
+      // 读取失败时保持空列表，由连接对话框提示用户重新添加。
     }
   },
 
   loadSortOrderFromSettings: async () => {
-    const result = await window.electronAPI.config.get(STORE_KEY.CONNECTION_SORT_ORDER)
-    if (isOk(result) && isSortOrder(result.value)) {
-      set({ sortOrder: result.value })
+    try {
+      const value = await configApi.get<unknown>(STORE_KEY.CONNECTION_SORT_ORDER)
+      if (isSortOrder(value)) {
+        set({ sortOrder: value })
+      }
+    } catch {
+      // 排序偏好读取失败时回落到默认顺序。
     }
   },
 
   saveConnectionConfigs: async () => {
-    await window.electronAPI.config.set(STORE_KEY.SAVED_CONNECTIONS, get().connections)
+    await configApi.set(STORE_KEY.CONNECTIONS, get().connections)
   },
 
   setPendingConnectionConfig: (config, isEditing) => {
@@ -127,16 +136,18 @@ export const useConnectionStore = create<ConnectionStore>((set, get) => ({
   },
 
   reorderConnections: async (activeId, overId) => {
-    const connections = get().connections
-    const oldIndex = connections.findIndex((c) => c.id === activeId)
-    const newIndex = connections.findIndex((c) => c.id === overId)
+    const connections = [...get().connections]
+    const oldIndex = connections.findIndex((connection) => connection.id === activeId)
+    const newIndex = connections.findIndex((connection) => connection.id === overId)
+    if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
 
-    if (oldIndex !== -1 && newIndex !== -1) {
-      const reordered = arrayMove(connections, oldIndex, newIndex)
-      set({ connections: reordered, sortOrder: SORT_ORDER.NONE })
-      await get().saveConnectionConfigs()
-      await saveSortOrderToSettings(SORT_ORDER.NONE)
-    }
+    const [moved] = connections.splice(oldIndex, 1)
+    if (!moved) return
+    connections.splice(newIndex, 0, moved)
+
+    set({ connections, sortOrder: SORT_ORDER.NONE })
+    await get().saveConnectionConfigs()
+    await saveSortOrderToSettings(SORT_ORDER.NONE)
   },
 
   sortConnections: async (order) => {

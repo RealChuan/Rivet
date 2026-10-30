@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next'
-import { useFileOperation } from '@renderer/features/file-explorer/hooks/use-file-operation.js'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
-import { useUiStore } from '@renderer/stores/index.js'
 import { TOAST_TYPE } from '@shared/constants/index.js'
-import { type FileInfo, isProtocolResponseErr } from '@shared/types/index.js'
-import { formatErrorMessage } from '@shared/utils/index.js'
+import { type FileInfo } from '@shared/types/index.js'
+import { protocolApi } from '../../../api/protocol.js'
+import { resolveErrorMessage } from '../../../i18n/error-message.js'
+import { useUiStore } from '../../../stores/index.js'
+import { useDirectoryInvalidation } from './use-directory-invalidation.js'
+import { useFileOperation } from './use-file-operation.js'
 
 interface UseFileDeletionReturn {
   handleDelete: (files: FileInfo[]) => Promise<void>
@@ -12,7 +13,7 @@ interface UseFileDeletionReturn {
 
 export const useFileDeletion = (sessionId: string): UseFileDeletionReturn => {
   const { t } = useTranslation()
-  const refreshCurrentDirectory = useSessionStore((state) => state.refreshCurrentDirectory)
+  const { invalidateSession } = useDirectoryInvalidation()
   const addToast = useUiStore((state) => state.addToast)
   const { execute } = useFileOperation(sessionId)
 
@@ -21,16 +22,19 @@ export const useFileDeletion = (sessionId: string): UseFileDeletionReturn => {
 
     await execute(async () => {
       for (const file of files) {
-        const result = await window.electronAPI.protocol.delete(sessionId, file)
-        if (isProtocolResponseErr(result)) {
-          throw new Error(
-            `${t(($) => $.toast.deleteFailed)}: ${formatErrorMessage(result.error) || t(($) => $.error.unknown)}`,
-          )
+        try {
+          await protocolApi.delete(sessionId, file)
+        } catch (error) {
+          addToast({
+            type: TOAST_TYPE.ERROR,
+            message: `${t(($) => $.toast.deleteFailed)}: ${resolveErrorMessage(t, error)}`,
+          })
+          return
         }
       }
 
       addToast({ type: TOAST_TYPE.SUCCESS, message: t(($) => $.toast.deleteSuccess) })
-      await refreshCurrentDirectory(sessionId)
+      await invalidateSession(sessionId)
     })
   }
 

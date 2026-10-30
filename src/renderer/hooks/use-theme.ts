@@ -1,5 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { type ResolvedTheme, THEME, type Theme, THEME_VALUES } from '@shared/constants/index.js'
+import { appApi } from '../api/app.js'
+import { systemApi } from '../api/system.js'
 import { useUiStore } from '../stores/index.js'
 
 function subscribeSystemTheme(callback: () => void) {
@@ -34,10 +36,14 @@ export function useApplicationTheme() {
     root.dataset.theme = resolvedTheme
   }, [resolvedTheme])
 
+  useEffect(() => {
+    appApi.setTheme(appearance)
+  }, [appearance])
+
   // 不支持原生毛玻璃的平台降级为不透明背景
   useEffect(() => {
     const applyGlassSupport = async () => {
-      const supported = await window.electronAPI.system.supportsGlass()
+      const supported = await systemApi.supportsGlass()
       if (!supported) {
         document.documentElement.classList.add('no-glass')
       }

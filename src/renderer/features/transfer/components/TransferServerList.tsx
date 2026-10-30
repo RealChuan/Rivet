@@ -2,13 +2,17 @@ import type React from 'react'
 import { ArrowUpDown } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import Select from '@renderer/components/ui/Select.js'
-import VirtualList from '@renderer/components/ui/VirtualList.js'
-import { useConnectionStore } from '@renderer/features/session/stores/connection.js'
-import { useSessionStore } from '@renderer/features/session/stores/session.js'
 import { TRANSFER_CONFIG } from '@shared/constants/transfer.js'
-import { useTransferStore } from '../stores/transfer.js'
+import Select from '../../../components/ui/Select.js'
+import { useConnectionStore } from '../../session/stores/connection.js'
+import { useSessionStore } from '../../session/stores/session.js'
+import {
+  selectRunningTaskCount,
+  selectSessionTaskSummaries,
+  useTransferStore,
+} from '../stores/transfer.js'
 import { TransferServerItem } from './TransferServerItem.js'
+import { VirtualRows } from './VirtualRows.js'
 
 const SERVER_ITEM_HEIGHT = 60
 
@@ -38,8 +42,8 @@ export const TransferServerList = ({ className }: TransferServerListProps) => {
   const sessions = useSessionStore((state) => state.sessions)
   const connections = useConnectionStore((state) => state.connections)
 
-  const sessionSummaries = useTransferStore((state) => state.sessionTaskSummaries)
-  const runningTaskCount = useTransferStore((state) => state.runningTaskCount)
+  const sessionSummaries = useTransferStore(selectSessionTaskSummaries)
+  const runningTaskCount = useTransferStore(selectRunningTaskCount)
 
   const serverItems = useMemo(() => {
     const items: ServerListItem[] = []
@@ -145,11 +149,10 @@ export const TransferServerList = ({ className }: TransferServerListProps) => {
             </p>
           </div>
         ) : (
-          <VirtualList
+          <VirtualRows
             items={serverItems}
-            itemHeight={SERVER_ITEM_HEIGHT}
-            width="100%"
-            renderItem={renderItem}
+            estimateSize={() => SERVER_ITEM_HEIGHT}
+            renderRow={renderItem}
           />
         )}
       </div>

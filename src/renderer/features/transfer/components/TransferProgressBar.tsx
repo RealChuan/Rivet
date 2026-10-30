@@ -1,5 +1,5 @@
-import { cn } from '@renderer/utils/index.js'
 import { OPERATION_STATUS } from '@shared/constants/transfer.js'
+import { cn } from '../../../utils/index.js'
 
 interface TransferProgressBarProps {
   transferred: number

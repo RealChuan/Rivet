@@ -1,7 +1,7 @@
-import * as CheckboxPrimitive from '@radix-ui/react-checkbox'
 import { Check } from 'lucide-react'
+import { Checkbox as CheckboxPrimitive } from 'radix-ui'
 
-import { cn } from '@renderer/utils/index.js'
+import { cn } from '../../utils/index.js'
 
 interface CheckboxProps {
   checked: boolean

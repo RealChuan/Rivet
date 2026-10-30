@@ -1,10 +1,10 @@
 import { Group, Panel } from 'react-resizable-panels'
 
-import { ResizeSeparator } from '@renderer/components/ui/ResizeSeparator.js'
-import { useUiStore } from '@renderer/stores/index.js'
 import { MAX_PANEL_WIDTH, MIN_PANEL_WIDTH } from '@shared/constants/index.js'
+import { ResizeSeparator } from '../components/ui/ResizeSeparator.js'
 import { FileExplorerContainer } from '../features/file-explorer/index.js'
 import { ConnectionSidebar } from '../features/session/index.js'
+import { useUiStore } from '../stores/index.js'
 
 export const ConnectionPage = () => {
   const panelWidth = useUiStore((state) => state.connectionPanelWidth)

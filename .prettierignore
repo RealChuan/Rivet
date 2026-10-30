@@ -1,0 +1,5 @@
+# i18next-cli 生成的文件，格式由生成器决定；Prettier 格式化会让 `i18n:types --ci` 误报过期。
+src/renderer/i18n/resources.d.ts
+
+pnpm-lock.yaml
+README.en.md

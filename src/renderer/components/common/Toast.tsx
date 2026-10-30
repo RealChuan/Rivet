@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react'
-import * as ToastPrimitive from '@radix-ui/react-toast'
 import { AlertCircle, Check, Info, TriangleAlert, X } from 'lucide-react'
+import { Toast as ToastPrimitive } from 'radix-ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ToastType } from '@shared/constants/index.js'
-import { cn } from '@renderer/utils/index.js'
 import { useUiStore } from '../../stores/ui.js'
+import { cn } from '../../utils/index.js'
 
 interface ToastConfig {
   bgClass: string

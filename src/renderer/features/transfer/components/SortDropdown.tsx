@@ -1,11 +1,11 @@
-import * as PopoverPrimitive from '@radix-ui/react-popover'
 import { ChevronDown, ListFilter } from 'lucide-react'
+import { Popover as PopoverPrimitive } from 'radix-ui'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { cn } from '@renderer/utils/index.js'
 import { SORT_ORDER, type SortOrderWithDirection } from '@shared/constants/sort.js'
 import { type TransferSortField, TRANSFER_SORT_FIELD } from '@shared/constants/transfer.js'
+import { cn } from '../../../utils/index.js'
 
 const SORT_FIELDS: TransferSortField[] = [
   TRANSFER_SORT_FIELD.CREATED_AT,

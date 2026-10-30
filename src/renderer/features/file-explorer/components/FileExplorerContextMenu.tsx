@@ -1,4 +1,3 @@
-import * as ContextMenuPrimitive from '@radix-ui/react-context-menu'
 import {
   Plus,
   Upload,
@@ -10,11 +9,12 @@ import {
   Trash,
   FolderCog,
 } from 'lucide-react'
+import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import { useTranslation } from 'react-i18next'
 
-import { cn } from '@renderer/utils/index.js'
 import { FILE_TYPE } from '@shared/constants/index.js'
 import { type FileInfo } from '@shared/types/index.js'
+import { cn } from '../../../utils/index.js'
 
 interface FileExplorerContextMenuProps {
   files: FileInfo[]
@@ -95,6 +95,7 @@ export const FileExplorerContextMenu = ({
               <>
                 <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
                 <ContextMenuPrimitive.Item
+                  data-testid="context-rename"
                   className={itemClass}
                   onSelect={() => {
                     const file = files[0]
@@ -108,6 +109,7 @@ export const FileExplorerContextMenu = ({
             )}
             <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
             <ContextMenuPrimitive.Item
+              data-testid="context-delete"
               className={cn(itemClass, 'text-danger data-highlighted:bg-danger-light')}
               onSelect={() => onDelete(files)}
             >

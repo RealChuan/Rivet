@@ -1,16 +1,9 @@
-import { ipcMain } from 'electron'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
-import { removeHostKeyRecord, saveHostKeyRecord } from '../stores/known-hosts.js'
+import { hostKeyContract } from '@shared/contract/hostkey.contract.js'
+import { trustHostKey } from '../stores/known-hosts.js'
+import { registerContract } from './register.js'
 
 export function setupHostKeyIpcHandlers(): void {
-  ipcMain.handle(
-    IPC_CHANNELS.HOST_KEY.SAVE,
-    (_, record: { connectionId: string; hash: string }) => {
-      return saveHostKeyRecord(record)
-    },
-  )
-
-  ipcMain.handle(IPC_CHANNELS.HOST_KEY.DELETE, (_, connectionId: string) => {
-    return removeHostKeyRecord(connectionId)
+  registerContract(hostKeyContract, {
+    'hostKey.trust': (record) => trustHostKey(record),
   })
 }

@@ -1,74 +1,31 @@
-import { ipcMain } from 'electron'
-import { IPC_CHANNELS } from '@shared/constants/index.js'
-import { type ConnectionConfig, type FileInfo } from '@shared/types/index.js'
-import { protocolService } from '../services/protocol/protocol-service.js'
+import { protocolContract } from '@shared/contract/protocol.contract.js'
+import { protocolService } from '../protocol/protocol-service.js'
+import { registerContract } from './register.js'
 
 export function setupProtocolIpcHandlers(): void {
-  ipcMain.handle(IPC_CHANNELS.PROTOCOL.CONNECT, async (_, config: ConnectionConfig) => {
-    return await protocolService.connect(config)
-  })
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.DISCONNECT,
-    async (_, sessionId: string, requestId?: string) => {
-      return await protocolService.disconnect(sessionId, requestId)
+  registerContract(protocolContract, {
+    'protocol.connect': (config) => protocolService.connect(config),
+    'protocol.disconnect': (sessionId, requestId) =>
+      protocolService.disconnect(sessionId, requestId),
+    'protocol.list': (sessionId, path, requestId) =>
+      protocolService.list(sessionId, path, requestId),
+    'protocol.mkdir': (sessionId, path, requestId) =>
+      protocolService.mkdir(sessionId, path, requestId),
+    'protocol.rename': (sessionId, file, newName, requestId) =>
+      protocolService.rename(sessionId, file, newName, requestId),
+    'protocol.delete': (sessionId, file, requestId) =>
+      protocolService.delete(sessionId, file, requestId),
+    'protocol.copy': (sessionId, file, targetPath, requestId) =>
+      protocolService.copy(sessionId, file, targetPath, requestId),
+    'protocol.move': (sessionId, file, targetPath, requestId) =>
+      protocolService.move(sessionId, file, targetPath, requestId),
+    'protocol.cancel': (requestId) => {
+      protocolService.cancel(requestId)
     },
-  )
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.LIST,
-    async (_, sessionId: string, remotePath: string, requestId?: string) => {
-      return await protocolService.list(sessionId, remotePath, requestId)
+    'protocol.calculateFolderStats': (sessionId, path) =>
+      protocolService.calculateFolderStats(sessionId, path),
+    'protocol.cancelCalculateFolderStats': (sessionId) => {
+      protocolService.cancelCalculateFolderStats(sessionId)
     },
-  )
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.MKDIR,
-    async (_, sessionId: string, remotePath: string, requestId?: string) => {
-      return await protocolService.mkdir(sessionId, remotePath, requestId)
-    },
-  )
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.RENAME,
-    async (_, sessionId: string, file: FileInfo, newName: string, requestId?: string) => {
-      return await protocolService.rename(sessionId, file, newName, requestId)
-    },
-  )
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.DELETE,
-    async (_, sessionId: string, file: FileInfo, requestId?: string) => {
-      return await protocolService.delete(sessionId, file, requestId)
-    },
-  )
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.COPY,
-    async (_, sessionId: string, file: FileInfo, targetPath: string, requestId?: string) => {
-      return await protocolService.copy(sessionId, file, targetPath, requestId)
-    },
-  )
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.MOVE,
-    async (_, sessionId: string, file: FileInfo, targetPath: string, requestId?: string) => {
-      return await protocolService.move(sessionId, file, targetPath, requestId)
-    },
-  )
-
-  ipcMain.handle(IPC_CHANNELS.PROTOCOL.CANCEL, (_, requestId: string) => {
-    protocolService.cancel(requestId)
-  })
-
-  ipcMain.handle(
-    IPC_CHANNELS.PROTOCOL.CALCULATE_FOLDER_STATS,
-    async (_, sessionId: string, path: string) => {
-      return await protocolService.calculateFolderStats(sessionId, path)
-    },
-  )
-
-  ipcMain.handle(IPC_CHANNELS.PROTOCOL.CANCEL_CALCULATE_FOLDER_STATS, (_, sessionId: string) => {
-    protocolService.cancelCalculateFolderStats(sessionId)
   })
 }

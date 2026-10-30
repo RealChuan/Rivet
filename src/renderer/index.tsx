@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
+import { QueryProvider } from './api/QueryProvider.js'
 import App from './App.js'
 import { ErrorBoundary } from './components/common/ErrorBoundary.js'
 import './sentry.js'
@@ -15,8 +16,10 @@ if (!rootElement) {
 }
 ReactDOM.createRoot(rootElement).render(
   <StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <QueryProvider>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </QueryProvider>
   </StrictMode>,
 )

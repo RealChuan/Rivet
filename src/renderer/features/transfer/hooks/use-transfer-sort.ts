@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { TransferTask } from '@shared/types/transfer.js'
-import { toggleSortOrder } from '@renderer/utils/sort-utils.js'
 import { SORT_ORDER, type SortOrderWithDirection } from '@shared/constants/sort.js'
 import { TRANSFER_SORT_FIELD, type TransferSortField } from '@shared/constants/transfer.js'
+import { toggleSortOrder } from '../../../utils/sort-utils.js'
 
 interface UseTransferSortReturn {
   sortBy: TransferSortField

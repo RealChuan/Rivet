@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import type { FileInfo } from '@shared/types/index.js'
+import { computeDragSelectionIndices } from '../virtualization/layout.js'
 
 interface Point {
   x: number
@@ -8,11 +9,13 @@ interface Point {
 }
 
 interface UseFileDragSelectOptions {
-  items: FileInfo[]
-  itemHeight: number
+  entries: FileInfo[]
+  columns: number
+  cellWidth: number
+  rowHeight: number
   scrollContainerRef: React.RefObject<HTMLElement | null>
   onDragStart?: () => void
-  onDragSelect?: (files: FileInfo[]) => void
+  onDragSelect?: (paths: string[]) => void
 }
 
 interface UseFileDragSelectReturn {
@@ -27,9 +30,13 @@ const SCROLL_ZONE_SIZE = 40
 const MAX_SCROLL_SPEED = 15
 const MIN_DRAG_DISTANCE = 5
 
-/** Max Y in content coords: items total height or container visible height, whichever is larger */
-function getMaxContentY(itemsLength: number, itemHeight: number, containerHeight: number): number {
-  return Math.max(itemsLength * itemHeight, containerHeight)
+function getRowCount(entryCount: number, columns: number): number {
+  return Math.ceil(entryCount / Math.max(1, columns))
+}
+
+/** Max Y in content coords: rows total height or container visible height, whichever is larger */
+function getMaxContentY(rows: number, rowHeight: number, containerHeight: number): number {
+  return Math.max(rows * rowHeight, containerHeight)
 }
 
 /** Convert viewport client coords to scroll container content coords, clamping Y to [0, maxY] */
@@ -47,46 +54,32 @@ function clientToContent(
   }
 }
 
-/** Euclidean distance between two points */
 function dragDistance(a: Point, b: Point): number {
   return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2)
 }
 
-/** Compute the set of file names whose rows overlap the drag rectangle */
-function computeFileSelection(
+function selectPaths(
   dragStart: Point,
   dragEnd: Point,
-  items: FileInfo[],
-  itemHeight: number,
-): Set<string> {
-  const startY = Math.min(dragStart.y, dragEnd.y)
-  const endY = Math.max(dragStart.y, dragEnd.y)
-  const startIndex = Math.max(0, Math.floor(startY / itemHeight))
-  const endIndex = Math.min(items.length, Math.ceil(endY / itemHeight))
+  options: { entries: FileInfo[]; columns: number; cellWidth: number; rowHeight: number },
+): string[] {
+  const indices = computeDragSelectionIndices({
+    start: dragStart,
+    end: dragEnd,
+    rowHeight: options.rowHeight,
+    cellWidth: options.cellWidth,
+    columns: options.columns,
+    entryCount: options.entries.length,
+  })
 
-  const selection = new Set<string>()
-  for (let i = startIndex; i < endIndex; i++) {
-    const file = items[i]
-    if (file) {
-      selection.add(file.name)
-    }
-  }
-  return selection
-}
-
-/** Collect FileInfo[] for files whose names are in the selection set, preserving order */
-function selectFilesByName(items: FileInfo[], names: Set<string>): FileInfo[] {
-  const result: FileInfo[] = []
-  for (const file of items) {
-    if (names.has(file.name)) {
-      result.push(file)
-    }
-  }
-  return result
+  return indices
+    .map((index) => options.entries[index]?.absolutePath)
+    .filter((path): path is string => path !== undefined)
 }
 
 export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDragSelectReturn {
-  const { items, itemHeight, scrollContainerRef, onDragStart, onDragSelect } = options
+  const { entries, columns, cellWidth, rowHeight, scrollContainerRef, onDragStart, onDragSelect } =
+    options
 
   const [isDragging, setIsDragging] = useState(false)
   const [hasStartedDrag, setHasStartedDrag] = useState(false)
@@ -98,20 +91,16 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
   const hasStartedDragRef = useRef(hasStartedDrag)
   const dragStartRef = useRef(dragStart)
   const dragEndRef = useRef(dragEnd)
-  const dragItemsRef = useRef<FileInfo[]>(items)
+  const entriesRef = useRef<FileInfo[]>(entries)
+  const geometryRef = useRef({ columns, cellWidth, rowHeight })
   const lastMouseClientRef = useRef<Point>({ x: 0, y: 0 })
   const scrollRafRef = useRef<number | null>(null)
 
-  // State refs above are kept in sync manually inside the event handlers below
-  // (each setState is paired with an immediate ref assignment), so the document
-  // listeners always read the latest values without a per-render sync effect.
-  // The callback props are accessed via useEffectEvent so the document listeners
-  // always invoke the latest callbacks without mirroring them into refs.
   const callDragStart = useEffectEvent(() => {
     onDragStart?.()
   })
-  const callDragSelect = useEffectEvent((files: FileInfo[]) => {
-    onDragSelect?.(files)
+  const callDragSelect = useEffectEvent((paths: string[]) => {
+    onDragSelect?.(paths)
   })
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -122,7 +111,8 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
     const scrollContainer = scrollContainerRef.current
     if (!scrollContainer) return
 
-    const maxY = getMaxContentY(items.length, itemHeight, scrollContainer.clientHeight)
+    const rows = getRowCount(entries.length, columns)
+    const maxY = getMaxContentY(rows, rowHeight, scrollContainer.clientHeight)
     const point = clientToContent(e.clientX, e.clientY, scrollContainer, maxY)
 
     setIsDragging(true)
@@ -135,18 +125,17 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
     hasStartedDragRef.current = false
     dragStartRef.current = point
     dragEndRef.current = point
-    dragItemsRef.current = items
+    entriesRef.current = entries
+    geometryRef.current = { columns, cellWidth, rowHeight }
     lastMouseClientRef.current = { x: e.clientX, y: e.clientY }
   }
 
-  const getDragStyle = (): React.CSSProperties => {
-    return {
-      left: Math.min(dragStart.x, dragEnd.x),
-      top: Math.min(dragStart.y, dragEnd.y),
-      width: Math.abs(dragEnd.x - dragStart.x),
-      height: Math.abs(dragEnd.y - dragStart.y),
-    }
-  }
+  const getDragStyle = (): React.CSSProperties => ({
+    left: Math.min(dragStart.x, dragEnd.x),
+    top: Math.min(dragStart.y, dragEnd.y),
+    width: Math.abs(dragEnd.x - dragStart.x),
+    height: Math.abs(dragEnd.y - dragStart.y),
+  })
 
   useEffect(() => {
     const stopAutoScroll = () => {
@@ -200,8 +189,12 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
             currentScrollEl.scrollBy(0, clampedDelta)
           }
 
-          const currentItems = dragItemsRef.current
-          const maxY = getMaxContentY(currentItems.length, itemHeight, currentScrollEl.clientHeight)
+          const geometry = geometryRef.current
+          const maxY = getMaxContentY(
+            getRowCount(entriesRef.current.length, geometry.columns),
+            geometry.rowHeight,
+            currentScrollEl.clientHeight,
+          )
           const newDragEnd = clientToContent(
             lastMouseClientRef.current.x,
             lastMouseClientRef.current.y,
@@ -215,7 +208,12 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
           const currentDragStart = dragStartRef.current
           if (dragDistance(currentDragStart, newDragEnd) >= MIN_DRAG_DISTANCE) {
             setDragSelection(
-              computeFileSelection(currentDragStart, newDragEnd, currentItems, itemHeight),
+              new Set(
+                selectPaths(currentDragStart, newDragEnd, {
+                  entries: entriesRef.current,
+                  ...geometry,
+                }),
+              ),
             )
           }
         }
@@ -230,8 +228,12 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
       if (!isDraggingRef.current || !scrollContainerRef.current) return
 
       const scrollEl = scrollContainerRef.current
-      const currentItems = dragItemsRef.current
-      const maxY = getMaxContentY(currentItems.length, itemHeight, scrollEl.clientHeight)
+      const geometry = geometryRef.current
+      const maxY = getMaxContentY(
+        getRowCount(entriesRef.current.length, geometry.columns),
+        geometry.rowHeight,
+        scrollEl.clientHeight,
+      )
       const point = clientToContent(e.clientX, e.clientY, scrollEl, maxY)
 
       lastMouseClientRef.current = { x: e.clientX, y: e.clientY }
@@ -254,7 +256,14 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
         callDragStart()
       }
 
-      setDragSelection(computeFileSelection(currentDragStart, point, currentItems, itemHeight))
+      setDragSelection(
+        new Set(
+          selectPaths(currentDragStart, point, {
+            entries: entriesRef.current,
+            ...geometry,
+          }),
+        ),
+      )
 
       const rect = scrollEl.getBoundingClientRect()
       const distanceFromTop = e.clientY - rect.top
@@ -274,22 +283,17 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
 
       stopAutoScroll()
 
-      const currentHasStartedDrag = hasStartedDragRef.current
-
-      if (!currentHasStartedDrag) {
+      if (!hasStartedDragRef.current) {
         setIsDragging(false)
         isDraggingRef.current = false
         return
       }
 
-      const currentItems = dragItemsRef.current
-      const names = computeFileSelection(
-        dragStartRef.current,
-        dragEndRef.current,
-        currentItems,
-        itemHeight,
-      )
-      callDragSelect(selectFilesByName(currentItems, names))
+      const paths = selectPaths(dragStartRef.current, dragEndRef.current, {
+        entries: entriesRef.current,
+        ...geometryRef.current,
+      })
+      callDragSelect(paths)
 
       setDragSelection(new Set())
       setIsDragging(false)
@@ -307,7 +311,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
       document.removeEventListener('mouseup', handleMouseUp)
       stopAutoScroll()
     }
-  }, [itemHeight, scrollContainerRef])
+  }, [scrollContainerRef])
 
   return {
     isDragging,

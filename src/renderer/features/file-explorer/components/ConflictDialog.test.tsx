@@ -27,7 +27,7 @@ vi.mock('react-i18next', () => ({
   initReactI18next: vi.fn(),
 }))
 
-vi.mock('@renderer/utils/index.js', () => ({
+vi.mock('../../../utils/index.js', () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn(), catch: vi.fn() },
 }))

@@ -6,8 +6,8 @@ import {
   type ConflictAction,
 } from '@shared/constants/transfer.js'
 import { FILE_TYPE, type FileType } from '@shared/constants/ui.js'
-import { isProtocolResponseErr } from '@shared/types/index.js'
 import { joinPaths, pathBasename } from '@shared/utils/index.js'
+import { protocolApi } from '../../../api/protocol.js'
 
 export interface ResolvedTask {
   localPath: string
@@ -114,9 +114,9 @@ export function buildDownloadTasksFromResolved(
 }
 
 export async function fetchRemoteFiles(sessionId: string, remoteDir: string): Promise<FileInfo[]> {
-  const response = await window.electronAPI.protocol.list(sessionId, remoteDir)
-  if (!isProtocolResponseErr(response)) {
-    return response.value
+  try {
+    return await protocolApi.list(sessionId, remoteDir)
+  } catch {
+    return []
   }
-  return []
 }

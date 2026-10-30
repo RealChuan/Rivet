@@ -1,45 +1,15 @@
 import { app, BrowserWindow } from 'electron'
-import {
-  APP_NAME,
-  DEFAULT_MAIN_WINDOW_HEIGHT,
-  DEFAULT_MAIN_WINDOW_WIDTH,
-  DEFAULT_ROUTE,
-  MAIN_WINDOW_ID,
-  MIN_MAIN_WINDOW_HEIGHT,
-  MIN_MAIN_WINDOW_WIDTH,
-  TIMEOUTS,
-} from '@shared/constants/index.js'
-import { TRANSFER_CHANNELS } from '@shared/constants/ipc/transfer.js'
+import { TIMEOUTS } from '@shared/constants/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
 import { sessionManager, sessionRegistry } from '../services/index.js'
-import { protocolService } from '../services/protocol/protocol-service.js'
-import { transferService } from '../services/transfer/index.js'
-import { saveConfig, stopAutoSave } from '../stores/index.js'
+import { flushStores, getUiSettings } from '../stores/index.js'
 import { logger } from '../utils/index.js'
-import { WindowManager } from './window-factory.js'
+import { isCloseConfirmed, requestClose, resetCloseGuard } from './close-guard.js'
+import { getMainWindow, setMainWindow } from './main-window.js'
+import { createAppWindow } from './window-factory.js'
+import { applyWindowTheme, attachSystemThemeListener } from './window-theme.js'
 
 let isCleaningUp = false
-
-/**
- * 通知渲染进程有活跃任务，触发确认弹窗
- */
-function notifyRendererActiveTasks(win: Electron.BrowserWindow): void {
-  if (!win.isDestroyed()) {
-    win.webContents.send(TRANSFER_CHANNELS.HAS_ACTIVE_TASKS)
-  }
-}
-
-/**
- * 拦截窗口关闭：有活跃传输任务时阻止关闭并通知渲染进程弹窗
- */
-function interceptCloseIfActive(win: Electron.BrowserWindow): void {
-  win.on('close', (event) => {
-    if (transferService.hasActiveTasks()) {
-      event.preventDefault()
-      notifyRendererActiveTasks(win)
-    }
-  })
-}
 
 export async function disconnectAllSessions(): Promise<void> {
   if (isCleaningUp || sessionRegistry.count === 0) return
@@ -69,10 +39,9 @@ export async function cleanupAndExit(
   logger.info(`${signalName} received, cleaning up...`)
 
   try {
-    stopAutoSave()
     await disconnectAllSessions()
     if (shouldSaveConfig) {
-      saveConfig()
+      await flushStores()
     }
   } finally {
     if (exitCode === 0) {
@@ -84,6 +53,8 @@ export async function cleanupAndExit(
 }
 
 export function setupAppLifecycle(): void {
+  attachSystemThemeListener()
+
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
       app.quit()
@@ -93,12 +64,8 @@ export function setupAppLifecycle(): void {
   app.on('before-quit', (event) => {
     if (isCleaningUp) return
 
-    if (transferService.hasActiveTasks()) {
+    if (!isCloseConfirmed() && requestClose(getMainWindow(), 'quit')) {
       event.preventDefault()
-      const mainWindow = WindowManager.get(MAIN_WINDOW_ID)
-      if (mainWindow) {
-        notifyRendererActiveTasks(mainWindow)
-      }
       return
     }
 
@@ -114,9 +81,8 @@ export function setupAppLifecycle(): void {
       }, TIMEOUTS.FORCE_EXIT)
 
       try {
-        stopAutoSave()
         await disconnectAllSessions()
-        saveConfig()
+        await flushStores()
       } catch (error: unknown) {
         const errMsg = formatErrorMessage(error)
         logger.error(`Error during quit cleanup: ${errMsg}`)
@@ -134,8 +100,8 @@ export function setupAppLifecycle(): void {
   })
 
   process.on('unhandledRejection', (reason: unknown) => {
-    const reasonStr = formatErrorMessage(reason)
-    logger.error(`Unhandled rejection: ${reasonStr}`)
+    // 带上堆栈，避免后台传输/连接失败只留下一条没有上下文的 message。
+    logger.catch(reason, { action: 'unhandled-rejection' })
   })
 
   process.on('SIGTERM', () => {
@@ -147,33 +113,26 @@ export function setupAppLifecycle(): void {
   })
 }
 
-export function createMainWindow(): void {
-  const win = WindowManager.create({
-    id: MAIN_WINDOW_ID,
-    route: DEFAULT_ROUTE,
-    width: DEFAULT_MAIN_WINDOW_WIDTH,
-    height: DEFAULT_MAIN_WINDOW_HEIGHT,
-    minWidth: MIN_MAIN_WINDOW_WIDTH,
-    minHeight: MIN_MAIN_WINDOW_HEIGHT,
-    title: APP_NAME,
+function createAndTrackMainWindow(): void {
+  resetCloseGuard()
+  const theme = getUiSettings().appearance
+  const win = createAppWindow(theme)
+  setMainWindow(win)
+  applyWindowTheme(theme)
+  win.once('closed', () => setMainWindow(null))
+  win.on('close', (event) => {
+    if (requestClose(win, 'close')) {
+      event.preventDefault()
+    }
   })
+}
 
-  transferService.setMainWindow(win)
-  protocolService.setMainWindow(win)
-
-  interceptCloseIfActive(win)
+export function createMainWindow(): void {
+  createAndTrackMainWindow()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      const newWin = WindowManager.create({
-        id: MAIN_WINDOW_ID,
-        route: DEFAULT_ROUTE,
-        title: APP_NAME,
-      })
-      transferService.setMainWindow(newWin)
-      protocolService.setMainWindow(newWin)
-
-      interceptCloseIfActive(newWin)
+      createAndTrackMainWindow()
     }
   })
 }

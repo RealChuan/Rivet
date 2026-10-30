@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<multistatus xmlns="DAV:">
+  <response>
+    <href>/dav/empty.txt</href>
+    <propstat>
+      <prop/>
+      <status>HTTP/1.1 200 OK</status>
+    </propstat>
+  </response>
+  <response>
+    <href>/dav/forbidden.txt</href>
+    <propstat>
+      <prop>
+        <getcontentlength>99</getcontentlength>
+      </prop>
+      <status>HTTP/1.1 404 Not Found</status>
+    </propstat>
+  </response>
+</multistatus>

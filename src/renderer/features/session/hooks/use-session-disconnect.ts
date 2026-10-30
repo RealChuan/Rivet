@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useUiStore } from '@renderer/stores/index.js'
 import { TOAST_TYPE } from '@shared/constants/index.js'
+import { protocolApi } from '../../../api/protocol.js'
+import { useUiStore } from '../../../stores/index.js'
 import { useSessionStore } from '../stores/session.js'
 
 export const useSessionDisconnect = () => {
@@ -11,7 +12,7 @@ export const useSessionDisconnect = () => {
   const addToast = useUiStore((state) => state.addToast)
 
   useEffect(() => {
-    const unsubscribe = window.electronAPI.protocol.onSessionDisconnected((event) => {
+    const unsubscribe = protocolApi.onSessionDisconnected((event) => {
       const sessionData = getSessionByConnectionId(event.connectionId)
       if (sessionData) {
         removeSession(sessionData.sessionId)

@@ -1,7 +1,12 @@
+import type React from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig, Session } from '@shared/types/index.js'
 import { ConnectionList } from './ConnectionList.js'
+
+vi.mock('../../file-explorer/hooks/use-directory-list.js', () => ({
+  useDirectoryLoading: () => false,
+}))
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -131,11 +136,8 @@ describe('ConnectionList', () => {
       sessionId: 'sess-1',
       connectionId: 'conn-1',
       currentPath: '/home',
-      files: [],
       isConnected: true,
-      isLoading: false,
       isOperating: false,
-      error: null,
     }
     render(
       <ConnectionList
