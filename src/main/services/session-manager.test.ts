@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig } from '@shared/types/connection.js'
-import { PROTOCOL, TIMEOUTS } from '@shared/constants/index.js'
+import { ERROR_CODE, PROTOCOL, TIMEOUTS } from '@shared/constants/index.js'
 import { EVENT_CHANNEL } from '@shared/contract/events.contract.js'
+import { createErrorInfo, err, ok } from '@shared/types/index.js'
 import { providerSessionRegistry, type SessionHandle } from '../providers/session-registry.js'
 import { createFakeProvider } from '../providers/test-utils/fake-provider.js'
 import { SessionManager } from './session-manager.js'
@@ -53,8 +54,8 @@ describe('SessionManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    mockDisconnect.mockResolvedValue(undefined)
-    mockPing.mockResolvedValue(undefined)
+    mockDisconnect.mockResolvedValue(ok(undefined))
+    mockPing.mockResolvedValue(ok(undefined))
     providerSessionRegistry.clear()
     sessionManager = new SessionManager({ disconnect: mockDisconnect, ping: mockPing })
   })
@@ -240,9 +241,27 @@ describe('SessionManager', () => {
       vi.useRealTimers()
     })
 
+    it('should disconnect when ping resolves with a failure Result', async () => {
+      vi.useFakeTimers()
+      mockPing.mockResolvedValue(err(createErrorInfo(ERROR_CODE.PING_ERROR, 'ping failed')))
+
+      register('session-1')
+      sessionManager.startHeartbeat()
+
+      await vi.advanceTimersByTimeAsync(TIMEOUTS.HEARTBEAT_INTERVAL + 1)
+
+      expect(mockSend).toHaveBeenCalledWith(
+        EVENT_CHANNEL.SESSION_DISCONNECTED,
+        expect.objectContaining({ sessionId: 'session-1' }),
+      )
+      expect(providerSessionRegistry.has('session-1')).toBe(false)
+
+      vi.useRealTimers()
+    })
+
     it('should not broadcast SESSION_DISCONNECTED when ping succeeds', async () => {
       vi.useFakeTimers()
-      mockPing.mockResolvedValue(undefined)
+      mockPing.mockResolvedValue(ok(undefined))
 
       register('session-1')
       sessionManager.startHeartbeat()

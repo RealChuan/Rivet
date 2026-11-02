@@ -60,14 +60,18 @@ export const DEFAULT_CHILD_WINDOW_MIN_HEIGHT = MIN_MAIN_WINDOW_HEIGHT
 export const MACOS_TRAFFIC_LIGHT_POSITION = { x: 16, y: 12 } as const
 /** WCO 标题栏高度 */
 export const TITLEBAR_HEIGHT = 36
-/** WCO 覆盖层颜色（取 no-glass 的不透明表面色） */
+/** WCO 覆盖层颜色（不透明表面色，与渲染层 --color-titlebar 同步） */
 export const TITLEBAR_OVERLAY_COLORS = {
   light: { color: '#ffffff', symbolColor: '#171717' },
   dark: { color: '#1e1e1e', symbolColor: '#e5e5e5' },
 } as const
 /** 连接面板默认宽度 */
 export const DEFAULT_CONNECTION_PANEL_WIDTH = 260
-/** 传输面板默认宽度 */
-export const DEFAULT_TRANSFER_PANEL_WIDTH = 260
-/** 队列抽屉默认宽度 */
-export const DEFAULT_QUEUE_DRAWER_WIDTH = 360
+/** 传输队列面板收起态高度 */
+export const QUEUE_PANEL_COLLAPSED_HEIGHT = 32
+/** 传输队列面板展开态默认高度 */
+export const DEFAULT_QUEUE_PANEL_HEIGHT = 260
+/** 传输队列面板展开态最小高度 */
+export const MIN_QUEUE_PANEL_HEIGHT = 160
+/** 传输队列面板最大高度占内容区比例 */
+export const MAX_QUEUE_PANEL_HEIGHT_RATIO = 0.7

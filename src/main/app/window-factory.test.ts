@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment -- globalThis 注入 Vite 全局 */
 /* eslint-disable @typescript-eslint/consistent-type-imports -- typeof import() 用于取模块类型 */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { supportsBackgroundMaterial, supportsVibrancy } from '../utils/index.js'
 
 const mockGetMainWindow = vi.fn()
 
@@ -15,13 +16,9 @@ vi.mock('./window-chrome.js', () => ({
 }))
 
 vi.mock('../utils/index.js', () => ({
-  supportsGlassEffect: vi.fn(() => false),
+  supportsBackgroundMaterial: vi.fn(() => false),
+  supportsVibrancy: vi.fn(() => false),
 }))
-
-vi.mock('node:path', () => {
-  const path = { join: vi.fn(() => '/mocked/preload/path') }
-  return { default: path, ...path }
-})
 
 describe('window-factory', () => {
   let createAppWindow: typeof import('./window-factory.js').createAppWindow
@@ -73,8 +70,29 @@ describe('window-factory', () => {
     )
   })
 
+  it('resolves preload and renderer paths from the app root', async () => {
+    const { app } = await import('electron')
+    const path = (await import('node:path')).default
+    const win = createAppWindow('light')
+
+    expect(vi.mocked(app.getAppPath)).toHaveBeenCalled()
+    expect(BrowserWindow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        webPreferences: expect.objectContaining({
+          preload: path.join('/app', '.vite', 'build', 'index.cjs'),
+        }),
+      }),
+    )
+    expect(win.loadFile).toHaveBeenCalledWith(
+      path.join('/app', '.vite', 'renderer', 'main_window', 'index.html'),
+      undefined,
+    )
+  })
+
   it('uses the frameless custom titlebar on Windows 10 and Linux', () => {
     vi.mocked(getWindowChromeMode).mockReturnValue('custom')
+    vi.mocked(supportsBackgroundMaterial).mockReturnValue(false)
+    vi.mocked(supportsVibrancy).mockReturnValue(false)
     createAppWindow('light')
 
     const options = vi.mocked(BrowserWindow).mock.calls.at(-1)?.[0]
@@ -99,6 +117,46 @@ describe('window-factory', () => {
       }),
     )
     expect(options).not.toHaveProperty('titleBarOverlay')
+  })
+
+  it('enables mica and a transparent backdrop on Windows 11 22H2+', () => {
+    vi.mocked(getWindowChromeMode).mockReturnValue('wco')
+    vi.mocked(supportsBackgroundMaterial).mockReturnValue(true)
+    createAppWindow('light')
+
+    const options = vi.mocked(BrowserWindow).mock.calls.at(-1)?.[0]
+    expect(options?.backgroundMaterial).toBe('mica')
+    expect(options?.backgroundColor).toBe('#00000000')
+  })
+
+  it('falls back to an opaque background when no window material exists', () => {
+    vi.mocked(getWindowChromeMode).mockReturnValue('wco')
+    vi.mocked(supportsBackgroundMaterial).mockReturnValue(false)
+    vi.mocked(supportsVibrancy).mockReturnValue(false)
+    createAppWindow('dark')
+
+    const options = vi.mocked(BrowserWindow).mock.calls.at(-1)?.[0]
+    expect(options).not.toHaveProperty('backgroundMaterial')
+    expect(options?.backgroundColor).toBe('#1e1e1e')
+  })
+
+  it('enables vibrancy and keeps the backdrop transparent on macOS', () => {
+    vi.mocked(getWindowChromeMode).mockReturnValue('mac-hidden')
+    vi.mocked(supportsVibrancy).mockReturnValue(true)
+    createAppWindow('light')
+
+    const options = vi.mocked(BrowserWindow).mock.calls.at(-1)?.[0]
+    expect(options?.vibrancy).toBe('under-window')
+    expect(options?.backgroundColor).toBe('#00000000')
+  })
+
+  it('omits vibrancy when macOS does not support it', () => {
+    vi.mocked(getWindowChromeMode).mockReturnValue('mac-hidden')
+    vi.mocked(supportsVibrancy).mockReturnValue(false)
+    createAppWindow('light')
+
+    const options = vi.mocked(BrowserWindow).mock.calls.at(-1)?.[0]
+    expect(options).not.toHaveProperty('vibrancy')
   })
 
   it('blocks navigation and new windows', () => {

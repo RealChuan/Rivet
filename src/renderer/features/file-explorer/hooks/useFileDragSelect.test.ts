@@ -93,6 +93,20 @@ describe('useFileDragSelect', () => {
     expect(onDragSelect).toHaveBeenCalledWith(['/f0', '/f1', '/f2', '/f3', '/f4', '/f5'])
   })
 
+  it('拖拽过程中实时给出框选结果，松手前即可用于高亮', () => {
+    const { result } = renderDragSelect()
+
+    act(() => result.current.handleMouseDown(mouseDownEvent(10, 10)))
+    act(() => dispatchMouse('mousemove', 10, 40))
+
+    expect(result.current.hasStartedDrag).toBe(true)
+    expect(result.current.dragSelection).toEqual(new Set(['/f0', '/f1']))
+    expect(onDragSelect).not.toHaveBeenCalled()
+
+    act(() => dispatchMouse('mouseup', 10, 40))
+    expect(onDragSelect).toHaveBeenCalledWith(['/f0', '/f1'])
+  })
+
   it('拖拽距离过小时不触发选择回调', () => {
     const { result } = renderDragSelect()
 

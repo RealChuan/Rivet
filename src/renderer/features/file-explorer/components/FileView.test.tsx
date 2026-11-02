@@ -33,6 +33,28 @@ const mockUi = {
   setFileViewMode: vi.fn(),
 }
 
+const mockDragSelection = new Set<string>()
+
+const mockCopyMove = {
+  handleCopy: vi.fn(),
+  handleCut: vi.fn(),
+  handlePaste: vi.fn().mockResolvedValue({ success: true, value: undefined, error: null }),
+  canPaste: false,
+  cutPaths: new Set<string>(),
+  handleCopyTo: vi.fn(),
+  handleMoveTo: vi.fn(),
+  handleSelectTargetFolder: vi.fn(),
+  handleConflictResolution: vi.fn(),
+  targetFolderDialogOpen: false,
+  conflictDialogOpen: false,
+  conflicts: [],
+  pendingOperation: null,
+  pendingFiles: [],
+  pendingTargetDir: null,
+  setTargetFolderDialogOpen: vi.fn(),
+  setConflictDialogOpen: vi.fn(),
+}
+
 const mockSessions: Session[] = [
   {
     sessionId: 's1',
@@ -127,8 +149,19 @@ vi.mock('../hooks/index.js', async (importOriginal) => {
       sortedFiles: files,
       handleSort: vi.fn(),
     }),
+    useFileDragSelect: () => ({
+      isDragging: false,
+      hasStartedDrag: false,
+      dragSelection: mockDragSelection,
+      handleMouseDown: vi.fn(),
+      getDragStyle: () => ({}),
+    }),
   }
 })
+
+vi.mock('../hooks/use-file-copy-move.js', () => ({
+  useFileCopyMove: () => mockCopyMove,
+}))
 
 vi.mock('./FileExplorerDialogs.js', () => ({ default: () => null }))
 vi.mock('./ParentDirectoryButton.js', () => ({ default: () => null }))
@@ -149,6 +182,9 @@ beforeEach(() => {
   mockDirectory.isLoading = false
   mockDirectory.error = null
   mockUi.fileViewModes = {}
+  mockDragSelection.clear()
+  mockCopyMove.canPaste = false
+  mockCopyMove.cutPaths = new Set()
 })
 
 describe('FileView', () => {
@@ -174,6 +210,33 @@ describe('FileView', () => {
     await userEvent.click(screen.getByText('docs'))
 
     expect(cellByName('docs')?.getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('框选进行中列表条目即时高亮', () => {
+    mockDirectory.files = [
+      { ...FILE, name: 'a.txt', type: 'file', absolutePath: '/a.txt' },
+      { ...FILE, name: 'b.txt', type: 'file', absolutePath: '/b.txt' },
+    ]
+    mockDragSelection.add('/b.txt')
+
+    renderFileView()
+
+    expect(cellByName('a.txt')?.getAttribute('aria-selected')).toBe('false')
+    expect(cellByName('b.txt')?.getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('框选进行中宫格条目即时高亮', () => {
+    mockUi.fileViewModes = { s1: 'grid' }
+    mockDirectory.files = [
+      { ...FILE, name: 'a.txt', type: 'file', absolutePath: '/a.txt' },
+      { ...FILE, name: 'b.txt', type: 'file', absolutePath: '/b.txt' },
+    ]
+    mockDragSelection.add('/a.txt')
+
+    renderFileView()
+
+    expect(cellByName('a.txt')?.getAttribute('aria-selected')).toBe('true')
+    expect(cellByName('b.txt')?.getAttribute('aria-selected')).toBe('false')
   })
 
   it('切换到宫格后选中项保持', async () => {
@@ -219,5 +282,35 @@ describe('FileView', () => {
 
     await userEvent.click(screen.getByText('fileExplorerList.retry'))
     expect(mockDirectory.refetch).toHaveBeenCalled()
+  })
+
+  it('Ctrl+C / Ctrl+X 把选中项写入剪贴板', async () => {
+    renderFileView()
+    await userEvent.click(screen.getByText('docs'))
+
+    await userEvent.keyboard('{Control>}c{/Control}')
+    expect(mockCopyMove.handleCopy).toHaveBeenCalledWith([FILE])
+
+    await userEvent.keyboard('{Control>}x{/Control}')
+    expect(mockCopyMove.handleCut).toHaveBeenCalledWith([FILE])
+  })
+
+  it('Ctrl+V 在剪贴板可用时粘贴到当前目录', async () => {
+    mockCopyMove.canPaste = true
+    renderFileView()
+    await userEvent.click(screen.getByText('docs'))
+
+    await userEvent.keyboard('{Control>}v{/Control}')
+
+    expect(mockCopyMove.handlePaste).toHaveBeenCalledWith('/')
+  })
+
+  it('Ctrl+V 在剪贴板不可用时不触发粘贴', async () => {
+    renderFileView()
+    await userEvent.click(screen.getByText('docs'))
+
+    await userEvent.keyboard('{Control>}v{/Control}')
+
+    expect(mockCopyMove.handlePaste).not.toHaveBeenCalled()
   })
 })

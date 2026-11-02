@@ -61,6 +61,7 @@ async function* hangingEntries(): AsyncGenerator<Entry> {
 function createTestProvider() {
   const connect = vi.fn((_credentials: Credentials) => Promise.resolve())
   const disconnect = vi.fn(() => Promise.resolve())
+  const ping = vi.fn(() => Promise.resolve())
   const list = vi.fn<FileProvider['list']>(() => emptyEntries())
   const mkdir = vi.fn(() => Promise.resolve())
   const remove = vi.fn(() => Promise.resolve())
@@ -89,7 +90,7 @@ function createTestProvider() {
     capabilities: FAKE_CAPABILITIES,
     connect,
     disconnect,
-    ping: () => Promise.resolve(),
+    ping,
     list,
     stat: () => Promise.resolve(FAKE_ENTRY),
     mkdir,
@@ -99,7 +100,18 @@ function createTestProvider() {
     openWrite,
   }
 
-  return { provider, connect, disconnect, list, mkdir, remove, rename, openRead, openWrite }
+  return {
+    provider,
+    connect,
+    disconnect,
+    ping,
+    list,
+    mkdir,
+    remove,
+    rename,
+    openRead,
+    openWrite,
+  }
 }
 
 function makeHarness(providerOverride?: FileProvider) {
@@ -337,6 +349,20 @@ describe('ProtocolService.connect', () => {
     expect(response.success).toBe(false)
     if (response.success) return
     expect(response.error.code).toBe(ERROR_CODE.CONN_FAILED)
+    expect(harness.disconnect).toHaveBeenCalled()
+  })
+
+  it('连接后探活失败按 CONN_FAILED 处理，不注册会话并清理连接', async () => {
+    const harness = makeHarness()
+    harness.ping.mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:8080'))
+
+    const response = await harness.service.connect({ connection: config })
+
+    expect(response.success).toBe(false)
+    if (response.success) return
+    expect(response.error.code).toBe(ERROR_CODE.CONN_FAILED)
+    expect(harness.ping).toHaveBeenCalled()
+    expect(harness.sessions.count).toBe(0)
     expect(harness.disconnect).toHaveBeenCalled()
   })
 })

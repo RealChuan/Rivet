@@ -45,7 +45,7 @@ export const SortDropdown = ({ sortBy, sortOrder, onSort }: SortDropdownProps) =
       <PopoverPrimitive.Trigger asChild>
         <button
           type="button"
-          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-text-muted hover:text-text border border-border bg-glass-bg hover:bg-hover transition-colors cursor-default"
+          className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs text-text-muted hover:text-text border border-border bg-surface hover:bg-hover transition-colors cursor-default"
           aria-label={t(($) => $.transfer.action.sort)}
         >
           <ListFilter className="w-3.5 h-3.5" />
@@ -58,8 +58,8 @@ export const SortDropdown = ({ sortBy, sortOrder, onSort }: SortDropdownProps) =
           sideOffset={4}
           align="end"
           className={cn(
-            'z-50 min-w-50 p-3 rounded-lg border border-border',
-            'bg-glass-bg backdrop-blur-xl shadow-dropdown',
+            'z-50 min-w-50 p-3 rounded-lg border border-glass-border',
+            'bg-glass-bg shadow-dropdown',
             'animate-menu-in',
           )}
         >

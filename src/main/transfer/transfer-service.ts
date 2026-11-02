@@ -184,6 +184,7 @@ export class TransferService {
     task.completedFileCount = undefined
     task.activeFileCount = undefined
     task.waitingFileCount = undefined
+    delete task.scanCompleted
     this.operationsByTask.delete(taskId)
     this.schedule()
   }
@@ -453,6 +454,7 @@ export class TransferService {
           : {}),
         ...(task.activeFileCount !== undefined ? { activeFileCount: task.activeFileCount } : {}),
         ...(task.waitingFileCount !== undefined ? { waitingFileCount: task.waitingFileCount } : {}),
+        ...(task.scanCompleted ? { scanCompleted: true } : {}),
       }),
     )
   }

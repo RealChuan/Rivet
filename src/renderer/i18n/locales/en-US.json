@@ -1,9 +1,5 @@
 {
   "translation": {
-    "activityBar": {
-      "connections": "Connections",
-      "transfers": "Transfers"
-    },
     "app": {
       "name": "Rivet",
       "subtitle": "SFTP / WebDAV File Browser"
@@ -147,9 +143,12 @@
     "file": {
       "action": {
         "copy": "Copy",
+        "copyTo": "Copy to...",
+        "cut": "Cut",
         "download": "Download",
-        "move": "Move",
+        "moveTo": "Move to...",
         "newFolder": "New Folder",
+        "paste": "Paste",
         "properties": "Properties",
         "rename": "Rename",
         "upload": "Upload",
@@ -291,21 +290,35 @@
         "title": "Uploads in Progress"
       },
       "download": "Download",
-      "empty": "No active tasks",
       "errorDetail": {
         "copied": "Copied",
         "copy": "Copy",
         "title": "Error Details"
       },
       "folderStats": {
-        "fileCount": "{{completed}}/{{total}} files"
+        "fileCount": "{{completed}}/{{total}} files",
+        "scanning": "{{completed}} done · {{total}} found"
       },
       "path": {
         "destination": "Destination",
         "source": "Source"
       },
-      "runningCount_one": "{{count}} task in progress",
-      "runningCount_other": "{{count}} tasks in progress",
+      "queue": {
+        "collapse": "Collapse",
+        "empty": "No transfers",
+        "emptyCurrentScope": "No transfers for this connection",
+        "expand": "Expand",
+        "maximize": "Maximize",
+        "remaining": "{{time}} left",
+        "resize": "Resize transfer panel",
+        "restore": "Restore",
+        "scope": "Task scope",
+        "scopeAll": "All connections",
+        "scopeCurrent": "This connection",
+        "settings": "Concurrency",
+        "unknownConnection": "Unknown connection",
+        "viewAll": "View all"
+      },
       "sort": {
         "name": "Name",
         "size": "Size",
@@ -316,7 +329,6 @@
         "failed": "Failed",
         "failedCount_one": "{{count}} failed",
         "failedCount_other": "{{count}} failed",
-        "running": "Running",
         "waiting": "Waiting"
       },
       "upload": "Upload"

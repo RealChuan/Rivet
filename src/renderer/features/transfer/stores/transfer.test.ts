@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TransferProgressData, TransferTask } from '@shared/types/transfer.js'
-import { OPERATION_STATUS, TRANSFER_DIRECTION } from '@shared/constants/transfer.js'
+import { OPERATION_STATUS, TRANSFER_DIRECTION, TRANSFER_SCOPE } from '@shared/constants/transfer.js'
 import { useTransferStore } from './transfer.js'
 
 const mockOnTasksEnqueued = vi.fn()
@@ -55,9 +55,8 @@ describe('useTransferStore', () => {
     useTransferStore.setState({
       tasks: [],
       taskProgress: new Map(),
-      selectedSessionId: null,
       activeOperations: new Map(),
-      isVisible: true,
+      scope: TRANSFER_SCOPE.CURRENT,
       maxUploadConcurrency: 5,
       maxDownloadConcurrency: 5,
     })
@@ -72,8 +71,8 @@ describe('useTransferStore', () => {
       expect(useTransferStore.getState().taskProgress.size).toBe(0)
     })
 
-    it('should have null selectedSessionId', () => {
-      expect(useTransferStore.getState().selectedSessionId).toBeNull()
+    it('should scope tasks to the current connection by default', () => {
+      expect(useTransferStore.getState().scope).toBe(TRANSFER_SCOPE.CURRENT)
     })
 
     it('should have empty activeOperations', () => {
@@ -97,21 +96,6 @@ describe('useTransferStore', () => {
       const progress = useTransferStore.getState().taskProgress.get('task-1')
       expect(progress?.transferredSize).toBe(100)
       expect(progress?.fileSize).toBe(1000)
-    })
-
-    it('should set selectedSessionId to first task sessionId when null', () => {
-      const task = createTask({ sessionId: 'session-abc' })
-      useTransferStore.getState().handleTasksEnqueued([task])
-
-      expect(useTransferStore.getState().selectedSessionId).toBe('session-abc')
-    })
-
-    it('should not override selectedSessionId when already set', () => {
-      useTransferStore.setState({ selectedSessionId: 'session-existing' })
-      const task = createTask({ sessionId: 'session-new' })
-      useTransferStore.getState().handleTasksEnqueued([task])
-
-      expect(useTransferStore.getState().selectedSessionId).toBe('session-existing')
     })
 
     it('should append to existing tasks', () => {
@@ -181,6 +165,20 @@ describe('useTransferStore', () => {
       expect(progress?.completedFileCount).toBe(3)
       expect(progress?.activeFileCount).toBe(2)
       expect(progress?.waitingFileCount).toBe(5)
+    })
+
+    it('should carry scanCompleted through the batch', () => {
+      const task = createTask({ id: 'task-1' })
+      useTransferStore.setState({ tasks: [task] })
+
+      handleProgress({
+        taskId: 'task-1',
+        transferredSize: 100,
+        totalFileCount: 4,
+        scanCompleted: true,
+      })
+
+      expect(useTransferStore.getState().taskProgress.get('task-1')?.scanCompleted).toBe(true)
     })
 
     it('should update activeOperations map', () => {
@@ -374,18 +372,46 @@ describe('useTransferStore', () => {
     })
   })
 
-  describe('setSelectedSessionId', () => {
-    it('should update selectedSessionId', () => {
-      useTransferStore.getState().setSelectedSessionId('session-1')
+  describe('setScope', () => {
+    it('should switch between current connection and all connections', () => {
+      useTransferStore.getState().setScope(TRANSFER_SCOPE.ALL)
+      expect(useTransferStore.getState().scope).toBe(TRANSFER_SCOPE.ALL)
 
-      expect(useTransferStore.getState().selectedSessionId).toBe('session-1')
+      useTransferStore.getState().setScope(TRANSFER_SCOPE.CURRENT)
+      expect(useTransferStore.getState().scope).toBe(TRANSFER_SCOPE.CURRENT)
+    })
+  })
+
+  describe('restoreActiveTasks', () => {
+    it('restores only waiting and running tasks', async () => {
+      mockGetTasks.mockResolvedValueOnce({
+        success: true,
+        value: [
+          createTask({ id: 'running', status: OPERATION_STATUS.RUNNING }),
+          createTask({ id: 'waiting', status: OPERATION_STATUS.WAITING }),
+          createTask({ id: 'failed', status: OPERATION_STATUS.FAILED }),
+        ],
+        error: null,
+      })
+
+      await useTransferStore.getState().restoreActiveTasks()
+
+      expect(useTransferStore.getState().tasks.map((task) => task.id)).toEqual([
+        'running',
+        'waiting',
+      ])
     })
 
-    it('should allow setting to null', () => {
-      useTransferStore.setState({ selectedSessionId: 'session-1' })
-      useTransferStore.getState().setSelectedSessionId(null)
+    it('keeps the list untouched when nothing is active', async () => {
+      mockGetTasks.mockResolvedValueOnce({
+        success: true,
+        value: [createTask({ id: 'failed', status: OPERATION_STATUS.FAILED })],
+        error: null,
+      })
 
-      expect(useTransferStore.getState().selectedSessionId).toBeNull()
+      await useTransferStore.getState().restoreActiveTasks()
+
+      expect(useTransferStore.getState().tasks).toEqual([])
     })
   })
 
@@ -417,60 +443,6 @@ describe('useTransferStore', () => {
 
       expect(useTransferStore.getState().maxUploadConcurrency).toBe(7)
       expect(useTransferStore.getState().maxDownloadConcurrency).toBe(3)
-    })
-  })
-
-  describe('setVisible', () => {
-    it('should update isVisible state', () => {
-      useTransferStore.getState().setVisible(false)
-      expect(useTransferStore.getState().isVisible).toBe(false)
-
-      useTransferStore.getState().setVisible(true)
-      expect(useTransferStore.getState().isVisible).toBe(true)
-    })
-
-    it('should skip progress flush when not visible', () => {
-      const task = createTask({ id: 'task-1', transferredSize: 0 })
-      useTransferStore.setState({ tasks: [task] })
-      useTransferStore.getState().setVisible(false)
-
-      handleProgress({
-        taskId: 'task-1',
-        transferredSize: 500,
-      })
-
-      // Progress should NOT be applied when not visible
-      expect(useTransferStore.getState().taskProgress.has('task-1')).toBe(false)
-    })
-
-    it('should flush buffered progress when becoming visible', () => {
-      const task = createTask({ id: 'task-1', transferredSize: 0 })
-      useTransferStore.setState({ tasks: [task] })
-      useTransferStore.getState().setVisible(false)
-
-      handleProgress({
-        taskId: 'task-1',
-        transferredSize: 500,
-      })
-
-      // Still not visible, progress not applied
-      expect(useTransferStore.getState().taskProgress.has('task-1')).toBe(false)
-
-      // Becoming visible flushes the buffer
-      useTransferStore.getState().setVisible(true)
-      expect(useTransferStore.getState().taskProgress.get('task-1')?.transferredSize).toBe(500)
-    })
-
-    it('should apply progress normally when visible', () => {
-      const task = createTask({ id: 'task-1', transferredSize: 0 })
-      useTransferStore.setState({ tasks: [task] })
-
-      handleProgress({
-        taskId: 'task-1',
-        transferredSize: 500,
-      })
-
-      expect(useTransferStore.getState().taskProgress.get('task-1')?.transferredSize).toBe(500)
     })
   })
 

@@ -191,7 +191,12 @@ describe('FileTransferExecutor 文件夹上传', () => {
       activeFileCount: 0,
       waitingFileCount: 0,
       transferredSize: 9,
+      scanCompleted: true,
     })
+
+    // 扫描结束前上报的 totalFileCount 只是“已发现”，不能带 scanCompleted。
+    const scanCompletedIndex = report.mock.calls.findIndex(([data]) => data.scanCompleted === true)
+    expect(scanCompletedIndex).toBeGreaterThan(0)
   })
 
   it('取消父任务时不再启动新的子操作', async () => {

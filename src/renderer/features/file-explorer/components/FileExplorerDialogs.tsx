@@ -5,7 +5,7 @@ import { isOk } from '@shared/types/index.js'
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog.js'
 import TextInputDialog from '../../../components/common/TextInputDialog.js'
 import { useUiStore } from '../../../stores/index.js'
-import { useFileCopyMove } from '../hooks/use-file-copy-move.js'
+import { type UseFileCopyMoveReturn } from '../hooks/use-file-copy-move.js'
 import { useFileDeletion } from '../hooks/use-file-deletion.js'
 import { type UseFileListStateReturn } from '../hooks/use-file-list-state.js'
 import { useFileRenaming } from '../hooks/use-file-renaming.js'
@@ -20,6 +20,7 @@ interface FileExplorerDialogsProps {
   sessionId: string
   currentPath: string
   listState: UseFileListStateReturn
+  copyMove: UseFileCopyMoveReturn
   isSftp?: boolean | undefined
   onClearSelection: () => void
 }
@@ -28,6 +29,7 @@ export const FileExplorerDialogs = ({
   sessionId,
   currentPath,
   listState,
+  copyMove,
   isSftp,
   onClearSelection,
 }: FileExplorerDialogsProps) => {
@@ -37,7 +39,6 @@ export const FileExplorerDialogs = ({
   const { handleDelete } = useFileDeletion(sessionId)
   const { handleRename } = useFileRenaming(sessionId)
   const { handleCreateFolder } = useFolderCreation(sessionId)
-  const fileCopyMoveState = useFileCopyMove(sessionId)
   const { openFilePicker, openFolderPicker, openDownloadDialog } = useTransferDialog({
     sessionId,
     currentPath,
@@ -63,7 +64,11 @@ export const FileExplorerDialogs = ({
 
   const {
     handleCopy,
-    handleMove,
+    handleCut,
+    handlePaste,
+    canPaste,
+    handleCopyTo,
+    handleMoveTo,
     handleSelectTargetFolder,
     handleConflictResolution,
     targetFolderDialogOpen,
@@ -73,7 +78,11 @@ export const FileExplorerDialogs = ({
     pendingTargetDir,
     setTargetFolderDialogOpen,
     setConflictDialogOpen,
-  } = fileCopyMoveState
+  } = copyMove
+
+  const handlePasteHere = () => {
+    void handlePaste(currentPath)
+  }
 
   const handleRenameWrapper = (newName: string) => {
     if (renameTarget) {
@@ -168,8 +177,12 @@ export const FileExplorerDialogs = ({
       <FileExplorerContextMenu
         files={contextMenu?.files ?? []}
         isEmptyArea={contextMenu?.isEmptyArea ?? false}
+        canPaste={canPaste}
         onCopy={handleCopy}
-        onMove={handleMove}
+        onCut={handleCut}
+        onPaste={handlePasteHere}
+        onCopyTo={handleCopyTo}
+        onMoveTo={handleMoveTo}
         onDelete={openDeleteDialog}
         onRename={openRenameDialog}
         onCreateFolder={() => setNewFolderDialogOpen(true)}

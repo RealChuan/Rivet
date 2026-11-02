@@ -3,15 +3,15 @@ import { EVENT_CHANNEL } from '@shared/contract/events.contract.js'
 import { createErrorInfo, err, type ErrorInfo, ok, type Result } from '@shared/types/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
 import { sendToMainWindow } from '../app/main-window.js'
-import { providerSessionRegistry } from '../providers/session-registry.js'
+import { providerSessionRegistry, type SessionHandle } from '../providers/session-registry.js'
 import { logger } from '../utils/logger.js'
 import { transferService } from './transfer/index.js'
 
 export type { SessionHandle } from '../providers/session-registry.js'
 
 interface SessionManagerCallbacks {
-  disconnect: (sessionId: string) => Promise<unknown>
-  ping: (sessionId: string) => Promise<unknown>
+  disconnect: (sessionId: string) => Promise<Result<void, ErrorInfo>>
+  ping: (sessionId: string) => Promise<Result<void, ErrorInfo>>
 }
 
 /**
@@ -59,12 +59,13 @@ class SessionManager {
 
     let timeoutId: NodeJS.Timeout | undefined
     try {
-      await Promise.race([
+      const result = await Promise.race([
         this.callbacks.disconnect(sessionId),
-        new Promise<void>((_, reject) => {
+        new Promise<never>((_, reject) => {
           timeoutId = setTimeout(() => reject(new Error('Disconnect timeout')), TIMEOUTS.DISCONNECT)
         }),
       ])
+      if (!result.success) throw new Error(result.error.message)
     } catch (e) {
       providerSessionRegistry.unregister(sessionId)
       return err(
@@ -123,28 +124,59 @@ class SessionManager {
         if (!handle || handle.isClosing) return
 
         let timeoutId: NodeJS.Timeout | undefined
+        let alive = false
         try {
-          await Promise.race([
+          // ping 以 Result 返回失败（而非 reject），这里必须显式判定，
+          // 否则连接被服务端关闭后会一直显示为已连接。
+          const result = await Promise.race([
             this.callbacks.ping(sessionId),
-            new Promise<void>((_, reject) => {
+            new Promise<never>((_, reject) => {
               timeoutId = setTimeout(() => reject(new Error('Ping timeout')), TIMEOUTS.PING)
             }),
           ])
+          alive = result.success
         } catch (_error) {
-          this.safeUnregister(sessionId).catch((err) => {
-            logger.catch(err, { action: 'heartbeat-unregister', sessionId })
-          })
-          sendToMainWindow(EVENT_CHANNEL.SESSION_DISCONNECTED, {
-            sessionId,
-            connectionId: handle.config.id,
-            protocol: handle.protocolType,
-            name: handle.config.name,
-          })
+          alive = false
         } finally {
           if (timeoutId) clearTimeout(timeoutId)
         }
+
+        if (!alive) {
+          await this.dropDeadSession(sessionId, handle)
+        }
       }),
     )
+  }
+
+  /**
+   * 心跳判定连接已死时强制清理：即使仍有传输任务也要断开，
+   * 否则主进程会残留一个永远 ping 不通的会话，且事件会每个周期重复发送。
+   */
+  private async dropDeadSession(sessionId: string, handle: SessionHandle): Promise<void> {
+    if (handle.isClosing) return
+
+    providerSessionRegistry.setClosing(sessionId)
+    let timeoutId: NodeJS.Timeout | undefined
+    try {
+      await Promise.race([
+        this.callbacks.disconnect(sessionId),
+        new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Disconnect timeout')), TIMEOUTS.DISCONNECT)
+        }),
+      ])
+    } catch (error) {
+      logger.catch(error, { action: 'heartbeat-disconnect', sessionId })
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId)
+      this.unregister(sessionId)
+    }
+
+    sendToMainWindow(EVENT_CHANNEL.SESSION_DISCONNECTED, {
+      sessionId,
+      connectionId: handle.config.id,
+      protocol: handle.protocolType,
+      name: handle.config.name,
+    })
   }
 
   destroy(): void {

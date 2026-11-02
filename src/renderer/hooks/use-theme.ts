@@ -40,15 +40,11 @@ export function useApplicationTheme() {
     appApi.setTheme(appearance)
   }, [appearance])
 
-  // 不支持原生毛玻璃的平台降级为不透明背景
+  // 无窗口级材质时，主界面改用不透明底色
   useEffect(() => {
-    const applyGlassSupport = async () => {
-      const supported = await systemApi.supportsGlass()
-      if (!supported) {
-        document.documentElement.classList.add('no-glass')
-      }
-    }
-    void applyGlassSupport()
+    void systemApi.supportsGlass().then((supported) => {
+      document.documentElement.classList.toggle('no-glass', !supported)
+    })
   }, [])
 
   const cycleTheme = () => {

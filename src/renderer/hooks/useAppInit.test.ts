@@ -32,7 +32,7 @@ describe('useApplicationInitialization', () => {
   const mockLoadSavedConnections = vi.fn().mockResolvedValue(undefined)
   const mockLoadSortOrderFromSettings = vi.fn().mockResolvedValue(undefined)
   const mockStartTransferListening = vi.fn(() => vi.fn())
-  const mockLoadExistingTasks = vi.fn().mockResolvedValue(undefined)
+  const mockRestoreActiveTasks = vi.fn().mockResolvedValue(undefined)
   const mockLoadConcurrency = vi.fn().mockResolvedValue(undefined)
   const mockConfigGet = vi.fn()
 
@@ -64,13 +64,13 @@ describe('useApplicationInitialization', () => {
       (
         selector: (state: {
           startListening: typeof mockStartTransferListening
-          loadExistingTasks: typeof mockLoadExistingTasks
+          restoreActiveTasks: typeof mockRestoreActiveTasks
           loadConcurrency: typeof mockLoadConcurrency
         }) => unknown,
       ) =>
         selector({
           startListening: mockStartTransferListening,
-          loadExistingTasks: mockLoadExistingTasks,
+          restoreActiveTasks: mockRestoreActiveTasks,
           loadConcurrency: mockLoadConcurrency,
         }),
     )
@@ -160,13 +160,13 @@ describe('useApplicationInitialization', () => {
       (
         selector: (state: {
           startListening: typeof mockStartTransferListening
-          loadExistingTasks: typeof mockLoadExistingTasks
+          restoreActiveTasks: typeof mockRestoreActiveTasks
           loadConcurrency: typeof mockLoadConcurrency
         }) => unknown,
       ) =>
         selector({
           startListening: mockStartTransferListening,
-          loadExistingTasks: mockLoadExistingTasks,
+          restoreActiveTasks: mockRestoreActiveTasks,
           loadConcurrency: mockLoadConcurrency,
         }),
     )
@@ -177,7 +177,7 @@ describe('useApplicationInitialization', () => {
       expect(mockLoadSavedConnections).toHaveBeenCalled()
       expect(mockLoadSortOrderFromSettings).toHaveBeenCalled()
       expect(mockStartTransferListening).toHaveBeenCalled()
-      expect(mockLoadExistingTasks).toHaveBeenCalled()
+      expect(mockRestoreActiveTasks).toHaveBeenCalled()
       expect(mockLoadConcurrency).toHaveBeenCalled()
     })
   })

@@ -41,7 +41,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <button
               type="button"
               onClick={this.handleReload}
-              className="rounded-md bg-glass-bg px-3 py-1.5 text-sm text-text border border-border hover:bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="rounded-md bg-surface px-3 py-1.5 text-sm text-text border border-border hover:bg-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {i18n.t(($) => $.common.action.refresh)}
             </button>

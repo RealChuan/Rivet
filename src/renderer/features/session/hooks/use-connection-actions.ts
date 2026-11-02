@@ -52,11 +52,18 @@ export const useConnectionActions = () => {
       ...input.connection,
       id: editConfig?.id ?? crypto.randomUUID(),
     }
-    const success = await connectSession({
-      connection,
-      ...(input.secret ? { secret: input.secret } : {}),
-      saveSecret: input.saveSecret,
-    })
+    let success = false
+    try {
+      success = await connectSession({
+        connection,
+        ...(input.secret ? { secret: input.secret } : {}),
+        saveSecret: input.saveSecret,
+      })
+    } catch (error) {
+      // 连接失败会以异常形式冒泡（IPC 侧 Result 转 ApiError），这里必须给出入口反馈。
+      showConnectionToast(TOAST_TYPE.ERROR, connection)
+      throw error
+    }
 
     if (!success) {
       showConnectionToast(TOAST_TYPE.ERROR, connection)
@@ -144,7 +151,14 @@ export const useConnectionActions = () => {
       return
     }
 
-    const success = await connectSession({ connection })
+    let success = false
+    try {
+      success = await connectSession({ connection })
+    } catch (error) {
+      logger.catch(error, { connectionId: connection.id, action: 'reconnect' })
+      showConnectionToast(TOAST_TYPE.ERROR, connection)
+    }
+
     if (success) {
       showConnectionToast(TOAST_TYPE.SUCCESS, connection)
       return

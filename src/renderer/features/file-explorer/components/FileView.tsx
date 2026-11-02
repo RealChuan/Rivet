@@ -17,6 +17,7 @@ import {
   useDirectoryList,
   useDirectoryNavigation,
   useElementWidth,
+  useFileCopyMove,
   useFileDragSelect,
   useFileListState,
   useFileSort,
@@ -70,6 +71,7 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
   const { sortBy, sortOrder, sortedFiles, handleSort } = useFileSort(files)
   const selection = useSelection(sortedFiles)
   const clearSelection = selection.clear
+  const copyMove = useFileCopyMove(sessionId)
 
   const { actualColumnWidths, handleResizeStart, containerRef, resetColumnWidths } =
     useColumnResizing({ isSftp })
@@ -94,15 +96,16 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
     scrollRef,
   })
 
-  const { isDragging, hasStartedDrag, handleMouseDown, getDragStyle } = useFileDragSelect({
-    entries: sortedFiles,
-    columns: layout.columns,
-    cellWidth: layout.columns > 0 ? containerWidth / layout.columns : containerWidth,
-    rowHeight: layout.rowHeight,
-    scrollContainerRef: scrollRef,
-    onDragStart: selection.clear,
-    onDragSelect: (paths) => selection.replace(paths),
-  })
+  const { isDragging, hasStartedDrag, dragSelection, handleMouseDown, getDragStyle } =
+    useFileDragSelect({
+      entries: sortedFiles,
+      columns: layout.columns,
+      cellWidth: layout.columns > 0 ? containerWidth / layout.columns : containerWidth,
+      rowHeight: layout.rowHeight,
+      scrollContainerRef: scrollRef,
+      onDragStart: selection.clear,
+      onDragSelect: (paths) => selection.replace(paths),
+    })
 
   useEffect(() => {
     if (!isLoading) resetColumnWidths()
@@ -148,10 +151,32 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
     const target = e.target
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
 
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-      e.preventDefault()
-      selection.selectAll()
-      return
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase()
+
+      if (key === 'a') {
+        e.preventDefault()
+        selection.selectAll()
+        return
+      }
+
+      if (key === 'c') {
+        e.preventDefault()
+        copyMove.handleCopy(selection.selectedEntries)
+        return
+      }
+
+      if (key === 'x') {
+        e.preventDefault()
+        copyMove.handleCut(selection.selectedEntries)
+        return
+      }
+
+      if (key === 'v') {
+        e.preventDefault()
+        if (copyMove.canPaste) void copyMove.handlePaste(currentPath)
+        return
+      }
     }
 
     if (isArrowKey(e.key)) {
@@ -281,6 +306,8 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
                       columns={layout.columns}
                       rowHeight={FILE_GRID_CELL_HEIGHT}
                       selection={selection}
+                      dragSelection={dragSelection}
+                      cutSelection={copyMove.cutPaths}
                       scrollRef={scrollRef}
                       containerWidth={containerWidth}
                       onActivate={handleActivate}
@@ -296,6 +323,8 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
                       columnWidths={actualColumnWidths}
                       isSftp={isSftp}
                       selection={selection}
+                      dragSelection={dragSelection}
+                      cutSelection={copyMove.cutPaths}
                       scrollRef={scrollRef}
                       onActivate={handleActivate}
                       onContextMenu={handleContextMenu}
@@ -321,6 +350,7 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
           sessionId={sessionId}
           currentPath={currentPath}
           listState={listState}
+          copyMove={copyMove}
           isSftp={isSftp}
           onClearSelection={selection.clear}
         />

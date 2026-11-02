@@ -15,17 +15,19 @@ interface SelectProps {
   options: SelectOption[]
   className?: string
   testId?: string
+  ariaLabel?: string
 }
 
-export const Select = ({ value, onChange, options, className, testId }: SelectProps) => {
+export const Select = ({ value, onChange, options, className, testId, ariaLabel }: SelectProps) => {
   const { t } = useTranslation()
 
   return (
     <SelectPrimitive.Root value={value} onValueChange={onChange}>
       <SelectPrimitive.Trigger
         {...(testId ? { 'data-testid': testId } : {})}
+        {...(ariaLabel ? { 'aria-label': ariaLabel } : {})}
         className={cn(
-          'w-full px-3 pr-8 py-2 bg-glass-bg border border-border rounded-md',
+          'w-full px-3 pr-8 py-2 bg-surface border border-border rounded-md',
           'text-text text-left flex items-center justify-between relative cursor-pointer',
           'transition-colors duration-150 hover:border-text-muted focus-visible:outline-none',
           'focus-visible:ring-2 focus-visible:ring-ring text-[13px] box-border min-h-8.25 m-0',
@@ -43,7 +45,8 @@ export const Select = ({ value, onChange, options, className, testId }: SelectPr
           position="popper"
           sideOffset={1}
           className={cn(
-            'bg-glass-bg backdrop-blur-xl border border-border rounded-md shadow-dropdown',
+            'bg-glass-bg border border-glass-border rounded-md',
+            'shadow-dropdown',
             'list-none p-1 box-border z-100',
           )}
           style={{ width: 'var(--radix-select-trigger-width)' }}

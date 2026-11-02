@@ -1,5 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+function mockSystemModules(release: () => string = () => ''): void {
+  vi.doMock('electron', () => ({
+    app: { getPath: vi.fn() },
+  }))
+  vi.doMock('node:os', () => ({
+    default: { release: vi.fn(release) },
+  }))
+  vi.doMock('./logger.js', () => ({
+    logger: { catch: vi.fn() },
+  }))
+}
+
+function setSystem(platform: NodeJS.Platform, systemVersion: string): void {
+  Object.defineProperty(process, 'platform', { value: platform, configurable: true })
+  Object.defineProperty(process, 'getSystemVersion', {
+    value: () => systemVersion,
+    configurable: true,
+  })
+}
+
 describe('system utilities', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -9,90 +29,102 @@ describe('system utilities', () => {
     vi.resetModules()
   })
 
+  describe('supportsVibrancy', () => {
+    it('should return true for macOS 13 (Electron minimum)', async () => {
+      mockSystemModules()
+      setSystem('darwin', '13.6.1')
+
+      const { supportsVibrancy } = await import('./system.js')
+      expect(supportsVibrancy()).toBe(true)
+    })
+
+    it('should return false for macOS 12', async () => {
+      mockSystemModules()
+      setSystem('darwin', '12.7.6')
+
+      const { supportsVibrancy } = await import('./system.js')
+      expect(supportsVibrancy()).toBe(false)
+    })
+
+    it('should return false off macOS', async () => {
+      mockSystemModules(() => '10.0.22621')
+      setSystem('win32', '10.0.22621')
+
+      const { supportsVibrancy } = await import('./system.js')
+      expect(supportsVibrancy()).toBe(false)
+    })
+  })
+
+  describe('supportsBackgroundMaterial', () => {
+    it('should return true for Windows 11 22H2 (build 22621)', async () => {
+      mockSystemModules(() => '10.0.22621')
+      setSystem('win32', '10.0.22621')
+
+      const { supportsBackgroundMaterial } = await import('./system.js')
+      expect(supportsBackgroundMaterial()).toBe(true)
+    })
+
+    it('should return false for Windows 11 21H2 (build 22000)', async () => {
+      mockSystemModules(() => '10.0.22000')
+      setSystem('win32', '10.0.22000')
+
+      const { supportsBackgroundMaterial } = await import('./system.js')
+      expect(supportsBackgroundMaterial()).toBe(false)
+    })
+
+    it('should return false for Windows 10 (build 19045)', async () => {
+      mockSystemModules(() => '10.0.19045')
+      setSystem('win32', '10.0.19045')
+
+      const { supportsBackgroundMaterial } = await import('./system.js')
+      expect(supportsBackgroundMaterial()).toBe(false)
+    })
+
+    it('should return false off Windows', async () => {
+      mockSystemModules()
+      setSystem('darwin', '26.0.0')
+
+      const { supportsBackgroundMaterial } = await import('./system.js')
+      expect(supportsBackgroundMaterial()).toBe(false)
+    })
+  })
+
   describe('supportsGlassEffect', () => {
-    it('should return true for macOS 26+', async () => {
-      vi.doMock('electron', () => ({
-        app: { getPath: vi.fn() },
-      }))
-      vi.doMock('node:os', () => ({
-        default: { release: vi.fn() },
-      }))
-      vi.doMock('./logger.js', () => ({
-        logger: { catch: vi.fn() },
-      }))
-      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true })
-      Object.defineProperty(process, 'getSystemVersion', {
-        value: () => '26.0.0',
-        configurable: true,
-      })
+    it('should return true on macOS 13', async () => {
+      mockSystemModules()
+      setSystem('darwin', '13.6.1')
 
       const { supportsGlassEffect } = await import('./system.js')
       expect(supportsGlassEffect()).toBe(true)
     })
 
-    it('should return false for macOS 15', async () => {
-      vi.doMock('electron', () => ({
-        app: { getPath: vi.fn() },
-      }))
-      vi.doMock('node:os', () => ({
-        default: { release: vi.fn() },
-      }))
-      vi.doMock('./logger.js', () => ({
-        logger: { catch: vi.fn() },
-      }))
-      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true })
-      Object.defineProperty(process, 'getSystemVersion', {
-        value: () => '15.0.0',
-        configurable: true,
-      })
+    it('should return false on macOS 12', async () => {
+      mockSystemModules()
+      setSystem('darwin', '12.7.6')
 
       const { supportsGlassEffect } = await import('./system.js')
       expect(supportsGlassEffect()).toBe(false)
     })
 
-    it('should return true for Windows 11 (build 22000)', async () => {
-      vi.doMock('electron', () => ({
-        app: { getPath: vi.fn() },
-      }))
-      vi.doMock('node:os', () => ({
-        default: { release: () => '10.0.22000' },
-      }))
-      vi.doMock('./logger.js', () => ({
-        logger: { catch: vi.fn() },
-      }))
-      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true })
+    it('should return true for Windows 11 22H2 (build 22621)', async () => {
+      mockSystemModules(() => '10.0.22621')
+      setSystem('win32', '10.0.22621')
 
       const { supportsGlassEffect } = await import('./system.js')
       expect(supportsGlassEffect()).toBe(true)
     })
 
     it('should return false for Windows 10 (build 19045)', async () => {
-      vi.doMock('electron', () => ({
-        app: { getPath: vi.fn() },
-      }))
-      vi.doMock('node:os', () => ({
-        default: { release: () => '10.0.19045' },
-      }))
-      vi.doMock('./logger.js', () => ({
-        logger: { catch: vi.fn() },
-      }))
-      Object.defineProperty(process, 'platform', { value: 'win32', configurable: true })
+      mockSystemModules(() => '10.0.19045')
+      setSystem('win32', '10.0.19045')
 
       const { supportsGlassEffect } = await import('./system.js')
       expect(supportsGlassEffect()).toBe(false)
     })
 
     it('should return false for Linux', async () => {
-      vi.doMock('electron', () => ({
-        app: { getPath: vi.fn() },
-      }))
-      vi.doMock('node:os', () => ({
-        default: { release: vi.fn() },
-      }))
-      vi.doMock('./logger.js', () => ({
-        logger: { catch: vi.fn() },
-      }))
-      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true })
+      mockSystemModules()
+      setSystem('linux', '')
 
       const { supportsGlassEffect } = await import('./system.js')
       expect(supportsGlassEffect()).toBe(false)

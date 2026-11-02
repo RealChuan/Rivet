@@ -5,68 +5,16 @@ import type {
   TransferProgressData,
   TransferTask,
 } from '@shared/types/transfer.js'
-import { OPERATION_STATUS, TRANSFER_CONFIG, TRANSFER_DIRECTION } from '@shared/constants/index.js'
+import {
+  OPERATION_STATUS,
+  TRANSFER_CONFIG,
+  TRANSFER_DIRECTION,
+  TRANSFER_SCOPE,
+  type TransferScope,
+} from '@shared/constants/index.js'
 import { transferApi, transferEvents } from '../../../api/transfer.js'
 import logger from '../../../utils/logger.js'
 import { applyProgressBatch } from './transfer-progress-batch.js'
-
-export interface SessionTaskSummary {
-  sessionId: string
-  running: number
-  failed: number
-  total: number
-}
-
-function computeSessionSummaries(tasks: TransferTask[]): SessionTaskSummary[] {
-  const map = new Map<string, SessionTaskSummary>()
-  for (const task of tasks) {
-    const existing = map.get(task.sessionId)
-    if (existing) {
-      existing.total++
-      if (task.status === OPERATION_STATUS.RUNNING || task.status === OPERATION_STATUS.WAITING) {
-        existing.running++
-      }
-      if (task.status === OPERATION_STATUS.FAILED) {
-        existing.failed++
-      }
-    } else {
-      map.set(task.sessionId, {
-        sessionId: task.sessionId,
-        running:
-          task.status === OPERATION_STATUS.RUNNING || task.status === OPERATION_STATUS.WAITING
-            ? 1
-            : 0,
-        failed: task.status === OPERATION_STATUS.FAILED ? 1 : 0,
-        total: 1,
-      })
-    }
-  }
-  return [...map.values()]
-}
-
-function computeSessionIds(tasks: TransferTask[]): string[] {
-  return [...new Set(tasks.map((t) => t.sessionId))]
-}
-
-const summaryCache = new WeakMap<TransferTask[], SessionTaskSummary[]>()
-const sessionIdsCache = new WeakMap<TransferTask[], string[]>()
-
-/** 派生值不入 state：同一 tasks 引用返回同一数组引用，避免无谓重渲染。 */
-export function selectSessionTaskSummaries(state: TransferState): SessionTaskSummary[] {
-  const cached = summaryCache.get(state.tasks)
-  if (cached) return cached
-  const computed = computeSessionSummaries(state.tasks)
-  summaryCache.set(state.tasks, computed)
-  return computed
-}
-
-export function selectSessionIds(state: TransferState): string[] {
-  const cached = sessionIdsCache.get(state.tasks)
-  if (cached) return cached
-  const computed = computeSessionIds(state.tasks)
-  sessionIdsCache.set(state.tasks, computed)
-  return computed
-}
 
 export function selectRunningTaskCount(state: TransferState): number {
   return state.tasks.filter(
@@ -83,21 +31,20 @@ export interface TaskProgress {
   completedFileCount?: number | undefined
   activeFileCount?: number | undefined
   waitingFileCount?: number | undefined
+  scanCompleted?: boolean | undefined
 }
 
 export interface TransferState {
   tasks: TransferTask[]
   taskProgress: Map<string, TaskProgress>
-  selectedSessionId: string | null
   activeOperations: Map<string, OperationProgressInfo[]>
-  isVisible: boolean
   activeTab: TransferDirection
+  scope: TransferScope
   maxUploadConcurrency: number
   maxDownloadConcurrency: number
 
-  setSelectedSessionId: (sessionId: string | null) => void
-  setVisible: (visible: boolean) => void
   setActiveTab: (direction: TransferDirection) => void
+  setScope: (scope: TransferScope) => void
   setMaxUploadConcurrency: (value: number) => void
   setMaxDownloadConcurrency: (value: number) => void
 
@@ -111,7 +58,7 @@ export interface TransferState {
   handleTaskFailed: (data: { taskId: string; errorMessage: string }) => void
   handleTaskRemoved: (data: { taskId: string }) => void
 
-  loadExistingTasks: () => Promise<void>
+  restoreActiveTasks: () => Promise<void>
   loadConcurrency: () => Promise<void>
   startListening: () => () => void
 }
@@ -123,23 +70,15 @@ export interface TransferState {
 function applyBatchToState(
   batch: TransferProgressData[],
 ): (state: TransferState) => TransferState | Partial<TransferState> {
-  return (state) => {
-    const result = applyProgressBatch(state, batch)
-    if (result === null) return state
-    return result
-  }
+  return (state) => applyProgressBatch(state, batch) ?? state
 }
-
-/** 不可见时暂存主进程发来的批次，重新可见时一次性应用。 */
-let hiddenProgress: TransferProgressData[] = []
 
 export const useTransferStore = create<TransferState>((set, get) => ({
   tasks: [],
   taskProgress: new Map(),
-  selectedSessionId: null,
-  activeTab: TRANSFER_DIRECTION.UPLOAD,
   activeOperations: new Map(),
-  isVisible: true,
+  activeTab: TRANSFER_DIRECTION.UPLOAD,
+  scope: TRANSFER_SCOPE.CURRENT,
   maxUploadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
   maxDownloadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
 
@@ -147,17 +86,8 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     set({ activeTab: direction })
   },
 
-  setSelectedSessionId: (sessionId) => {
-    set({ selectedSessionId: sessionId })
-  },
-
-  setVisible: (visible) => {
-    set({ isVisible: visible })
-    if (visible && hiddenProgress.length > 0) {
-      const batch = hiddenProgress
-      hiddenProgress = []
-      useTransferStore.setState(applyBatchToState(batch))
-    }
+  setScope: (scope) => {
+    set({ scope })
   },
 
   setMaxUploadConcurrency: (value) => {
@@ -176,8 +106,6 @@ export const useTransferStore = create<TransferState>((set, get) => ({
 
   handleTasksEnqueued: (tasks) => {
     set((state) => {
-      const updatedTasks = [...state.tasks, ...tasks]
-      const selectedSessionId = state.selectedSessionId ?? tasks[0]?.sessionId ?? null
       const taskProgress = new Map(state.taskProgress)
       for (const task of tasks) {
         taskProgress.set(task.id, {
@@ -186,20 +114,14 @@ export const useTransferStore = create<TransferState>((set, get) => ({
         })
       }
       return {
-        tasks: updatedTasks,
+        tasks: [...state.tasks, ...tasks],
         taskProgress,
-        selectedSessionId,
       }
     })
   },
 
   handleProgress: (batch) => {
-    // 主进程已按 200ms 窗口聚合；不可见时只暂存，避免隐藏页重渲染。
-    if (!get().isVisible) {
-      hiddenProgress.push(...batch)
-      return
-    }
-
+    // 主进程已按 200ms 窗口聚合，渲染层只合并快照。
     set(applyBatchToState(batch))
   },
 
@@ -235,21 +157,26 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     })
   },
 
-  loadExistingTasks: async () => {
+  /** 只接回仍在排队/运行的任务；失败任务是上次运行的残留，不恢复。 */
+  restoreActiveTasks: async () => {
     let existingTasks: TransferTask[]
     try {
       existingTasks = await transferApi.getTasks()
     } catch (error) {
-      logger.catch(error, { action: 'load-existing-tasks' })
+      logger.catch(error, { action: 'restore-active-tasks' })
       return
     }
-    if (existingTasks.length === 0) return
+
+    const activeTasks = existingTasks.filter(
+      (task) =>
+        task.status === OPERATION_STATUS.WAITING || task.status === OPERATION_STATUS.RUNNING,
+    )
+    if (activeTasks.length === 0) return
 
     set((state) => {
       const currentIds = new Set(state.tasks.map((t) => t.id))
-      const newTasks = existingTasks.filter((t) => !currentIds.has(t.id))
+      const newTasks = activeTasks.filter((t) => !currentIds.has(t.id))
       if (newTasks.length === 0) return state
-      const tasks = [...state.tasks, ...newTasks]
       const taskProgress = new Map(state.taskProgress)
       for (const task of newTasks) {
         taskProgress.set(task.id, {
@@ -257,7 +184,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
           fileSize: task.fileSize > 0 ? task.fileSize : undefined,
         })
       }
-      return { tasks, taskProgress }
+      return { tasks: [...state.tasks, ...newTasks], taskProgress }
     })
   },
 
@@ -284,10 +211,3 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     return () => unsubs.forEach((fn) => fn())
   },
 }))
-
-export const selectTasksForSessionByDirection = (
-  state: TransferState,
-  sessionId: string,
-  direction: TransferDirection,
-): TransferTask[] =>
-  state.tasks.filter((t) => t.sessionId === sessionId && t.direction === direction)

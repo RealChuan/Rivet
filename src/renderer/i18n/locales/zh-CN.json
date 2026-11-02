@@ -1,9 +1,5 @@
 {
   "translation": {
-    "activityBar": {
-      "connections": "连接",
-      "transfers": "传输"
-    },
     "app": {
       "name": "Rivet",
       "subtitle": "SFTP / WebDAV 文件浏览器"
@@ -146,9 +142,12 @@
     "file": {
       "action": {
         "copy": "复制",
+        "copyTo": "复制到...",
+        "cut": "剪切",
         "download": "下载",
-        "move": "移动",
+        "moveTo": "移动到...",
         "newFolder": "新建文件夹",
+        "paste": "粘贴",
         "properties": "属性",
         "rename": "重命名",
         "upload": "上传",
@@ -287,20 +286,35 @@
         "title": "上传任务进行中"
       },
       "download": "下载",
-      "empty": "暂无传输任务",
       "errorDetail": {
         "copied": "已复制",
         "copy": "复制",
         "title": "错误详情"
       },
       "folderStats": {
-        "fileCount": "{{completed}}/{{total}} 文件"
+        "fileCount": "{{completed}}/{{total}} 文件",
+        "scanning": "已完成 {{completed}} · 已发现 {{total}}"
       },
       "path": {
         "destination": "目标",
         "source": "源"
       },
-      "runningCount": "{{count}} 个任务进行中",
+      "queue": {
+        "collapse": "收起",
+        "empty": "暂无传输任务",
+        "emptyCurrentScope": "当前连接没有传输任务",
+        "expand": "展开",
+        "maximize": "最大化",
+        "remaining": "剩 {{time}}",
+        "resize": "调整传输面板高度",
+        "restore": "还原",
+        "scope": "任务范围",
+        "scopeAll": "全部连接",
+        "scopeCurrent": "当前连接",
+        "settings": "并发设置",
+        "unknownConnection": "未知连接",
+        "viewAll": "查看全部"
+      },
       "sort": {
         "name": "名称",
         "size": "大小",
@@ -310,7 +324,6 @@
       "status": {
         "failed": "失败",
         "failedCount": "{{count}} 失败",
-        "running": "传输中",
         "waiting": "等待中"
       },
       "upload": "上传"

@@ -3,5 +3,6 @@ import { TITLEBAR_HEIGHT } from '@shared/constants/index.js'
 
 export function titlebarPadding(mode: WindowChromeMode): number | string {
   if (mode === 'custom' || mode === 'mac-hidden') return TITLEBAR_HEIGHT
-  return 'env(titlebar-area-height, 36px)'
+  // WCO 的 overlay 矩形会吞掉紧贴其边界的绘制，整体下移 1px 分割线才画得出来。
+  return `calc(env(titlebar-area-height, ${TITLEBAR_HEIGHT}px) + 1px)`
 }

@@ -15,7 +15,8 @@ function hasProgressChanged(
     (data.completedFileCount !== undefined &&
       data.completedFileCount !== current.completedFileCount) ||
     (data.activeFileCount !== undefined && data.activeFileCount !== current.activeFileCount) ||
-    (data.waitingFileCount !== undefined && data.waitingFileCount !== current.waitingFileCount)
+    (data.waitingFileCount !== undefined && data.waitingFileCount !== current.waitingFileCount) ||
+    (data.scanCompleted !== undefined && data.scanCompleted !== current.scanCompleted)
   )
 }
 
@@ -46,6 +47,7 @@ function buildUpdatedProgress(
     completedFileCount: data.completedFileCount ?? current?.completedFileCount,
     activeFileCount: data.activeFileCount ?? current?.activeFileCount,
     waitingFileCount: data.waitingFileCount ?? current?.waitingFileCount,
+    scanCompleted: data.scanCompleted ?? current?.scanCompleted,
   }
 }
 
@@ -60,7 +62,6 @@ interface ProgressBatchResult<T extends { id: string; status: string }> {
   taskProgress?: Map<string, TaskProgress>
   activeOperations?: Map<string, OperationProgressInfo[]>
   tasks?: T[]
-  statusChanged?: boolean
 }
 
 export function applyProgressBatch<T extends { id: string; status: string }>(
@@ -126,7 +127,6 @@ export function applyProgressBatch<T extends { id: string; status: string }>(
   if (opsChanged) result.activeOperations = activeOperations
   if (statusChanged) {
     result.tasks = tasks
-    result.statusChanged = true
   }
   return result
 }

@@ -1,4 +1,4 @@
-import { BrowserWindow, nativeTheme, type BrowserWindowConstructorOptions } from 'electron'
+import { app, BrowserWindow, nativeTheme, type BrowserWindowConstructorOptions } from 'electron'
 import path from 'node:path'
 import {
   APP_NAME,
@@ -13,7 +13,7 @@ import {
   type Theme,
 } from '@shared/constants/index.js'
 import { EVENT_CHANNEL } from '@shared/contract/events.contract.js'
-import { supportsGlassEffect } from '../utils/index.js'
+import { supportsBackgroundMaterial, supportsVibrancy } from '../utils/index.js'
 import { getMainWindow } from './main-window.js'
 import { getWindowChromeMode } from './window-chrome.js'
 
@@ -24,6 +24,14 @@ export interface UtilityWindowOptions {
   title?: string
 }
 
+/**
+ * 以 app 根为基准解析产物路径：开发态是项目根，打包后是 app.asar。
+ * 不能用 __dirname —— 主进程以 ESM 输出，构建期固化会在打包后指向构建机的绝对路径。
+ */
+function resolveAppPath(...segments: string[]): string {
+  return path.join(app.getAppPath(), ...segments)
+}
+
 function loadRenderer(win: BrowserWindow, route?: string): void {
   const hash = route ? `#${route.replace(/^#/, '')}` : ''
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -31,7 +39,7 @@ function loadRenderer(win: BrowserWindow, route?: string): void {
     return
   }
   void win.loadFile(
-    path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+    resolveAppPath('.vite', 'renderer', MAIN_WINDOW_VITE_NAME, 'index.html'),
     hash ? { hash: hash.slice(1) } : undefined,
   )
 }
@@ -52,12 +60,12 @@ function showWhenReady(win: BrowserWindow): void {
 
 /**
  * 唯一主窗口。WCO 只在 Windows 11 启用；macOS 用 hidden titlebar + 红绿灯；
- * Windows 10/Linux 用原生 frame。
+ * Windows 10/Linux 用无边框窗口 + 自绘标题栏。有窗口材质时底色透明，否则实色。
  */
 export function createAppWindow(theme: Theme = 'system'): BrowserWindow {
   const chrome = getWindowChromeMode()
-  const supportsGlass = supportsGlassEffect()
   const dark = theme === 'dark' || (theme === 'system' && nativeTheme.shouldUseDarkColors)
+  const usesGlass = supportsVibrancy() || supportsBackgroundMaterial()
 
   const chromeOptions: BrowserWindowConstructorOptions =
     chrome === 'wco'
@@ -67,13 +75,13 @@ export function createAppWindow(theme: Theme = 'system'): BrowserWindow {
             ...TITLEBAR_OVERLAY_COLORS[dark ? 'dark' : 'light'],
             height: TITLEBAR_HEIGHT,
           },
-          ...(supportsGlass ? { backgroundMaterial: 'acrylic' as const } : {}),
+          ...(supportsBackgroundMaterial() ? { backgroundMaterial: 'mica' as const } : {}),
         }
       : chrome === 'mac-hidden'
         ? {
             titleBarStyle: 'hidden',
             trafficLightPosition: MACOS_TRAFFIC_LIGHT_POSITION,
-            ...(supportsGlass ? { vibrancy: 'under-window' as const } : {}),
+            ...(supportsVibrancy() ? { vibrancy: 'under-window' as const } : {}),
           }
         : {}
 
@@ -84,11 +92,11 @@ export function createAppWindow(theme: Theme = 'system'): BrowserWindow {
     minHeight: MIN_MAIN_WINDOW_HEIGHT,
     title: APP_NAME,
     frame: chrome === 'custom' ? false : true,
-    backgroundColor: chrome === 'custom' ? (dark ? '#1e1e1e' : '#ffffff') : '#00000000',
+    backgroundColor: usesGlass ? '#00000000' : dark ? '#1e1e1e' : '#ffffff',
     ...chromeOptions,
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, './index.cjs'),
+      preload: resolveAppPath('.vite', 'build', 'index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -131,7 +139,7 @@ export function createUtilityWindow(options: UtilityWindowOptions): BrowserWindo
     ...(parent ? { parent } : {}),
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, './index.cjs'),
+      preload: resolveAppPath('.vite', 'build', 'index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,

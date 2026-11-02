@@ -4,8 +4,11 @@ import {
   FolderUp,
   Download,
   Copy,
+  CopyPlus,
+  ClipboardPaste,
   FolderInput,
   Pencil,
+  Scissors,
   Trash,
   FolderCog,
 } from 'lucide-react'
@@ -19,8 +22,12 @@ import { cn } from '../../../utils/index.js'
 interface FileExplorerContextMenuProps {
   files: FileInfo[]
   isEmptyArea: boolean
+  canPaste: boolean
   onCopy: (files: FileInfo[]) => void
-  onMove: (files: FileInfo[]) => void
+  onCut: (files: FileInfo[]) => void
+  onPaste: () => void
+  onCopyTo: (files: FileInfo[]) => void
+  onMoveTo: (files: FileInfo[]) => void
   onDelete: (files: FileInfo[]) => void
   onRename: (file: FileInfo) => void
   onCreateFolder: () => void
@@ -33,8 +40,12 @@ interface FileExplorerContextMenuProps {
 export const FileExplorerContextMenu = ({
   files,
   isEmptyArea,
+  canPaste,
   onCopy,
-  onMove,
+  onCut,
+  onPaste,
+  onCopyTo,
+  onMoveTo,
   onDelete,
   onRename,
   onCreateFolder,
@@ -57,12 +68,21 @@ export const FileExplorerContextMenu = ({
     <ContextMenuPrimitive.Portal>
       <ContextMenuPrimitive.Content
         className={cn(
-          'bg-glass-bg backdrop-blur-xl rounded-md shadow-dropdown border border-border',
-          'p-1 min-w-40 z-1000 animate-menu-in',
+          'bg-glass-bg rounded-md shadow-dropdown',
+          'border border-glass-border p-1 min-w-40 z-1000 animate-menu-in',
         )}
       >
         {isEmptyArea ? (
           <>
+            <ContextMenuPrimitive.Item
+              className={cn(itemClass, 'data-disabled:opacity-40 data-disabled:cursor-default')}
+              disabled={!canPaste}
+              onSelect={() => onPaste()}
+            >
+              <ClipboardPaste className="w-3.5 h-3.5 stroke-current stroke-2" />
+              {t(($) => $.file.action.paste)}
+            </ContextMenuPrimitive.Item>
+            <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
             <ContextMenuPrimitive.Item className={itemClass} onSelect={() => onCreateFolder()}>
               <Plus className="w-3.5 h-3.5 stroke-current stroke-2" />
               {t(($) => $.file.action.newFolder)}
@@ -79,14 +99,24 @@ export const FileExplorerContextMenu = ({
           </>
         ) : (
           <>
+            <ContextMenuPrimitive.Item className={itemClass} onSelect={() => onCut(files)}>
+              <Scissors className="w-3.5 h-3.5 stroke-current stroke-2" />
+              {t(($) => $.file.action.cut)} {files.length > 1 ? `(${files.length})` : ''}
+            </ContextMenuPrimitive.Item>
             <ContextMenuPrimitive.Item className={itemClass} onSelect={() => onCopy(files)}>
               <Copy className="w-3.5 h-3.5 stroke-current stroke-2" />
               {t(($) => $.file.action.copy)} {files.length > 1 ? `(${files.length})` : ''}
             </ContextMenuPrimitive.Item>
-            <ContextMenuPrimitive.Item className={itemClass} onSelect={() => onMove(files)}>
-              <FolderInput className="w-3.5 h-3.5 stroke-current stroke-2" />
-              {t(($) => $.file.action.move)} {files.length > 1 ? `(${files.length})` : ''}
+            <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
+            <ContextMenuPrimitive.Item className={itemClass} onSelect={() => onCopyTo(files)}>
+              <CopyPlus className="w-3.5 h-3.5 stroke-current stroke-2" />
+              {t(($) => $.file.action.copyTo)} {files.length > 1 ? `(${files.length})` : ''}
             </ContextMenuPrimitive.Item>
+            <ContextMenuPrimitive.Item className={itemClass} onSelect={() => onMoveTo(files)}>
+              <FolderInput className="w-3.5 h-3.5 stroke-current stroke-2" />
+              {t(($) => $.file.action.moveTo)} {files.length > 1 ? `(${files.length})` : ''}
+            </ContextMenuPrimitive.Item>
+            <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
             <ContextMenuPrimitive.Item className={itemClass} onSelect={() => onDownload(files)}>
               <Download className="w-3.5 h-3.5 stroke-current stroke-2" />
               {t(($) => $.file.action.download)} {files.length > 1 ? `(${files.length})` : ''}

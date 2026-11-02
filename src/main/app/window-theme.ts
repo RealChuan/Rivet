@@ -1,6 +1,6 @@
 import { nativeTheme } from 'electron'
 import { TITLEBAR_HEIGHT, TITLEBAR_OVERLAY_COLORS, type Theme } from '@shared/constants/index.js'
-import { supportsGlassEffect } from '../utils/index.js'
+import { supportsBackgroundMaterial, supportsVibrancy } from '../utils/index.js'
 import { getMainWindow } from './main-window.js'
 import { getWindowChromeMode } from './window-chrome.js'
 
@@ -16,7 +16,7 @@ export function applyWindowTheme(theme: Theme): void {
   if (mode === 'custom') return
 
   if (mode === 'mac-hidden') {
-    win.setVibrancy(supportsGlassEffect() ? 'under-window' : null)
+    win.setVibrancy(supportsVibrancy() ? 'under-window' : null)
     return
   }
 
@@ -24,7 +24,7 @@ export function applyWindowTheme(theme: Theme): void {
     ? TITLEBAR_OVERLAY_COLORS.dark
     : TITLEBAR_OVERLAY_COLORS.light
   win.setTitleBarOverlay({ ...colors, height: TITLEBAR_HEIGHT })
-  win.setBackgroundMaterial(supportsGlassEffect() ? 'acrylic' : 'none')
+  win.setBackgroundMaterial(supportsBackgroundMaterial() ? 'mica' : 'none')
 }
 
 export function attachSystemThemeListener(): void {
