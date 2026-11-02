@@ -7,7 +7,7 @@ import {
   type VirtualItem,
   type VirtualizerOptions,
 } from '@tanstack/react-virtual'
-import { useLayoutEffect, useReducer, useState } from 'react'
+import { useCallback, useLayoutEffect, useReducer, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { FILE_VIEW_OVERSCAN } from '../virtualization/layout.js'
 
@@ -75,13 +75,20 @@ function useRowVirtualizer(options: RowVirtualizerOptions): RowVirtualizer {
   return virtualizer
 }
 
-/** 可变行高虚拟化：传输列表使用，按 index 估算高度。 */
+/**
+ * 可变行高虚拟化：传输列表使用，按 index 估算高度。
+ * 改 `estimateSize` 不会让已有行变高，行高变化后必须调用 `measure()`。
+ */
 export function useVariableVirtualRows({
   rowCount,
   estimateSize,
   scrollRef,
   overscan,
-}: UseVariableVirtualRowsOptions): { virtualItems: VirtualItem[]; totalSize: number } {
+}: UseVariableVirtualRowsOptions): {
+  virtualItems: VirtualItem[]
+  totalSize: number
+  measure: () => void
+} {
   const virtualizer = useRowVirtualizer({
     count: rowCount,
     estimateSize,
@@ -89,9 +96,14 @@ export function useVariableVirtualRows({
     overscan: overscan ?? FILE_VIEW_OVERSCAN,
   })
 
+  const measure = useCallback(() => {
+    virtualizer.measure()
+  }, [virtualizer])
+
   return {
     virtualItems: virtualizer.getVirtualItems(),
     totalSize: virtualizer.getTotalSize(),
+    measure,
   }
 }
 

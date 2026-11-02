@@ -3,9 +3,8 @@ import type { UiSettings } from '@shared/types/index.js'
 import {
   DEFAULT_CONNECTION_PANEL_WIDTH,
   DEFAULT_LANGUAGE,
-  DEFAULT_QUEUE_DRAWER_WIDTH,
+  DEFAULT_QUEUE_PANEL_HEIGHT,
   DEFAULT_THEME_VALUE,
-  DEFAULT_TRANSFER_PANEL_WIDTH,
   type FileViewMode,
   STORE_KEY,
   type SupportedLanguageLiteral,
@@ -14,18 +13,16 @@ import {
   TOAST_TYPE,
   type ToastType,
 } from '@shared/constants/index.js'
-import { SIDEBAR_VIEW, type SidebarView } from '@shared/constants/transfer.js'
+import { QUEUE_PANEL_MODE, type QueuePanelMode } from '@shared/constants/transfer.js'
 import { configApi } from '../api/config.js'
 
 interface UiStore {
   appearance: Theme
   locale: SupportedLanguageLiteral | ''
   connectionPanelWidth: number
-  transferPanelWidth: number
-  queueDrawerOpen: boolean
-  queueDrawerWidth: number
+  queuePanelMode: QueuePanelMode
+  queuePanelHeight: number
   initialized: boolean
-  activeView: SidebarView
   /** 每个 session/页面独立的视图模式；仅内存，默认 list */
   fileViewModes: Record<string, FileViewMode>
   toasts: Toast[]
@@ -33,8 +30,8 @@ interface UiStore {
   setFileViewMode: (sessionId: string, mode: FileViewMode) => void
   setLocale: (locale: SupportedLanguageLiteral) => void
   setConnectionPanelWidth: (width: number) => void
-  setTransferPanelWidth: (width: number) => void
-  setActiveView: (view: SidebarView) => void
+  setQueuePanelMode: (mode: QueuePanelMode) => void
+  setQueuePanelHeight: (height: number) => void
   initialize: (settings: Partial<UiSettings>) => void
   addToast: (toast: Omit<Toast, 'id'>) => void
   removeToast: (id: string) => void
@@ -57,11 +54,9 @@ export const useUiStore = create<UiStore>((set, get) => ({
   appearance: DEFAULT_THEME_VALUE,
   locale: DEFAULT_LANGUAGE,
   connectionPanelWidth: DEFAULT_CONNECTION_PANEL_WIDTH,
-  transferPanelWidth: DEFAULT_TRANSFER_PANEL_WIDTH,
-  queueDrawerOpen: false,
-  queueDrawerWidth: DEFAULT_QUEUE_DRAWER_WIDTH,
+  queuePanelMode: QUEUE_PANEL_MODE.EXPANDED,
+  queuePanelHeight: DEFAULT_QUEUE_PANEL_HEIGHT,
   initialized: false,
-  activeView: SIDEBAR_VIEW.CONNECTIONS,
   fileViewModes: {},
   toasts: [],
 
@@ -87,12 +82,12 @@ export const useUiStore = create<UiStore>((set, get) => ({
     set({ connectionPanelWidth })
   },
 
-  setTransferPanelWidth: (transferPanelWidth) => {
-    set({ transferPanelWidth })
+  setQueuePanelMode: (queuePanelMode) => {
+    set({ queuePanelMode })
   },
 
-  setActiveView: (activeView) => {
-    set({ activeView })
+  setQueuePanelHeight: (queuePanelHeight) => {
+    set({ queuePanelHeight })
   },
 
   initialize: (settings) => {
@@ -100,7 +95,6 @@ export const useUiStore = create<UiStore>((set, get) => ({
       appearance: settings.appearance ?? DEFAULT_THEME_VALUE,
       locale: settings.locale ?? DEFAULT_LANGUAGE,
       fileViewModes: {},
-      activeView: SIDEBAR_VIEW.CONNECTIONS,
       initialized: true,
     })
   },

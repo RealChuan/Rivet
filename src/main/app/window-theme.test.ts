@@ -8,7 +8,8 @@ import { applyWindowTheme } from './window-theme.js'
 
 const mockGetMainWindow = vi.fn<() => BrowserWindow>(() => fakeWindow())
 const mockGetWindowChromeMode = vi.fn<() => WindowChromeMode>(() => 'custom')
-const mockSupportsGlass = vi.fn(() => true)
+const mockSupportsVibrancy = vi.fn(() => true)
+const mockSupportsBackgroundMaterial = vi.fn(() => true)
 
 function setDark(value: boolean): void {
   Object.defineProperty(nativeTheme, 'shouldUseDarkColors', {
@@ -27,7 +28,8 @@ vi.mock('./window-chrome.js', () => ({
 }))
 
 vi.mock('../utils/index.js', () => ({
-  supportsGlassEffect: () => mockSupportsGlass(),
+  supportsVibrancy: () => mockSupportsVibrancy(),
+  supportsBackgroundMaterial: () => mockSupportsBackgroundMaterial(),
 }))
 
 function fakeWindow(): BrowserWindow {
@@ -45,6 +47,8 @@ describe('applyWindowTheme', () => {
     setDark(false)
     mockGetWindowChromeMode.mockReturnValue('custom')
     mockGetMainWindow.mockReturnValue(fakeWindow())
+    mockSupportsVibrancy.mockReturnValue(true)
+    mockSupportsBackgroundMaterial.mockReturnValue(true)
   })
 
   it('sets only nativeTheme.themeSource in custom mode', () => {
@@ -57,7 +61,7 @@ describe('applyWindowTheme', () => {
     expect(win.setVibrancy).not.toHaveBeenCalled()
   })
 
-  it('sets the light overlay and acrylic in wco mode', () => {
+  it('sets the light overlay and mica in wco mode', () => {
     mockGetWindowChromeMode.mockReturnValue('wco')
     const win = mockGetMainWindow()
     applyWindowTheme('light')
@@ -66,7 +70,7 @@ describe('applyWindowTheme', () => {
       ...TITLEBAR_OVERLAY_COLORS.light,
       height: TITLEBAR_HEIGHT,
     })
-    expect(win.setBackgroundMaterial).toHaveBeenCalledWith('acrylic')
+    expect(win.setBackgroundMaterial).toHaveBeenCalledWith('mica')
   })
 
   it('uses dark overlay when the OS resolves dark', () => {
@@ -81,9 +85,9 @@ describe('applyWindowTheme', () => {
     })
   })
 
-  it('degrades acrylic to none when glass is unsupported', () => {
+  it('degrades mica to none when the background material is unsupported', () => {
     mockGetWindowChromeMode.mockReturnValue('wco')
-    mockSupportsGlass.mockReturnValue(false)
+    mockSupportsBackgroundMaterial.mockReturnValue(false)
     const win = mockGetMainWindow()
     applyWindowTheme('light')
 
@@ -98,5 +102,14 @@ describe('applyWindowTheme', () => {
     expect(win.setVibrancy).toHaveBeenCalledWith('under-window')
     expect(win.setTitleBarOverlay).not.toHaveBeenCalled()
     expect(win.setBackgroundMaterial).not.toHaveBeenCalled()
+  })
+
+  it('removes vibrancy when macOS does not support it', () => {
+    mockGetWindowChromeMode.mockReturnValue('mac-hidden')
+    mockSupportsVibrancy.mockReturnValue(false)
+    const win = mockGetMainWindow()
+    applyWindowTheme('light')
+
+    expect(win.setVibrancy).toHaveBeenCalledWith(null)
   })
 })

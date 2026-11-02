@@ -68,7 +68,8 @@ describe('useVariableVirtualRows', () => {
       useVariableVirtualRows({ estimateSize, overscan: 2, rowCount: 3, scrollRef }),
     )
 
-    expect(result.current).toEqual({ totalSize: 64, virtualItems })
+    expect(result.current).toMatchObject({ totalSize: 64, virtualItems })
+    expect(typeof result.current.measure).toBe('function')
 
     const options = captured.options[captured.options.length - 1]
     expect(options).toMatchObject({ count: 3, overscan: 2 })

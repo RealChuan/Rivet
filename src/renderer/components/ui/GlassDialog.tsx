@@ -47,17 +47,8 @@ const DialogContent = ({ width, height, children }: DialogContentProps) => {
   const { elementRef, dragPosition, handleMouseDown } = useDraggable({ width, height })
 
   return (
-    <Dialog.Content
-      ref={elementRef}
-      onPointerDownOutside={(e) => e.preventDefault()}
-      onInteractOutside={(e) => e.preventDefault()}
-      onCloseAutoFocus={(e) => e.preventDefault()}
-      className={cn(
-        'fixed backdrop-blur-2xl rounded-xl p-6 max-w-full max-h-[calc(100vh-96px)]',
-        'box-border overflow-y-auto overflow-x-hidden',
-        'bg-glass-bg shadow-dialog z-50',
-      )}
-      onMouseDown={handleMouseDown}
+    <div
+      className="fixed z-50 max-w-[calc(100vw-32px)]"
       style={{
         left: dragPosition ? dragPosition.x : '50%',
         top: dragPosition ? dragPosition.y : '50%',
@@ -65,8 +56,21 @@ const DialogContent = ({ width, height, children }: DialogContentProps) => {
         width: `${width}px`,
       }}
     >
-      {children}
-    </Dialog.Content>
+      <Dialog.Content
+        ref={elementRef}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        className={cn(
+          'relative box-border w-full rounded-xl p-6',
+          'max-h-[calc(100vh-96px)] overflow-x-hidden overflow-y-auto',
+          'bg-glass-bg border border-glass-border shadow-dialog',
+        )}
+        onMouseDown={handleMouseDown}
+      >
+        {children}
+      </Dialog.Content>
+    </div>
   )
 }
 

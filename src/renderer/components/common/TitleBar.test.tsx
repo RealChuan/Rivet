@@ -41,6 +41,21 @@ describe('TitleBar', () => {
     expect(screen.queryByLabelText(/minimize/i)).toBeNull()
   })
 
+  it('uses an opaque surface and leaves the separator to the content area in wco mode', () => {
+    render(<TitleBar {...baseProps} />)
+
+    const classes = screen.getByTestId('titlebar').className.split(' ')
+    expect(classes).toContain('bg-titlebar')
+    expect(classes).not.toContain('border-b')
+  })
+
+  it('leaves the separator to the content area in custom mode too', () => {
+    chromeState.value = 'custom'
+    render(<TitleBar {...baseProps} />)
+
+    expect(screen.getByTestId('titlebar').className.split(' ')).not.toContain('border-b')
+  })
+
   it('renders a full-width 36px drag strip with 80px padding on macOS', () => {
     chromeState.value = 'mac-hidden'
     render(<TitleBar {...baseProps} />)

@@ -1,45 +1,117 @@
 import type React from 'react'
-import { ArrowUpDown } from 'lucide-react'
-import { useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
+import { useCallback, useMemo, useState } from 'react'
 import type { TransferTask } from '@shared/types/transfer.js'
 import { FILE_TYPE } from '@shared/constants/index.js'
-import { TRANSFER_CONFIG } from '@shared/constants/transfer.js'
+import { OPERATION_STATUS, TRANSFER_CONFIG } from '@shared/constants/transfer.js'
 import { useTransferActions } from '../hooks/use-transfer-actions.js'
-import { useTransferSort } from '../hooks/use-transfer-sort.js'
-import { TransferActionBar } from './TransferActionBar.js'
-import { TransferTaskItem } from './TransferTaskItem.js'
+import {
+  QUEUE_DETAIL_PADDING,
+  QUEUE_OPERATION_ROW_HEIGHT,
+  QUEUE_PATH_BLOCK_HEIGHT,
+  QUEUE_ROW_BORDER,
+  QUEUE_ROW_HEIGHT,
+  TransferTaskItem,
+} from './TransferTaskItem.js'
 import { VirtualRows } from './VirtualRows.js'
 
-// Main row: h-10 (40px) + border-b (1px) = 41px
-const FILE_ROW_HEIGHT = 41
-// Path rows: pt-0.5 (2px) + 2 lines (13px font, ~20px line-height + py-0.5*2 = ~24px each) + pb-2 (8px) + border-b (1px) = 59px
-const PATH_ROWS_HEIGHT = 59
-const FOLDER_HEADER_HEIGHT = 41
-// Sub-operation row: h-8 (32px)
-const FOLDER_OP_ROW_HEIGHT = 32
-// Folder sub-ops container border-b (1px)
-const FOLDER_OPS_BORDER = 1
+export const QUEUE_GROUP_ROW_HEIGHT = 28
 
-export function taskRowHeight(task: TransferTask | undefined): number {
-  if (task?.itemType !== FILE_TYPE.DIRECTORY) return FILE_ROW_HEIGHT + PATH_ROWS_HEIGHT
-  return (
-    FOLDER_HEADER_HEIGHT +
-    PATH_ROWS_HEIGHT +
-    TRANSFER_CONFIG.MAX_INLINE_OPERATIONS * FOLDER_OP_ROW_HEIGHT +
-    FOLDER_OPS_BORDER
-  )
+export type QueueRow =
+  | {
+      kind: 'group'
+      sessionId: string
+      name: string
+      running: number
+      failed: number
+      total: number
+    }
+  | { kind: 'task'; task: TransferTask }
+
+/** 按会话分组：保持传入顺序，组内顺序即排序结果。 */
+export function buildQueueRows(
+  tasks: TransferTask[],
+  resolveSessionName: (sessionId: string) => string,
+): QueueRow[] {
+  const groups = new Map<string, QueueRow & { kind: 'group' }>()
+  const rows: QueueRow[] = []
+
+  for (const task of tasks) {
+    const existing = groups.get(task.sessionId)
+    if (existing) {
+      existing.total++
+      if (task.status === OPERATION_STATUS.FAILED) existing.failed++
+      if (task.status === OPERATION_STATUS.RUNNING || task.status === OPERATION_STATUS.WAITING) {
+        existing.running++
+      }
+    } else {
+      const group: QueueRow & { kind: 'group' } = {
+        kind: 'group',
+        sessionId: task.sessionId,
+        name: resolveSessionName(task.sessionId),
+        running:
+          task.status === OPERATION_STATUS.RUNNING || task.status === OPERATION_STATUS.WAITING
+            ? 1
+            : 0,
+        failed: task.status === OPERATION_STATUS.FAILED ? 1 : 0,
+        total: 1,
+      }
+      groups.set(task.sessionId, group)
+      rows.push(group)
+    }
+    rows.push({ kind: 'task', task })
+  }
+
+  return rows
+}
+
+/** 行高只由行本身决定，不跟实时数据走；文件夹固定预留满额子文件行。 */
+export function queueRowHeight(row: QueueRow | undefined, isExpanded: boolean): number {
+  if (!row) return QUEUE_ROW_HEIGHT + QUEUE_ROW_BORDER
+  if (row.kind === 'group') return QUEUE_GROUP_ROW_HEIGHT
+
+  const isFolder = row.task.itemType === FILE_TYPE.DIRECTORY
+  const operations = isFolder
+    ? TRANSFER_CONFIG.MAX_INLINE_OPERATIONS * QUEUE_OPERATION_ROW_HEIGHT
+    : 0
+  const paths = isExpanded ? QUEUE_PATH_BLOCK_HEIGHT : 0
+  const padding = isFolder || isExpanded ? QUEUE_DETAIL_PADDING : 0
+
+  return QUEUE_ROW_HEIGHT + operations + paths + padding + QUEUE_ROW_BORDER
 }
 
 interface TransferListProps {
   tasks: TransferTask[]
-  onCancelAll: () => void
+  /** 跨会话时按连接分组。 */
+  grouped: boolean
+  resolveSessionName: (sessionId: string) => string
 }
 
-export const TransferList = ({ tasks, onCancelAll }: TransferListProps) => {
-  const { t } = useTranslation()
-  const { sortBy, sortOrder, setSort, sortedTasks } = useTransferSort(tasks)
+export const TransferList = ({ tasks, grouped, resolveSessionName }: TransferListProps) => {
   const { retryTask, cancelTask } = useTransferActions()
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
+  // 展开会改变行高，虚拟化的测量缓存必须显式失效。
+  const [measureRevision, setMeasureRevision] = useState(0)
+
+  const rows = useMemo(
+    () =>
+      grouped
+        ? buildQueueRows(tasks, resolveSessionName)
+        : tasks.map((task) => ({ kind: 'task' as const, task })),
+    [tasks, grouped, resolveSessionName],
+  )
+
+  const toggleExpand = useCallback((taskId: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(taskId)) {
+        next.delete(taskId)
+      } else {
+        next.add(taskId)
+      }
+      return next
+    })
+    setMeasureRevision((prev) => prev + 1)
+  }, [])
 
   const handleRetry = useCallback(
     (taskId: string) => {
@@ -55,53 +127,59 @@ export const TransferList = ({ tasks, onCancelAll }: TransferListProps) => {
     [cancelTask],
   )
 
-  const renderItem = useCallback(
-    (task: TransferTask, _index: number, style: React.CSSProperties) => (
-      <TransferTaskItem
-        key={task.id}
-        task={task}
-        onRetry={handleRetry}
-        onCancel={handleCancel}
-        onRemove={handleCancel}
-        style={style}
-      />
-    ),
-    [handleCancel, handleRetry],
+  const estimateSize = useCallback(
+    (index: number) => {
+      const row = rows[index]
+      const isExpanded = row?.kind === 'task' && expandedIds.has(row.task.id)
+      return queueRowHeight(row, isExpanded)
+    },
+    [rows, expandedIds],
   )
 
-  const estimateSize = useCallback(
-    (index: number) => taskRowHeight(sortedTasks[index]),
-    [sortedTasks],
+  const renderRow = useCallback(
+    (row: QueueRow, _index: number, style: React.CSSProperties) => {
+      if (row.kind === 'group') {
+        return (
+          <div
+            key={row.sessionId}
+            style={style}
+            className="flex items-center gap-2 px-3 h-7 bg-hover/60 text-xs text-text-muted"
+          >
+            <span className="truncate font-medium text-text-secondary">{row.name}</span>
+            <span className="tabular-nums shrink-0">
+              {row.running}/{row.total}
+            </span>
+            {row.failed > 0 && (
+              <span className="tabular-nums shrink-0 text-danger">{row.failed}</span>
+            )}
+          </div>
+        )
+      }
+
+      return (
+        <TransferTaskItem
+          key={row.task.id}
+          task={row.task}
+          isExpanded={expandedIds.has(row.task.id)}
+          onToggleExpand={toggleExpand}
+          onRetry={handleRetry}
+          onCancel={handleCancel}
+          onRemove={handleCancel}
+          style={style}
+        />
+      )
+    },
+    [expandedIds, handleCancel, handleRetry, toggleExpand],
   )
 
   return (
-    <div className="flex-1 flex flex-col min-w-0">
-      <TransferActionBar
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        onSort={setSort}
-        onCancelAll={onCancelAll}
+    <div className="flex-1 min-h-0">
+      <VirtualRows
+        items={rows}
+        estimateSize={estimateSize}
+        revision={measureRevision}
+        renderRow={renderRow}
       />
-
-      <div className="flex-1 min-h-0">
-        {sortedTasks.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center gap-3">
-            <div
-              className={`
-                w-16 h-16 rounded-xl
-                bg-hover border border-border flex items-center justify-center
-              `}
-            >
-              <ArrowUpDown className="w-7 h-7 stroke-text-muted stroke-[1.5]" />
-            </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-text mb-1">{t(($) => $.transfer.empty)}</p>
-            </div>
-          </div>
-        ) : (
-          <VirtualRows items={sortedTasks} estimateSize={estimateSize} renderRow={renderItem} />
-        )}
-      </div>
     </div>
   )
 }

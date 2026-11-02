@@ -7,6 +7,7 @@ import { FILE_GRID_GAP } from '../virtualization/layout.js'
 interface FileGridItemProps {
   file: FileInfo
   isSelected: boolean
+  isCut: boolean
   isFocused: boolean
   width: number
   height: number
@@ -19,6 +20,7 @@ interface FileGridItemProps {
 export const FileGridItem = ({
   file,
   isSelected,
+  isCut,
   isFocused,
   width,
   height,
@@ -36,6 +38,7 @@ export const FileGridItem = ({
     className={cn(
       'flex flex-col items-center justify-center gap-2 p-2 m-1 rounded-md cursor-pointer select-none outline-none transition-colors duration-150',
       isSelected ? 'bg-selected text-accent' : 'bg-transparent text-text hover:bg-hover',
+      isCut && 'opacity-50',
     )}
     // 单元盒比栅格槽位小一圈，外侧 m-1（4px）与相邻项合成 FILE_GRID_GAP，横纵间距一致。
     style={{ width: width - FILE_GRID_GAP, height: height - FILE_GRID_GAP }}
@@ -45,7 +48,7 @@ export const FileGridItem = ({
     onFocus={onFocus}
     title={file.name}
   >
-    <FileIcon type={file.type} className="w-14 h-14" />
+    <FileIcon type={file.type} name={file.name} className="w-14 h-14" />
     <span className="text-[13px] leading-tight w-full text-center truncate">{file.name}</span>
   </div>
 )

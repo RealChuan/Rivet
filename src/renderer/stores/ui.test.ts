@@ -8,6 +8,7 @@ import {
   TIMEOUTS,
   TOAST_TYPE,
 } from '@shared/constants/index.js'
+import { QUEUE_PANEL_MODE } from '@shared/constants/transfer.js'
 import { useUiStore } from './ui.js'
 
 const mockConfigSet = vi.fn()
@@ -29,8 +30,8 @@ describe('useUiStore', () => {
       appearance: DEFAULT_THEME_VALUE,
       locale: DEFAULT_LANGUAGE,
       connectionPanelWidth: 260,
-      queueDrawerOpen: false,
-      queueDrawerWidth: 360,
+      queuePanelMode: QUEUE_PANEL_MODE.EXPANDED,
+      queuePanelHeight: 260,
       initialized: false,
       fileViewModes: {},
       toasts: [],
@@ -54,12 +55,12 @@ describe('useUiStore', () => {
       expect(useUiStore.getState().connectionPanelWidth).toBe(260)
     })
 
-    it('should have default queueDrawerOpen as false', () => {
-      expect(useUiStore.getState().queueDrawerOpen).toBe(false)
+    it('should have queue panel expanded by default', () => {
+      expect(useUiStore.getState().queuePanelMode).toBe(QUEUE_PANEL_MODE.EXPANDED)
     })
 
-    it('should have default queueDrawerWidth of 360', () => {
-      expect(useUiStore.getState().queueDrawerWidth).toBe(360)
+    it('should have default queuePanelHeight of 260', () => {
+      expect(useUiStore.getState().queuePanelHeight).toBe(260)
     })
 
     it('should have initialized as false', () => {
@@ -148,6 +149,25 @@ describe('useUiStore', () => {
     it('should not persist via config.set', () => {
       useUiStore.getState().setConnectionPanelWidth(300)
 
+      expect(mockConfigSet).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('setQueuePanelMode', () => {
+    it('updates the panel mode', () => {
+      useUiStore.getState().setQueuePanelMode(QUEUE_PANEL_MODE.COLLAPSED)
+      expect(useUiStore.getState().queuePanelMode).toBe(QUEUE_PANEL_MODE.COLLAPSED)
+
+      useUiStore.getState().setQueuePanelMode(QUEUE_PANEL_MODE.MAXIMIZED)
+      expect(useUiStore.getState().queuePanelMode).toBe(QUEUE_PANEL_MODE.MAXIMIZED)
+    })
+  })
+
+  describe('setQueuePanelHeight', () => {
+    it('updates height without persisting it', () => {
+      useUiStore.getState().setQueuePanelHeight(320)
+
+      expect(useUiStore.getState().queuePanelHeight).toBe(320)
       expect(mockConfigSet).not.toHaveBeenCalled()
     })
   })

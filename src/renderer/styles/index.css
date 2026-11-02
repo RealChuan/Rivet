@@ -5,7 +5,10 @@
 /* ========== 主题令牌 ========== */
 @theme {
   /* 颜色 */
-  --color-bg: rgba(255, 255, 255, 0.6);
+  /* 主界面底，有窗口材质时透出材质 */
+  --color-bg: rgba(255, 255, 255, 0.55);
+  /* WCO 标题栏表面色，与 TITLEBAR_OVERLAY_COLORS 一致 */
+  --color-titlebar: #ffffff;
   --color-border: #e5e5e5;
   --color-text: #171717;
   --color-text-muted: #737373;
@@ -33,20 +36,24 @@
   --color-toast-error: rgba(239, 68, 68, 0.95);
   --color-toast-info: rgba(37, 99, 235, 0.95);
   --color-toast-warning: rgba(234, 179, 8, 0.95);
-  --color-glass-bg: rgba(255, 255, 255, 0.85);
-  --color-glass-border: rgba(0, 0, 0, 0.06);
+  /* 浮层面板底，跨平台统一；不透明，避免透出下层文字 */
+  --color-glass-bg: #ffffff;
+  /* 控件底 */
+  --color-surface: rgba(255, 255, 255, 0.96);
+  --color-glass-border: rgba(9, 9, 11, 0.08);
   --color-subtle-hover: rgba(0, 0, 0, 0.02);
   --color-danger-subtle: rgba(239, 68, 68, 0.04);
   --color-bg-secondary: #f5f5f5;
-  --color-overlay: rgba(0, 0, 0, 0.3);
+  /* 模态遮罩 */
+  --color-overlay: rgba(9, 9, 11, 0.24);
   --color-danger-border: rgba(239, 68, 68, 0.3);
 
   /* 阴影 */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.03);
   --shadow-dialog:
-    inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 10px 30px -5px rgba(0, 0, 0, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 1px 2px rgba(9, 9, 11, 0.06),
+    0 12px 32px -8px rgba(9, 9, 11, 0.2);
   --shadow-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
 
   /* 字号 */
@@ -74,6 +81,7 @@
 /* ========== Dark 模式覆盖 ========== */
 .dark {
   --color-bg: rgba(30, 30, 30, 0.6);
+  --color-titlebar: #1e1e1e;
   --color-border: #2e2e2e;
   --color-text: #e5e5e5;
   --color-text-muted: #a3a3a3;
@@ -101,24 +109,25 @@
   --color-toast-error: rgba(248, 113, 113, 0.9);
   --color-toast-info: rgba(96, 165, 250, 0.9);
   --color-toast-warning: rgba(250, 204, 21, 0.9);
-  --color-glass-bg: rgba(37, 37, 38, 0.9);
+  --color-glass-bg: #202022;
+  --color-surface: rgba(58, 58, 62, 0.9);
   --color-glass-border: rgba(255, 255, 255, 0.1);
   --color-subtle-hover: rgba(255, 255, 255, 0.06);
   --color-danger-subtle: rgba(248, 113, 113, 0.06);
   --color-bg-secondary: #262626;
-  --color-overlay: rgba(0, 0, 0, 0.5);
+  --color-overlay: rgba(0, 0, 0, 0.42);
   --color-danger-border: rgba(248, 113, 113, 0.25);
 
   /* 阴影 */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.15);
   --shadow-dialog:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 4px 6px -1px rgba(0, 0, 0, 0.3),
-    0 10px 30px -5px rgba(0, 0, 0, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4),
+    0 16px 40px -8px rgba(0, 0, 0, 0.6);
   --shadow-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
 }
 
-/* ========== 不支持毛玻璃平台的降级 ========== */
+/* ========== 无窗口级材质：主界面改用不透明底色 ========== */
 .no-glass {
   --color-bg: #ffffff;
 }

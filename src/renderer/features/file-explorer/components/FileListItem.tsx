@@ -19,6 +19,7 @@ interface FileListItemProps {
   file: FileInfo
   columnWidths: ColumnWidths
   isSelected: boolean
+  isCut: boolean
   isPending: boolean
   isHovered: boolean
   isFocused: boolean
@@ -35,6 +36,7 @@ export const FileListItem = ({
   file,
   columnWidths,
   isSelected,
+  isCut,
   isPending,
   isHovered,
   isFocused,
@@ -69,6 +71,7 @@ export const FileListItem = ({
             ? 'bg-hover border-l-2 border-l-transparent'
             : 'bg-transparent border-l-2 border-l-transparent',
         isSelected ? 'text-accent' : 'text-text',
+        isCut && 'opacity-50',
       )}
       style={{ height: rowHeight, minWidth: totalWidth }}
       onMouseEnter={() => onHover(file.name)}
@@ -84,7 +87,7 @@ export const FileListItem = ({
         title={file.name}
       >
         <div className="px-2.5">
-          <FileIcon type={file.type} />
+          <FileIcon type={file.type} name={file.name} />
         </div>
         <span className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">{file.name}</span>
       </div>

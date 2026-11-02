@@ -50,6 +50,37 @@ describe('ProgressAggregator', () => {
     expect(batches).toHaveLength(1)
   })
 
+  it('按采样间隔算出字节速度，附在快照上', () => {
+    vi.useFakeTimers()
+    const batches: TransferProgressData[][] = []
+    const aggregator = new ProgressAggregator({
+      flushMs: 200,
+      send: (batch) => batches.push(batch),
+    })
+
+    aggregator.update(data('t1', 0))
+    vi.advanceTimersByTime(1000)
+    aggregator.update(data('t1', 2_000_000))
+    aggregator.flush()
+
+    expect(batches.at(-1)?.[0]).toMatchObject({ transferredSize: 2_000_000, speed: 2_000_000 })
+  })
+
+  it('同一时刻的两次上报不产生速度', () => {
+    vi.useFakeTimers()
+    const batches: TransferProgressData[][] = []
+    const aggregator = new ProgressAggregator({
+      flushMs: 200,
+      send: (batch) => batches.push(batch),
+    })
+
+    aggregator.update(data('t1', 0))
+    aggregator.update(data('t1', 1000))
+    aggregator.flush()
+
+    expect(batches.at(-1)?.[0]?.speed).toBeUndefined()
+  })
+
   it('dispose 清定时器，之后不再发送', async () => {
     vi.useFakeTimers()
     const batches: TransferProgressData[][] = []

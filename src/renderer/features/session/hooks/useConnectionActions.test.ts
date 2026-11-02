@@ -311,6 +311,21 @@ describe('useConnectionActions', () => {
       expect(onOpenDialog).toHaveBeenCalledOnce()
     })
 
+    it('should surface an error toast and open the dialog when the connection throws', async () => {
+      mockConnectSession.mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:8080'))
+
+      const { result } = renderHook(() => useConnectionActions())
+      const onOpenDialog = vi.fn()
+
+      await act(async () => {
+        await result.current.handleReconnect(fullConnection, onOpenDialog)
+      })
+
+      expect(mockAddToast).toHaveBeenCalledWith(expect.objectContaining({ type: TOAST_TYPE.ERROR }))
+      expect(result.current.reconnectConfig).toBe(fullConnection)
+      expect(onOpenDialog).toHaveBeenCalledOnce()
+    })
+
     it('should open reconnect dialog when askPasswordOnConnect is true', async () => {
       const { result } = renderHook(() => useConnectionActions())
       const onOpenDialog = vi.fn()

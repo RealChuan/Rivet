@@ -76,7 +76,7 @@ describe('useApplicationTheme', () => {
     expect(mockSetAppearance).toHaveBeenCalledWith('dark')
   })
 
-  it('should add no-glass class when supportsGlass is false', async () => {
+  it('should add no-glass class when the platform has no window material', async () => {
     const mockState = {
       appearance: 'system',
       setAppearance: mockSetAppearance,
@@ -84,17 +84,16 @@ describe('useApplicationTheme', () => {
     ;(useUiStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (selector: (state: typeof mockState) => unknown) => selector(mockState),
     )
-    const mockSupportsGlass = vi.fn().mockResolvedValue(false)
     vi.stubGlobal('electronAPI', {
       app: { setTheme: mockSetTheme },
-      system: { supportsGlass: mockSupportsGlass },
+      system: { supportsGlass: vi.fn().mockResolvedValue(false) },
     })
 
     renderHook(() => useApplicationTheme())
 
     await vi.waitFor(() => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(document.documentElement.classList.add).toHaveBeenCalledWith('no-glass')
+      expect(document.documentElement.classList.toggle).toHaveBeenCalledWith('no-glass', true)
     })
   })
 })

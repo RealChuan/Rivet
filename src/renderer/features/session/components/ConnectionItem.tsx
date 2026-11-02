@@ -149,7 +149,7 @@ export const ConnectionItem = ({
             <div className="fixed inset-0 z-50" onClick={() => setShowMenu(false)} />
             <div
               ref={menuRef}
-              className="fixed z-50 bg-glass-bg backdrop-blur-xl border border-border rounded-md p-1 min-w-30 shadow-dropdown animate-menu-in"
+              className="fixed z-50 bg-glass-bg border border-glass-border rounded-md p-1 min-w-30 shadow-dropdown animate-menu-in"
               style={{
                 top: menuPosition.top,
                 right: menuPosition.right,

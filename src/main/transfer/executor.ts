@@ -178,6 +178,10 @@ export class FileTransferExecutor implements TransferExecutor {
       signal.removeEventListener('abort', onAbort)
     }
 
+    // 扫描结束后 totalFileCount 才是真正的总数；在此之前它只是“已发现”。
+    task.scanCompleted = true
+    this.reportFolder(task, hooks)
+
     await Promise.allSettled(running)
 
     if (signal.aborted) return { kind: 'cancelled' }
@@ -384,6 +388,7 @@ export class FileTransferExecutor implements TransferExecutor {
       completedFileCount: task.completedFileCount ?? 0,
       activeFileCount: task.activeFileCount ?? 0,
       waitingFileCount: task.waitingFileCount ?? 0,
+      ...(task.scanCompleted ? { scanCompleted: true } : {}),
     }
     hooks.report(data)
   }

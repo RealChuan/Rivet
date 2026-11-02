@@ -9,6 +9,7 @@ vi.mock('../../file-explorer/hooks/use-virtual-rows.js', () => ({
       { index: 1, key: 1, start: 50, size: 50 },
     ],
     totalSize: 100,
+    measure: vi.fn(),
   }),
 }))
 

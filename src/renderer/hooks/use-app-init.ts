@@ -15,7 +15,7 @@ export const useApplicationInitialization = () => {
   const loadSavedConnections = useConnectionStore((state) => state.loadSavedConnections)
   const loadSortOrderFromSettings = useConnectionStore((state) => state.loadSortOrderFromSettings)
   const startTransferListening = useTransferStore((state) => state.startListening)
-  const loadExistingTasks = useTransferStore((state) => state.loadExistingTasks)
+  const restoreActiveTasks = useTransferStore((state) => state.restoreActiveTasks)
   const loadConcurrency = useTransferStore((state) => state.loadConcurrency)
 
   useEffect(() => {
@@ -45,7 +45,7 @@ export const useApplicationInitialization = () => {
     void loadSavedConnections()
     void loadSortOrderFromSettings()
     const unsubscribe = startTransferListening()
-    void loadExistingTasks()
+    void restoreActiveTasks()
     void loadConcurrency()
     return unsubscribe
   }, [
@@ -53,7 +53,7 @@ export const useApplicationInitialization = () => {
     loadSavedConnections,
     loadSortOrderFromSettings,
     startTransferListening,
-    loadExistingTasks,
+    restoreActiveTasks,
     loadConcurrency,
   ])
 

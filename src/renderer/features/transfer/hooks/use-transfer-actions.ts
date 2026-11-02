@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { FileType } from '@shared/constants/ui.js'
 import { TOAST_TYPE } from '@shared/constants/index.js'
-import { SIDEBAR_VIEW, TRANSFER_DIRECTION } from '@shared/constants/transfer.js'
+import { TRANSFER_DIRECTION } from '@shared/constants/transfer.js'
 import { FILE_TYPE } from '@shared/constants/ui.js'
 import { transferApi } from '../../../api/transfer.js'
 import { useUiStore } from '../../../stores/index.js'
@@ -42,7 +42,6 @@ interface UseTransferActionsReturn {
 export function useTransferActions(): UseTransferActionsReturn {
   const { t } = useTranslation()
   const addToast = useUiStore((state) => state.addToast)
-  const setActiveView = useUiStore((state) => state.setActiveView)
   const setActiveTab = useTransferStore((state) => state.setActiveTab)
 
   const startMixedUpload = useCallback(
@@ -101,7 +100,6 @@ export function useTransferActions(): UseTransferActionsReturn {
         }
 
         setActiveTab(TRANSFER_DIRECTION.UPLOAD)
-        setActiveView(SIDEBAR_VIEW.TRANSFERS)
       } catch (error) {
         logger.catch(error, { action: 'startMixedUpload' })
         addToast({
@@ -110,7 +108,7 @@ export function useTransferActions(): UseTransferActionsReturn {
         })
       }
     },
-    [addToast, setActiveTab, setActiveView, t],
+    [addToast, setActiveTab, t],
   )
 
   const startUpload = useCallback(
@@ -179,7 +177,6 @@ export function useTransferActions(): UseTransferActionsReturn {
       }
 
       setActiveTab(TRANSFER_DIRECTION.DOWNLOAD)
-      setActiveView(SIDEBAR_VIEW.TRANSFERS)
     } catch (error) {
       logger.catch(error, { action: 'startDownload' })
       addToast({

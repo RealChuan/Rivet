@@ -75,7 +75,7 @@ export const ConflictDialogBase = ({
           <h2 className="text-base font-semibold text-text">{t(($) => $.conflict.title)}</h2>
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-glass-bg rounded-md border border-border min-h-10">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 bg-surface rounded-md border border-border min-h-10">
           {Array.from({ length: conflictCount }, (_, index) => {
             const strategy = strategies[index] ?? CONFLICT_ACTION.KEEP_BOTH
             const cannotOverwrite = canOverwrite ? !canOverwrite(index) : false

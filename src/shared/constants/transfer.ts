@@ -32,12 +32,22 @@ export const TRANSFER_SORT_FIELD = {
 
 export type TransferSortField = (typeof TRANSFER_SORT_FIELD)[keyof typeof TRANSFER_SORT_FIELD]
 
-export const SIDEBAR_VIEW = {
-  CONNECTIONS: 'connections',
-  TRANSFERS: 'transfers',
+/** 传输队列面板的三态；`hidden` 由任务列表为空推导，不占状态。 */
+export const QUEUE_PANEL_MODE = {
+  COLLAPSED: 'collapsed',
+  EXPANDED: 'expanded',
+  MAXIMIZED: 'maximized',
 } as const
 
-export type SidebarView = (typeof SIDEBAR_VIEW)[keyof typeof SIDEBAR_VIEW]
+export type QueuePanelMode = (typeof QUEUE_PANEL_MODE)[keyof typeof QUEUE_PANEL_MODE]
+
+/** 队列面板的任务范围：只看当前连接，还是全部连接。 */
+export const TRANSFER_SCOPE = {
+  CURRENT: 'current',
+  ALL: 'all',
+} as const
+
+export type TransferScope = (typeof TRANSFER_SCOPE)[keyof typeof TRANSFER_SCOPE]
 
 export const TRANSFER_OPERATION_TYPE = {
   MKDIR: 'mkdir',

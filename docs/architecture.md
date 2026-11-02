@@ -19,11 +19,11 @@
 
 ## 4. 传输
 
-任务状态机显式（waiting/running/completed/failed/cancelled）。上传/下载各自有方向信号量，并发上限持久化在设置里。进度由主进程聚合后节流推送；渲染层只合并快照，不自己算总进度。冲突策略在入队/执行前决定，执行器不弹 UI。
+任务状态机显式（waiting/running/completed/failed/cancelled）。上传/下载各自有方向信号量，并发上限持久化在设置里。进度与速度由主进程聚合后节流推送；渲染层只合并快照。冲突策略在入队/执行前决定，执行器不弹 UI。
 
 ## 5. 渲染层
 
-`api/` 是唯一允许出现 `window.electronAPI` 的地方；组件只调用 api。目录数据用 `useQuery(['list', sessionId, path])`，失效按 session 批量触发。文件视图是 `FileView` + 列表/宫格，共用固定行高虚拟化与框选。传输面板用可变行高虚拟化，按 index 估算高度。
+`api/` 是唯一允许出现 `window.electronAPI` 的地方；组件只调用 api。目录数据用 `useQuery(['list', sessionId, path])`，失效按 session 批量触发。文件视图是 `FileView` + 列表/宫格，共用固定行高虚拟化与框选。传输队列贴在文件区底部，三态（收起/展开/最大化），可变行高虚拟化按 index 估算高度。
 
 ## 6. 配置与秘密
 
@@ -31,10 +31,10 @@
 
 ## 7. 窗口与主题
 
-单窗口。Windows 11 使用 Window Controls Overlay 以保留 Snap Layouts；macOS 使用隐藏标题栏 + 原生红绿灯；其他平台回退原生边框。渲染层标题栏只在需要时占位，主题切换同时更新原生主题、overlay 颜色与背景材质。关闭守卫在主进程：有活跃传输时发 `app.closeRequested`，渲染层取消任务后调 `app.confirmClose`。
+单窗口。Windows 11 使用 Window Controls Overlay 以保留 Snap Layouts；macOS 使用隐藏标题栏 + 原生红绿灯；其他平台使用无边框窗口 + 渲染层自绘标题栏。渲染层标题栏只在需要时占位，主题切换同时更新原生主题、overlay 颜色与窗口材质：Windows 11 22H2+ 用 Mica，macOS 13+ 用 vibrancy，其余平台回退不透明背景。只有主窗口的视觉随平台变化，对话框与菜单在所有平台使用同一套实心浮层样式。关闭守卫在主进程：有活跃传输时发 `app.closeRequested`，渲染层取消任务后调 `app.confirmClose`。
 
 ## 8. 三条数据流
 
 - **目录读取**：渲染层 query → 契约 → 协议服务 → provider → 结果映射 → query 缓存。
-- **传输进度**：执行器 → 进度聚合器 → 节流事件 → 渲染层任务 store。
+- **传输进度**：执行器 → 进度聚合器（算速度 + 节流）→ 渲染层任务 store。
 - **连接与主机密钥**：表单 → `protocol.connect` → hostVerifier → `HOST_KEY_*` 错误 → 确认框 → `hostKey.trust` → 重连。

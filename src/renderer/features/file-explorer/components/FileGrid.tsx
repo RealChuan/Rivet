@@ -12,6 +12,10 @@ interface FileGridProps {
   columns: number
   rowHeight: number
   selection: SelectionModel
+  /** 框选过程中实时覆盖的条目，松手后才写回 selection */
+  dragSelection: ReadonlySet<string>
+  /** 剪切中的条目，置灰显示 */
+  cutSelection: ReadonlySet<string>
   scrollRef: RefObject<HTMLDivElement | null>
   containerWidth: number
   onActivate: (file: FileInfo) => void
@@ -26,6 +30,8 @@ export const FileGrid = ({
   columns,
   rowHeight,
   selection,
+  dragSelection,
+  cutSelection,
   scrollRef,
   containerWidth,
   onActivate,
@@ -65,7 +71,10 @@ export const FileGrid = ({
                 <FileGridItem
                   key={file.absolutePath}
                   file={file}
-                  isSelected={selection.isSelected(file.absolutePath)}
+                  isSelected={
+                    selection.isSelected(file.absolutePath) || dragSelection.has(file.absolutePath)
+                  }
+                  isCut={cutSelection.has(file.absolutePath)}
                   isFocused={selection.focusedPath === file.absolutePath}
                   width={cellWidth}
                   height={rowHeight}

@@ -1,0 +1,4 @@
+wsgidav>=4.3,<5
+cheroot>=10
+# 只在 --https 自动生成自签证书时需要；自带证书时可以不装
+cryptography>=42

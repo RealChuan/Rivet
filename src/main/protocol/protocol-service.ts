@@ -216,6 +216,11 @@ export class ProtocolService {
 
       try {
         await provider.connect(credentials)
+        // connect 只保证传输层建立：WebDAV 的 client 是惰性的，SFTP 也可能握手成功但
+        // 数据通道不可用。这里补一次探活，否则失败要推迟到首次 list 才暴露。
+        await this.options.requests.run({ timeoutMs: TIMEOUTS.PING }, (signal) =>
+          provider.ping(signal),
+        )
       } catch (error) {
         await provider.disconnect().catch(() => {})
         const captured = capture.current
@@ -371,18 +376,14 @@ export class ProtocolService {
       async (provider, signal) => {
         const path = sanitize(remotePath)
         const entries: FileInfo[] = []
-        let warned = false
 
         for await (const entry of provider.list(path, { signal })) {
           if (entries.length >= MAX_LIST_ENTRIES) {
-            if (!warned) {
-              warned = true
-              logger.warn('Directory listing truncated', {
-                sessionId,
-                path,
-                limit: MAX_LIST_ENTRIES,
-              })
-            }
+            logger.warn('Directory listing truncated', {
+              sessionId,
+              path,
+              limit: MAX_LIST_ENTRIES,
+            })
             break
           }
           entries.push(toFileInfo(entry))

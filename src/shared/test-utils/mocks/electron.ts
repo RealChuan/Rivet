@@ -37,6 +37,7 @@ export const app = {
   }),
   getName: vi.fn(() => 'Rivet'),
   isPackaged: vi.fn(() => false),
+  getAppPath: vi.fn(() => '/app'),
   getLocale: vi.fn(() => 'zh-CN'),
   on: vi.fn(),
   quit: vi.fn(),
@@ -66,9 +67,7 @@ class MockBrowserWindow {
   maximize = vi.fn()
   unmaximize = vi.fn()
   isMaximized = vi.fn(() => false)
-  setVibrancy = vi.fn()
   setTitleBarOverlay = vi.fn()
-  setBackgroundMaterial = vi.fn()
 }
 
 export const BrowserWindow = Object.assign(

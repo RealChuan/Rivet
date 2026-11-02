@@ -14,6 +14,10 @@ interface FileListProps {
   columnWidths: ColumnWidths
   isSftp: boolean
   selection: SelectionModel
+  /** 框选过程中实时覆盖的条目，松手后才写回 selection */
+  dragSelection: ReadonlySet<string>
+  /** 剪切中的条目，置灰显示 */
+  cutSelection: ReadonlySet<string>
   scrollRef: RefObject<HTMLDivElement | null>
   onActivate: (file: FileInfo) => void
   onContextMenu: (file: FileInfo) => void
@@ -29,6 +33,8 @@ export const FileList = ({
   columnWidths,
   isSftp,
   selection,
+  dragSelection,
+  cutSelection,
   scrollRef,
   onActivate,
   onContextMenu,
@@ -66,7 +72,10 @@ export const FileList = ({
               <FileListItem
                 file={file}
                 columnWidths={columnWidths}
-                isSelected={selection.isSelected(file.absolutePath)}
+                isSelected={
+                  selection.isSelected(file.absolutePath) || dragSelection.has(file.absolutePath)
+                }
+                isCut={cutSelection.has(file.absolutePath)}
                 isPending={false}
                 isHovered={false}
                 isFocused={selection.focusedPath === file.absolutePath}

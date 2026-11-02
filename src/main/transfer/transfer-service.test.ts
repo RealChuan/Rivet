@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { Entry } from '@shared/domain/entry.js'
-import type { TransferTask } from '@shared/types/index.js'
+import type { TransferProgressData, TransferTask } from '@shared/types/index.js'
 import { FILE_TYPE, OPERATION_STATUS, TRANSFER_DIRECTION } from '@shared/constants/index.js'
 import { EVENT_CHANNEL } from '@shared/contract/events.contract.js'
 import type { FileProvider } from '../providers/types.js'
@@ -357,5 +357,40 @@ describe('TransferService 并发与本地辅助', () => {
     expect(hooks?.isCancelled('t1')).toBe(true)
     finish?.({ kind: 'cancelled' })
     await vi.waitFor(() => expect(harness.service.getTasks()).toHaveLength(0))
+  })
+})
+
+describe('TransferService 进度载荷', () => {
+  it('把 scanCompleted 与 activeOperations 一起带给渲染层', async () => {
+    const executor: TransferExecutor = {
+      execute: (_task, _signal, hooks) => {
+        hooks.reportOperation({
+          id: 'op-1',
+          itemName: 'a.txt',
+          type: 'upload',
+          transferredSize: 1,
+          fileSize: 2,
+          status: OPERATION_STATUS.RUNNING,
+        })
+        hooks.report({
+          taskId: 't1',
+          transferredSize: 1,
+          totalFileCount: 2,
+          completedFileCount: 1,
+          scanCompleted: true,
+        })
+        return Promise.resolve<TaskOutcome>({ kind: 'completed' })
+      },
+    }
+    const harness = makeHarness({ executor })
+
+    await harness.service.addTasks([createTask({ itemType: FILE_TYPE.DIRECTORY })])
+    await vi.waitFor(() => expect(harness.service.getTasks()).toHaveLength(0))
+
+    const batches = harness.events(EVENT_CHANNEL.PROGRESS) as TransferProgressData[][]
+    const payload = batches.flat().find((data) => data.scanCompleted === true)
+
+    expect(payload).toMatchObject({ scanCompleted: true, totalFileCount: 2 })
+    expect(payload?.activeOperations?.[0]?.itemName).toBe('a.txt')
   })
 })

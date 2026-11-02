@@ -28,6 +28,8 @@ export interface TransferTask {
   completedFileCount?: number | undefined
   activeFileCount?: number | undefined
   waitingFileCount?: number | undefined
+  /** 目录扫描是否结束。在此之前 `totalFileCount` 只是“已发现”的数量，不是总数。 */
+  scanCompleted?: boolean
 }
 
 export interface UploadOperation {
@@ -64,6 +66,8 @@ export interface TransferProgressData {
   completedFileCount?: number | undefined
   activeFileCount?: number | undefined
   waitingFileCount?: number | undefined
+  /** 目录扫描是否结束。在此之前 `totalFileCount` 只是“已发现”的数量，不是总数。 */
+  scanCompleted?: boolean
   activeOperations?: OperationProgressInfo[]
 }
 

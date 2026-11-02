@@ -1,30 +1,15 @@
 import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGE } from '@shared/constants/index.js'
-import { SIDEBAR_VIEW, type SidebarView } from '@shared/constants/transfer.js'
 import { getWindowChrome } from '../api/env.js'
-import { ConfirmationDialog } from '../components/common/index.js'
-import { TitleBar, Toast } from '../components/common/index.js'
+import { ConfirmationDialog, TitleBar, Toast } from '../components/common/index.js'
 import { useActiveTaskGuard, useApplicationTheme, useInternationalization } from '../hooks/index.js'
-import { ConnectionPage } from '../pages/ConnectionPage.js'
-import { TransferPage } from '../pages/TransferPage.js'
-import { useUiStore } from '../stores/ui.js'
-import { ActivityBar } from './ActivityBar.js'
 import { titlebarPadding } from './titlebar-padding.js'
-
-const PageContent = ({ activeView }: { activeView: SidebarView }) => {
-  const isTransferActive = activeView === SIDEBAR_VIEW.TRANSFERS
-
-  return (
-    <div className="flex-1 min-w-0">{isTransferActive ? <TransferPage /> : <ConnectionPage />}</div>
-  )
-}
+import { Workspace } from './Workspace.js'
 
 export const MainLayout = () => {
   const { t } = useTranslation()
   const { theme, cycleTheme } = useApplicationTheme()
   const { language, changeLanguage } = useInternationalization()
-  const activeView = useUiStore((state) => state.activeView)
-  const setActiveView = useUiStore((state) => state.setActiveView)
   const { confirmOpen, handleConfirm, handleCancel, title, message } = useActiveTaskGuard()
 
   return (
@@ -41,9 +26,8 @@ export const MainLayout = () => {
         onChangeLanguage={changeLanguage}
       />
 
-      <div className="flex-1 flex overflow-hidden">
-        <ActivityBar activeView={activeView} onViewChange={setActiveView} />
-        <PageContent activeView={activeView} />
+      <div className="flex-1 overflow-hidden border-t border-border">
+        <Workspace />
       </div>
 
       <Toast />

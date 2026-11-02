@@ -1,13 +1,6 @@
 import { defineConfig } from 'vite'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
-  define: {
-    __dirname: JSON.stringify(path.resolve(__dirname, '.vite/build')),
-  },
   build: {
     lib: {
       entry: 'src/main/app/main.ts',

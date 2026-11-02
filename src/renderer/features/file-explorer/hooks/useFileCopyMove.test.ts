@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FileInfo } from '@shared/types/index.js'
 import type { ConflictResolution } from '../components/ConflictDialog.js'
+import { useFileClipboardStore } from '../stores/clipboard.js'
 import { useFileCopyMove } from './use-file-copy-move.js'
 
 const mockInvalidateSession = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
@@ -102,6 +103,7 @@ describe('useFileCopyMove', () => {
     mockProtocolList.mockReset()
     mockProtocolCopy.mockReset()
     mockProtocolMove.mockReset()
+    useFileClipboardStore.setState({ sessionId: null, mode: null, files: [] })
     vi.stubGlobal('window', {
       electronAPI: {
         protocol: {
@@ -119,7 +121,7 @@ describe('useFileCopyMove', () => {
     const files = [createMockFile('a.txt')]
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     expect(result.current.pendingFiles).toEqual(files)
@@ -133,7 +135,7 @@ describe('useFileCopyMove', () => {
     const files = [createMockFile('a.txt')]
 
     act(() => {
-      result.current.handleMove(files)
+      result.current.handleMoveTo(files)
     })
 
     expect(result.current.pendingFiles).toEqual(files)
@@ -165,7 +167,7 @@ describe('useFileCopyMove', () => {
     const targetDir = createMockFile('mydir', 'directory', '/home/mydir/sub')
 
     act(() => {
-      result.current.handleMove([dir])
+      result.current.handleMoveTo([dir])
     })
 
     let res: unknown
@@ -187,7 +189,7 @@ describe('useFileCopyMove', () => {
     const targetDir = createMockFile('target', 'directory', '/target')
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     mockProtocolList.mockResolvedValue(errorResponse('LIST_ERR', 'cannot list'))
@@ -213,7 +215,7 @@ describe('useFileCopyMove', () => {
     const targetFile = createMockFile('a.txt', 'file', '/target/a.txt')
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([targetFile]))
@@ -238,7 +240,7 @@ describe('useFileCopyMove', () => {
     const targetDir = createMockFile('target', 'directory', '/target')
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([]))
@@ -261,7 +263,7 @@ describe('useFileCopyMove', () => {
     const targetDir = createMockFile('root', 'directory', '/')
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([]))
@@ -282,7 +284,7 @@ describe('useFileCopyMove', () => {
     const targetDir = createMockFile('target', 'directory', '/target/')
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([]))
@@ -303,7 +305,7 @@ describe('useFileCopyMove', () => {
     const targetDir = createMockFile('target', 'directory', '/target')
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([]))
@@ -327,7 +329,7 @@ describe('useFileCopyMove', () => {
     const targetDir = createMockFile('target', 'directory', '/target')
 
     act(() => {
-      result.current.handleMove(files)
+      result.current.handleMoveTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([]))
@@ -351,7 +353,7 @@ describe('useFileCopyMove', () => {
     const targetDir = createMockFile('target', 'directory', '/target')
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([]))
@@ -375,7 +377,7 @@ describe('useFileCopyMove', () => {
     const targetDir = createMockFile('target', 'directory', '/target')
 
     act(() => {
-      result.current.handleMove(files)
+      result.current.handleMoveTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([]))
@@ -400,7 +402,7 @@ describe('useFileCopyMove', () => {
     const files = [sourceFile]
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([targetFile]))
@@ -437,7 +439,7 @@ describe('useFileCopyMove', () => {
     const files = [sourceFile]
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([targetFile]))
@@ -488,7 +490,7 @@ describe('useFileCopyMove', () => {
     const files = [sourceFile]
 
     act(() => {
-      result.current.handleCopy(files)
+      result.current.handleCopyTo(files)
     })
 
     mockProtocolList.mockResolvedValue(successListResponse([targetFile]))
@@ -510,5 +512,89 @@ describe('useFileCopyMove', () => {
     expect(result.current.pendingFiles).toEqual([])
     expect(result.current.pendingTargetDir).toBeNull()
     expect(result.current.conflicts).toEqual([])
+  })
+
+  // 16. 剪切写入剪贴板后可在同一连接粘贴
+  it('handleCut: 写入剪贴板并把条目标记为剪切中', () => {
+    const { result } = renderHook(() => useFileCopyMove('test-session'))
+    const files = [createMockFile('a.txt', 'file', '/src/a.txt')]
+
+    act(() => {
+      result.current.handleCut(files)
+    })
+
+    expect(useFileClipboardStore.getState().mode).toBe('cut')
+    expect(result.current.canPaste).toBe(true)
+    expect(result.current.cutPaths.has('/src/a.txt')).toBe(true)
+  })
+
+  // 17. 其他连接的剪贴板不生效
+  it('canPaste: 其他连接的剪贴板不生效', () => {
+    useFileClipboardStore
+      .getState()
+      .setClipboard('other-session', 'copy', [createMockFile('a.txt')])
+
+    const { result } = renderHook(() => useFileCopyMove('test-session'))
+
+    expect(result.current.canPaste).toBe(false)
+    expect(result.current.cutPaths.size).toBe(0)
+  })
+
+  // 18. 复制粘贴到当前目录
+  it('handlePaste: 复制粘贴到目标目录', async () => {
+    const { result } = renderHook(() => useFileCopyMove('test-session'))
+    const sourceFile = createMockFile('a.txt', 'file', '/src/a.txt')
+
+    act(() => {
+      result.current.handleCopy([sourceFile])
+    })
+
+    mockProtocolList.mockResolvedValue(successListResponse([]))
+    mockProtocolCopy.mockResolvedValue(successVoidResponse)
+
+    let res: unknown
+    await act(async () => {
+      res = await result.current.handlePaste('/target')
+    })
+
+    expect(res).toEqual({ success: true, value: undefined, error: null })
+    expect(mockProtocolCopy).toHaveBeenCalledWith('test-session', sourceFile, '/target/a.txt')
+    expect(useFileClipboardStore.getState().mode).toBe('copy')
+  })
+
+  // 19. 剪切粘贴成功后清空剪贴板
+  it('handlePaste: 剪切粘贴成功后清空剪贴板', async () => {
+    const { result } = renderHook(() => useFileCopyMove('test-session'))
+    const sourceFile = createMockFile('a.txt', 'file', '/src/a.txt')
+
+    act(() => {
+      result.current.handleCut([sourceFile])
+    })
+
+    mockProtocolList.mockResolvedValue(successListResponse([]))
+    mockProtocolMove.mockResolvedValue(successVoidResponse)
+
+    await act(async () => {
+      await result.current.handlePaste('/target')
+    })
+
+    expect(mockProtocolMove).toHaveBeenCalledWith('test-session', sourceFile, '/target/a.txt')
+    await vi.waitFor(() => expect(useFileClipboardStore.getState().mode).toBeNull())
+  })
+
+  // 20. 剪贴板为空时粘贴返回错误
+  it('handlePaste: 剪贴板为空返回 INVALID_STATE', async () => {
+    const { result } = renderHook(() => useFileCopyMove('test-session'))
+
+    let res: unknown
+    await act(async () => {
+      res = await result.current.handlePaste('/target')
+    })
+
+    expect(res).toEqual({
+      success: false,
+      value: null,
+      error: { code: 'INVALID_STATE', message: 'error.noOperationPending' },
+    })
   })
 })

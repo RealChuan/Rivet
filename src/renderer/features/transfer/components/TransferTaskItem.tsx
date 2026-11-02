@@ -1,5 +1,5 @@
 import type React from 'react'
-import { Info, RotateCcw, Trash, X } from 'lucide-react'
+import { ChevronRight, Info, RotateCcw, Trash, X } from 'lucide-react'
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,51 +15,23 @@ import { formatFileSize } from '@shared/utils/index.js'
 import { FileIcon } from '../../../components/common/index.js'
 import { cn } from '../../../utils/index.js'
 import { useTransferStore } from '../stores/transfer.js'
+import { computeRemainingSeconds, formatRemainingTime, formatSpeed } from '../utils/format.js'
 import { ErrorDetailDialog } from './ErrorDetailDialog.js'
 import { TransferProgressBar } from './TransferProgressBar.js'
 
 const EMPTY_OPERATIONS: OperationProgressInfo[] = []
 
-// Grid columns: [name 1fr] [size 9rem] [progress 8.5rem] [speed 5rem] [time 3.5rem] [actions 2rem]
-// Fixed 2rem for actions ensures alignment between main rows (with button) and sub-rows (empty)
-const GRID_COLS = 'grid grid-cols-[1fr_9rem_8.5rem_5rem_3.5rem_2rem] gap-x-3'
-// Sub-row grid: adds a 1.25rem indent column before name — fixed columns still align with main row
-const SUB_GRID_COLS = 'grid grid-cols-[1.25rem_1fr_9rem_8.5rem_5rem_3.5rem_2rem] gap-x-3'
+export const QUEUE_ROW_HEIGHT = 34
+export const QUEUE_ROW_BORDER = 1
+/** 两行路径：2 × 20px，行高由 leading-5 决定。 */
+export const QUEUE_PATH_BLOCK_HEIGHT = 40
+/** 详情块上下内边距：pt-1 + pb-2。 */
+export const QUEUE_DETAIL_PADDING = 12
+export const QUEUE_OPERATION_ROW_HEIGHT = 28
 
-function formatRemainingTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return '-'
-  if (seconds < 60) return `${Math.round(seconds)}s`
-  if (seconds < 3600) {
-    const m = Math.floor(seconds / 60)
-    const s = Math.round(seconds % 60)
-    return `${m}m${s}s`
-  }
-  const h = Math.floor(seconds / 3600)
-  const m = Math.round((seconds % 3600) / 60)
-  return `${h}h${m}m`
-}
-
-function computeRemainingSeconds(task: TransferTask): number {
-  const speed = task.speed ?? 0
-  if (speed <= 0 || task.fileSize <= 0) return Infinity
-  const remaining = task.fileSize - task.transferredSize
-  if (remaining <= 0) return 0
-  return remaining / speed
-}
-
-function formatSpeed(bytesPerSecond: number, lng: string): string {
-  if (bytesPerSecond <= 0) return '-'
-  return `${formatFileSize(bytesPerSecond, lng)}/s`
-}
-
-function computeOpRemainingSeconds(op: OperationProgressInfo): number {
-  const speed = op.speed ?? 0
-  const total = op.fileSize ?? 0
-  if (speed <= 0 || total <= 0) return Infinity
-  const remaining = total - op.transferredSize
-  if (remaining <= 0) return 0
-  return remaining / speed
-}
+// [名称 1fr] [大小 6.5rem] [进度 7rem] [速度 4.5rem] [剩余 3rem] [操作 2rem]
+const GRID_COLS = 'grid grid-cols-[minmax(0,1fr)_6.5rem_7rem_4.5rem_3rem_2rem] gap-x-3'
+const SUB_GRID_COLS = 'grid grid-cols-[1.25rem_minmax(0,1fr)_6.5rem_7rem_4.5rem_3rem_2rem] gap-x-3'
 
 interface InlineOperationRowProps {
   op: OperationProgressInfo
@@ -69,27 +41,24 @@ interface InlineOperationRowProps {
 const InlineOperationRow = ({ op, lng }: InlineOperationRowProps) => {
   const { t } = useTranslation()
   const isMkdir = op.type === TRANSFER_OPERATION_TYPE.MKDIR
-
   const isFailed = op.status === OPERATION_STATUS.FAILED
   const isRunning = op.status === OPERATION_STATUS.RUNNING
   const isCompleted = op.status === OPERATION_STATUS.COMPLETED
   const isWaiting = op.status === OPERATION_STATUS.WAITING || isMkdir
 
   return (
-    <div className={`${SUB_GRID_COLS} items-center h-8 px-3 text-xs`}>
-      {/* Indent spacer column */}
+    <div className={`${SUB_GRID_COLS} items-center h-7 px-0 text-xs`}>
       <div />
 
-      {/* Name column */}
       <div className="flex items-center gap-2 min-w-0">
         <FileIcon
           type={isMkdir ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE}
-          className="w-4 h-4 shrink-0"
+          name={op.itemName}
+          className="w-3.5 h-3.5 shrink-0"
         />
         <span className="truncate">{op.itemName}</span>
       </div>
 
-      {/* Size column */}
       <span className="tabular-nums text-right whitespace-nowrap">
         {!isWaiting && !isFailed
           ? isCompleted
@@ -100,27 +69,16 @@ const InlineOperationRow = ({ op, lng }: InlineOperationRowProps) => {
           : null}
       </span>
 
-      {/* Progress column */}
       <div>
-        {isFailed ? (
-          <TransferProgressBar
-            transferred={op.transferredSize}
-            total={op.fileSize ?? 0}
-            status={OPERATION_STATUS.FAILED}
-          />
-        ) : (
-          <TransferProgressBar
-            transferred={isCompleted ? (op.fileSize ?? 0) : op.transferredSize}
-            total={op.fileSize ?? 0}
-            status={op.status}
-          />
-        )}
+        <TransferProgressBar
+          transferred={isCompleted ? (op.fileSize ?? 0) : op.transferredSize}
+          total={op.fileSize ?? 0}
+          status={op.status}
+        />
       </div>
 
-      {/* Speed column — empty for sub-rows */}
       <span />
 
-      {/* Time/status column */}
       <span
         className={`whitespace-nowrap text-right ${isFailed ? 'text-danger' : 'text-text-muted tabular-nums'}`}
       >
@@ -128,12 +86,13 @@ const InlineOperationRow = ({ op, lng }: InlineOperationRowProps) => {
           ? t(($) => $.transfer.status.failed)
           : isWaiting
             ? t(($) => $.transfer.status.waiting)
-            : isRunning
-              ? formatRemainingTime(computeOpRemainingSeconds(op))
+            : isRunning && (op.speed ?? 0) > 0
+              ? formatRemainingTime(
+                  computeRemainingSeconds(op.transferredSize, op.fileSize ?? 0, op.speed ?? 0),
+                )
               : null}
       </span>
 
-      {/* Actions column — empty for sub-rows */}
       <span />
     </div>
   )
@@ -141,6 +100,8 @@ const InlineOperationRow = ({ op, lng }: InlineOperationRowProps) => {
 
 interface TransferTaskItemProps {
   task: TransferTask
+  isExpanded: boolean
+  onToggleExpand: (taskId: string) => void
   onRetry?: (taskId: string) => void
   onCancel?: (taskId: string) => void
   onRemove?: (taskId: string) => void
@@ -149,6 +110,8 @@ interface TransferTaskItemProps {
 
 export const TransferTaskItem = ({
   task,
+  isExpanded,
+  onToggleExpand,
   onRetry,
   onCancel,
   onRemove,
@@ -174,14 +137,9 @@ export const TransferTaskItem = ({
   const completedFileCount = progress?.completedFileCount ?? task.completedFileCount
   const totalFileCount = progress?.totalFileCount ?? task.totalFileCount
 
-  const remainingSeconds = computeRemainingSeconds({
-    ...task,
-    transferredSize,
-    fileSize,
-    speed,
-  })
+  const remainingSeconds = computeRemainingSeconds(transferredSize, fileSize, speed)
 
-  const shouldRotate = activeOperations.length > TRANSFER_CONFIG.MAX_INLINE_OPERATIONS
+  const shouldRotate = isFolder && activeOperations.length > TRANSFER_CONFIG.MAX_INLINE_OPERATIONS
 
   const prevShouldRotate = useRef(shouldRotate)
   useEffect(() => {
@@ -206,24 +164,30 @@ export const TransferTaskItem = ({
       })
     : activeOperations.slice(0, TRANSFER_CONFIG.MAX_INLINE_OPERATIONS)
 
-  const errorText =
-    isFailed && task.errorMessage
-      ? task.errorMessage.length > 30
-        ? `${task.errorMessage.slice(0, 30)}...`
-        : task.errorMessage
-      : null
+  const scanCompleted = progress?.scanCompleted ?? task.scanCompleted ?? false
 
-  // Folder status text: show file count or running
+  // 扫描期间 total 只是已发现数，不能当分母。
   const folderStatusText = isFailed
     ? t(($) => $.transfer.status.failed)
     : isWaiting
       ? t(($) => $.transfer.status.waiting)
-      : totalFileCount
+      : scanCompleted
         ? t(($) => $.transfer.folderStats.fileCount, {
             completed: completedFileCount ?? 0,
-            total: totalFileCount,
+            total: totalFileCount ?? 0,
           })
-        : t(($) => $.transfer.status.running)
+        : t(($) => $.transfer.folderStats.scanning, {
+            completed: completedFileCount ?? 0,
+            total: totalFileCount ?? 0,
+          })
+
+  const statusText = isFailed
+    ? t(($) => $.transfer.status.failed)
+    : isWaiting
+      ? t(($) => $.transfer.status.waiting)
+      : isFolder
+        ? ''
+        : formatRemainingTime(remainingSeconds)
 
   const menuItemClass = cn(
     'w-full px-3 py-2 text-left text-sm bg-transparent border-none rounded-md',
@@ -232,75 +196,80 @@ export const TransferTaskItem = ({
   )
 
   return (
-    <div style={style} className="overflow-hidden">
+    <div style={style} className="overflow-hidden border-b border-border">
       <ContextMenuPrimitive.Root>
         <ContextMenuPrimitive.Trigger asChild>
           <div
-            className={`${GRID_COLS} items-center h-10 px-3 hover:bg-hover transition-colors cursor-default border-b border-border group`}
+            className={`${GRID_COLS} items-center h-8.5 px-3 hover:bg-hover transition-colors cursor-default group`}
             data-transfer-task={task.id}
           >
-            {/* Name column */}
-            <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => onToggleExpand(task.id)}
+              aria-expanded={isExpanded}
+              aria-label={task.itemName}
+              className="flex items-center gap-1.5 min-w-0 bg-transparent border-none p-0 cursor-default text-left focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2 rounded-sm"
+            >
+              <ChevronRight
+                className={cn(
+                  'w-3 h-3 shrink-0 text-text-muted transition-transform duration-150',
+                  isExpanded && 'rotate-90',
+                )}
+              />
               <FileIcon
                 type={isFolder ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE}
+                name={task.itemName}
                 className="w-4 h-4 shrink-0"
               />
               <span className="truncate text-sm" title={task.itemName}>
                 {task.itemName}
               </span>
-            </div>
+            </button>
 
-            {/* Size column */}
-            {isFailed && errorText ? (
-              <span className="text-danger text-xs truncate" title={task.errorMessage}>
-                {errorText}
-              </span>
-            ) : isFolder ? (
-              <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
-                {folderStatusText}
+            {isFolder ? (
+              // 文件夹没有字节总量：文字占满大小+进度两列，不画进度条。
+              <span
+                className={cn(
+                  'col-span-2 text-xs tabular-nums text-right whitespace-nowrap truncate',
+                  isFailed ? 'text-danger' : 'text-text-muted',
+                )}
+                title={isFailed ? task.errorMessage : folderStatusText}
+              >
+                {isFailed ? (task.errorMessage ?? '-') : folderStatusText}
               </span>
             ) : (
-              <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
-                {formatFileSize(transferredSize, lng)}/{formatFileSize(fileSize, lng)}
-              </span>
+              <>
+                <span className="text-xs tabular-nums text-right whitespace-nowrap truncate text-text-muted">
+                  {`${formatFileSize(transferredSize, lng)}/${formatFileSize(fileSize, lng)}`}
+                </span>
+                <div>
+                  <TransferProgressBar
+                    transferred={transferredSize}
+                    total={fileSize}
+                    status={task.status}
+                  />
+                </div>
+              </>
             )}
 
-            {/* Progress column */}
-            <div>
-              {!isFolder && !isFailed && (
-                <TransferProgressBar
-                  transferred={transferredSize}
-                  total={fileSize}
-                  status={task.status}
-                />
+            <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
+              {!isFailed && (isRunning || isWaiting) ? formatSpeed(speed, lng) : ''}
+            </span>
+
+            <span
+              className={cn(
+                'text-xs tabular-nums text-right whitespace-nowrap',
+                isFailed ? 'text-danger' : 'text-text-muted',
               )}
-            </div>
-
-            {/* Speed column */}
-            <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
-              {!isFolder && !isFailed && (isRunning || isWaiting) ? formatSpeed(speed, lng) : ''}
+            >
+              {statusText}
             </span>
 
-            {/* Time/status column */}
-            <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
-              {isFailed
-                ? t(($) => $.transfer.status.failed)
-                : isWaiting
-                  ? t(($) => $.transfer.status.waiting)
-                  : isFolder
-                    ? ''
-                    : formatRemainingTime(remainingSeconds)}
-            </span>
-
-            {/* Actions column */}
             <div className="flex items-center justify-end">
               {(isRunning || isWaiting) && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onCancel?.(task.id)
-                  }}
+                  onClick={() => onCancel?.(task.id)}
                   className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-danger hover:bg-danger-light transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
                   aria-label={t(($) => $.transfer.action.cancel)}
                 >
@@ -310,10 +279,7 @@ export const TransferTaskItem = ({
               {isFailed && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onRemove?.(task.id)
-                  }}
+                  onClick={() => onRemove?.(task.id)}
                   className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
                   aria-label={t(($) => $.transfer.action.remove)}
                 >
@@ -324,7 +290,7 @@ export const TransferTaskItem = ({
           </div>
         </ContextMenuPrimitive.Trigger>
         <ContextMenuPrimitive.Portal>
-          <ContextMenuPrimitive.Content className="bg-glass-bg backdrop-blur-xl rounded-lg shadow-dropdown border border-border p-1 min-w-35 z-9999 animate-menu-in">
+          <ContextMenuPrimitive.Content className="bg-glass-bg rounded-lg shadow-dropdown border border-glass-border p-1 min-w-35 z-9999 animate-menu-in">
             {isFailed && (
               <ContextMenuPrimitive.Item
                 className={menuItemClass}
@@ -365,23 +331,33 @@ export const TransferTaskItem = ({
         </ContextMenuPrimitive.Portal>
       </ContextMenuPrimitive.Root>
 
-      {/* Path rows — span all columns */}
-      <div className="px-3 pb-2 pt-0.5 border-b border-border">
-        <div className="text-[13px] text-text-secondary truncate py-0.5" title={task.localPath}>
-          <span className="text-text-muted mr-1.5">{t(($) => $.transfer.path.source)}: </span>
-          {task.localPath}
-        </div>
-        <div className="text-[13px] text-text-secondary truncate py-0.5" title={task.remotePath}>
-          <span className="text-text-muted mr-1.5">{t(($) => $.transfer.path.destination)}: </span>
-          {task.remotePath}
-        </div>
-      </div>
-
-      {isFolder && (
-        <div className={displayedOps.length > 0 ? 'border-b border-border' : ''}>
-          {displayedOps.map((op) =>
-            op ? <InlineOperationRow key={op.id} op={op} lng={lng} /> : null,
+      {(isFolder || isExpanded) && (
+        <div className="px-3 pb-2 pt-1">
+          {isExpanded && (
+            <>
+              <div
+                className="text-[13px] text-text-secondary truncate leading-5"
+                title={task.localPath}
+              >
+                <span className="text-text-muted mr-1.5">{t(($) => $.transfer.path.source)}: </span>
+                {task.localPath}
+              </div>
+              <div
+                className="text-[13px] text-text-secondary truncate leading-5"
+                title={task.remotePath}
+              >
+                <span className="text-text-muted mr-1.5">
+                  {t(($) => $.transfer.path.destination)}:{' '}
+                </span>
+                {task.remotePath}
+              </div>
+            </>
           )}
+          {/* 子文件默认展示，不随展开状态隐藏。 */}
+          {isFolder &&
+            displayedOps.map((op) =>
+              op ? <InlineOperationRow key={op.id} op={op} lng={lng} /> : null,
+            )}
         </div>
       )}
 

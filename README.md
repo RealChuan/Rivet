@@ -30,12 +30,12 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 
 - 文件与文件夹的上传、下载，支持拖拽上传。
 - 上传、下载各自独立的并发上限（1–10）。
-- 任务进度、子文件进度、失败详情、取消与重试。
-- 传输面板按会话分组，失败任务可查看完整错误信息。
+- 任务进度与速度、子文件进度、失败详情、取消与重试。
+- 底部传输队列可收起、拖高或最大化；跨连接时按会话分组。
 
 ### 体验
 
-- 浅色 / 深色 / 跟随系统主题；Windows 11 / macOS 26+ 的原生毛玻璃效果。
+- 浅色 / 深色 / 跟随系统主题；Windows 11 22H2+ 的 Mica、macOS 13+ 的 vibrancy。
 - 中文 / English 界面。
 - 单窗口、可调整侧栏、原生窗口控制；有活跃传输时关闭前会二次确认。
 
@@ -60,6 +60,7 @@ pnpm run verify
 
 - `pnpm run verify` 依次执行 typecheck、lint、单元测试、类型测试、i18n 检查、生产依赖审计与打包。
 - E2E 需要 Docker：`pnpm e2e:servers` → `pnpm run build` → `pnpm test:e2e` → `pnpm e2e:servers:down`。
+- 手动验证 WebDAV 页面：`python scripts/dav/serve.py`（WsgiDAV，依赖见 `scripts/dav/requirements.txt`；`--auth digest`、`--https`、`--base-path`、`--readonly` 切换分支）。
 - 更多命令与工程约定见 [AGENTS.md](AGENTS.md)。
 
 ## 架构

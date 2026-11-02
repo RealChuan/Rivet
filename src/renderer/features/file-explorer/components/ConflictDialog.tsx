@@ -78,7 +78,7 @@ export const ConflictDialog = ({
       <div className="flex items-center gap-3 mb-3 min-w-0">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <FileIcon type={conflict.sourceFile.type} />
+            <FileIcon type={conflict.sourceFile.type} name={conflict.sourceFile.name} />
             <span className="text-sm text-text font-medium truncate">
               {conflict.sourceFile.name}
             </span>
@@ -95,7 +95,10 @@ export const ConflictDialog = ({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <FileIcon type={conflict.targetFile?.type ?? conflict.sourceFile.type} />
+            <FileIcon
+              type={conflict.targetFile?.type ?? conflict.sourceFile.type}
+              name={conflict.targetFile?.name ?? conflict.sourceFile.name}
+            />
             <span className="text-sm text-danger font-medium truncate">
               {conflict.targetFile?.name ?? conflict.sourceFile.name}
             </span>

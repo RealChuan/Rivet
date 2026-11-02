@@ -3,8 +3,8 @@ import { TITLEBAR_HEIGHT } from '@shared/constants/index.js'
 import { titlebarPadding } from './titlebar-padding.js'
 
 describe('titlebarPadding', () => {
-  it('uses env() for WCO', () => {
-    expect(titlebarPadding('wco')).toBe('env(titlebar-area-height, 36px)')
+  it('leaves 1px below the WCO overlay so the separator stays visible', () => {
+    expect(titlebarPadding('wco')).toBe('calc(env(titlebar-area-height, 36px) + 1px)')
   })
 
   it('uses the fixed height for macOS hidden titlebar', () => {
