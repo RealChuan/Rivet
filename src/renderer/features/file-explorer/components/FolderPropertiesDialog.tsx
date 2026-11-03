@@ -101,7 +101,7 @@ const FolderPropertiesDialogContent = ({
         <button
           onClick={handleClose}
           aria-label={t(($) => $.common.close)}
-          className="p-1 rounded-md bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+          className="p-1 rounded-md bg-transparent border-none text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
         >
           <X className="w-4 h-4 stroke-current stroke-2" />
         </button>

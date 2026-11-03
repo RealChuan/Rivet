@@ -108,7 +108,7 @@ export function TitleBar({
               ? t(($) => $.language.english)
               : t(($) => $.language.chinese)
           }
-          className="px-2 h-7 rounded text-[11px] font-semibold text-text-muted hover:text-text hover:bg-hover transition-colors border-none bg-transparent cursor-pointer"
+          className="px-2 h-7 rounded text-[11px] font-semibold text-text-muted hover:text-text hover:bg-hover transition-colors border-none bg-transparent"
         >
           {language === SUPPORTED_LANGUAGE.EN_US
             ? t(($) => $.language.enShort)
@@ -120,7 +120,7 @@ export function TitleBar({
           onClick={onCycleTheme}
           title={themeLabel}
           aria-label={themeLabel}
-          className="w-8 h-7 rounded flex items-center justify-center text-text-muted hover:text-text hover:bg-hover transition-colors border-none bg-transparent cursor-pointer"
+          className="w-8 h-7 rounded flex items-center justify-center text-text-muted hover:text-text hover:bg-hover transition-colors border-none bg-transparent"
         >
           {theme === THEME.LIGHT ? (
             <Sun className="w-3.5 h-3.5" />
@@ -137,7 +137,7 @@ export function TitleBar({
               type="button"
               aria-label={t(($) => $.titleBar.minimize)}
               onClick={() => windowApi.minimize()}
-              className="w-11 h-full flex items-center justify-center text-text-muted hover:bg-hover transition-colors border-none bg-transparent cursor-pointer"
+              className="w-11 h-full flex items-center justify-center text-text-muted hover:bg-hover transition-colors border-none bg-transparent"
             >
               <Minus className="w-4 h-4" />
             </button>
@@ -147,7 +147,7 @@ export function TitleBar({
                 isMaximized ? t(($) => $.titleBar.restore) : t(($) => $.titleBar.maximize)
               }
               onClick={() => windowApi.toggleMaximize()}
-              className="w-11 h-full flex items-center justify-center text-text-muted hover:bg-hover transition-colors border-none bg-transparent cursor-pointer"
+              className="w-11 h-full flex items-center justify-center text-text-muted hover:bg-hover transition-colors border-none bg-transparent"
             >
               {isMaximized ? <Copy className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
             </button>
@@ -155,7 +155,7 @@ export function TitleBar({
               type="button"
               aria-label={t(($) => $.titleBar.close)}
               onClick={() => windowApi.close()}
-              className="w-11 h-full flex items-center justify-center text-text-muted hover:bg-danger hover:text-white transition-colors border-none bg-transparent cursor-pointer"
+              className="w-11 h-full flex items-center justify-center text-text-muted hover:bg-danger hover:text-white transition-colors border-none bg-transparent"
             >
               <X className="w-4 h-4" />
             </button>

@@ -58,7 +58,7 @@ export const FileExplorerContextMenu = ({
 
   const itemClass = cn(
     'w-full px-3 py-2 text-left text-xs text-text',
-    'bg-transparent border-none rounded cursor-pointer',
+    'bg-transparent border-none rounded',
     'flex items-center gap-2 transition-colors',
     'data-highlighted:bg-hover data-highlighted:outline-none',
     'focus-visible:outline-none',

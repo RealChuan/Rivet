@@ -30,7 +30,7 @@ const ToolButton = ({ onClick, title, isActive = false, testId, children }: Tool
     aria-label={title}
     className={`
       p-1.5 rounded flex items-center justify-center
-      border-none cursor-pointer transition-all duration-150
+      border-none transition-all duration-150
       focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
       ${isActive ? 'text-accent bg-hover' : 'text-text hover:bg-hover'}
     `}
@@ -128,7 +128,7 @@ export const FileExplorerToolbar = ({ sessionId }: FileExplorerToolbarProps) => 
         {showUploadMenu && (
           <div className="absolute right-0 top-full mt-1 bg-glass-bg rounded-md shadow-dropdown border border-glass-border p-1 min-w-40 z-1000 animate-menu-in">
             <button
-              className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+              className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
               onClick={() => {
                 setShowUploadMenu(false)
                 void openFilePicker()
@@ -138,7 +138,7 @@ export const FileExplorerToolbar = ({ sessionId }: FileExplorerToolbarProps) => 
               {t(($) => $.file.action.uploadFiles)}
             </button>
             <button
-              className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+              className="w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded flex items-center gap-2 hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
               onClick={() => {
                 setShowUploadMenu(false)
                 void openFolderPicker()

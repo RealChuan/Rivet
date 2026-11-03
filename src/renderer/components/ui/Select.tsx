@@ -28,7 +28,7 @@ export const Select = ({ value, onChange, options, className, testId, ariaLabel 
         {...(ariaLabel ? { 'aria-label': ariaLabel } : {})}
         className={cn(
           'w-full px-3 pr-8 py-2 bg-surface border border-border rounded-md',
-          'text-text text-left flex items-center justify-between relative cursor-pointer',
+          'text-text text-left flex items-center justify-between relative',
           'transition-colors duration-150 hover:border-text-muted focus-visible:outline-none',
           'focus-visible:ring-2 focus-visible:ring-ring text-[13px] box-border min-h-8.25 m-0',
           className,
@@ -57,7 +57,7 @@ export const Select = ({ value, onChange, options, className, testId, ariaLabel 
                 key={option.value}
                 value={option.value}
                 className={cn(
-                  'px-3 py-2 cursor-pointer transition-colors duration-100',
+                  'px-3 py-2 transition-colors duration-100',
                   'text-text data-highlighted:bg-hover data-[state=checked]:text-accent data-[state=checked]:font-medium',
                   'outline-none',
                 )}

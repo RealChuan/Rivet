@@ -95,7 +95,7 @@ const ColumnHeader = ({
           onClick={() => onSort(column)}
           className={`
             flex items-center gap-2 h-full text-xs font-semibold text-text-muted
-            uppercase tracking-[0.5px] bg-transparent border-none cursor-pointer
+            uppercase tracking-[0.5px] bg-transparent border-none
             hover:text-text transition-colors justify-start
             focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
             ${isFirst ? 'px-2.5' : 'pl-2.5'}

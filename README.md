@@ -54,13 +54,15 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 
 ```powershell
 pnpm install
-pnpm dev
+pnpm run dev
 pnpm run verify
 ```
 
 - `pnpm run verify` 依次执行 typecheck、lint、单元测试、类型测试、i18n 检查、生产依赖审计与打包。
-- E2E 需要 Docker：`pnpm e2e:servers` → `pnpm run build` → `pnpm test:e2e` → `pnpm e2e:servers:down`。
+- 真实服务集成测试（provider 层，默认不进 verify）：先起 `scripts/sftp/serve.py` 与 `scripts/dav/serve.py`（或 Docker），再 `RIVET_INTEGRATION=1 pnpm run test:integration`。
+- E2E 需要 Docker：`pnpm run e2e:servers` → `pnpm run build` → `pnpm run test:e2e` → `pnpm run e2e:servers:down`。
 - 手动验证 WebDAV 页面：`python scripts/dav/serve.py`（WsgiDAV，依赖见 `scripts/dav/requirements.txt`；`--auth digest`、`--https`、`--base-path`、`--readonly` 切换分支）。
+- 手动验证 SFTP 页面：`python scripts/sftp/serve.py`（Paramiko，依赖见 `scripts/sftp/requirements.txt`；`--auth publickey`、`--emit-client-key`、`--readonly`、`--rotate-host-key` 切换分支）。
 - 更多命令与工程约定见 [AGENTS.md](AGENTS.md)。
 
 ## 架构

@@ -36,7 +36,7 @@ export const FileExplorerBreadcrumb = ({
         aria-label={t(($) => $.fileExplorerList.parentDirectory)}
         className={`
           flex items-center gap-1 px-2 py-1 rounded text-text
-          bg-transparent border-none cursor-pointer whitespace-nowrap font-medium
+          bg-transparent border-none whitespace-nowrap font-medium
           hover:bg-hover transition-colors
           focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
         `}
@@ -53,7 +53,7 @@ export const FileExplorerBreadcrumb = ({
             <button
               onClick={() => void handleNavigate(fullPath)}
               className={cn(
-                'px-2 py-1 rounded bg-transparent border-none cursor-pointer whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
+                'px-2 py-1 rounded bg-transparent border-none whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
                 isLast
                   ? 'text-text font-medium'
                   : 'text-text-muted font-normal hover:bg-hover hover:text-text',

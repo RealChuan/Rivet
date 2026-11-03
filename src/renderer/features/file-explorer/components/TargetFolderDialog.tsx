@@ -127,7 +127,7 @@ export const TargetFolderDialog = ({
         <button
           onClick={handleParentDirectory}
           className={`
-            flex items-center gap-2 h-full px-3 cursor-pointer w-full
+            flex items-center gap-2 h-full px-3 w-full
             border-none rounded transition-all duration-100
             bg-transparent text-text hover:bg-hover
           `}
@@ -144,7 +144,7 @@ export const TargetFolderDialog = ({
         onClick={() => setSelectedFolder(item)}
         onDoubleClick={() => handleNavigate(item)}
         className={`
-          flex items-center gap-2 h-full px-3 cursor-pointer w-full
+          flex items-center gap-2 h-full px-3 w-full
           border-none rounded transition-all duration-100
           focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
           ${isSelected ? 'bg-selected text-accent' : 'bg-transparent text-text hover:bg-hover'}
@@ -183,7 +183,7 @@ export const TargetFolderDialog = ({
             <button
               onClick={onClose}
               aria-label={t(($) => $.common.close)}
-              className="p-1 rounded bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+              className="p-1 rounded bg-transparent border-none text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
             >
               <X className="w-4 h-4 stroke-current stroke-2" />
             </button>
@@ -243,7 +243,7 @@ export const TargetFolderDialog = ({
                 aria-label={t(($) => $.file.action.newFolder)}
                 className={`
                   p-1.5 rounded flex items-center justify-center
-                  border-none cursor-pointer transition-all duration-150
+                  border-none transition-all duration-150
                   text-text hover:bg-hover
                   focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
                 `}

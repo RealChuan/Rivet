@@ -12,7 +12,6 @@ const baseClasses = `
   px-4 py-2 rounded-md text-sm font-medium
   transition-all duration-150 active:scale-[0.97]
   flex items-center gap-1.5
-  cursor-pointer
   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1
 `
 

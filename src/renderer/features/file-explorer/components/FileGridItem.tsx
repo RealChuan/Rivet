@@ -36,7 +36,7 @@ export const FileGridItem = ({
     data-file-item={file.name}
     data-file-path={file.absolutePath}
     className={cn(
-      'flex flex-col items-center justify-center gap-2 p-2 m-1 rounded-md cursor-pointer select-none outline-none transition-colors duration-150',
+      'flex flex-col items-center justify-center gap-2 p-2 m-1 rounded-md select-none outline-none transition-colors duration-150',
       isSelected ? 'bg-selected text-accent' : 'bg-transparent text-text hover:bg-hover',
       isCut && 'opacity-50',
     )}

@@ -64,7 +64,7 @@ export const FileListItem = ({
       data-file-item={file.name}
       data-file-path={file.absolutePath}
       className={cn(
-        'flex items-center cursor-pointer border-b border-border min-w-full box-border relative select-none transition-colors duration-150 outline-none',
+        'flex items-center border-b border-border min-w-full box-border relative select-none transition-colors duration-150 outline-none',
         isSelected || isPending
           ? 'bg-selected border-l-2 border-l-accent'
           : isHovered

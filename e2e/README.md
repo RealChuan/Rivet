@@ -3,10 +3,10 @@
 Requires Docker and a packaged build.
 
 ```powershell
-pnpm e2e:servers
+pnpm run e2e:servers
 pnpm run build
-pnpm test:e2e
-pnpm e2e:servers:down
+pnpm run test:e2e
+pnpm run e2e:servers:down
 ```
 
 - SFTP: `127.0.0.1:2222`, `testuser` / `testpass`, 用户 chroot 到家目录，只有 `upload/` 可写
