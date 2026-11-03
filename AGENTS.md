@@ -3,9 +3,9 @@
 ## 环境与命令
 
 - Node 24 LTS、pnpm 12；Docker 仅用于 E2E。
-- 开发：`pnpm install`、`pnpm dev`。
+- 开发：`pnpm install`、`pnpm run dev`。
 - 门禁：`pnpm run verify`（typecheck → lint → test → test:typecheck → i18n → audit → build）；分项命令见 `package.json`。
-- E2E：`pnpm e2e:servers` → `pnpm run build` → `pnpm test:e2e` → `pnpm e2e:servers:down`，详见 `e2e/README.md`。
+- E2E：`pnpm run e2e:servers` → `pnpm run build` → `pnpm run test:e2e` → `pnpm run e2e:servers:down`，详见 `e2e/README.md`。
 
 ## 不变量
 

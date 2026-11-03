@@ -191,7 +191,7 @@ export const TransferTaskItem = ({
 
   const menuItemClass = cn(
     'w-full px-3 py-2 text-left text-sm bg-transparent border-none rounded-md',
-    'cursor-pointer flex items-center gap-2 transition-colors',
+    'flex items-center gap-2 transition-colors',
     'data-highlighted:bg-hover data-highlighted:outline-none',
   )
 
@@ -270,7 +270,7 @@ export const TransferTaskItem = ({
                 <button
                   type="button"
                   onClick={() => onCancel?.(task.id)}
-                  className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-danger hover:bg-danger-light transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+                  className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none text-text-muted hover:text-danger hover:bg-danger-light transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
                   aria-label={t(($) => $.transfer.action.cancel)}
                 >
                   <X />
@@ -280,7 +280,7 @@ export const TransferTaskItem = ({
                 <button
                   type="button"
                   onClick={() => onRemove?.(task.id)}
-                  className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none cursor-pointer text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+                  className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
                   aria-label={t(($) => $.transfer.action.remove)}
                 >
                   <X />

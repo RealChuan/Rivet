@@ -38,12 +38,7 @@ export const RadioButton = ({
   className,
 }: RadioButtonProps) => {
   return (
-    <label
-      className={cn(
-        'flex items-center gap-2 cursor-pointer',
-        disabled && 'opacity-50 cursor-not-allowed',
-      )}
-    >
+    <label className={cn('flex items-center gap-2', disabled && 'opacity-50 cursor-not-allowed')}>
       <RadioGroupPrimitive.Item
         value={value}
         disabled={disabled}

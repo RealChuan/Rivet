@@ -87,6 +87,9 @@ jobs:
             sleep 2
           done
 
+      - name: Run provider integration tests
+        run: RIVET_INTEGRATION=1 pnpm run test:integration
+
       - name: Install Electron runtime libraries
         run: |
           sudo apt-get update

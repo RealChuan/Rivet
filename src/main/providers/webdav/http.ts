@@ -137,6 +137,27 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError'
 }
 
+const MAX_REDIRECTS = 3
+
+function isRedirectStatus(status: number): boolean {
+  return status === 301 || status === 302 || status === 303 || status === 307 || status === 308
+}
+
+function resolveRedirect(currentUrl: string, location: string): URL {
+  let next: URL
+  try {
+    next = new URL(location, currentUrl)
+  } catch {
+    throw new ProviderError(ERROR_CODE.PATH_ERROR, `Invalid redirect location: ${location}`)
+  }
+
+  const current = new URL(currentUrl)
+  if (next.origin !== current.origin) {
+    throw new ProviderError(ERROR_CODE.CONN_FAILED, `Redirect crossed origin: ${location}`)
+  }
+  return next
+}
+
 function normalizeHeaders(
   headers: Record<string, string | string[] | undefined>,
 ): Record<string, string> {
@@ -167,7 +188,7 @@ export class WebdavHttpClient implements WebdavHttpPort {
     this.dispatcher = createDispatcher(options.rejectUnauthorized, deps.createDispatcher)
   }
 
-  private authorization(method: string, path: string): string {
+  private authorization(method: string, target: string): string {
     if (!this.digest) {
       return buildBasicAuthorization(this.options.username, this.options.password)
     }
@@ -179,7 +200,7 @@ export class WebdavHttpClient implements WebdavHttpPort {
     return buildDigestAuthorization(this.digest, {
       method,
       // Digest 计算必须使用请求行里的编码后路径，否则含空格/非 ASCII 的文件名会被服务端判 401。
-      uri: requestTarget(path),
+      uri: target,
       username: this.options.username,
       password: this.options.password,
       nc,
@@ -188,8 +209,8 @@ export class WebdavHttpClient implements WebdavHttpPort {
   }
 
   private async send(
+    url: string,
     method: string,
-    path: string,
     body: WebdavHttpRequestOptions['body'],
     signal: AbortSignal | undefined,
     headers: Record<string, string>,
@@ -198,15 +219,6 @@ export class WebdavHttpClient implements WebdavHttpPort {
     const onAbort = (): void => controller.abort(signal?.reason)
     signal?.addEventListener('abort', onAbort, { once: true })
     if (signal?.aborted) controller.abort(signal.reason)
-
-    let url: string
-    try {
-      url = joinUrl(this.options.baseUrl, path)
-    } catch (error) {
-      throw error instanceof ProviderError
-        ? error
-        : new ProviderError(ERROR_CODE.PATH_ERROR, formatErrorMessage(error))
-    }
 
     try {
       const response = await this.requestFn(url, {
@@ -243,35 +255,72 @@ export class WebdavHttpClient implements WebdavHttpPort {
     path: string,
     opts: WebdavHttpRequestOptions = {},
   ): Promise<WebdavHttpResponse> {
-    const headers: Record<string, string> = {
-      ...opts.headers,
-      authorization: this.authorization(method, path),
+    let url: string
+    try {
+      url = joinUrl(this.options.baseUrl, path)
+    } catch (error) {
+      throw error instanceof ProviderError
+        ? error
+        : new ProviderError(ERROR_CODE.PATH_ERROR, formatErrorMessage(error))
     }
 
-    let response = await this.send(method, path, opts.body, opts.signal, headers)
+    let target = requestTarget(path)
+    const body = opts.body
+    let redirects = 0
 
-    if (response.status === HTTP_STATUS.UNAUTHORIZED && !this.digest) {
-      const challenge = parseDigestChallenge(response.headers['www-authenticate'] ?? '')
-      if (challenge && !(opts.body instanceof Readable)) {
-        await discard(response)
-        this.digest = challenge
-        headers.authorization = this.authorization(method, path)
-        response = await this.send(method, path, opts.body, opts.signal, headers)
+    // Apache mod_dir 会把缺少结尾斜杠的集合路径 301 到带斜杠的地址；
+    // WebDAV 客户端必须跟随，否则目录 stat/list/delete 都会失败。
+    while (true) {
+      const headers: Record<string, string> = {
+        ...opts.headers,
+        authorization: this.authorization(method, target),
       }
-    }
 
-    if (!isHttpSuccess(response.status)) {
-      const serverMessage = await readServerMessage(response)
-      logger.warn('WebDAV request failed', {
-        method,
-        url: requestTarget(path),
-        status: response.status,
-        serverMessage,
-      })
-      throw statusError(response.status, serverMessage)
-    }
+      // RFC 4918 的 Destination 是 URI；Apache mod_dav 不接受纯路径，补成绝对 URL。
+      if (headers.destination?.startsWith('/')) {
+        const base = this.options.baseUrl.replace(/\/+$/, '')
+        headers.destination = `${base}${headers.destination}`
+      }
 
-    return response
+      let response = await this.send(url, method, body, opts.signal, headers)
+
+      if (response.status === HTTP_STATUS.UNAUTHORIZED && !this.digest) {
+        const challenge = parseDigestChallenge(response.headers['www-authenticate'] ?? '')
+        if (challenge && !(body instanceof Readable)) {
+          await discard(response)
+          this.digest = challenge
+          headers.authorization = this.authorization(method, target)
+          response = await this.send(url, method, body, opts.signal, headers)
+        }
+      }
+
+      if (
+        isRedirectStatus(response.status) &&
+        response.headers.location !== undefined &&
+        redirects < MAX_REDIRECTS &&
+        !(body instanceof Readable)
+      ) {
+        await discard(response)
+        const next = resolveRedirect(url, response.headers.location)
+        url = next.toString()
+        target = `${next.pathname}${next.search}`
+        redirects += 1
+        continue
+      }
+
+      if (!isHttpSuccess(response.status)) {
+        const serverMessage = await readServerMessage(response)
+        logger.warn('WebDAV request failed', {
+          method,
+          url,
+          status: response.status,
+          serverMessage,
+        })
+        throw statusError(response.status, serverMessage)
+      }
+
+      return response
+    }
   }
 
   async close(): Promise<void> {

@@ -20,7 +20,7 @@ export const ParentDirectoryButton = ({ currentPath, onNavigate }: ParentDirecto
         onClick={onNavigate}
         className={`
           px-3.5 py-1.5 rounded bg-transparent border border-border
-          cursor-pointer text-xs text-text flex items-center gap-1.5
+          text-xs text-text flex items-center gap-1.5
           hover:bg-hover transition-colors
           focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
         `}

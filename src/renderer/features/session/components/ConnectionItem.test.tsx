@@ -118,7 +118,7 @@ describe('ConnectionItem', () => {
     const onSelect = vi.fn()
     render(<ConnectionItem {...defaultProps} onSelect={onSelect} />)
     const nameElement = screen.getByText('Test Server')
-    const clickableDiv = nameElement.closest('div[class*="cursor-pointer"]')
+    const clickableDiv = nameElement.closest('div[class*="mx-2"]')
     if (!clickableDiv) throw new Error('Clickable div not found')
     fireEvent.click(clickableDiv)
     expect(onSelect).toHaveBeenCalledTimes(1)

@@ -132,6 +132,68 @@ describe('WebdavHttpClient', () => {
     }
   })
 
+  it('Destination 相对路径补成绝对 URL', async () => {
+    let destination: string | undefined
+    const server = await startServer((request, response) => {
+      const header = request.headers.destination
+      destination = Array.isArray(header) ? header.join(', ') : header
+      response.writeHead(201)
+      response.end()
+    })
+    const client = new WebdavHttpClient({
+      baseUrl: server.baseUrl,
+      username: 'user',
+      password: 'pass',
+      rejectUnauthorized: true,
+    })
+
+    try {
+      await client.request('MOVE', '/dav/a.txt', {
+        headers: { destination: '/dav/b%20c.txt', overwrite: 'T' },
+      })
+      expect(destination).toBe(`${server.baseUrl}/dav/b%20c.txt`)
+    } finally {
+      await client.close()
+      await server.close()
+    }
+  })
+
+  it('301 跟随 Location 并保留原方法与请求体', async () => {
+    const seen: { method: string | undefined; url: string | undefined }[] = []
+    let count = 0
+    const server = await startServer((request, response) => {
+      count += 1
+      if (count === 1) {
+        response.writeHead(301, { location: '/dav/sub/' })
+        response.end()
+        return
+      }
+
+      seen.push({ method: request.method, url: request.url })
+      response.writeHead(207)
+      response.end('<multistatus/>')
+    })
+    const client = new WebdavHttpClient({
+      baseUrl: server.baseUrl,
+      username: 'user',
+      password: 'pass',
+      rejectUnauthorized: true,
+    })
+
+    try {
+      const result = await client.request('PROPFIND', '/dav/sub', {
+        headers: { depth: '0' },
+        body: '<propfind/>',
+      })
+      expect(result.status).toBe(207)
+      expect(count).toBe(2)
+      expect(seen).toEqual([{ method: 'PROPFIND', url: '/dav/sub/' }])
+    } finally {
+      await client.close()
+      await server.close()
+    }
+  })
+
   it('错误响应正文进入 message 与 detail.serverMessage', async () => {
     const server = await startServer((_request, response) => {
       response.writeHead(405, { 'content-type': 'text/html' })

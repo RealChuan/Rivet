@@ -196,7 +196,7 @@ export const Toast = () => {
               <ToastPrimitive.Close
                 aria-label={t(($) => $.common.close)}
                 className={cn(
-                  'p-0.5 rounded bg-transparent border-none cursor-pointer',
+                  'p-0.5 rounded bg-transparent border-none',
                   'text-white/70 hover:text-white transition-colors hover:bg-white/10',
                   'focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
                 )}

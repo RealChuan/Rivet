@@ -41,6 +41,7 @@
     "test:renderer": "vitest run --project renderer",
     "test:shared": "vitest run --project shared",
     "test:typecheck": "vitest --config vitest.typecheck.config.ts --typecheck.only run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "lint": "eslint src --cache",
     "lint:fix": "eslint src --cache --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,html,md,yml,yaml}\"",

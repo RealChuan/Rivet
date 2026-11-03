@@ -15,7 +15,7 @@ export const SortButton = ({ sortOrder, onClick }: SortButtonProps) => {
     <button
       onClick={onClick}
       className={cn(
-        'p-1.5 rounded-md flex items-center justify-center border-none cursor-pointer transition-all duration-150 hover:bg-hover focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
+        'p-1.5 rounded-md flex items-center justify-center border-none transition-all duration-150 hover:bg-hover focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
         sortOrder !== SORT_ORDER.NONE ? 'text-accent' : 'text-text-muted',
       )}
       title={t(($) => $.sortButton.sortConnections)}

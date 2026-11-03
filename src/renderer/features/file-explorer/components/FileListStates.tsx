@@ -39,7 +39,7 @@ export const FileExplorerListError = ({ error, onRetry }: FileExplorerListErrorP
       </div>
       <button
         onClick={onRetry}
-        className="px-4 py-2 rounded-md bg-accent text-white text-xs font-medium border-none cursor-pointer flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+        className="px-4 py-2 rounded-md bg-accent text-white text-xs font-medium border-none flex items-center gap-1.5 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
       >
         <RotateCcw className="w-3.5 h-3.5 stroke-current stroke-2" />
         {t(($) => $.fileExplorerList.retry)}

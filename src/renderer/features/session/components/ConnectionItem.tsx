@@ -79,7 +79,7 @@ export const ConnectionItem = ({
       <div
         onClick={onSelect}
         className={cn(
-          'mx-2 px-3 py-2.5 rounded-md cursor-pointer flex items-center gap-2.5 transition-all duration-150 border border-border',
+          'mx-2 px-3 py-2.5 rounded-md flex items-center gap-2.5 transition-all duration-150 border border-border',
           isActive
             ? 'bg-selected border-l-2 border-l-accent'
             : 'bg-transparent hover:bg-hover border-l-2 border-border',
@@ -135,7 +135,7 @@ export const ConnectionItem = ({
             e.stopPropagation()
             setShowMenu(!showMenu)
           }}
-          className="p-1 rounded shrink-0 text-text-muted bg-transparent border-none cursor-pointer hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+          className="p-1 rounded shrink-0 text-text-muted bg-transparent border-none hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
           aria-label={t(($) => $.connection.moreActions)}
         >
           <EllipsisVertical className="w-3.5 h-3.5 fill-current" />
@@ -164,7 +164,7 @@ export const ConnectionItem = ({
                   }}
                   className={`
                   w-full px-3 py-2 text-left text-xs text-text-muted bg-transparent border-none rounded
-                  cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
+                  flex items-center gap-2 hover:bg-hover transition-colors
                   focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
                 `}
                 >
@@ -180,7 +180,7 @@ export const ConnectionItem = ({
                   }}
                   className={`
                   w-full px-3 py-2 text-left text-xs text-status-connected bg-transparent border-none rounded
-                  cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
+                  flex items-center gap-2 hover:bg-hover transition-colors
                   focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
                 `}
                 >
@@ -197,7 +197,7 @@ export const ConnectionItem = ({
                 }}
                 className={`
                 w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded
-                cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
+                flex items-center gap-2 hover:bg-hover transition-colors
                 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
               `}
               >
@@ -213,7 +213,7 @@ export const ConnectionItem = ({
                 }}
                 className={`
                 w-full px-3 py-2 text-left text-xs text-danger bg-transparent border-none rounded
-                cursor-pointer flex items-center gap-2 hover:bg-hover transition-colors
+                flex items-center gap-2 hover:bg-hover transition-colors
                 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
               `}
               >

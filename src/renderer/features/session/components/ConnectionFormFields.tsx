@@ -126,7 +126,7 @@ export const ConnectionFormFields = ({
                 data-testid="connection-scheme-http"
                 onClick={() => onChange('scheme', SCHEME.HTTP)}
                 className={cn(
-                  'flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
+                  'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
                   values.scheme === SCHEME.HTTP
                     ? 'border border-accent bg-accent-light text-accent'
                     : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg',
@@ -139,7 +139,7 @@ export const ConnectionFormFields = ({
                 data-testid="connection-scheme-https"
                 onClick={() => onChange('scheme', SCHEME.HTTPS)}
                 className={cn(
-                  'flex-1 px-3 py-2 rounded-md text-sm font-medium cursor-pointer transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
+                  'flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
                   values.scheme === SCHEME.HTTPS
                     ? 'border border-accent bg-accent-light text-accent'
                     : 'border border-input-border bg-transparent text-text hover:border-input-border-hover hover:bg-input-hover-bg',
@@ -156,7 +156,7 @@ export const ConnectionFormFields = ({
                 checked={values.rejectUnauthorized}
                 onChange={(value) => onChange('rejectUnauthorized', value)}
               />
-              <label htmlFor="rejectUnauthorized" className="text-sm text-text cursor-pointer">
+              <label htmlFor="rejectUnauthorized" className="text-sm text-text">
                 {t(($) => $.connectionDialog.rejectUnauthorized)}
               </label>
             </div>
@@ -268,7 +268,7 @@ export const ConnectionFormFields = ({
             checked={values.saveSecret}
             onChange={(value) => onChange('saveSecret', value)}
           />
-          <label htmlFor="saveSecret" className="text-sm text-text cursor-pointer">
+          <label htmlFor="saveSecret" className="text-sm text-text">
             {t(($) => $.connectionDialog.saveSecret)}
           </label>
         </div>
