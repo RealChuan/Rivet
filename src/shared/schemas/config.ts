@@ -16,7 +16,7 @@ const themeValues = [THEME.LIGHT, THEME.DARK, THEME.SYSTEM] as const
 const localeValues = [SUPPORTED_LANGUAGE.ZH_CN, SUPPORTED_LANGUAGE.EN_US, ''] as const
 const fileViewModeValues = [FILE_VIEW_MODE.LIST, FILE_VIEW_MODE.GRID] as const
 const sortOrderValues = [SORT_ORDER.NONE, SORT_ORDER.ASC, SORT_ORDER.DESC] as const
-const protocolValues = [PROTOCOL.SFTP, PROTOCOL.WEBDAV] as const
+const protocolValues = [PROTOCOL.SFTP, PROTOCOL.SMB, PROTOCOL.WEBDAV] as const
 const schemeValues = ['http', 'https'] as const
 const authKindValues = ['password', 'privateKey', 'agent'] as const
 
@@ -59,6 +59,8 @@ export const connectionSchema = z.object({
   privateKeyPath: z.string().optional(),
   agentPath: z.string().optional(),
   secretRef: z.string().optional(),
+  share: z.string().optional(),
+  domain: z.string().optional(),
   basePath: z.string().optional(),
   scheme: z.enum(schemeValues).optional(),
   rejectUnauthorized: z.boolean().optional(),

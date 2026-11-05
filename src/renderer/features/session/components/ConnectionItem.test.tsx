@@ -144,6 +144,12 @@ describe('ConnectionItem', () => {
     expect(screen.getByText('WEBDAV')).not.toBeNull()
   })
 
+  it('should show SMB protocol badge for smb connection', () => {
+    const smbConnection = { ...mockConnection, protocol: 'smb' as const, share: 'public' }
+    render(<ConnectionItem {...defaultProps} connection={smbConnection} />)
+    expect(screen.getByText('SMB')).not.toBeNull()
+  })
+
   it('should show loading spinner when session is loading', () => {
     vi.mocked(useDirectoryLoading).mockReturnValue(true)
     render(<ConnectionItem {...defaultProps} session={mockConnectedSession} />)

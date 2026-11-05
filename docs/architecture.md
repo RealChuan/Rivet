@@ -2,7 +2,7 @@
 
 ## 1. 进程边界
 
-- **主进程**：持有窗口、文件系统、SSH/WebDAV 连接、传输执行、配置与秘密。只通过契约转发能力，不渲染 UI。
+- **主进程**：持有窗口、文件系统、SSH/SMB/WebDAV 连接、传输执行、配置与秘密。只通过契约转发能力，不渲染 UI。
 - **preload**：只做 `contextBridge` 暴露类型化 API，不写业务逻辑，不直接访问 Node 能力。
 - **渲染进程**：React + Zustand + TanStack Query。远程目录状态归 Query，客户端 UI 状态归 Zustand；不直接读文件系统。
 - **shared**：契约、领域类型、常量、纯工具。不得依赖 Electron、Node 专属模块或 React。
@@ -13,7 +13,7 @@
 
 ## 3. 协议层
 
-`FileProvider` 是协议边界：连接、列目录、stat、读写、重命名、删除、复制/移动。provider 工厂按协议创建实现，SFTP 与 WebDAV 不互相感知。请求注册表拥有取消与超时：渲染层取消映射成 `cancel` 请求，超时在主进程收敛为 `REQUEST_TIMEOUT`。
+`FileProvider` 是协议边界：连接、列目录、stat、读写、重命名、删除、复制/移动。provider 工厂按协议创建实现，SFTP、SMB 与 WebDAV 不互相感知。请求注册表拥有取消与超时：渲染层取消映射成 `cancel` 请求，超时在主进程收敛为 `REQUEST_TIMEOUT`。
 
 主机密钥是两阶段：`hostVerifier` 只做同步判定；未知/不匹配以 `HOST_KEY_*` 错误返回，渲染层确认后写 known-hosts 并重连。known-hosts 以 `host:port` + 算法为键。
 

@@ -2,7 +2,7 @@
   "translation": {
     "app": {
       "name": "Rivet",
-      "subtitle": "SFTP / WebDAV 文件浏览器"
+      "subtitle": "SFTP / SMB / WebDAV 文件浏览器"
     },
     "common": {
       "action": {
@@ -65,6 +65,8 @@
       "connectFailed": "连接失败",
       "connecting": "连接中...",
       "continue": "继续",
+      "domain": "域",
+      "domainPlaceholder": "WORKGROUP（可留空）",
       "editTitle": "编辑连接",
       "fillRequired": "请填写所有必填字段",
       "host": "主机",
@@ -83,6 +85,7 @@
       "privateKeyRequired": "请选择私钥文件",
       "protocol": "协议",
       "protocolSftp": "SFTP",
+      "protocolSmb": "SMB",
       "protocolWebdav": "WebDAV",
       "rejectUnauthorized": "拒绝未授权证书",
       "save": "保存",
@@ -91,6 +94,9 @@
       "schemeHttp": "HTTP",
       "schemeHttps": "HTTPS",
       "secretSavedPlaceholder": "已保存，留空保持不变",
+      "share": "共享名",
+      "sharePlaceholder": "public",
+      "shareRequired": "请输入共享名",
       "subtitle": "创建新连接",
       "username": "用户名",
       "usernamePlaceholder": "输入用户名"

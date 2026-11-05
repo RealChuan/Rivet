@@ -11,7 +11,14 @@ export default defineConfig({
     // 让 Error.stack 映射回原始 .ts 文件/行号，使日志 callerInfo 显示真实源文件
     sourcemap: true,
     rollupOptions: {
-      external: ['electron', 'ssh2', 'undici', 'electron-log/main', '@sentry/electron/main'],
+      external: [
+        'electron',
+        'ssh2',
+        'undici',
+        'v9u-smb2',
+        'electron-log/main',
+        '@sentry/electron/main',
+      ],
     },
     outDir: '.vite/build',
     emptyOutDir: false,

@@ -1,8 +1,16 @@
+# 端口由 docker-proxy 转发：容器内服务还没起来时，外部连接照样会被接受，直接探
+# 127.0.0.1:<port> 会误判成就绪（SFTP 集成测试曾因此卡在握手阶段）。所以每个服务
+# 都在容器内探活，`docker compose up --wait` 据此等待；CI 与本地脚本都依赖这一点。
 services:
   sftp:
     image: atmoz/sftp:alpine
     command: testuser:testpass:1001::upload
     ports: ['2222:22']
+    healthcheck:
+      test: ['CMD-SHELL', 'nc -z 127.0.0.1 22']
+      interval: 2s
+      timeout: 3s
+      retries: 30
   webdav:
     image: bytemark/webdav
     environment:
@@ -10,3 +18,36 @@ services:
       USERNAME: testuser
       PASSWORD: testpass
     ports: ['8080:80']
+    healthcheck:
+      # 镜像里的 busybox wget 没有 --user/--password，只能走 Basic 头；
+      # 该值即 testuser:testpass 的 base64，未认证请求会得到 401。
+      test:
+        [
+          'CMD-SHELL',
+          "wget -q -O /dev/null --header 'Authorization: Basic dGVzdHVzZXI6dGVzdHBhc3M=' http://127.0.0.1/",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  smb:
+    image: dperson/samba:latest
+    # dperson 默认启用 fruit / recycle / streams_xattr；E2E 只验证普通 SMB2 语义，
+    # 因此关掉这些 VFS（recycle 会把删除的文件挪进 .deleted 而不是真正删除）。
+    command: >
+      -u "testuser;testpass"
+      -s "rivet;/share;yes;no;no;testuser"
+      -w "WORKGROUP"
+      -g "server min protocol = SMB2"
+      -g "server max protocol = SMB2"
+      -g "ntlm auth = yes"
+      -g "vfs objects ="
+      -p
+    ports: ['1445:445']
+    volumes:
+      - ./smb-share:/share
+    healthcheck:
+      # 覆盖镜像自带的 `smbclient -L \\localhost -U %`：它 60s 才探一次，且只验证匿名列表。
+      test: ['CMD-SHELL', 'smbclient //127.0.0.1/rivet -U testuser%testpass -m SMB2 -c ls']
+      interval: 2s
+      timeout: 3s
+      retries: 30

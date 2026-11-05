@@ -5,7 +5,8 @@ import { defineConfig } from 'vitest/config'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 /**
- * 真实服务集成测试：默认门禁不跑，需要本机或 CI 先起 SFTP/WebDAV 服务。
+ * 真实服务集成测试：默认门禁不跑，需要本机或 CI 先起 SFTP/WebDAV 服务；
+ * SMB 暂不进 provider 集成测试，走 e2e 的 Samba 容器。
  *
  *   RIVET_INTEGRATION=1 pnpm run test:integration
  *

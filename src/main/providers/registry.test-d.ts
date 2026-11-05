@@ -13,6 +13,6 @@ it('createProvider 的第一个参数是 ProviderKind 而不是 string', () => {
 })
 
 it('未登记的协议是编译错误', () => {
-  // @ts-expect-error 'smb' 尚未登记到 ProviderKind
-  createProvider('smb', {} as ProviderFactoryOptions)
+  // @ts-expect-error 'ftp' 尚未登记到 ProviderKind
+  createProvider('ftp', {} as ProviderFactoryOptions)
 })
