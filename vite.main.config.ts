@@ -18,6 +18,8 @@ export default defineConfig({
         'v9u-smb2',
         'electron-log/main',
         '@sentry/electron/main',
+        '@aws-sdk/client-s3',
+        '@smithy/node-http-handler',
       ],
     },
     outDir: '.vite/build',

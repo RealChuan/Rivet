@@ -29,6 +29,24 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+  # S3 兼容测试服务：s3mock 专为 S3 客户端测试而做。
+  # 它不校验签名，任何 Access Key 都能连，正好省掉测试凭据管理。
+  s3:
+    image: adobe/s3mock:latest
+    environment:
+      # 配置前缀是 com.adobe.testing.s3mock.*，Spring 绑定环境变量时要把点换成下划线；
+      # 写成 initialBuckets 不会生效。启动时预建桶，省掉一次性 init 容器。
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIALBUCKETS: rivet
+      # 默认单请求上限 10MB，压过 8 MiB 分片只差一点，留出余量。
+      COM_ADOBE_TESTING_S3MOCK_MAX_PAYLOAD_SIZE: 50MB
+    ports: ['9000:9090']
+    healthcheck:
+      # Spring 上下文就绪后才监听端口，这里 TCP 探活等价于 API 可用。
+      test: ['CMD', 'bash', '-c', 'exec 3<>/dev/tcp/127.0.0.1/9090']
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
   smb:
     image: dperson/samba:latest
     # dperson 默认启用 fruit / recycle / streams_xattr；E2E 只验证普通 SMB2 语义，

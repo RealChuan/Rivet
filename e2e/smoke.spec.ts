@@ -40,6 +40,20 @@ const SMB = {
   share: 'rivet',
 } as const
 
+const S3 = {
+  id: '00000000-0000-4000-8000-000000000004',
+  name: 'E2E S3',
+  protocol: 's3',
+  host: E2E_HOST,
+  port: 9000,
+  username: 'testuser',
+  authKind: 'accessKey',
+  bucket: 'rivet',
+  region: 'us-east-1',
+  pathStyle: true,
+  scheme: 'http',
+} as const
+
 let app: ElectronApplication
 let page: Page
 let userDataDir: string
@@ -298,26 +312,6 @@ test.describe.serial('smoke', () => {
     await page.evaluate((id) => window.electronAPI.protocol.disconnect(id), sessionId)
   })
 
-  test('connects to WebDAV and lists the directory', async () => {
-    await page.getByTestId('connection-new').click()
-    await page.getByTestId('connection-protocol').click()
-    await page.getByRole('option', { name: 'WebDAV' }).click()
-    await page.getByTestId('connection-scheme-http').click()
-    await fillConnection({
-      name: 'E2E WebDAV',
-      host: E2E_HOST,
-      port: '8080',
-      username: 'testuser',
-      password: 'testpass',
-    })
-    await page.getByTestId('connection-save').click()
-    await expect(page.getByTestId('connection-item').nth(1)).toBeVisible()
-    await page.getByTestId('connection-item').nth(1).click()
-    // SFTP 会话没断开，两个面板都在 DOM 里、非活动的只是 display:none，直接查 testid 会命中 2 个。
-    await expect(page.getByTestId('toolbar-refresh')).toHaveCount(2)
-    await expect(page.getByTestId('toolbar-refresh').filter({ visible: true })).toHaveCount(1)
-  })
-
   test('connects to SMB and lists the share', async () => {
     await page.getByTestId('connection-new').click()
     await page.getByTestId('connection-protocol').click()
@@ -434,6 +428,131 @@ test.describe.serial('smoke', () => {
         return { ok: true }
       },
       { sessionId, folderPath, folderName, fileName },
+    )
+    if ('error' in cleanup) throw new Error(cleanup.error)
+  })
+
+  test('connects to WebDAV and lists the directory', async () => {
+    await page.getByTestId('connection-new').click()
+    await page.getByTestId('connection-protocol').click()
+    await page.getByRole('option', { name: 'WebDAV' }).click()
+    await page.getByTestId('connection-scheme-http').click()
+    await fillConnection({
+      name: 'E2E WebDAV',
+      host: E2E_HOST,
+      port: '8080',
+      username: 'testuser',
+      password: 'testpass',
+    })
+    await page.getByTestId('connection-save').click()
+    await expect(page.getByTestId('connection-item').nth(2)).toBeVisible()
+    await page.getByTestId('connection-item').nth(2).click()
+    // 前面的会话都没断开，三个面板都在 DOM 里、非活动的只是 display:none，直接查 testid 会命中 3 个。
+    await expect(page.getByTestId('toolbar-refresh')).toHaveCount(3)
+    await expect(page.getByTestId('toolbar-refresh').filter({ visible: true })).toHaveCount(1)
+  })
+
+  test('connects to S3-compatible storage and uploads a file', async () => {
+    await page.getByTestId('connection-new').click()
+    await page.getByTestId('connection-protocol').click()
+    await page.getByRole('option', { name: 'S3', exact: true }).click()
+    await page.getByTestId('connection-scheme-http').click()
+    await fillConnection({
+      name: 'E2E S3',
+      host: E2E_HOST,
+      port: '9000',
+      username: 'testuser',
+      password: 'testpass',
+    })
+    await page.getByTestId('connection-bucket').fill('rivet')
+    await page.getByTestId('connection-region').fill('us-east-1')
+    await page.getByTestId('connection-save').click()
+
+    const s3Item = page.getByTestId('connection-item').filter({ hasText: 'E2E S3' })
+    await expect(s3Item).toBeVisible()
+    await s3Item.click()
+    await expect(page.getByTestId('toolbar-refresh').filter({ visible: true })).toHaveCount(1)
+
+    const fileName = `e2e-s3-${Date.now()}.txt`
+    const localPath = join(tempDir, fileName)
+    writeFileSync(localPath, 'rivet-s3-e2e')
+    const size = statSync(localPath).size
+    const uploadId = `e2e-s3-up-${Date.now()}`
+
+    const setup = await page.evaluate(
+      async ({ connection, localPath, uploadId, fileName, size }) => {
+        const connect = await window.electronAPI.protocol.connect({
+          connection: { ...connection, id: 'e2e-s3-direct' },
+          secret: 'testpass',
+          saveSecret: false,
+        })
+        if (!connect.success) return { error: connect.error.message }
+        const sessionId = connect.value.sessionId
+        const upload = await window.electronAPI.transfer.add([
+          {
+            id: uploadId,
+            sessionId,
+            direction: 'upload',
+            localPath,
+            remotePath: `/${fileName}`,
+            itemName: fileName,
+            itemType: 'file',
+            status: 'waiting',
+            fileSize: size,
+            transferredSize: 0,
+            createdAt: Date.now(),
+          },
+        ])
+        if (!upload.success) return { error: upload.error.message }
+        return { sessionId }
+      },
+      { connection: S3, localPath, uploadId, fileName, size },
+    )
+    if ('error' in setup) throw new Error(setup.error)
+    const sessionId = setup.sessionId
+
+    // S3 上传统一走 multipart，这里确认分片完成后对象能按原名列出且大小一致。
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(
+            async ({ sessionId, uploadId, fileName, size }) => {
+              const tasks = await window.electronAPI.transfer.getTasks()
+              const task = tasks.success
+                ? tasks.value.find((candidate) => candidate.id === uploadId)
+                : undefined
+              if (task?.status === 'failed') return `failed: ${task.errorMessage ?? 'unknown'}`
+              const entries = await window.electronAPI.protocol.list(sessionId, '/')
+              if (!entries.success) return entries.error.message
+              const entry = entries.value.find((candidate) => candidate.name === fileName)
+              return entry?.size === size ? 'uploaded' : 'pending'
+            },
+            { sessionId, uploadId, fileName, size },
+          ),
+        { timeout: 30_000 },
+      )
+      .toBe('uploaded')
+
+    await page.getByTestId('toolbar-refresh').filter({ visible: true }).click()
+    await expect(
+      page.getByTestId('file-row').filter({ visible: true }).filter({ hasText: fileName }),
+    ).toBeVisible()
+
+    const cleanup = await page.evaluate(
+      async ({ sessionId, fileName }) => {
+        const entries = await window.electronAPI.protocol.list(sessionId, '/')
+        if (!entries.success) return { error: entries.error.message }
+        const uploaded = entries.value.find((candidate) => candidate.name === fileName)
+        if (!uploaded) return { error: `uploaded file not listed: ${fileName}` }
+
+        const removed = await window.electronAPI.protocol.delete(sessionId, uploaded)
+        if (!removed.success) return { error: removed.error.message }
+
+        const disconnected = await window.electronAPI.protocol.disconnect(sessionId)
+        if (!disconnected.success) return { error: disconnected.error.message }
+        return { ok: true }
+      },
+      { sessionId, fileName },
     )
     if ('error' in cleanup) throw new Error(cleanup.error)
   })

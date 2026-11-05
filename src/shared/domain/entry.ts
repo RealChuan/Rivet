@@ -32,6 +32,7 @@ export const PROVIDER_KIND = {
   SFTP: 'sftp',
   SMB: 'smb',
   WEBDAV: 'webdav',
+  S3: 's3',
 } as const
 
 export type ProviderKind = (typeof PROVIDER_KIND)[keyof typeof PROVIDER_KIND]

@@ -2,7 +2,7 @@
   "translation": {
     "app": {
       "name": "Rivet",
-      "subtitle": "SFTP / SMB / WebDAV 文件浏览器"
+      "subtitle": "SFTP / SMB / WebDAV / S3 文件浏览器"
     },
     "common": {
       "action": {
@@ -50,6 +50,8 @@
       "noConnections": "暂无连接"
     },
     "connectionDialog": {
+      "accessKeyId": "Access Key ID",
+      "accessKeyIdPlaceholder": "输入 Access Key ID",
       "agentPath": "SSH agent 路径",
       "agentPathPlaceholder": "留空使用默认 agent",
       "askPasswordOnConnect": "每次连接需要密码",
@@ -60,6 +62,9 @@
       "basePath": "基础路径",
       "basePathPlaceholder": "/dav/files",
       "browse": "浏览",
+      "bucket": "存储桶",
+      "bucketPlaceholder": "my-bucket",
+      "bucketRequired": "请输入存储桶名",
       "certWarningMessage": "您正在连接到一个证书无效的服务器。请自行承担风险继续。",
       "certWarningTitle": "证书警告",
       "connectFailed": "连接失败",
@@ -79,20 +84,26 @@
       "password": "密码",
       "passwordPlaceholder": "输入密码",
       "passwordRequired": "请输入密码",
+      "pathStyle": "使用 path-style 寻址（R2、B2 等自建服务需要）",
       "port": "端口",
       "privateKeyPath": "私钥文件",
       "privateKeyPathPlaceholder": "选择或输入私钥路径",
       "privateKeyRequired": "请选择私钥文件",
       "protocol": "协议",
+      "protocolS3": "S3",
       "protocolSftp": "SFTP",
       "protocolSmb": "SMB",
       "protocolWebdav": "WebDAV",
+      "region": "区域",
+      "regionPlaceholder": "us-east-1",
       "rejectUnauthorized": "拒绝未授权证书",
       "save": "保存",
       "saveSecret": "保存密码",
       "scheme": "协议类型",
       "schemeHttp": "HTTP",
       "schemeHttps": "HTTPS",
+      "secretAccessKey": "Secret Access Key",
+      "secretAccessKeyPlaceholder": "输入 Secret Access Key",
       "secretSavedPlaceholder": "已保存，留空保持不变",
       "share": "共享名",
       "sharePlaceholder": "public",

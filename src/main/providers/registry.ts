@@ -7,6 +7,8 @@ import type { SmbClientPort } from './smb/client.js'
 import type { FileProvider } from './types.js'
 import type { WebdavHttpPort } from './webdav/http.js'
 import { ProviderError } from './errors.js'
+import { createS3Client, type S3ClientPort } from './s3/client.js'
+import { createS3Provider } from './s3/provider.js'
 import { createSftpProvider } from './sftp/provider.js'
 import { Ssh2SftpConnection } from './sftp/ssh2-connection.js'
 import { createSmbProvider } from './smb/provider.js'
@@ -20,6 +22,8 @@ export interface ProviderFactoryOptions {
   createHttp?: (credentials: Credentials) => WebdavHttpPort
   /** 测试注入点；缺省时构造真实 v9u-smb2 客户端。 */
   createSmbClient?: (config: ConnectionConfig, credentials: Credentials) => SmbClientPort
+  /** 测试注入点；缺省时构造真实 aws-sdk 客户端。 */
+  createS3Client?: (config: ConnectionConfig, credentials: Credentials) => S3ClientPort
 }
 
 export function webdavBaseUrl(config: ConnectionConfig): string {
@@ -62,10 +66,18 @@ export function createProvider(kind: ProviderKind, options: ProviderFactoryOptio
           ((credentials) =>
             new WebdavHttpClient({
               baseUrl: webdavBaseUrl(options.config),
-              username: credentials.username,
+              // WebDAV 只接受密码认证，其余形态在 provider.connect 里已被拒绝。
+              username: credentials.kind === 'password' ? credentials.username : '',
               password: credentials.kind === 'password' ? credentials.password : '',
               rejectUnauthorized: options.config.rejectUnauthorized ?? true,
             })),
+      })
+
+    case 's3':
+      return createS3Provider({
+        config: options.config,
+        createClient:
+          options.createS3Client ?? ((config, credentials) => createS3Client(config, credentials)),
       })
 
     default:

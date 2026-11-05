@@ -30,9 +30,13 @@ function isConnectionConfig(item: unknown): item is ConnectionConfig {
     typeof item.protocol === 'string' &&
     (item.protocol === PROTOCOL.SFTP ||
       item.protocol === PROTOCOL.SMB ||
-      item.protocol === PROTOCOL.WEBDAV) &&
+      item.protocol === PROTOCOL.WEBDAV ||
+      item.protocol === PROTOCOL.S3) &&
     'authKind' in item &&
-    (item.authKind === 'password' || item.authKind === 'privateKey' || item.authKind === 'agent')
+    (item.authKind === 'password' ||
+      item.authKind === 'privateKey' ||
+      item.authKind === 'agent' ||
+      item.authKind === 'accessKey')
   )
 }
 

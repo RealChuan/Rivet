@@ -70,6 +70,12 @@ export async function buildSshAuthConfig(
         agent: resolveAgentPath(credentials.agentPath, platform, process.env),
         readyTimeout: TIMEOUTS.SFTP_READY,
       }
+
+    case 'accessKey':
+      throw new ProviderError(
+        ERROR_CODE.INVALID_CONFIG,
+        'SFTP does not support accessKey authentication',
+      )
   }
 }
 

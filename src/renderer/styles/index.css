@@ -30,6 +30,8 @@
   --color-protocol-smb-light: rgba(14, 165, 233, 0.08);
   --color-protocol-webdav: #8b5cf6;
   --color-protocol-webdav-light: rgba(139, 92, 246, 0.08);
+  --color-protocol-s3: #f59e0b;
+  --color-protocol-s3-light: rgba(245, 158, 11, 0.08);
   --color-input-border: #d4d4d4;
   --color-input-border-hover: #a3a3a3;
   --color-input-hover-bg: rgba(0, 0, 0, 0.02);
@@ -105,6 +107,8 @@
   --color-protocol-smb-light: rgba(56, 189, 248, 0.1);
   --color-protocol-webdav: #a78bfa;
   --color-protocol-webdav-light: rgba(167, 139, 250, 0.1);
+  --color-protocol-s3: #fbbf24;
+  --color-protocol-s3-light: rgba(251, 191, 36, 0.1);
   --color-input-border: #3c3c3c;
   --color-input-border-hover: #4a4a4a;
   --color-input-hover-bg: rgba(255, 255, 255, 0.03);

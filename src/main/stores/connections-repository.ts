@@ -30,12 +30,17 @@ export function initializeConnections(baseDir: string): void {
   })
 }
 
+/** 需要用户补秘密的认证方式：SFTP 密码，以及 S3 的 Secret Access Key。 */
+function needsSecret(authKind: ConnectionConfig['authKind']): boolean {
+  const kind = authKind ?? 'password'
+  return kind === 'password' || kind === 'accessKey'
+}
+
 export function getConnections(): ConnectionConfig[] {
   const file = requireStore().get()
   return file.connections.map((connection) => ({
     ...connection,
-    askPasswordOnConnect:
-      (connection.authKind ?? 'password') === 'password' && !file.secrets[connection.id],
+    askPasswordOnConnect: needsSecret(connection.authKind) && !file.secrets[connection.id],
   }))
 }
 

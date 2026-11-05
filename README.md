@@ -3,7 +3,7 @@
 [![Build](https://github.com/RealChuan/Rivet/actions/workflows/build.yml/badge.svg)](https://github.com/RealChuan/Rivet/actions/workflows/build.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
-Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文件浏览器，支持 **SFTP**、**SMB** 与 **WebDAV**。它把远端目录当作本地文件管理器来用：连接、浏览、上传下载、改名、删除、复制移动、冲突处理和传输管理都在同一个窗口完成。
+Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文件浏览器，支持 **SFTP**、**SMB**、**WebDAV** 与 **S3**（兼容 AWS S3、Cloudflare R2、Backblaze B2 等服务）。它把远端目录当作本地文件管理器来用：连接、浏览、上传下载、改名、删除、复制移动、冲突处理和传输管理都在同一个窗口完成。
 
 - 简体中文 | [English](README.en.md)
 - [架构说明](docs/architecture.md)
@@ -18,6 +18,7 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 - **SFTP**：密码、私钥 + 口令、SSH agent；首次连接的主机密钥确认与 known-hosts 记忆。
 - **SMB**：SMB 2.0.2 / 2.1 共享，NTLMv2 密码认证；填主机、端口和服务器导出的共享名。适合 Windows 共享与 NAS。当前不支持 SMB3、签名、加密与 Kerberos。
 - **WebDAV**：Basic / Digest 认证、自定义基础路径、自签证书开关。
+- **S3**：任意 S3 兼容端点，可配 region、桶、path-style 与桶内前缀；上传走 multipart，支持超过 5 GiB 的文件。
 - 多连接管理；连接配置持久化，密码只在主进程经 `safeStorage` 加密存储，私钥只保存路径。
 
 ### 文件管理
@@ -48,14 +49,20 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 
 已知限制：改名/移动固定 `ReplaceIfExists=true`，Windows 上目标已存在或被占用时返回 `ACCESS_DENIED`，界面按权限不足提示。
 
+## S3 说明
+
+对象存储没有目录、没有 rename，也没有原子覆盖：目录是前缀，空目录靠零字节的 `<prefix>/` 标记维持，改名是 copy + delete（目录改名会逐个对象搬运，中断会留下部分副本），上传的数据在 multipart 完成前对读端不可见。文件名（key）大小写敏感，`#`、`%`、`+`、空格由 SDK 负责编码。
+
+已知限制：不支持版本控制、ACL/桶策略与预签名分享；STS 临时凭证（sessionToken）未实现；「路径」以桶内前缀为根，不能跨桶浏览。
+
 ## 技术栈
 
-| 层   | 选型                                                       |
-| ---- | ---------------------------------------------------------- |
-| 桌面 | Electron、electron-forge                                   |
-| 界面 | React、TypeScript、Vite、Zustand、TanStack Query / Virtual |
-| 协议 | ssh2、undici、fast-xml-parser、v9u-smb2                    |
-| 日志 | electron-log（按天 + 按大小滚动）                          |
+| 层   | 选型                                                        |
+| ---- | ----------------------------------------------------------- |
+| 桌面 | Electron、electron-forge                                    |
+| 界面 | React、TypeScript、Vite、Zustand、TanStack Query / Virtual  |
+| 协议 | ssh2、undici、fast-xml-parser、v9u-smb2、@aws-sdk/client-s3 |
+| 日志 | electron-log（按天 + 按大小滚动）                           |
 
 ## 开发
 
@@ -68,11 +75,12 @@ pnpm run verify
 ```
 
 - `pnpm run verify` 依次执行 typecheck、lint、单元测试、类型测试、i18n 检查、生产依赖审计与打包。
-- 真实服务集成测试（provider 层，默认不进 verify）：先起 `scripts/sftp/serve.py` 与 `scripts/dav/serve.py`（或 Docker），再 `RIVET_INTEGRATION=1 pnpm run test:integration`。
-- E2E 需要 Docker：`pnpm run e2e:servers` → `pnpm run build` → `pnpm run test:e2e` → `pnpm run e2e:servers:down`。E2E 包含 SFTP、WebDAV 与 SMB2-only 的 Samba 服务。
-- 手动验证 WebDAV 页面：`python scripts/dav/serve.py`（WsgiDAV，依赖见 `scripts/dav/requirements.txt`；`--auth digest`、`--https`、`--base-path`、`--readonly` 切换分支）。
+- 真实服务集成测试（provider 层，默认不进 verify）：先起 `scripts/sftp/serve.py` 与 `scripts/dav/serve.py`（或 Docker），再 `RIVET_INTEGRATION=1 pnpm run test:integration`；S3 用例默认连 `127.0.0.1:9000`，可用 `RIVET_S3_ENDPOINT`、`RIVET_S3_BUCKET`、`RIVET_S3_ACCESS_KEY`、`RIVET_S3_SECRET_KEY` 指向任意 S3 兼容端点。
+- E2E 需要 Docker：`pnpm run e2e:servers` → `pnpm run build` → `pnpm run test:e2e` → `pnpm run e2e:servers:down`。E2E 包含 SFTP、SMB（Samba，SMB2-only）、WebDAV 与 S3（s3mock）。
 - 手动验证 SFTP 页面：`python scripts/sftp/serve.py`（Paramiko，依赖见 `scripts/sftp/requirements.txt`；`--auth publickey`、`--emit-client-key`、`--readonly`、`--rotate-host-key` 切换分支）。
 - 手动验证 SMB 页面：连接真实 SMB2 服务器；不知道共享名时用 `python scripts/smb/list-shares.py <host> --user <user>` 枚举。
+- 手动验证 WebDAV 页面：`python scripts/dav/serve.py`（WsgiDAV，依赖见 `scripts/dav/requirements.txt`；`--auth digest`、`--https`、`--base-path`、`--readonly` 切换分支）。
+- 手动验证 S3 页面：`python scripts/s3/serve.py`（moto，依赖见 `scripts/s3/requirements.txt`；本机没装 Docker 时用）。
 - 更多命令与工程约定见 [AGENTS.md](AGENTS.md)。
 
 ## 架构
