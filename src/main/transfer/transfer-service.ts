@@ -413,8 +413,12 @@ export class TransferService {
       },
       reportOperation: (op) => {
         this.upsertOperation(task.id, op)
+        // 子操作开始/结束必须立刻进入快照：否则要等到下一个数据块才推送，
+        // 聚合窗口里就可能出现“文件已经开传、列表却是空的”。
+        this.progress(task)
       },
       isCancelled: (taskId) => this.tasks.get(taskId)?.status === OPERATION_STATUS.CANCELLED,
+      getConcurrency: () => this.concurrency[task.direction],
     }
   }
 

@@ -14,6 +14,8 @@ export interface ExecutorHooks {
   report(data: TransferProgressData): void
   reportOperation(op: OperationProgressInfo): void
   isCancelled(taskId: string): boolean
+  /** 当前方向的并发槽数量；文件夹用它推导排队窗口。 */
+  getConcurrency(): number
 }
 
 /** 执行器只返回 outcome，不直接改任务状态。 */

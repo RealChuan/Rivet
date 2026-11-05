@@ -6,8 +6,13 @@ import type {
   TransferProgressData,
   TransferTask,
 } from '@shared/types/index.js'
-import { FILE_TYPE, OPERATION_STATUS, TRANSFER_DIRECTION } from '@shared/constants/index.js'
-import type { FileProvider } from '../providers/types.js'
+import {
+  FILE_TYPE,
+  OPERATION_STATUS,
+  TRANSFER_CONFIG,
+  TRANSFER_DIRECTION,
+} from '@shared/constants/index.js'
+import type { FileProvider, WriteHandle } from '../providers/types.js'
 import type { ExecutorHooks } from './executor-types.js'
 import type { LocalFs } from './local-fs.js'
 import { ProviderError } from '../providers/errors.js'
@@ -32,7 +37,7 @@ function folderTask(overrides: Partial<TransferTask> = {}): TransferTask {
   }
 }
 
-function createHooks() {
+function createHooks(concurrency: number = TRANSFER_CONFIG.DEFAULT_CONCURRENCY) {
   const acquire = vi.fn<(key: string, signal: AbortSignal) => Promise<void>>(() =>
     Promise.resolve(),
   )
@@ -45,6 +50,7 @@ function createHooks() {
     report,
     reportOperation,
     isCancelled: () => false,
+    getConcurrency: () => concurrency,
   }
   return { hooks, acquire, release, report, reportOperation }
 }
@@ -154,6 +160,19 @@ function createExecutor(provider: FileProvider, localFs: LocalFs): FileTransferE
   return new FileTransferExecutor({ getProvider: () => provider, localFs })
 }
 
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  const state: { resolve?: () => void } = {}
+  const promise = new Promise<void>((resolve) => {
+    state.resolve = resolve
+  })
+  return {
+    promise,
+    resolve: () => {
+      state.resolve?.()
+    },
+  }
+}
+
 describe('FileTransferExecutor 文件夹上传', () => {
   it('递归 mkdir 并上传两层文件，完成时计数正确', async () => {
     const provider = makeProvider({})
@@ -191,12 +210,146 @@ describe('FileTransferExecutor 文件夹上传', () => {
       activeFileCount: 0,
       waitingFileCount: 0,
       transferredSize: 9,
+      // 文件夹也要有字节总量，汇总行的“剩余时间”才有分母。
+      fileSize: 9,
       scanCompleted: true,
     })
 
     // 扫描结束前上报的 totalFileCount 只是“已发现”，不能带 scanCompleted。
     const scanCompletedIndex = report.mock.calls.findIndex(([data]) => data.scanCompleted === true)
     expect(scanCompletedIndex).toBeGreaterThan(0)
+  })
+
+  it('先登记子操作再推文件夹快照，快照里不会出现“已激活但没有子操作”', async () => {
+    const provider = makeProvider({})
+    const local = makeLocalFs({
+      tree: {
+        '/local/folder': [{ name: 'a.txt', dir: false, size: 4 }],
+      },
+    })
+    local.files.set('/local/folder/a.txt', 'aaaa')
+    const { hooks, report, reportOperation } = createHooks()
+    const sequence: string[] = []
+    report.mockImplementation((data) => {
+      if ((data.activeFileCount ?? 0) > 0) sequence.push('report-active')
+    })
+    reportOperation.mockImplementation((op) => {
+      if (op.status === OPERATION_STATUS.RUNNING) sequence.push('op-running')
+    })
+    const executor = createExecutor(provider.provider, local.localFs)
+
+    await executor.execute(folderTask(), new AbortController().signal, hooks)
+
+    expect(sequence).toContain('report-active')
+    expect(sequence.indexOf('op-running')).toBeLessThan(sequence.indexOf('report-active'))
+  })
+
+  it('兄弟目录的 mkdir 并行发起，不逐层串行等待', async () => {
+    const provider = makeProvider({})
+    const gates = new Map<string, { promise: Promise<void>; resolve: () => void }>()
+    provider.provider.mkdir = vi.fn((path: string) => {
+      const gate = deferred()
+      gates.set(path, gate)
+      return gate.promise
+    })
+    const local = makeLocalFs({
+      tree: {
+        '/local/folder': [
+          { name: 'a', dir: true },
+          { name: 'b', dir: true },
+        ],
+      },
+    })
+    const { hooks } = createHooks()
+    const executor = createExecutor(provider.provider, local.localFs)
+    const done = executor.execute(folderTask(), new AbortController().signal, hooks)
+
+    await vi.waitFor(() => expect(gates.has('/remote/folder')).toBe(true))
+    gates.get('/remote/folder')?.resolve()
+
+    // 修复前 b 的 mkdir 要等 a 完成才会发起，扫描被逐层串行拖慢。
+    await vi.waitFor(() =>
+      expect([...gates.keys()]).toEqual(['/remote/folder', '/remote/folder/a', '/remote/folder/b']),
+    )
+    gates.get('/remote/folder/a')?.resolve()
+    gates.get('/remote/folder/b')?.resolve()
+
+    await expect(done).resolves.toEqual({ kind: 'completed' })
+  })
+
+  it('同层文件不必等兄弟目录 mkdir 完成就开始传输', async () => {
+    const provider = makeProvider({})
+    const gate = deferred()
+    provider.provider.mkdir = vi.fn((path: string) =>
+      path === '/remote/folder' ? Promise.resolve() : gate.promise,
+    )
+    const local = makeLocalFs({
+      tree: {
+        '/local/folder': [
+          { name: 'sub', dir: true },
+          { name: 'a.txt', dir: false, size: 4 },
+        ],
+      },
+    })
+    local.files.set('/local/folder/a.txt', 'aaaa')
+    const { hooks } = createHooks()
+    const executor = createExecutor(provider.provider, local.localFs)
+    const done = executor.execute(folderTask(), new AbortController().signal, hooks)
+
+    await vi.waitFor(() => expect(provider.writes).toContain('/remote/folder/a.txt'))
+
+    gate.resolve()
+    await expect(done).resolves.toEqual({ kind: 'completed' })
+  })
+
+  it('登记窗口满时暂停扫描，不会把所有文件一次性排进内存', async () => {
+    const provider = makeProvider({})
+    const releases: Array<() => void> = []
+    const openWrite = vi.fn(
+      () =>
+        new Promise<WriteHandle>((resolve) => {
+          releases.push(() => {
+            resolve({
+              stream: new WritableStream<Uint8Array>(),
+              commit: () => Promise.resolve(),
+              abort: () => Promise.resolve(),
+            })
+          })
+        }),
+    )
+    provider.provider.openWrite = openWrite
+
+    // 并发 1 → 窗口 1 × 10 = 10，用 12 个文件验证第 11 个不会入队。
+    const fileCount = 12
+    const entries = Array.from({ length: fileCount }, (_, i) => ({
+      name: `f${i}.txt`,
+      dir: false,
+      size: 1,
+    }))
+    const local = makeLocalFs({ tree: { '/local/folder': entries } })
+    for (let i = 0; i < fileCount; i += 1) {
+      local.files.set(`/local/folder/f${i}.txt`, 'x')
+    }
+
+    const { hooks } = createHooks(1)
+    const task = folderTask()
+    const executor = createExecutor(provider.provider, local.localFs)
+    const done = executor.execute(task, new AbortController().signal, hooks)
+
+    const expectedQueue = TRANSFER_CONFIG.FOLDER_QUEUE_CONCURRENCY_FACTOR
+    await vi.waitFor(() => expect(openWrite).toHaveBeenCalledTimes(expectedQueue))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(task.totalFileCount).toBe(expectedQueue)
+    expect(task.fileSize).toBe(expectedQueue)
+
+    const drain = setInterval(() => {
+      for (const release of releases.splice(0)) release()
+    }, 5)
+    await expect(done).resolves.toEqual({ kind: 'completed' })
+    clearInterval(drain)
+
+    expect(task.totalFileCount).toBe(fileCount)
+    expect(task.completedFileCount).toBe(fileCount)
   })
 
   it('取消父任务时不再启动新的子操作', async () => {
@@ -285,6 +438,7 @@ describe('FileTransferExecutor 文件夹下载', () => {
       totalFileCount: 2,
       completedFileCount: 2,
       transferredSize: 54,
+      fileSize: 2,
     })
   })
 })

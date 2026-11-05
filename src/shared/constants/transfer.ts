@@ -61,11 +61,21 @@ export type TransferOperationType =
 export const TRANSFER_CONFIG = {
   /** 单文件分块进度合并窗口；与主进程聚合窗口同量级，避免高频 IPC 之外的重复计算。 */
   PROGRESS_THROTTLE_MS: 200,
-  ROTATION_INTERVAL_MS: 3000,
   DEFAULT_CONCURRENCY: 5,
   MIN_CONCURRENCY: 1,
   MAX_CONCURRENCY: 10,
   MAX_INLINE_OPERATIONS: 3,
+  /** 目录扫描期允许并行的远端 mkdir/list 数量；扫描不应阻塞已发现文件的传输。 */
+  FOLDER_SCAN_CONCURRENCY: 4,
+  /** 扫描期为本地文件补 size 的并行 stat 数量。 */
+  FOLDER_STAT_CONCURRENCY: 8,
+  /**
+   * 文件夹排队窗口 = 当前方向并发 × 该系数。并发 5 时排队 50 个；
+   * 传输能力就这么点，堆更多只会白占内存，也没法更早传完。
+   */
+  FOLDER_QUEUE_CONCURRENCY_FACTOR: 10,
+  /** 目录预取窗口：队列短时才提前发起 mkdir/list，避免宽目录挂出成千上万个等待者。 */
+  FOLDER_SCAN_PREFETCH: 64,
 } as const
 
 /** 主进程进度聚合窗口：同一 task 在窗口内只保留最后一条快照。 */

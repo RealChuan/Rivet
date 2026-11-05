@@ -46,6 +46,7 @@ function createHooks() {
     report,
     reportOperation,
     isCancelled: () => false,
+    getConcurrency: () => 5,
   }
   return { hooks, acquire, release, report, reportOperation }
 }
