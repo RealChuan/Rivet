@@ -1,7 +1,7 @@
 import type React from 'react'
 import { ChevronRight, Info, RotateCcw, Trash, X } from 'lucide-react'
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { OperationProgressInfo, TransferTask } from '@shared/types/transfer.js'
@@ -123,7 +123,6 @@ export const TransferTaskItem = ({
     (state) => state.activeOperations.get(task.id) ?? EMPTY_OPERATIONS,
   )
   const progress = useTransferStore((state) => state.taskProgress.get(task.id))
-  const [rotationOffset, setRotationOffset] = useState(0)
   const [showErrorDetail, setShowErrorDetail] = useState(false)
 
   const isFolder = task.itemType === FILE_TYPE.DIRECTORY
@@ -139,30 +138,8 @@ export const TransferTaskItem = ({
 
   const remainingSeconds = computeRemainingSeconds(transferredSize, fileSize, speed)
 
-  const shouldRotate = isFolder && activeOperations.length > TRANSFER_CONFIG.MAX_INLINE_OPERATIONS
-
-  const prevShouldRotate = useRef(shouldRotate)
-  useEffect(() => {
-    if (!shouldRotate && prevShouldRotate.current) {
-      setRotationOffset(0)
-    }
-    prevShouldRotate.current = shouldRotate
-  }, [shouldRotate])
-
-  useEffect(() => {
-    if (!shouldRotate) return
-    const timer = setInterval(() => {
-      setRotationOffset((prev) => (prev + 1) % activeOperations.length)
-    }, TRANSFER_CONFIG.ROTATION_INTERVAL_MS)
-    return () => clearInterval(timer)
-  }, [shouldRotate, activeOperations.length])
-
-  const displayedOps = shouldRotate
-    ? Array.from({ length: TRANSFER_CONFIG.MAX_INLINE_OPERATIONS }, (_, i) => {
-        const idx = (rotationOffset + i) % activeOperations.length
-        return activeOperations[idx]
-      })
-    : activeOperations.slice(0, TRANSFER_CONFIG.MAX_INLINE_OPERATIONS)
+  // 只展示前 N 条；主进程本来就只发 N 条，不做轮播（轮播会让整块行每 3s 集体换位）。
+  const displayedOps = activeOperations.slice(0, TRANSFER_CONFIG.MAX_INLINE_OPERATIONS)
 
   const scanCompleted = progress?.scanCompleted ?? task.scanCompleted ?? false
 
@@ -181,12 +158,15 @@ export const TransferTaskItem = ({
             total: totalFileCount ?? 0,
           })
 
+  // 文件夹的字节总量扫描结束才是真值，之前算出来的剩余时间会偏小。
   const statusText = isFailed
     ? t(($) => $.transfer.status.failed)
     : isWaiting
       ? t(($) => $.transfer.status.waiting)
       : isFolder
-        ? ''
+        ? scanCompleted
+          ? formatRemainingTime(remainingSeconds)
+          : ''
         : formatRemainingTime(remainingSeconds)
 
   const menuItemClass = cn(
@@ -227,7 +207,7 @@ export const TransferTaskItem = ({
             </button>
 
             {isFolder ? (
-              // 文件夹没有字节总量：文字占满大小+进度两列，不画进度条。
+              // 文件夹的字节总量扫描期只增不减，画进度条会倒退；文件计数才是主进度。
               <span
                 className={cn(
                   'col-span-2 text-xs tabular-nums text-right whitespace-nowrap truncate',

@@ -20,6 +20,7 @@ import type { ExecutorHooks, TaskOutcome, TransferExecutor } from './executor-ty
 import type { LocalFs } from './local-fs.js'
 import { localTempPath } from '../utils/temp-path.js'
 import { resolveDownloadTarget, resolveUploadTarget } from './conflict.js'
+import { TaskSemaphore } from './semaphore.js'
 
 export interface FileTransferExecutorOptions {
   getProvider(sessionId: string): FileProvider | undefined
@@ -29,6 +30,53 @@ export interface FileTransferExecutorOptions {
 interface FolderDir {
   local: string
   remote: string
+  /** 子目录的远端创建（上传）/ 枚举（下载）与扫描并行推进，出队时才等待。 */
+  created?: Promise<void>
+  listed?: Promise<Entry[]>
+}
+
+/** 扫描期的有限并发槽：远端 mkdir/list 并行，本地 stat 单独限流。 */
+function runWithSlot<T>(
+  slots: TaskSemaphore,
+  key: string,
+  signal: AbortSignal,
+  run: () => Promise<T>,
+): Promise<T> {
+  return slots
+    .acquire(key, signal)
+    .then(run)
+    .finally(() => {
+      slots.release(key)
+    })
+}
+
+/**
+ * 目录枚举的工作池：队列会被正在枚举的子目录继续追加，
+ * 因此 worker 只在“自己这一轮队列为空”时退出——那时不存在在途枚举，不会漏目录。
+ */
+async function drainDirQueue(
+  queue: FolderDir[],
+  signal: AbortSignal,
+  processDir: (dir: FolderDir) => Promise<void>,
+): Promise<void> {
+  let failure: { error: unknown } | undefined
+
+  const worker = async (): Promise<void> => {
+    try {
+      for (;;) {
+        if (failure !== undefined) return
+        signal.throwIfAborted()
+        const dir = queue.shift()
+        if (dir === undefined) return
+        await processDir(dir)
+      }
+    } catch (error) {
+      failure ??= { error }
+    }
+  }
+
+  await Promise.all(Array.from({ length: TRANSFER_CONFIG.FOLDER_SCAN_CONCURRENCY }, () => worker()))
+  if (failure !== undefined) throw failure.error
 }
 
 interface FolderFileOp {
@@ -137,29 +185,62 @@ export class FileTransferExecutor implements TransferExecutor {
     signal.addEventListener('abort', onAbort, { once: true })
     if (signal.aborted) controller.abort(signal.reason)
 
-    const running: Promise<void>[] = []
     const failures: unknown[] = []
+    // 准入窗口：已登记但未完成的子操作数量上限，按并发推导（并发 × 10）。
+    // 每个排队文件要占住 op 对象 + 队列 Promise + 信号量 waiter（实测约 1.9KB），
+    // 而传输能力只有并发那么大，堆更多既不会更快，也只会白占内存。
+    const queueLimit = Math.max(
+      1,
+      hooks.getConcurrency() * TRANSFER_CONFIG.FOLDER_QUEUE_CONCURRENCY_FACTOR,
+    )
+    const admission = new TaskSemaphore(queueLimit)
+    let inFlight = 0
+    const idleWaiters: Array<() => void> = []
 
     task.totalFileCount = 0
     task.completedFileCount = 0
     task.activeFileCount = 0
     task.waitingFileCount = 0
     task.transferredSize = 0
+    // 文件夹的字节总量只能边扫边累加；扫描结束前它就是“已发现字节数”。
+    task.fileSize = 0
     this.reportFolder(task, hooks)
 
-    const startFile = (op: FolderFileOp): void => {
+    const releaseOp = (opId: string): void => {
+      inFlight -= 1
+      admission.release(opId)
+      if (inFlight === 0) {
+        for (const resolve of idleWaiters.splice(0)) resolve()
+      }
+    }
+
+    const waitForIdle = (): Promise<void> => {
+      if (inFlight === 0) return Promise.resolve()
+      return new Promise<void>((resolve) => {
+        idleWaiters.push(resolve)
+      })
+    }
+
+    const startFile = async (op: FolderFileOp): Promise<void> => {
+      // 窗口满时在这里等：扫描进度跟着传输进度走，内存不会随文件数线性增长。
+      await admission.acquire(op.id, controller.signal)
+
       task.totalFileCount = (task.totalFileCount ?? 0) + 1
       task.waitingFileCount = (task.waitingFileCount ?? 0) + 1
+      task.fileSize += op.fileSize
       this.reportFolder(task, hooks)
 
-      running.push(
-        this.runFolderOp(provider, task, op, controller.signal, hooks).catch((error: unknown) => {
+      inFlight += 1
+      void this.runFolderOp(provider, task, op, controller.signal, hooks)
+        .catch((error: unknown) => {
           if (!controller.signal.aborted) {
             failures.push(error)
             controller.abort()
           }
-        }),
-      )
+        })
+        .finally(() => {
+          releaseOp(op.id)
+        })
     }
 
     try {
@@ -182,7 +263,7 @@ export class FileTransferExecutor implements TransferExecutor {
     task.scanCompleted = true
     this.reportFolder(task, hooks)
 
-    await Promise.allSettled(running)
+    await waitForIdle()
 
     if (signal.aborted) return { kind: 'cancelled' }
 
@@ -202,87 +283,138 @@ export class FileTransferExecutor implements TransferExecutor {
     provider: FileProvider,
     task: TransferTask,
     signal: AbortSignal,
-    startFile: (op: FolderFileOp) => void,
+    startFile: (op: FolderFileOp) => Promise<void>,
   ): Promise<void> {
-    await provider.mkdir(task.remotePath, { recursive: true, signal })
+    const scanSlots = new TaskSemaphore(TRANSFER_CONFIG.FOLDER_SCAN_CONCURRENCY)
+    const statSlots = new TaskSemaphore(TRANSFER_CONFIG.FOLDER_STAT_CONCURRENCY)
+    const pendingFiles: Promise<void>[] = []
+    // 补 size 的在途 promise 也要有窗口，否则单个大目录就能堆出与文件数等量的 Promise。
+    const maxPendingStats = TRANSFER_CONFIG.FOLDER_STAT_CONCURRENCY * 4
 
-    const queue: FolderDir[] = [{ local: task.localPath, remote: task.remotePath }]
+    const flushPendingFiles = async (): Promise<void> => {
+      if (pendingFiles.length === 0) return
+      await Promise.all(pendingFiles.splice(0))
+    }
+
+    // 子目录 mkdir 不参与扫描的关键路径：先发起，出队枚举该目录时再等。
+    const createDir = (remotePath: string): Promise<void> => {
+      const key = `mkdir:${remotePath}`
+      const created = runWithSlot(scanSlots, key, signal, () =>
+        provider.mkdir(remotePath, { recursive: true, signal }),
+      )
+      // 扫描被取消时这个 Promise 可能没人消费，先挂空 catch 避免未处理拒绝。
+      created.catch(() => undefined)
+      return created
+    }
+
+    const queue: FolderDir[] = [
+      { local: task.localPath, remote: task.remotePath, created: createDir(task.remotePath) },
+    ]
     let index = 0
 
-    while (queue.length > 0) {
-      signal.throwIfAborted()
-      const dir = queue.shift()
-      if (!dir) break
-
+    const processDir = async (dir: FolderDir): Promise<void> => {
+      await (dir.created ?? createDir(dir.remote))
       const entries = await this.options.localFs.readdir(dir.local)
+
       for (const entry of entries) {
         signal.throwIfAborted()
         const remotePath = joinPaths(dir.remote, entry.name)
+        const localPath = joinPaths(dir.local, entry.name)
 
         if (entry.type === FILE_TYPE.DIRECTORY) {
-          await provider.mkdir(remotePath, { recursive: true, signal })
-          queue.push({ local: joinPaths(dir.local, entry.name), remote: remotePath })
+          // 宽目录（成千上万个兄弟目录）只在队列短时预取，避免堆出等量等待者。
+          const prefetch = queue.length < TRANSFER_CONFIG.FOLDER_SCAN_PREFETCH
+          queue.push({
+            local: localPath,
+            remote: remotePath,
+            ...(prefetch ? { created: createDir(remotePath) } : {}),
+          })
           continue
         }
 
-        const localPath = joinPaths(dir.local, entry.name)
-        let fileSize = entry.size
-        if (fileSize === 0) {
-          try {
-            fileSize = (await this.options.localFs.stat(localPath)).size
-          } catch {
-            fileSize = 0
-          }
-        }
-
-        startFile({
+        const op: FolderFileOp = {
           id: `${task.id}:op:${index}`,
           localPath,
           localDir: dir.local,
           remotePath,
           itemName: entry.name,
-          fileSize,
-        })
+          fileSize: entry.size,
+        }
         index += 1
+
+        if (entry.size > 0) {
+          await startFile(op)
+          continue
+        }
+
+        // readdir 不带大小；补 size 的本地 stat 并行做，避免大目录里串行等 IO
+        // 把已发现的文件压在扫描后面。
+        pendingFiles.push(
+          runWithSlot(statSlots, `stat:${localPath}`, signal, () =>
+            this.options.localFs.stat(localPath).catch(() => ({ size: 0, isDirectory: false })),
+          ).then((stat) => {
+            op.fileSize = stat.size
+            return startFile(op)
+          }),
+        )
+        if (pendingFiles.length >= maxPendingStats) await flushPendingFiles()
       }
     }
+
+    await drainDirQueue(queue, signal, processDir)
+
+    // 所有文件必须在 scanCompleted 之前登记，否则 totalFileCount 会在扫描结束后继续增长。
+    await flushPendingFiles()
   }
 
   private async expandDownload(
     provider: FileProvider,
     task: TransferTask,
     signal: AbortSignal,
-    startFile: (op: FolderFileOp) => void,
+    startFile: (op: FolderFileOp) => Promise<void>,
   ): Promise<boolean> {
     const target = await resolveDownloadTarget(this.options.localFs, task, { signal })
     if ('skip' in target) return true
 
     await this.options.localFs.mkdir(target.path)
 
+    const scanSlots = new TaskSemaphore(TRANSFER_CONFIG.FOLDER_SCAN_CONCURRENCY)
+
+    // 远端 list 与扫描并行推进：出队枚举时再等，避免逐层串行把传输饿死。
+    const listDir = (remotePath: string): Promise<Entry[]> => {
+      const key = `list:${remotePath}`
+      const listed = runWithSlot(scanSlots, key, signal, async () => {
+        const entries: Entry[] = []
+        for await (const entry of provider.list(remotePath, { signal })) {
+          entries.push(entry)
+        }
+        return entries
+      })
+      listed.catch(() => undefined)
+      return listed
+    }
+
     const queue: FolderDir[] = [{ local: target.path, remote: task.remotePath }]
     let index = 0
 
-    while (queue.length > 0) {
-      signal.throwIfAborted()
-      const dir = queue.shift()
-      if (!dir) break
-
-      const entries: Entry[] = []
-      for await (const entry of provider.list(dir.remote, { signal })) {
-        entries.push(entry)
-      }
-
+    const processDir = async (dir: FolderDir): Promise<void> => {
+      const entries = await (dir.listed ?? listDir(dir.remote))
       for (const entry of entries) {
         signal.throwIfAborted()
         const localPath = joinPaths(dir.local, entry.name)
 
         if (entry.kind === 'directory') {
           await this.options.localFs.mkdir(localPath)
-          queue.push({ local: localPath, remote: entry.path })
+          const prefetch = queue.length < TRANSFER_CONFIG.FOLDER_SCAN_PREFETCH
+          queue.push({
+            local: localPath,
+            remote: entry.path,
+            ...(prefetch ? { listed: listDir(entry.path) } : {}),
+          })
           continue
         }
 
-        startFile({
+        await startFile({
           id: `${task.id}:op:${index}`,
           localPath,
           localDir: dir.local,
@@ -293,6 +425,8 @@ export class FileTransferExecutor implements TransferExecutor {
         index += 1
       }
     }
+
+    await drainDirQueue(queue, signal, processDir)
 
     return false
   }
@@ -308,7 +442,6 @@ export class FileTransferExecutor implements TransferExecutor {
 
     parent.waitingFileCount = Math.max(0, (parent.waitingFileCount ?? 0) - 1)
     parent.activeFileCount = (parent.activeFileCount ?? 0) + 1
-    this.reportFolder(parent, hooks)
 
     const info: OperationProgressInfo = {
       id: op.id,
@@ -321,7 +454,9 @@ export class FileTransferExecutor implements TransferExecutor {
       fileSize: op.fileSize,
       status: OPERATION_STATUS.RUNNING,
     }
+    // 先登记子操作再推快照：否则快照会先带着“已激活但看不到子操作”的空窗出去。
     hooks.reportOperation(info)
+    this.reportFolder(parent, hooks)
 
     let lastReported = 0
     const childTask: TransferTask = {
@@ -342,6 +477,7 @@ export class FileTransferExecutor implements TransferExecutor {
       release: (key) => hooks.release(key),
       reportOperation: (op) => hooks.reportOperation(op),
       isCancelled: (taskId) => hooks.isCancelled(taskId),
+      getConcurrency: () => hooks.getConcurrency(),
       report: (data) => {
         const delta = data.transferredSize - lastReported
         lastReported = data.transferredSize
@@ -384,6 +520,7 @@ export class FileTransferExecutor implements TransferExecutor {
     const data: TransferProgressData = {
       taskId: task.id,
       transferredSize: task.transferredSize,
+      ...(task.fileSize > 0 ? { fileSize: task.fileSize } : {}),
       totalFileCount: task.totalFileCount ?? 0,
       completedFileCount: task.completedFileCount ?? 0,
       activeFileCount: task.activeFileCount ?? 0,

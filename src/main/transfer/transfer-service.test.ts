@@ -393,4 +393,36 @@ describe('TransferService 进度载荷', () => {
     expect(payload).toMatchObject({ scanCompleted: true, totalFileCount: 2 })
     expect(payload?.activeOperations?.[0]?.itemName).toBe('a.txt')
   })
+
+  it('子操作登记后立刻进入进度快照，不必等到下一个数据块', async () => {
+    let hooks: ExecutorHooks | undefined
+    const executor: TransferExecutor = {
+      execute: (_task, signal, executorHooks) =>
+        new Promise<TaskOutcome>((resolve) => {
+          hooks = executorHooks
+          signal.addEventListener('abort', () => resolve({ kind: 'cancelled' }), { once: true })
+        }),
+    }
+    const harness = makeHarness({ executor })
+
+    await harness.service.addTasks([createTask({ itemType: FILE_TYPE.DIRECTORY })])
+    await vi.waitFor(() => expect(hooks).toBeDefined())
+
+    hooks?.reportOperation({
+      id: 'op-1',
+      itemName: 'a.txt',
+      type: 'upload',
+      transferredSize: 0,
+      fileSize: 2,
+      status: OPERATION_STATUS.RUNNING,
+    })
+    harness.progress.flush()
+
+    // 没有后续 report 也必须能拿到这条子操作，否则聚合窗口里会出现空列表。
+    const batches = harness.events(EVENT_CHANNEL.PROGRESS) as TransferProgressData[][]
+    expect(batches.at(-1)?.[0]?.activeOperations?.map((op) => op.id)).toEqual(['op-1'])
+
+    await harness.service.cancel('t1')
+    await vi.waitFor(() => expect(harness.service.getTasks()).toHaveLength(0))
+  })
 })

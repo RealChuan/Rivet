@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { TransferTask } from '@shared/types/transfer.js'
 import { OPERATION_STATUS, TRANSFER_DIRECTION } from '@shared/constants/transfer.js'
+import { FILE_TYPE } from '@shared/constants/ui.js'
 import { useTransferStore } from '../stores/transfer.js'
 import { formatRemainingTime, formatSpeed } from '../utils/format.js'
 
@@ -21,6 +22,7 @@ export const QueueSummary = ({ tasks, showCounts }: QueueSummaryProps) => {
   let runningCount = 0
   let totalSpeed = 0
   let remainingBytes = 0
+  let remainingUnknown = false
 
   for (const task of tasks) {
     if (task.direction === TRANSFER_DIRECTION.UPLOAD) uploadCount++
@@ -40,11 +42,18 @@ export const QueueSummary = ({ tasks, showCounts }: QueueSummaryProps) => {
     const fileSize = progress?.fileSize ?? task.fileSize
     const transferred = progress?.transferredSize ?? task.transferredSize
     totalSpeed += speed
+
+    // 文件夹扫描结束前字节总量只是“已发现”，此时算剩余时间会明显偏小。
+    if (task.itemType === FILE_TYPE.DIRECTORY && progress?.scanCompleted !== true) {
+      remainingUnknown = true
+    }
     remainingBytes += Math.max(fileSize - transferred, 0)
   }
 
   const remainingSeconds =
-    totalSpeed > 0 && remainingBytes > 0 ? remainingBytes / totalSpeed : Infinity
+    !remainingUnknown && totalSpeed > 0 && remainingBytes > 0
+      ? remainingBytes / totalSpeed
+      : Infinity
 
   return (
     <div className="flex items-center gap-3 min-w-0 overflow-hidden text-xs text-text-muted tabular-nums">
