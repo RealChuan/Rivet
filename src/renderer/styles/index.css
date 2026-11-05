@@ -26,6 +26,8 @@
   --color-disabled: #9ca3af;
   --color-status-connected: #22c55e;
   --color-status-disconnected: #b45309;
+  --color-protocol-smb: #0ea5e9;
+  --color-protocol-smb-light: rgba(14, 165, 233, 0.08);
   --color-protocol-webdav: #8b5cf6;
   --color-protocol-webdav-light: rgba(139, 92, 246, 0.08);
   --color-input-border: #d4d4d4;
@@ -99,6 +101,8 @@
   --color-disabled: #6b7280;
   --color-status-connected: #4ade80;
   --color-status-disconnected: #fbbf24;
+  --color-protocol-smb: #38bdf8;
+  --color-protocol-smb-light: rgba(56, 189, 248, 0.1);
   --color-protocol-webdav: #a78bfa;
   --color-protocol-webdav-light: rgba(167, 139, 250, 0.1);
   --color-input-border: #3c3c3c;

@@ -1,6 +1,7 @@
 import {
   Terminal,
   Globe,
+  Server,
   Plug,
   EllipsisVertical,
   KeyRound,
@@ -65,6 +66,8 @@ export const ConnectionItem = ({
   const protocolIcon =
     connection.protocol === PROTOCOL.SFTP ? (
       <Terminal className="w-3.5 h-3.5 stroke-current" />
+    ) : connection.protocol === PROTOCOL.SMB ? (
+      <Server className="w-3.5 h-3.5 stroke-current" />
     ) : (
       <Globe className="w-3.5 h-3.5 stroke-current" />
     )
@@ -108,7 +111,9 @@ export const ConnectionItem = ({
               'text-xs px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-[0.5px]',
               connection.protocol === PROTOCOL.SFTP
                 ? 'text-accent bg-accent-light'
-                : 'text-protocol-webdav bg-protocol-webdav-light',
+                : connection.protocol === PROTOCOL.SMB
+                  ? 'text-protocol-smb bg-protocol-smb-light'
+                  : 'text-protocol-webdav bg-protocol-webdav-light',
             )}
           >
             {connection.protocol.toUpperCase()}

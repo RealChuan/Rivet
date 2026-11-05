@@ -3,8 +3,8 @@ import { PROVIDER_KIND } from './entry.js'
 import { isErrorCode } from './error.js'
 
 describe('协议领域类型', () => {
-  it('ProviderKind 只有 sftp 与 webdav', () => {
-    expect(Object.values(PROVIDER_KIND)).toEqual(['sftp', 'webdav'])
+  it('ProviderKind 包含 sftp、smb 与 webdav', () => {
+    expect(Object.values(PROVIDER_KIND)).toEqual(['sftp', 'smb', 'webdav'])
   })
 
   it('新错误码可被 isErrorCode 识别', () => {

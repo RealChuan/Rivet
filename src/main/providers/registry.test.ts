@@ -28,6 +28,18 @@ const webdavConfig: ConnectionConfig = {
   authKind: 'password',
 }
 
+const smbConfig: ConnectionConfig = {
+  id: 'c3',
+  name: 'smb',
+  protocol: 'smb',
+  host: 'files.example.com',
+  port: 445,
+  username: 'u',
+  share: 'public',
+  domain: 'WORKGROUP',
+  authKind: 'password',
+}
+
 const capabilities: Capabilities = {
   chmod: false,
   symlink: false,
@@ -66,9 +78,22 @@ function createFakeProvider(): FileProvider {
 }
 
 describe('createProvider', () => {
-  it('sftp 与 webdav 分别返回对应 kind', () => {
+  it('sftp、smb 与 webdav 分别返回对应 kind', () => {
     expect(createProvider('sftp', { config: sftpConfig }).kind).toBe('sftp')
+    expect(createProvider('smb', { config: smbConfig }).kind).toBe('smb')
     expect(createProvider('webdav', { config: webdavConfig }).kind).toBe('webdav')
+  })
+
+  it('smb 报告的能力快照', () => {
+    expect(createProvider('smb', { config: smbConfig }).capabilities).toEqual({
+      chmod: false,
+      symlink: false,
+      serverSideCopy: false,
+      serverSideMove: true,
+      atomicRename: true,
+      dirIsEntity: true,
+      caseSensitive: false,
+    })
   })
 
   it('webdav 使用注入的 createHttp', async () => {
@@ -96,7 +121,7 @@ describe('createProvider', () => {
 
   it('运行时未知 kind 抛 NOT_SUPPORTED', () => {
     try {
-      createProvider('smb' as ProviderKind, { config: sftpConfig })
+      createProvider('ftp' as ProviderKind, { config: sftpConfig })
       expect.unreachable()
     } catch (error) {
       expect(error).toMatchObject({ code: 'NOT_SUPPORTED' })

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { AuthKind } from '@shared/types/index.js'
 import {
   PORT_SFTP,
+  PORT_SMB,
   PORT_WEBDAV_HTTPS,
   PROTOCOL,
   type ProtocolType,
@@ -27,6 +28,8 @@ export interface ConnectionFormValues {
   privateKeyPath: string
   agentPath: string
   saveSecret: boolean
+  share: string
+  domain: string
   basePath: string
   scheme: SchemeType
   rejectUnauthorized: boolean
@@ -47,8 +50,10 @@ export const ConnectionFormFields = ({
 }: ConnectionFormFieldsProps) => {
   const { t } = useTranslation()
   const isWebdav = values.protocol === PROTOCOL.WEBDAV
-  const isPassword = values.authKind === 'password'
-  const isPrivateKey = values.authKind === 'privateKey'
+  const isSmb = values.protocol === PROTOCOL.SMB
+  const isPasswordOnly = isWebdav || isSmb
+  const isPassword = values.authKind === 'password' || isPasswordOnly
+  const isPrivateKey = !isPasswordOnly && values.authKind === 'privateKey'
   const secretPlaceholder = hasStoredSecret
     ? t(($) => $.connectionDialog.secretSavedPlaceholder)
     : isPrivateKey
@@ -80,6 +85,7 @@ export const ConnectionFormFields = ({
           onChange={(value) => onChange('protocol', value as ProtocolType)}
           options={[
             { value: PROTOCOL.SFTP, label: t(($) => $.connectionDialog.protocolSftp) },
+            { value: PROTOCOL.SMB, label: t(($) => $.connectionDialog.protocolSmb) },
             { value: PROTOCOL.WEBDAV, label: t(($) => $.connectionDialog.protocolWebdav) },
           ]}
         />
@@ -108,11 +114,44 @@ export const ConnectionFormFields = ({
             value={values.port}
             onChange={(e) => onChange('port', e.target.value)}
             placeholder={
-              values.protocol === PROTOCOL.SFTP ? String(PORT_SFTP) : String(PORT_WEBDAV_HTTPS)
+              values.protocol === PROTOCOL.SFTP
+                ? String(PORT_SFTP)
+                : values.protocol === PROTOCOL.SMB
+                  ? String(PORT_SMB)
+                  : String(PORT_WEBDAV_HTTPS)
             }
           />
         </div>
       </div>
+
+      {isSmb && (
+        <>
+          <div>
+            <label className="block text-xs font-medium text-text mb-1.5">
+              {t(($) => $.connectionDialog.share)}
+            </label>
+            <Input
+              type="text"
+              data-testid="connection-share"
+              value={values.share}
+              onChange={(e) => onChange('share', e.target.value)}
+              placeholder={t(($) => $.connectionDialog.sharePlaceholder)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text mb-1.5">
+              {t(($) => $.connectionDialog.domain)}
+            </label>
+            <Input
+              type="text"
+              data-testid="connection-domain"
+              value={values.domain}
+              onChange={(e) => onChange('domain', e.target.value)}
+              placeholder={t(($) => $.connectionDialog.domainPlaceholder)}
+            />
+          </div>
+        </>
+      )}
 
       {isWebdav && (
         <>
@@ -189,7 +228,7 @@ export const ConnectionFormFields = ({
         />
       </div>
 
-      {!isWebdav && (
+      {!isPasswordOnly && (
         <div>
           <label className="block text-xs font-medium text-text mb-1.5">
             {t(($) => $.connectionDialog.authKind)}
@@ -245,7 +284,7 @@ export const ConnectionFormFields = ({
         </div>
       )}
 
-      {(isWebdav || isPassword || isPrivateKey) && (
+      {(isPassword || isPrivateKey) && (
         <div>
           <label className="block text-xs font-medium text-text mb-1.5">
             {isPrivateKey
@@ -261,7 +300,7 @@ export const ConnectionFormFields = ({
         </div>
       )}
 
-      {(isWebdav || isPassword || isPrivateKey) && (
+      {(isPassword || isPrivateKey) && (
         <div className="flex items-center gap-2">
           <Checkbox
             id="saveSecret"

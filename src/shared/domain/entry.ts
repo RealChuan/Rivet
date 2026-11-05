@@ -30,6 +30,7 @@ export interface Capabilities {
 
 export const PROVIDER_KIND = {
   SFTP: 'sftp',
+  SMB: 'smb',
   WEBDAV: 'webdav',
 } as const
 

@@ -20,6 +20,10 @@ export interface ConnectionConfig {
   privateKeyPath?: string | undefined
   agentPath?: string | undefined
   secretRef?: string | undefined
+  /** SMB 共享名（不含主机与斜杠） */
+  share?: string | undefined
+  /** SMB NTLM 域；工作组可留空 */
+  domain?: string | undefined
   basePath?: string | undefined
   scheme?: SchemeType | undefined
   rejectUnauthorized?: boolean | undefined

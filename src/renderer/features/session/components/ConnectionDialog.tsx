@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { ConnectionConfig, ConnectionSaveInput } from '@shared/types/index.js'
 import {
   PORT_SFTP,
+  PORT_SMB,
   PORT_WEBDAV_HTTPS,
   PROTOCOL,
   type ProtocolType,
@@ -25,8 +26,16 @@ interface ConnectionDialogProps {
   config?: ConnectionConfig | undefined
 }
 
-const getDefaultPort = (protocol: ProtocolType): string =>
-  protocol === PROTOCOL.WEBDAV ? String(PORT_WEBDAV_HTTPS) : String(PORT_SFTP)
+const getDefaultPort = (protocol: ProtocolType): string => {
+  switch (protocol) {
+    case PROTOCOL.WEBDAV:
+      return String(PORT_WEBDAV_HTTPS)
+    case PROTOCOL.SMB:
+      return String(PORT_SMB)
+    default:
+      return String(PORT_SFTP)
+  }
+}
 
 function initialValues(config: ConnectionConfig | undefined): ConnectionFormValues {
   const protocol = config?.protocol ?? PROTOCOL.SFTP
@@ -42,6 +51,8 @@ function initialValues(config: ConnectionConfig | undefined): ConnectionFormValu
     privateKeyPath: config?.privateKeyPath ?? '',
     agentPath: config?.agentPath ?? '',
     saveSecret: Boolean(config?.secretRef),
+    share: config?.share ?? '',
+    domain: config?.domain ?? '',
     basePath: config?.basePath ?? '',
     scheme: config?.scheme ?? SCHEME.HTTPS,
     rejectUnauthorized: config?.rejectUnauthorized !== false,
@@ -75,12 +86,18 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
     value: ConnectionFormValues[K],
   ) => {
     if (key === 'protocol') {
-      const protocol = value === PROTOCOL.WEBDAV ? PROTOCOL.WEBDAV : PROTOCOL.SFTP
+      const protocol =
+        value === PROTOCOL.WEBDAV
+          ? PROTOCOL.WEBDAV
+          : value === PROTOCOL.SMB
+            ? PROTOCOL.SMB
+            : PROTOCOL.SFTP
       setValues((current) => ({
         ...current,
         protocol,
         port: getDefaultPort(protocol),
-        authKind: protocol === PROTOCOL.WEBDAV ? 'password' : current.authKind,
+        authKind:
+          protocol === PROTOCOL.WEBDAV || protocol === PROTOCOL.SMB ? 'password' : current.authKind,
       }))
       return
     }
@@ -91,11 +108,17 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
     if (!values.name.trim() || !values.host.trim() || !values.username.trim()) {
       return t(($) => $.connectionDialog.fillRequired)
     }
+    if (values.protocol === PROTOCOL.SMB && !values.share.trim()) {
+      return t(($) => $.connectionDialog.shareRequired)
+    }
     const portNum = parseInt(values.port, 10)
     if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
       return t(($) => $.connectionDialog.invalidPort)
     }
-    const authKind = values.protocol === PROTOCOL.WEBDAV ? 'password' : values.authKind
+    const authKind =
+      values.protocol === PROTOCOL.WEBDAV || values.protocol === PROTOCOL.SMB
+        ? 'password'
+        : values.authKind
     if (authKind === 'password' && !hasStoredSecret && !values.password) {
       return t(($) => $.connectionDialog.passwordRequired)
     }
@@ -126,7 +149,10 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
   const doSave = async () => {
     setIsLoading(true)
     setError('')
-    const authKind = values.protocol === PROTOCOL.WEBDAV ? 'password' : values.authKind
+    const authKind =
+      values.protocol === PROTOCOL.WEBDAV || values.protocol === PROTOCOL.SMB
+        ? 'password'
+        : values.authKind
     const secret =
       authKind === 'password' ? values.password : authKind === 'privateKey' ? values.passphrase : ''
 
@@ -142,6 +168,12 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
           ...(authKind === 'privateKey' ? { privateKeyPath: values.privateKeyPath.trim() } : {}),
           ...(authKind === 'agent' && values.agentPath.trim()
             ? { agentPath: values.agentPath.trim() }
+            : {}),
+          ...(values.protocol === PROTOCOL.SMB
+            ? {
+                share: values.share.trim(),
+                ...(values.domain.trim() ? { domain: values.domain.trim() } : {}),
+              }
             : {}),
           ...(values.protocol === PROTOCOL.WEBDAV
             ? {

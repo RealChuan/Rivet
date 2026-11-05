@@ -3,7 +3,7 @@ export default interface Resources {
   "translation": {
     "app": {
       "name": "Rivet",
-      "subtitle": "SFTP / WebDAV File Browser"
+      "subtitle": "SFTP / SMB / WebDAV File Browser"
     },
     "common": {
       "action": {
@@ -66,6 +66,8 @@ export default interface Resources {
       "connectFailed": "Connection failed",
       "connecting": "Connecting...",
       "continue": "Continue",
+      "domain": "Domain",
+      "domainPlaceholder": "WORKGROUP (optional)",
       "editTitle": "Edit Connection",
       "fillRequired": "Please fill in all required fields",
       "host": "Host",
@@ -84,6 +86,7 @@ export default interface Resources {
       "privateKeyRequired": "Private key file is required",
       "protocol": "Protocol",
       "protocolSftp": "SFTP",
+      "protocolSmb": "SMB",
       "protocolWebdav": "WebDAV",
       "rejectUnauthorized": "Reject unauthorized certificates",
       "save": "Save",
@@ -92,6 +95,9 @@ export default interface Resources {
       "schemeHttp": "HTTP",
       "schemeHttps": "HTTPS",
       "secretSavedPlaceholder": "Saved — leave empty to keep it",
+      "share": "Share name",
+      "sharePlaceholder": "public",
+      "shareRequired": "Share name is required",
       "subtitle": "Create a new connection",
       "username": "Username",
       "usernamePlaceholder": "Enter username"

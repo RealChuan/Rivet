@@ -3,11 +3,13 @@ import type { ProviderKind } from '@shared/domain/entry.js'
 import type { ConnectionConfig } from '@shared/types/connection.js'
 import { ERROR_CODE } from '@shared/constants/index.js'
 import { SCHEME } from '@shared/constants/protocol.js'
+import type { SmbClientPort } from './smb/client.js'
 import type { FileProvider } from './types.js'
 import type { WebdavHttpPort } from './webdav/http.js'
 import { ProviderError } from './errors.js'
 import { createSftpProvider } from './sftp/provider.js'
 import { Ssh2SftpConnection } from './sftp/ssh2-connection.js'
+import { createSmbProvider } from './smb/provider.js'
 import { WebdavHttpClient } from './webdav/http.js'
 import { createWebdavProvider } from './webdav/provider.js'
 
@@ -16,6 +18,8 @@ export interface ProviderFactoryOptions {
   hostVerifier?: (publicKey: Buffer) => boolean
   /** 测试注入点；缺省时构造真实 undici 客户端。 */
   createHttp?: (credentials: Credentials) => WebdavHttpPort
+  /** 测试注入点；缺省时构造真实 v9u-smb2 客户端。 */
+  createSmbClient?: (config: ConnectionConfig, credentials: Credentials) => SmbClientPort
 }
 
 export function webdavBaseUrl(config: ConnectionConfig): string {
@@ -37,6 +41,12 @@ export function createProvider(kind: ProviderKind, options: ProviderFactoryOptio
         new Ssh2SftpConnection(options.config),
         options.hostVerifier !== undefined ? { hostVerifier: options.hostVerifier } : {},
       )
+
+    case 'smb':
+      return createSmbProvider({
+        config: options.config,
+        ...(options.createSmbClient !== undefined ? { createClient: options.createSmbClient } : {}),
+      })
 
     case 'webdav':
       if ((options.config.authKind ?? 'password') !== 'password') {

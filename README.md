@@ -3,7 +3,7 @@
 [![Build](https://github.com/RealChuan/Rivet/actions/workflows/build.yml/badge.svg)](https://github.com/RealChuan/Rivet/actions/workflows/build.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
-Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文件浏览器，支持 **SFTP** 与 **WebDAV**。它把远端目录当作本地文件管理器来用：连接、浏览、上传下载、改名、删除、复制移动、冲突处理和传输管理都在同一个窗口完成。
+Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文件浏览器，支持 **SFTP**、**SMB** 与 **WebDAV**。它把远端目录当作本地文件管理器来用：连接、浏览、上传下载、改名、删除、复制移动、冲突处理和传输管理都在同一个窗口完成。
 
 - 简体中文 | [English](README.en.md)
 - [架构说明](docs/architecture.md)
@@ -16,6 +16,7 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 ### 连接
 
 - **SFTP**：密码、私钥 + 口令、SSH agent；首次连接的主机密钥确认与 known-hosts 记忆。
+- **SMB**：SMB 2.0.2 / 2.1 共享，NTLMv2 密码认证；填主机、端口和服务器导出的共享名。适合 Windows 共享与 NAS。当前不支持 SMB3、签名、加密与 Kerberos。
 - **WebDAV**：Basic / Digest 认证、自定义基础路径、自签证书开关。
 - 多连接管理；连接配置持久化，密码只在主进程经 `safeStorage` 加密存储，私钥只保存路径。
 
@@ -39,13 +40,21 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 - 中文 / English 界面。
 - 单窗口、可调整侧栏、原生窗口控制；有活跃传输时关闭前会二次确认。
 
+## SMB 说明
+
+当前 SMB 基于 `v9u-smb2`，上游有三处缺陷：`readdir` 结束时不关闭目录句柄，删除目录可能只进入 delete-pending，断开连接后才真正消失；写流在 `_final` 和 `_destroy` 中重复 CLOSE，上传会收到 `STATUS_FILE_CLOSED`；每次 `CREATE` 都在 `DesiredAccess` 里带上 `FILE_DELETE_CHILD`（目录才有的权限位），Samba 因此对既有文件的打开请求直接回 `STATUS_ACCESS_DENIED`，stat、下载、删除、重命名全部失败。
+
+应用层对策：每次 SMB 操作使用独立连接并在结束时断开；删除后用独立连接轮询 `stat` 确认条目已消失，未消失则报删除失败；在 CREATE 消息生成阶段剔除 `FILE_DELETE_CHILD`（`src/main/providers/smb/client.ts`）；包装写流的 `_final`/`_destroy`（读流 EOF 同理），保证底层句柄只关闭一次。不修改依赖源码，代价是每次操作多一次会话建立。
+
+已知限制：改名/移动固定 `ReplaceIfExists=true`，Windows 上目标已存在或被占用时返回 `ACCESS_DENIED`，界面按权限不足提示。
+
 ## 技术栈
 
 | 层   | 选型                                                       |
 | ---- | ---------------------------------------------------------- |
 | 桌面 | Electron、electron-forge                                   |
 | 界面 | React、TypeScript、Vite、Zustand、TanStack Query / Virtual |
-| 协议 | ssh2、undici、fast-xml-parser                              |
+| 协议 | ssh2、undici、fast-xml-parser、v9u-smb2                    |
 | 日志 | electron-log（按天 + 按大小滚动）                          |
 
 ## 开发
@@ -60,9 +69,10 @@ pnpm run verify
 
 - `pnpm run verify` 依次执行 typecheck、lint、单元测试、类型测试、i18n 检查、生产依赖审计与打包。
 - 真实服务集成测试（provider 层，默认不进 verify）：先起 `scripts/sftp/serve.py` 与 `scripts/dav/serve.py`（或 Docker），再 `RIVET_INTEGRATION=1 pnpm run test:integration`。
-- E2E 需要 Docker：`pnpm run e2e:servers` → `pnpm run build` → `pnpm run test:e2e` → `pnpm run e2e:servers:down`。
+- E2E 需要 Docker：`pnpm run e2e:servers` → `pnpm run build` → `pnpm run test:e2e` → `pnpm run e2e:servers:down`。E2E 包含 SFTP、WebDAV 与 SMB2-only 的 Samba 服务。
 - 手动验证 WebDAV 页面：`python scripts/dav/serve.py`（WsgiDAV，依赖见 `scripts/dav/requirements.txt`；`--auth digest`、`--https`、`--base-path`、`--readonly` 切换分支）。
 - 手动验证 SFTP 页面：`python scripts/sftp/serve.py`（Paramiko，依赖见 `scripts/sftp/requirements.txt`；`--auth publickey`、`--emit-client-key`、`--readonly`、`--rotate-host-key` 切换分支）。
+- 手动验证 SMB 页面：连接真实 SMB2 服务器；不知道共享名时用 `python scripts/smb/list-shares.py <host> --user <user>` 枚举。
 - 更多命令与工程约定见 [AGENTS.md](AGENTS.md)。
 
 ## 架构
