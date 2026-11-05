@@ -9,15 +9,18 @@ pnpm run test:e2e
 pnpm run e2e:servers:down
 ```
 
-- SFTP: `127.0.0.1:2222`, `testuser` / `testpass`, 用户 chroot 到家目录，只有 `upload/` 可写
-- WebDAV: `http://127.0.0.1:8080`, `testuser` / `testpass`
-- SMB: `127.0.0.1:1445`, 共享名 `rivet`，`testuser` / `testpass`；共享目录挂载到 `e2e/servers/smb-share`
+- SFTP: `127.0.0.1:2222`，`testuser` / `testpass`，用户 chroot 到家目录，只有 `upload/` 可写
+- SMB: `127.0.0.1:1445`，共享名 `rivet`，`testuser` / `testpass`；共享目录挂载到 `e2e/servers/smb-share`
   - Samba 显式限制为 SMB2（`server min/max protocol = SMB2`），与当前 v9u-smb2 provider 的能力一致
   - 关闭 dperson 默认的 `fruit` / `recycle` VFS 模块，共享只剩普通 SMB2 语义（`recycle` 会把删除的文件留在目录里）
   - `ntlm auth = yes` 允许 NTLMv1/2，避免测试客户端因服务端 NTLM 策略差异误报
   - 用例覆盖列表、上传、删除文件与空目录
+- WebDAV: `http://127.0.0.1:8080`，`testuser` / `testpass`
+- S3: `http://127.0.0.1:9000`，桶 `rivet`，path-style，任意 Access Key 都能连
+  - 用 `adobe/s3mock`：`COM_ADOBE_TESTING_S3MOCK_STORE_INITIALBUCKETS=rivet` 在启动时建桶，不需要一次性 init 容器
+  - 它不校验签名，因此测试里 `testuser` / `testpass` 只是占位
 
-三个服务都带容器内 healthcheck，`pnpm run e2e:servers` 用 `up --wait` 等它们真正就绪。端口是 docker-proxy 转发的：
+四个服务都带容器内 healthcheck，`pnpm run e2e:servers` 用 `up --wait` 等它们真正就绪。端口是 docker-proxy 转发的：
 容器里服务没起来时外部端口也能连上，所以不要用「端口能连」判断就绪（SFTP 集成测试曾因此在握手阶段报
 `Connection lost before handshake`）。
 

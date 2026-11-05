@@ -144,6 +144,16 @@ export class ProtocolService {
           username: config.username,
           ...(config.agentPath !== undefined ? { agentPath: config.agentPath } : {}),
         }
+
+      case 'accessKey': {
+        if (config.username === '') {
+          throw new ProviderError(ERROR_CODE.INVALID_CONFIG, 'Access Key ID is required')
+        }
+        if (!secret) {
+          throw new ProviderError(ERROR_CODE.AUTH_ERROR, 'Secret Access Key is required')
+        }
+        return { kind: 'accessKey', accessKeyId: config.username, secretAccessKey: secret }
+      }
     }
   }
 

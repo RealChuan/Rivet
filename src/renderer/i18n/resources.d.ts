@@ -3,7 +3,7 @@ export default interface Resources {
   "translation": {
     "app": {
       "name": "Rivet",
-      "subtitle": "SFTP / SMB / WebDAV File Browser"
+      "subtitle": "SFTP / SMB / WebDAV / S3 File Browser"
     },
     "common": {
       "action": {
@@ -51,6 +51,8 @@ export default interface Resources {
       "noConnections": "No connections"
     },
     "connectionDialog": {
+      "accessKeyId": "Access Key ID",
+      "accessKeyIdPlaceholder": "Enter Access Key ID",
       "agentPath": "SSH agent path",
       "agentPathPlaceholder": "Leave empty for the default agent",
       "askPasswordOnConnect": "Password required on every connect",
@@ -61,6 +63,9 @@ export default interface Resources {
       "basePath": "Base Path",
       "basePathPlaceholder": "/dav/files",
       "browse": "Browse",
+      "bucket": "Bucket",
+      "bucketPlaceholder": "my-bucket",
+      "bucketRequired": "Bucket name is required",
       "certWarningMessage": "You are connecting to a server with an invalid certificate. Proceed at your own risk.",
       "certWarningTitle": "Certificate Warning",
       "connectFailed": "Connection failed",
@@ -80,20 +85,26 @@ export default interface Resources {
       "password": "Password",
       "passwordPlaceholder": "Enter password",
       "passwordRequired": "Password is required",
+      "pathStyle": "Use path-style addressing (R2, B2, self-hosted)",
       "port": "Port",
       "privateKeyPath": "Private key file",
       "privateKeyPathPlaceholder": "Choose or enter a private key path",
       "privateKeyRequired": "Private key file is required",
       "protocol": "Protocol",
+      "protocolS3": "S3",
       "protocolSftp": "SFTP",
       "protocolSmb": "SMB",
       "protocolWebdav": "WebDAV",
+      "region": "Region",
+      "regionPlaceholder": "us-east-1",
       "rejectUnauthorized": "Reject unauthorized certificates",
       "save": "Save",
       "saveSecret": "Save secret",
       "scheme": "Scheme",
       "schemeHttp": "HTTP",
       "schemeHttps": "HTTPS",
+      "secretAccessKey": "Secret Access Key",
+      "secretAccessKeyPlaceholder": "Enter Secret Access Key",
       "secretSavedPlaceholder": "Saved — leave empty to keep it",
       "share": "Share name",
       "sharePlaceholder": "public",

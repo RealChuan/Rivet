@@ -6,7 +6,7 @@ import { ProviderError } from '../errors.js'
 export function assertIntegrationEnabled(): void {
   if (process.env.RIVET_INTEGRATION !== '1') {
     throw new Error(
-      '真实服务集成测试需要显式开启：先启动 SFTP/WebDAV 服务，再设置 RIVET_INTEGRATION=1',
+      '真实服务集成测试需要显式开启：先启动 SFTP/SMB/WebDAV/S3 服务，再设置 RIVET_INTEGRATION=1',
     )
   }
 }

@@ -1,4 +1,5 @@
 import {
+  Cloud,
   Terminal,
   Globe,
   Server,
@@ -68,6 +69,8 @@ export const ConnectionItem = ({
       <Terminal className="w-3.5 h-3.5 stroke-current" />
     ) : connection.protocol === PROTOCOL.SMB ? (
       <Server className="w-3.5 h-3.5 stroke-current" />
+    ) : connection.protocol === PROTOCOL.S3 ? (
+      <Cloud className="w-3.5 h-3.5 stroke-current" />
     ) : (
       <Globe className="w-3.5 h-3.5 stroke-current" />
     )
@@ -113,7 +116,9 @@ export const ConnectionItem = ({
                 ? 'text-accent bg-accent-light'
                 : connection.protocol === PROTOCOL.SMB
                   ? 'text-protocol-smb bg-protocol-smb-light'
-                  : 'text-protocol-webdav bg-protocol-webdav-light',
+                  : connection.protocol === PROTOCOL.S3
+                    ? 'text-protocol-s3 bg-protocol-s3-light'
+                    : 'text-protocol-webdav bg-protocol-webdav-light',
             )}
           >
             {connection.protocol.toUpperCase()}

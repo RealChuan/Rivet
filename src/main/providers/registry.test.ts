@@ -40,6 +40,19 @@ const smbConfig: ConnectionConfig = {
   authKind: 'password',
 }
 
+const s3Config: ConnectionConfig = {
+  id: 'c4',
+  name: 's3',
+  protocol: 's3',
+  host: '127.0.0.1',
+  port: 9000,
+  username: 'access-key',
+  authKind: 'accessKey',
+  bucket: 'rivet',
+  region: 'us-east-1',
+  pathStyle: true,
+}
+
 const capabilities: Capabilities = {
   chmod: false,
   symlink: false,
@@ -78,10 +91,11 @@ function createFakeProvider(): FileProvider {
 }
 
 describe('createProvider', () => {
-  it('sftp、smb 与 webdav 分别返回对应 kind', () => {
+  it('sftp、smb、webdav 与 s3 分别返回对应 kind', () => {
     expect(createProvider('sftp', { config: sftpConfig }).kind).toBe('sftp')
     expect(createProvider('smb', { config: smbConfig }).kind).toBe('smb')
     expect(createProvider('webdav', { config: webdavConfig }).kind).toBe('webdav')
+    expect(createProvider('s3', { config: s3Config }).kind).toBe('s3')
   })
 
   it('smb 报告的能力快照', () => {

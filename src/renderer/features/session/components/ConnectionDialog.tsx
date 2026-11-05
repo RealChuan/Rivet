@@ -2,8 +2,9 @@ import type React from 'react'
 import { Pencil, Plus, AlertCircle } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ConnectionConfig, ConnectionSaveInput } from '@shared/types/index.js'
+import type { AuthKind, ConnectionConfig, ConnectionSaveInput } from '@shared/types/index.js'
 import {
+  PORT_S3,
   PORT_SFTP,
   PORT_SMB,
   PORT_WEBDAV_HTTPS,
@@ -32,6 +33,8 @@ const getDefaultPort = (protocol: ProtocolType): string => {
       return String(PORT_WEBDAV_HTTPS)
     case PROTOCOL.SMB:
       return String(PORT_SMB)
+    case PROTOCOL.S3:
+      return String(PORT_S3)
     default:
       return String(PORT_SFTP)
   }
@@ -56,6 +59,9 @@ function initialValues(config: ConnectionConfig | undefined): ConnectionFormValu
     basePath: config?.basePath ?? '',
     scheme: config?.scheme ?? SCHEME.HTTPS,
     rejectUnauthorized: config?.rejectUnauthorized !== false,
+    bucket: config?.bucket ?? '',
+    region: config?.region ?? '',
+    pathStyle: config?.pathStyle !== false,
   }
 }
 
@@ -86,23 +92,38 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
     value: ConnectionFormValues[K],
   ) => {
     if (key === 'protocol') {
-      const protocol =
+      // 未知取值一律回退 SFTP：旧配置里出现新协议时不能把表单带到未定义状态。
+      const protocol: ProtocolType =
         value === PROTOCOL.WEBDAV
           ? PROTOCOL.WEBDAV
           : value === PROTOCOL.SMB
             ? PROTOCOL.SMB
-            : PROTOCOL.SFTP
+            : value === PROTOCOL.S3
+              ? PROTOCOL.S3
+              : PROTOCOL.SFTP
       setValues((current) => ({
         ...current,
         protocol,
         port: getDefaultPort(protocol),
         authKind:
-          protocol === PROTOCOL.WEBDAV || protocol === PROTOCOL.SMB ? 'password' : current.authKind,
+          protocol === PROTOCOL.S3
+            ? 'accessKey'
+            : protocol === PROTOCOL.WEBDAV || protocol === PROTOCOL.SMB
+              ? 'password'
+              : current.authKind,
       }))
       return
     }
     setValues((current) => ({ ...current, [key]: value }))
   }
+
+  /** WebDAV/SMB 只有密码，S3 固定 accessKey；其余协议才由用户选。 */
+  const effectiveAuthKind = (): AuthKind =>
+    values.protocol === PROTOCOL.S3
+      ? 'accessKey'
+      : values.protocol === PROTOCOL.WEBDAV || values.protocol === PROTOCOL.SMB
+        ? 'password'
+        : values.authKind
 
   const validate = (): string | null => {
     if (!values.name.trim() || !values.host.trim() || !values.username.trim()) {
@@ -111,15 +132,19 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
     if (values.protocol === PROTOCOL.SMB && !values.share.trim()) {
       return t(($) => $.connectionDialog.shareRequired)
     }
+    if (values.protocol === PROTOCOL.S3 && !values.bucket.trim()) {
+      return t(($) => $.connectionDialog.bucketRequired)
+    }
     const portNum = parseInt(values.port, 10)
     if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
       return t(($) => $.connectionDialog.invalidPort)
     }
-    const authKind =
-      values.protocol === PROTOCOL.WEBDAV || values.protocol === PROTOCOL.SMB
-        ? 'password'
-        : values.authKind
-    if (authKind === 'password' && !hasStoredSecret && !values.password) {
+    const authKind = effectiveAuthKind()
+    if (
+      (authKind === 'password' || authKind === 'accessKey') &&
+      !hasStoredSecret &&
+      !values.password
+    ) {
       return t(($) => $.connectionDialog.passwordRequired)
     }
     if (authKind === 'privateKey' && !values.privateKeyPath.trim()) {
@@ -136,7 +161,7 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
       return
     }
     if (
-      values.protocol === PROTOCOL.WEBDAV &&
+      (values.protocol === PROTOCOL.WEBDAV || values.protocol === PROTOCOL.S3) &&
       values.scheme === SCHEME.HTTPS &&
       !values.rejectUnauthorized
     ) {
@@ -149,12 +174,13 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
   const doSave = async () => {
     setIsLoading(true)
     setError('')
-    const authKind =
-      values.protocol === PROTOCOL.WEBDAV || values.protocol === PROTOCOL.SMB
-        ? 'password'
-        : values.authKind
+    const authKind = effectiveAuthKind()
     const secret =
-      authKind === 'password' ? values.password : authKind === 'privateKey' ? values.passphrase : ''
+      authKind === 'password' || authKind === 'accessKey'
+        ? values.password
+        : authKind === 'privateKey'
+          ? values.passphrase
+          : ''
 
     try {
       await onSave({
@@ -177,6 +203,16 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
             : {}),
           ...(values.protocol === PROTOCOL.WEBDAV
             ? {
+                basePath: values.basePath.trim(),
+                scheme: values.scheme,
+                rejectUnauthorized: values.rejectUnauthorized,
+              }
+            : {}),
+          ...(values.protocol === PROTOCOL.S3
+            ? {
+                bucket: values.bucket.trim(),
+                region: values.region.trim(),
+                pathStyle: values.pathStyle,
                 basePath: values.basePath.trim(),
                 scheme: values.scheme,
                 rejectUnauthorized: values.rejectUnauthorized,

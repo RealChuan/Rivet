@@ -1,6 +1,6 @@
 import { type ProtocolType, type SchemeType } from '@shared/constants/protocol.js'
 
-export type AuthKind = 'password' | 'privateKey' | 'agent'
+export type AuthKind = 'password' | 'privateKey' | 'agent' | 'accessKey'
 
 /**
  * 连接配置接口
@@ -27,6 +27,12 @@ export interface ConnectionConfig {
   basePath?: string | undefined
   scheme?: SchemeType | undefined
   rejectUnauthorized?: boolean | undefined
+  /** S3 桶名 */
+  bucket?: string | undefined
+  /** S3 区域；自建兼容服务通常填 us-east-1 */
+  region?: string | undefined
+  /** S3 寻址方式：true 为 path-style（R2/B2 等），false 为 virtual-host（AWS） */
+  pathStyle?: boolean | undefined
   /** 运行时派生：密码认证且没有已存秘密 */
   askPasswordOnConnect?: boolean | undefined
 }

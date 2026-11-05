@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { AuthKind } from '@shared/types/index.js'
 import {
+  PORT_S3,
   PORT_SFTP,
   PORT_SMB,
   PORT_WEBDAV_HTTPS,
@@ -33,6 +34,9 @@ export interface ConnectionFormValues {
   basePath: string
   scheme: SchemeType
   rejectUnauthorized: boolean
+  bucket: string
+  region: string
+  pathStyle: boolean
 }
 
 interface ConnectionFormFieldsProps {
@@ -51,14 +55,18 @@ export const ConnectionFormFields = ({
   const { t } = useTranslation()
   const isWebdav = values.protocol === PROTOCOL.WEBDAV
   const isSmb = values.protocol === PROTOCOL.SMB
+  const isS3 = values.protocol === PROTOCOL.S3
   const isPasswordOnly = isWebdav || isSmb
-  const isPassword = values.authKind === 'password' || isPasswordOnly
-  const isPrivateKey = !isPasswordOnly && values.authKind === 'privateKey'
+  const usesHttp = isWebdav || isS3
+  const isPassword = isS3 || values.authKind === 'password' || isPasswordOnly
+  const isPrivateKey = !isPasswordOnly && !isS3 && values.authKind === 'privateKey'
   const secretPlaceholder = hasStoredSecret
     ? t(($) => $.connectionDialog.secretSavedPlaceholder)
     : isPrivateKey
       ? t(($) => $.connectionDialog.passphrasePlaceholder)
-      : t(($) => $.connectionDialog.passwordPlaceholder)
+      : isS3
+        ? t(($) => $.connectionDialog.secretAccessKeyPlaceholder)
+        : t(($) => $.connectionDialog.passwordPlaceholder)
 
   return (
     <>
@@ -87,6 +95,7 @@ export const ConnectionFormFields = ({
             { value: PROTOCOL.SFTP, label: t(($) => $.connectionDialog.protocolSftp) },
             { value: PROTOCOL.SMB, label: t(($) => $.connectionDialog.protocolSmb) },
             { value: PROTOCOL.WEBDAV, label: t(($) => $.connectionDialog.protocolWebdav) },
+            { value: PROTOCOL.S3, label: t(($) => $.connectionDialog.protocolS3) },
           ]}
         />
       </div>
@@ -118,7 +127,9 @@ export const ConnectionFormFields = ({
                 ? String(PORT_SFTP)
                 : values.protocol === PROTOCOL.SMB
                   ? String(PORT_SMB)
-                  : String(PORT_WEBDAV_HTTPS)
+                  : values.protocol === PROTOCOL.S3
+                    ? String(PORT_S3)
+                    : String(PORT_WEBDAV_HTTPS)
             }
           />
         </div>
@@ -153,7 +164,48 @@ export const ConnectionFormFields = ({
         </>
       )}
 
-      {isWebdav && (
+      {isS3 && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-text mb-1.5">
+                {t(($) => $.connectionDialog.bucket)}
+              </label>
+              <Input
+                type="text"
+                data-testid="connection-bucket"
+                value={values.bucket}
+                onChange={(e) => onChange('bucket', e.target.value)}
+                placeholder={t(($) => $.connectionDialog.bucketPlaceholder)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-text mb-1.5">
+                {t(($) => $.connectionDialog.region)}
+              </label>
+              <Input
+                type="text"
+                data-testid="connection-region"
+                value={values.region}
+                onChange={(e) => onChange('region', e.target.value)}
+                placeholder={t(($) => $.connectionDialog.regionPlaceholder)}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="pathStyle"
+              checked={values.pathStyle}
+              onChange={(value) => onChange('pathStyle', value)}
+            />
+            <label htmlFor="pathStyle" className="text-sm text-text">
+              {t(($) => $.connectionDialog.pathStyle)}
+            </label>
+          </div>
+        </>
+      )}
+
+      {usesHttp && (
         <>
           <div>
             <label className="block text-xs font-medium text-text mb-1.5">
@@ -217,18 +269,22 @@ export const ConnectionFormFields = ({
 
       <div>
         <label className="block text-xs font-medium text-text mb-1.5">
-          {t(($) => $.connectionDialog.username)}
+          {isS3 ? t(($) => $.connectionDialog.accessKeyId) : t(($) => $.connectionDialog.username)}
         </label>
         <Input
           type="text"
           data-testid="connection-username"
           value={values.username}
           onChange={(e) => onChange('username', e.target.value)}
-          placeholder={t(($) => $.connectionDialog.usernamePlaceholder)}
+          placeholder={
+            isS3
+              ? t(($) => $.connectionDialog.accessKeyIdPlaceholder)
+              : t(($) => $.connectionDialog.usernamePlaceholder)
+          }
         />
       </div>
 
-      {!isPasswordOnly && (
+      {!isPasswordOnly && !isS3 && (
         <div>
           <label className="block text-xs font-medium text-text mb-1.5">
             {t(($) => $.connectionDialog.authKind)}
@@ -289,7 +345,9 @@ export const ConnectionFormFields = ({
           <label className="block text-xs font-medium text-text mb-1.5">
             {isPrivateKey
               ? t(($) => $.connectionDialog.passphrase)
-              : t(($) => $.connectionDialog.password)}
+              : isS3
+                ? t(($) => $.connectionDialog.secretAccessKey)
+                : t(($) => $.connectionDialog.password)}
           </label>
           <PasswordInput
             testId={isPrivateKey ? 'connection-passphrase' : 'connection-password'}

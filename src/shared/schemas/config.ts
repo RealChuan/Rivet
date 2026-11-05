@@ -16,9 +16,9 @@ const themeValues = [THEME.LIGHT, THEME.DARK, THEME.SYSTEM] as const
 const localeValues = [SUPPORTED_LANGUAGE.ZH_CN, SUPPORTED_LANGUAGE.EN_US, ''] as const
 const fileViewModeValues = [FILE_VIEW_MODE.LIST, FILE_VIEW_MODE.GRID] as const
 const sortOrderValues = [SORT_ORDER.NONE, SORT_ORDER.ASC, SORT_ORDER.DESC] as const
-const protocolValues = [PROTOCOL.SFTP, PROTOCOL.SMB, PROTOCOL.WEBDAV] as const
+const protocolValues = [PROTOCOL.SFTP, PROTOCOL.SMB, PROTOCOL.WEBDAV, PROTOCOL.S3] as const
 const schemeValues = ['http', 'https'] as const
-const authKindValues = ['password', 'privateKey', 'agent'] as const
+const authKindValues = ['password', 'privateKey', 'agent', 'accessKey'] as const
 
 export const themeSchema = z.enum(themeValues)
 export const localeSchema = z.enum(localeValues)
@@ -64,6 +64,9 @@ export const connectionSchema = z.object({
   basePath: z.string().optional(),
   scheme: z.enum(schemeValues).optional(),
   rejectUnauthorized: z.boolean().optional(),
+  bucket: z.string().optional(),
+  region: z.string().optional(),
+  pathStyle: z.boolean().optional(),
 })
 
 export const settingsFileSchema = z.object({
