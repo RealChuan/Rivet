@@ -57,6 +57,7 @@ const mockFile1: FileInfo = {
   size: 100,
   modifyTime: 1000,
   absolutePath: '/home/file1.txt',
+  isHidden: false,
 }
 
 const mockFile2: FileInfo = {
@@ -65,6 +66,7 @@ const mockFile2: FileInfo = {
   size: 200,
   modifyTime: 2000,
   absolutePath: '/home/file2.txt',
+  isHidden: false,
 }
 
 describe('useFileDeletion', () => {

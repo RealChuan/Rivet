@@ -57,6 +57,7 @@ const mockFile: FileInfo = {
   size: 100,
   modifyTime: 1000,
   absolutePath: '/home/old-name.txt',
+  isHidden: false,
 }
 
 describe('useFileRenaming', () => {

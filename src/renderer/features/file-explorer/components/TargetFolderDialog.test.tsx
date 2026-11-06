@@ -14,6 +14,7 @@ const DIR = {
   size: 0,
   modifyTime: 0,
   absolutePath: '/docs',
+  isHidden: false,
 }
 const FILE = {
   name: 'a.txt',
@@ -21,6 +22,7 @@ const FILE = {
   size: 1,
   modifyTime: 0,
   absolutePath: '/a.txt',
+  isHidden: false,
 }
 
 vi.mock('../../../api/protocol.js', () => ({

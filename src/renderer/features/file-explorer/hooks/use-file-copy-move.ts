@@ -208,6 +208,7 @@ export const useFileCopyMove = (sessionId: string): UseFileCopyMoveReturn => {
     permissions: '',
     owner: '',
     absolutePath: path,
+    isHidden: false,
   })
 
   const handlePaste = async (targetPath: string): Promise<Result<void, ErrorInfo>> => {

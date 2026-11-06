@@ -39,17 +39,33 @@ function getMaxContentY(rows: number, rowHeight: number, containerHeight: number
   return Math.max(rows * rowHeight, containerHeight)
 }
 
+function readScrollOffset(container: HTMLElement): Point {
+  return { x: container.scrollLeft, y: container.scrollTop }
+}
+
+/**
+ * 滚动条落在内容盒之外（`clientWidth/clientHeight` 已扣掉它），点在这圈里属于拖滚动条，
+ * 不是框选：否则抓滚动条会清空选择并起一个跟着走的框选矩形。
+ */
+function isOnScrollbar(clientX: number, clientY: number, container: HTMLElement): boolean {
+  const rect = container.getBoundingClientRect()
+  const contentRight = rect.left + container.clientLeft + container.clientWidth
+  const contentBottom = rect.top + container.clientTop + container.clientHeight
+  return clientX >= contentRight || clientY >= contentBottom
+}
+
 /** Convert viewport client coords to scroll container content coords, clamping Y to [0, maxY] */
 function clientToContent(
   clientX: number,
   clientY: number,
   container: HTMLElement,
   maxY: number,
+  scroll: Point,
 ): Point {
   const rect = container.getBoundingClientRect()
-  const rawY = clientY - rect.top + container.scrollTop
+  const rawY = clientY - rect.top + scroll.y
   return {
-    x: clientX - rect.left + container.scrollLeft,
+    x: clientX - rect.left + scroll.x,
     y: Math.max(0, Math.min(maxY, rawY)),
   }
 }
@@ -85,6 +101,8 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
   const [hasStartedDrag, setHasStartedDrag] = useState(false)
   const [dragStart, setDragStart] = useState<Point>({ x: 0, y: 0 })
   const [dragEnd, setDragEnd] = useState<Point>({ x: 0, y: 0 })
+  /** 拖拽起点/终点是内容坐标，矩形画在不滚动的覆盖层上，需要减去当前滚动偏移。 */
+  const [scrollOffset, setScrollOffset] = useState<Point>({ x: 0, y: 0 })
   const [dragSelection, setDragSelection] = useState<Set<string>>(new Set())
 
   const isDraggingRef = useRef(isDragging)
@@ -110,15 +128,18 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
 
     const scrollContainer = scrollContainerRef.current
     if (!scrollContainer) return
+    if (isOnScrollbar(e.clientX, e.clientY, scrollContainer)) return
 
     const rows = getRowCount(entries.length, columns)
     const maxY = getMaxContentY(rows, rowHeight, scrollContainer.clientHeight)
-    const point = clientToContent(e.clientX, e.clientY, scrollContainer, maxY)
+    const scroll = readScrollOffset(scrollContainer)
+    const point = clientToContent(e.clientX, e.clientY, scrollContainer, maxY, scroll)
 
     setIsDragging(true)
     setHasStartedDrag(false)
     setDragStart(point)
     setDragEnd(point)
+    setScrollOffset(scroll)
     setDragSelection(new Set())
 
     isDraggingRef.current = true
@@ -131,8 +152,8 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
   }
 
   const getDragStyle = (): React.CSSProperties => ({
-    left: Math.min(dragStart.x, dragEnd.x),
-    top: Math.min(dragStart.y, dragEnd.y),
+    left: Math.min(dragStart.x, dragEnd.x) - scrollOffset.x,
+    top: Math.min(dragStart.y, dragEnd.y) - scrollOffset.y,
     width: Math.abs(dragEnd.x - dragStart.x),
     height: Math.abs(dragEnd.y - dragStart.y),
   })
@@ -195,15 +216,18 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
             geometry.rowHeight,
             currentScrollEl.clientHeight,
           )
+          const scroll = readScrollOffset(currentScrollEl)
           const newDragEnd = clientToContent(
             lastMouseClientRef.current.x,
             lastMouseClientRef.current.y,
             currentScrollEl,
             maxY,
+            scroll,
           )
 
           dragEndRef.current = newDragEnd
           setDragEnd(newDragEnd)
+          setScrollOffset(scroll)
 
           const currentDragStart = dragStartRef.current
           if (dragDistance(currentDragStart, newDragEnd) >= MIN_DRAG_DISTANCE) {
@@ -234,7 +258,8 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
         geometry.rowHeight,
         scrollEl.clientHeight,
       )
-      const point = clientToContent(e.clientX, e.clientY, scrollEl, maxY)
+      const scroll = readScrollOffset(scrollEl)
+      const point = clientToContent(e.clientX, e.clientY, scrollEl, maxY, scroll)
 
       lastMouseClientRef.current = { x: e.clientX, y: e.clientY }
 
@@ -243,6 +268,7 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
 
       setDragEnd(point)
       dragEndRef.current = point
+      setScrollOffset(scroll)
 
       const distance = dragDistance(currentDragStart, point)
 

@@ -40,6 +40,7 @@ const sourceFile: FileInfo = {
   permissions: 'rw-r--r--',
   owner: 'user1',
   absolutePath: '/source/source.txt',
+  isHidden: false,
 }
 
 const targetFile: FileInfo = {
@@ -50,6 +51,7 @@ const targetFile: FileInfo = {
   permissions: 'rw-r--r--',
   owner: 'user2',
   absolutePath: '/target/target.txt',
+  isHidden: false,
 }
 
 const defaultProps = {

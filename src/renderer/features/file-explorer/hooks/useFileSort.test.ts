@@ -13,6 +13,7 @@ const mockFiles: FileInfo[] = [
     permissions: 'rw-r--r--',
     owner: 'user1',
     absolutePath: '/b-file.txt',
+    isHidden: false,
   },
   {
     name: 'a-dir',
@@ -22,6 +23,7 @@ const mockFiles: FileInfo[] = [
     permissions: 'rwxr-xr-x',
     owner: 'user2',
     absolutePath: '/a-dir',
+    isHidden: false,
   },
   {
     name: 'c-file.txt',
@@ -31,6 +33,7 @@ const mockFiles: FileInfo[] = [
     permissions: 'rw-------',
     owner: 'user1',
     absolutePath: '/c-file.txt',
+    isHidden: false,
   },
 ]
 

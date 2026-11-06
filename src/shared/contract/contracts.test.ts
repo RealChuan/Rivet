@@ -79,6 +79,10 @@ describe('通道契约', () => {
       'system.getDownloadDir',
       'system.supportsGlass',
       'system.generateUuid',
+      'system.getLogDir',
+      'system.getLogCacheSize',
+      'system.clearLogCache',
+      'system.openLogDir',
     ])
   })
 

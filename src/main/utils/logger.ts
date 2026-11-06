@@ -44,7 +44,8 @@ function logPrefix(): string {
   return `${sanitizeFilePart(app.getName())}_${sanitizeFilePart(os.hostname())}_${process.pid}`
 }
 
-function logsDir(): string {
+/** 日志目录：`userData/logs`，缓存统计与清理也基于它。 */
+export function logsDir(): string {
   return path.join(app.getPath('userData'), 'logs')
 }
 
@@ -75,7 +76,7 @@ function escapeRegExp(value: string): string {
  * - 归档文件：`Rivet_<host>_<pid>_2026-10-30_09-35-04-123.log`（同日多次滚动带 `-N` 后缀）
  * pid 用通配，保证能清掉历史进程留下的日志；其他应用/无关文件永不匹配。
  */
-function logFilePattern(): RegExp {
+export function logFilePattern(): RegExp {
   const prefix = escapeRegExp(
     `${sanitizeFilePart(app.getName())}_${sanitizeFilePart(os.hostname())}_`,
   )

@@ -70,6 +70,10 @@ export const electronAPI = {
     getDownloadDir: () => invoke('system.getDownloadDir'),
     supportsGlass: () => invoke('system.supportsGlass'),
     generateUuid: () => invoke('system.generateUuid'),
+    getLogDir: () => invoke('system.getLogDir'),
+    getLogCacheSize: () => invoke('system.getLogCacheSize'),
+    clearLogCache: () => invoke('system.clearLogCache'),
+    openLogDir: () => invoke('system.openLogDir'),
   },
 
   env: {

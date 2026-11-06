@@ -9,4 +9,14 @@ export const systemApi = {
   supportsGlass: async (): Promise<boolean> => window.electronAPI.system.supportsGlass(),
 
   generateUuid: async (): Promise<string> => window.electronAPI.system.generateUuid(),
+
+  getLogDir: async (): Promise<string> => unwrap(await window.electronAPI.system.getLogDir()),
+
+  getLogCacheSize: async (): Promise<number> =>
+    unwrap(await window.electronAPI.system.getLogCacheSize()),
+
+  clearLogCache: async (): Promise<number> =>
+    unwrap(await window.electronAPI.system.clearLogCache()),
+
+  openLogDir: async (): Promise<void> => unwrap(await window.electronAPI.system.openLogDir()),
 }

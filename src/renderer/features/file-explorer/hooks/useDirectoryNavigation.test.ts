@@ -42,6 +42,7 @@ describe('useDirectoryNavigation', () => {
       permissions: '',
       owner: '',
       absolutePath: '/home/user/documents',
+      isHidden: false,
     }
     const { result } = renderHook(() =>
       useDirectoryNavigation(
@@ -67,6 +68,7 @@ describe('useDirectoryNavigation', () => {
       permissions: '',
       owner: '',
       absolutePath: '/home/user/readme.txt',
+      isHidden: false,
     }
     const { result } = renderHook(() =>
       useDirectoryNavigation(

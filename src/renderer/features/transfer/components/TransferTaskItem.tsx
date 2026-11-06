@@ -29,9 +29,11 @@ export const QUEUE_PATH_BLOCK_HEIGHT = 40
 export const QUEUE_DETAIL_PADDING = 12
 export const QUEUE_OPERATION_ROW_HEIGHT = 28
 
-// [名称 1fr] [大小 6.5rem] [进度 7rem] [速度 4.5rem] [剩余 3rem] [操作 2rem]
-const GRID_COLS = 'grid grid-cols-[minmax(0,1fr)_6.5rem_7rem_4.5rem_3rem_2rem] gap-x-3'
-const SUB_GRID_COLS = 'grid grid-cols-[1.25rem_minmax(0,1fr)_6.5rem_7rem_4.5rem_3rem_2rem] gap-x-3'
+// [名称 1fr] [大小 9rem] [进度 6.5rem] [速度 4.5rem] [剩余 3.5rem] [操作 2rem]
+// 除名称列外都按内容给足宽度，名称列用剩余空间：宁可截断名称，也不截断数据。
+const GRID_COLS = 'grid grid-cols-[minmax(0,1fr)_9rem_6.5rem_4.5rem_3.5rem_2rem] gap-x-3'
+const SUB_GRID_COLS =
+  'grid grid-cols-[1.25rem_minmax(0,1fr)_9rem_6.5rem_4.5rem_3.5rem_2rem] gap-x-3'
 
 interface InlineOperationRowProps {
   op: OperationProgressInfo
@@ -46,11 +48,30 @@ const InlineOperationRow = ({ op, lng }: InlineOperationRowProps) => {
   const isCompleted = op.status === OPERATION_STATUS.COMPLETED
   const isWaiting = op.status === OPERATION_STATUS.WAITING || isMkdir
 
+  const sizeText =
+    isWaiting || isFailed
+      ? null
+      : isCompleted
+        ? op.fileSize !== undefined && op.fileSize > 0
+          ? formatFileSize(op.fileSize, lng)
+          : null
+        : `${formatFileSize(op.transferredSize, lng)}/${formatFileSize(op.fileSize ?? 0, lng)}`
+
+  const remainingText = isFailed
+    ? t(($) => $.transfer.status.failed)
+    : isWaiting
+      ? t(($) => $.transfer.status.waiting)
+      : isRunning && (op.speed ?? 0) > 0
+        ? formatRemainingTime(
+            computeRemainingSeconds(op.transferredSize, op.fileSize ?? 0, op.speed ?? 0),
+          )
+        : null
+
   return (
     <div className={`${SUB_GRID_COLS} items-center h-7 px-0 text-xs`}>
       <div />
 
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0" title={op.itemName}>
         <FileIcon
           type={isMkdir ? FILE_TYPE.DIRECTORY : FILE_TYPE.FILE}
           name={op.itemName}
@@ -59,14 +80,8 @@ const InlineOperationRow = ({ op, lng }: InlineOperationRowProps) => {
         <span className="truncate">{op.itemName}</span>
       </div>
 
-      <span className="tabular-nums text-right whitespace-nowrap">
-        {!isWaiting && !isFailed
-          ? isCompleted
-            ? op.fileSize !== undefined && op.fileSize > 0
-              ? formatFileSize(op.fileSize, lng)
-              : null
-            : `${formatFileSize(op.transferredSize, lng)}/${formatFileSize(op.fileSize ?? 0, lng)}`
-          : null}
+      <span className="tabular-nums text-right whitespace-nowrap" title={sizeText ?? undefined}>
+        {sizeText}
       </span>
 
       <div>
@@ -74,6 +89,7 @@ const InlineOperationRow = ({ op, lng }: InlineOperationRowProps) => {
           transferred={isCompleted ? (op.fileSize ?? 0) : op.transferredSize}
           total={op.fileSize ?? 0}
           status={op.status}
+          title={sizeText ?? undefined}
         />
       </div>
 
@@ -81,16 +97,9 @@ const InlineOperationRow = ({ op, lng }: InlineOperationRowProps) => {
 
       <span
         className={`whitespace-nowrap text-right ${isFailed ? 'text-danger' : 'text-text-muted tabular-nums'}`}
+        title={remainingText ?? undefined}
       >
-        {isFailed
-          ? t(($) => $.transfer.status.failed)
-          : isWaiting
-            ? t(($) => $.transfer.status.waiting)
-            : isRunning && (op.speed ?? 0) > 0
-              ? formatRemainingTime(
-                  computeRemainingSeconds(op.transferredSize, op.fileSize ?? 0, op.speed ?? 0),
-                )
-              : null}
+        {remainingText}
       </span>
 
       <span />
@@ -143,20 +152,16 @@ export const TransferTaskItem = ({
 
   const scanCompleted = progress?.scanCompleted ?? task.scanCompleted ?? false
 
-  // 扫描期间 total 只是已发现数，不能当分母。
-  const folderStatusText = isFailed
-    ? t(($) => $.transfer.status.failed)
-    : isWaiting
-      ? t(($) => $.transfer.status.waiting)
-      : scanCompleted
-        ? t(($) => $.transfer.folderStats.fileCount, {
-            completed: completedFileCount ?? 0,
-            total: totalFileCount ?? 0,
-          })
-        : t(($) => $.transfer.folderStats.scanning, {
-            completed: completedFileCount ?? 0,
-            total: totalFileCount ?? 0,
-          })
+  // 文件夹的 fileSize 扫描期是“已发现字节”，扫描结束后才是总量；两种都按 已完成/总数 显示。
+  const bytesText = `${formatFileSize(transferredSize, lng)}/${formatFileSize(fileSize, lng)}`
+  // 每格都配 title：列宽按数据让位，长串截断后靠 hover 看全。
+  const speedText = !isFailed && (isRunning || isWaiting) ? formatSpeed(speed, lng) : ''
+
+  // 扫描期间 total 只是已发现数；计数列始终用同一种紧凑格式，扫描状态交给剩余列。
+  const folderCountText = t(($) => $.transfer.folderStats.fileCount, {
+    completed: completedFileCount ?? 0,
+    total: totalFileCount ?? 0,
+  })
 
   // 文件夹的字节总量扫描结束才是真值，之前算出来的剩余时间会偏小。
   const statusText = isFailed
@@ -166,7 +171,7 @@ export const TransferTaskItem = ({
       : isFolder
         ? scanCompleted
           ? formatRemainingTime(remainingSeconds)
-          : ''
+          : t(($) => $.transfer.status.scanning)
         : formatRemainingTime(remainingSeconds)
 
   const menuItemClass = cn(
@@ -207,33 +212,54 @@ export const TransferTaskItem = ({
             </button>
 
             {isFolder ? (
-              // 文件夹的字节总量扫描期只增不减，画进度条会倒退；文件计数才是主进度。
-              <span
-                className={cn(
-                  'col-span-2 text-xs tabular-nums text-right whitespace-nowrap truncate',
-                  isFailed ? 'text-danger' : 'text-text-muted',
-                )}
-                title={isFailed ? task.errorMessage : folderStatusText}
-              >
-                {isFailed ? (task.errorMessage ?? '-') : folderStatusText}
-              </span>
+              // 文件夹的字节总量扫描期只增不减，画进度条会倒退；字节放大小列、文件计数放进度列。
+              isFailed ? (
+                <span
+                  className="col-span-2 text-xs tabular-nums text-right whitespace-nowrap truncate text-danger"
+                  title={task.errorMessage}
+                >
+                  {task.errorMessage ?? '-'}
+                </span>
+              ) : (
+                <>
+                  <span
+                    className="text-xs tabular-nums text-right whitespace-nowrap truncate text-text-muted"
+                    title={bytesText}
+                  >
+                    {bytesText}
+                  </span>
+                  <span
+                    className="text-xs tabular-nums text-right whitespace-nowrap truncate text-text-muted"
+                    title={folderCountText}
+                  >
+                    {folderCountText}
+                  </span>
+                </>
+              )
             ) : (
               <>
-                <span className="text-xs tabular-nums text-right whitespace-nowrap truncate text-text-muted">
-                  {`${formatFileSize(transferredSize, lng)}/${formatFileSize(fileSize, lng)}`}
+                <span
+                  className="text-xs tabular-nums text-right whitespace-nowrap truncate text-text-muted"
+                  title={bytesText}
+                >
+                  {bytesText}
                 </span>
                 <div>
                   <TransferProgressBar
                     transferred={transferredSize}
                     total={fileSize}
                     status={task.status}
+                    title={bytesText}
                   />
                 </div>
               </>
             )}
 
-            <span className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap">
-              {!isFailed && (isRunning || isWaiting) ? formatSpeed(speed, lng) : ''}
+            <span
+              className="text-text-muted text-xs tabular-nums text-right whitespace-nowrap"
+              title={speedText || undefined}
+            >
+              {speedText}
             </span>
 
             <span
@@ -241,6 +267,7 @@ export const TransferTaskItem = ({
                 'text-xs tabular-nums text-right whitespace-nowrap',
                 isFailed ? 'text-danger' : 'text-text-muted',
               )}
+              title={statusText || undefined}
             >
               {statusText}
             </span>
@@ -316,14 +343,14 @@ export const TransferTaskItem = ({
           {isExpanded && (
             <>
               <div
-                className="text-[13px] text-text-secondary truncate leading-5"
+                className="text-xs text-text-secondary truncate leading-5"
                 title={task.localPath}
               >
                 <span className="text-text-muted mr-1.5">{t(($) => $.transfer.path.source)}: </span>
                 {task.localPath}
               </div>
               <div
-                className="text-[13px] text-text-secondary truncate leading-5"
+                className="text-xs text-text-secondary truncate leading-5"
                 title={task.remotePath}
               >
                 <span className="text-text-muted mr-1.5">

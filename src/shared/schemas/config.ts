@@ -28,11 +28,13 @@ export const sortOrderSchema = z.enum(sortOrderValues)
 export const uiSettingsSchema = z.object({
   appearance: themeSchema,
   locale: localeSchema,
+  showHiddenFiles: z.boolean(),
 })
 
 export const defaultUiSettings: UiSettings = {
   appearance: DEFAULT_THEME_VALUE,
   locale: '',
+  showHiddenFiles: false,
 }
 
 export const transferSettingsSchema = z.object({

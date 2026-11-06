@@ -58,6 +58,7 @@ export const TargetFolderDialog = ({
     permissions: '',
     owner: '',
     absolutePath: getParentPath(currentPath),
+    isHidden: false,
   }
 
   const allItems: FolderItem[] = currentPath !== ROOT_PATH ? [parentItem, ...folders] : folders
@@ -117,6 +118,7 @@ export const TargetFolderDialog = ({
       permissions: '',
       owner: '',
       absolutePath: currentPath,
+      isHidden: false,
     }
     void onConfirm(targetDir)
   }

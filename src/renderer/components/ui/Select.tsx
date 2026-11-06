@@ -30,7 +30,7 @@ export const Select = ({ value, onChange, options, className, testId, ariaLabel 
           'w-full px-3 pr-8 py-2 bg-surface border border-border rounded-md',
           'text-text text-left flex items-center justify-between relative',
           'transition-colors duration-150 hover:border-text-muted focus-visible:outline-none',
-          'focus-visible:ring-2 focus-visible:ring-ring text-[13px] box-border min-h-8.25 m-0',
+          'focus-visible:ring-2 focus-visible:ring-ring text-xs box-border min-h-8.25 m-0',
           className,
         )}
       >

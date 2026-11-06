@@ -9,6 +9,7 @@ const file: FileInfo = {
   size: 1,
   modifyTime: 0,
   absolutePath: '/a.txt',
+  isHidden: false,
 }
 
 describe('useFileListState', () => {

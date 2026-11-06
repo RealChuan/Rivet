@@ -21,7 +21,17 @@ describe('toFileInfo', () => {
       permissions: '',
       owner: '',
       absolutePath: '/remote/docs',
+      isHidden: false,
     })
+  })
+
+  it('名字以点开头时标记为隐藏', () => {
+    expect(toFileInfo({ ...base, name: '.env', path: '/remote/.env' }).isHidden).toBe(true)
+  })
+
+  it('协议层显式给出的隐藏判定优先于点号规则', () => {
+    expect(toFileInfo({ ...base, name: 'secret.txt', isHidden: true }).isHidden).toBe(true)
+    expect(toFileInfo({ ...base, name: '.cache', isHidden: false }).isHidden).toBe(false)
   })
 
   it('把文件与符号链接都映射为 FILE', () => {

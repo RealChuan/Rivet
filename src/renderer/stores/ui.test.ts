@@ -29,6 +29,7 @@ describe('useUiStore', () => {
     useUiStore.setState({
       appearance: DEFAULT_THEME_VALUE,
       locale: DEFAULT_LANGUAGE,
+      showHiddenFiles: false,
       connectionPanelWidth: 260,
       queuePanelMode: QUEUE_PANEL_MODE.EXPANDED,
       queuePanelHeight: 260,
@@ -85,6 +86,7 @@ describe('useUiStore', () => {
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI, {
         appearance: THEME.LIGHT,
         locale: DEFAULT_LANGUAGE,
+        showHiddenFiles: false,
       })
     })
 
@@ -95,6 +97,7 @@ describe('useUiStore', () => {
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI, {
         appearance: THEME.DARK,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
+        showHiddenFiles: false,
       })
     })
   })
@@ -112,6 +115,7 @@ describe('useUiStore', () => {
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI, {
         appearance: DEFAULT_THEME_VALUE,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
+        showHiddenFiles: false,
       })
     })
 
@@ -122,6 +126,21 @@ describe('useUiStore', () => {
       expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI, {
         appearance: THEME.DARK,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
+        showHiddenFiles: false,
+      })
+    })
+  })
+
+  describe('setShowHiddenFiles', () => {
+    it('updates state and persists with current appearance/locale', () => {
+      useUiStore.setState({ appearance: THEME.DARK, locale: SUPPORTED_LANGUAGE.EN_US })
+      useUiStore.getState().setShowHiddenFiles(true)
+
+      expect(useUiStore.getState().showHiddenFiles).toBe(true)
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI, {
+        appearance: THEME.DARK,
+        locale: SUPPORTED_LANGUAGE.EN_US,
+        showHiddenFiles: true,
       })
     })
   })

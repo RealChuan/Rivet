@@ -12,6 +12,11 @@ export interface Entry {
   readonly permissions?: string
   readonly owner?: string
   readonly path: string
+  /**
+   * 协议层能给出比「名字以 `.` 开头」更准的判定时填它（如 SMB 的隐藏属性）；
+   * 留空则由 entry-mapper 按点号规则兜底。
+   */
+  readonly isHidden?: boolean
 }
 
 /**
