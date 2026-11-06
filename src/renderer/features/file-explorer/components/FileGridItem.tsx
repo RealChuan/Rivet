@@ -49,7 +49,7 @@ export const FileGridItem = ({
     title={file.name}
   >
     <FileIcon type={file.type} name={file.name} className="w-14 h-14" />
-    <span className="text-[13px] leading-tight w-full text-center truncate">{file.name}</span>
+    <span className="text-xs leading-tight w-full text-center truncate">{file.name}</span>
   </div>
 )
 

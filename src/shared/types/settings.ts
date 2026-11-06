@@ -20,6 +20,9 @@ export interface UiSettings {
    * - '': 跟随系统语言
    */
   locale: SupportedLanguageLiteral | ''
+
+  /** 是否显示以 `.` 开头的隐藏条目 */
+  showHiddenFiles: boolean
 }
 
 /**

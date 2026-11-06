@@ -42,12 +42,12 @@ describe('settings-repository', () => {
   })
 
   it('persists ui, transfer and sortOrder', async () => {
-    setUiSettings({ appearance: 'dark', locale: 'en-US' })
+    setUiSettings({ appearance: 'dark', locale: 'en-US', showHiddenFiles: true })
     setTransferSettings({ maxUploadConcurrency: 8, maxDownloadConcurrency: 7 })
     setConnectionSortOrder(SORT_ORDER.DESC)
     await flushSettings()
 
-    expect(getUiSettings()).toEqual({ appearance: 'dark', locale: 'en-US' })
+    expect(getUiSettings()).toEqual({ appearance: 'dark', locale: 'en-US', showHiddenFiles: true })
     expect(getTransferSettings()).toEqual({
       maxUploadConcurrency: 8,
       maxDownloadConcurrency: 7,

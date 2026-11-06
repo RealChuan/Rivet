@@ -28,7 +28,7 @@ const StatCard = ({ label, value, icon, highlight }: StatCardProps) => (
   <div className="flex flex-col items-center gap-1.5 px-3 py-3 bg-surface rounded-lg min-w-0">
     <div className="flex items-center gap-1 text-text-muted">
       {icon}
-      <span className="text-[11px] uppercase tracking-wider font-medium">{label}</span>
+      <span className="text-2xs uppercase tracking-wider font-medium">{label}</span>
     </div>
     <span
       className={cn(

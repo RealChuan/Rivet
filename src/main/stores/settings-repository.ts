@@ -74,6 +74,7 @@ export function setUiSettings(value: UiSettings): Result<void, ErrorInfo> {
       ui: {
         appearance: value.appearance,
         locale: value.locale,
+        showHiddenFiles: value.showHiddenFiles,
       },
     }))
     return ok(undefined)

@@ -30,5 +30,7 @@ export function sanitizeFiles(files: unknown): FileInfo[] {
       permissions: typeof file.permissions === 'string' ? file.permissions : '',
       owner: typeof file.owner === 'string' ? file.owner : '',
       absolutePath: String(file.absolutePath),
+      isHidden:
+        typeof file.isHidden === 'boolean' ? file.isHidden : String(file.name).startsWith('.'),
     }))
 }

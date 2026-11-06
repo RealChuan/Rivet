@@ -9,6 +9,7 @@ const entries: FileInfo[] = ['a', 'b', 'c', 'd', 'e'].map((name) => ({
   size: 1,
   modifyTime: 0,
   absolutePath: `/${name}`,
+  isHidden: false,
 }))
 
 const NONE = { ctrl: false, shift: false }

@@ -14,7 +14,6 @@ import {
 import Select from '../../../components/ui/Select.js'
 import { useUiStore } from '../../../stores/ui.js'
 import { cn } from '../../../utils/index.js'
-import { QueueSettingsPopover } from './QueueSettingsPopover.js'
 import { QueueSummary } from './QueueSummary.js'
 import { SortDropdown } from './SortDropdown.js'
 
@@ -133,10 +132,9 @@ export const QueuePanelHeader = ({
               { value: TRANSFER_SCOPE.CURRENT, label: t(($) => $.transfer.queue.scopeCurrent) },
               { value: TRANSFER_SCOPE.ALL, label: t(($) => $.transfer.queue.scopeAll) },
             ]}
-            className="w-24 h-6 min-h-6 py-0 px-2 text-[11px]"
+            className="w-24 h-6 min-h-6 py-0 px-2 text-2xs"
           />
           <SortDropdown sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} />
-          <QueueSettingsPopover />
         </>
       )}
 

@@ -186,7 +186,11 @@
       "permissions": "Permissions",
       "reconnectHint": "Click to reconnect",
       "retry": "Retry",
+      "selectedCount_one": "{{count}} of {{total}} selected",
+      "selectedCount_other": "{{count}} of {{total}} selected",
       "size": "Size",
+      "totalCount_one": "{{count}} item",
+      "totalCount_other": "{{count}} items",
       "truncated": "Directory has more than 20,000 entries; showing the first 20,000.",
       "viewGrid": "Grid view",
       "viewList": "List view"
@@ -235,6 +239,28 @@
     "passwordInput": {
       "hidePassword": "Hide password",
       "showPassword": "Show password"
+    },
+    "settings": {
+      "cache": {
+        "clear": "Clear old logs",
+        "clearSuccess": "Freed {{size}}",
+        "hint": "Only older and archived logs are removed; the active log is kept",
+        "size": "Cache size"
+      },
+      "concurrencyHint": "Concurrency applies globally to all connections",
+      "files": "Files",
+      "hiddenFiles": {
+        "hint": "Files and folders whose name starts with a dot",
+        "label": "Show hidden files"
+      },
+      "log": {
+        "dir": "Log location",
+        "open": "Open containing folder"
+      },
+      "maintenance": "Maintenance",
+      "open": "Settings",
+      "title": "Settings",
+      "transfer": "Transfers"
     },
     "sortButton": {
       "sortConnections": "Sort Connections"
@@ -313,8 +339,7 @@
         "title": "Error Details"
       },
       "folderStats": {
-        "fileCount": "{{completed}}/{{total}} files",
-        "scanning": "{{completed}} done · {{total}} found"
+        "fileCount": "{{completed}}/{{total}} files"
       },
       "path": {
         "destination": "Destination",
@@ -332,7 +357,6 @@
         "scope": "Task scope",
         "scopeAll": "All connections",
         "scopeCurrent": "This connection",
-        "settings": "Concurrency",
         "unknownConnection": "Unknown connection",
         "viewAll": "View all"
       },
@@ -346,6 +370,7 @@
         "failed": "Failed",
         "failedCount_one": "{{count}} failed",
         "failedCount_other": "{{count}} failed",
+        "scanning": "Scanning",
         "waiting": "Waiting"
       },
       "upload": "Upload"

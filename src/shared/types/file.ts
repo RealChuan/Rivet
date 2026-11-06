@@ -22,4 +22,10 @@ export interface FileInfo {
 
   /** 文件的绝对路径（相对于服务器根目录） */
   absolutePath: string
+
+  /**
+   * 是否隐藏。规则由主进程在 list 时判定（当前：名字以 `.` 开头），
+   * 渲染层只按设置决定是否过滤，不重新推导。
+   */
+  isHidden: boolean
 }

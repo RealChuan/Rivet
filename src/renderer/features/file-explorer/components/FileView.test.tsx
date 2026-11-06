@@ -31,6 +31,7 @@ const mockDirectory = {
 const mockUi = {
   fileViewModes: {} as Record<string, 'list' | 'grid'>,
   setFileViewMode: vi.fn(),
+  showHiddenFiles: false,
 }
 
 const mockDragSelection = new Set<string>()
@@ -172,6 +173,7 @@ const FILE: FileInfo = {
   size: 0,
   modifyTime: 0,
   absolutePath: '/docs',
+  isHidden: false,
 }
 
 const cellByName = (name: string): HTMLElement | null =>
@@ -182,6 +184,7 @@ beforeEach(() => {
   mockDirectory.isLoading = false
   mockDirectory.error = null
   mockUi.fileViewModes = {}
+  mockUi.showHiddenFiles = false
   mockDragSelection.clear()
   mockCopyMove.canPaste = false
   mockCopyMove.cutPaths = new Set()
@@ -312,5 +315,41 @@ describe('FileView', () => {
     await userEvent.keyboard('{Control>}v{/Control}')
 
     expect(mockCopyMove.handlePaste).not.toHaveBeenCalled()
+  })
+
+  it('按设置过滤数据层标记为隐藏的条目', () => {
+    mockDirectory.files = [
+      { ...FILE, name: 'a.txt', type: 'file', absolutePath: '/a.txt', isHidden: false },
+      { ...FILE, name: '.env', type: 'file', absolutePath: '/.env', isHidden: true },
+    ]
+
+    const { rerender } = renderFileView()
+
+    expect(screen.getByText('a.txt')).not.toBeNull()
+    expect(screen.queryByText('.env')).toBeNull()
+
+    mockUi.showHiddenFiles = true
+    rerender(
+      <TransferActionsContext value={transferActions}>
+        <FileView sessionId="s1" currentPath="/" />
+      </TransferActionsContext>,
+    )
+
+    expect(screen.getByText('.env')).not.toBeNull()
+  })
+
+  it('底部状态栏随选择状态切换文案', async () => {
+    mockDirectory.files = [
+      { ...FILE, name: 'a.txt', type: 'file', absolutePath: '/a.txt' },
+      { ...FILE, name: 'b.txt', type: 'file', absolutePath: '/b.txt' },
+    ]
+
+    renderFileView()
+
+    const counter = screen.getByTestId('file-explorer-count')
+    expect(counter.textContent).toBe('fileExplorerList.totalCount')
+
+    await userEvent.click(screen.getByText('a.txt'))
+    expect(counter.textContent).toBe('fileExplorerList.selectedCount')
   })
 })

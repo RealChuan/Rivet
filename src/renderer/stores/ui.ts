@@ -19,6 +19,8 @@ import { configApi } from '../api/config.js'
 interface UiStore {
   appearance: Theme
   locale: SupportedLanguageLiteral | ''
+  /** 是否显示以 `.` 开头的隐藏条目 */
+  showHiddenFiles: boolean
   connectionPanelWidth: number
   queuePanelMode: QueuePanelMode
   queuePanelHeight: number
@@ -29,6 +31,7 @@ interface UiStore {
   setAppearance: (appearance: Theme) => void
   setFileViewMode: (sessionId: string, mode: FileViewMode) => void
   setLocale: (locale: SupportedLanguageLiteral) => void
+  setShowHiddenFiles: (showHiddenFiles: boolean) => void
   setConnectionPanelWidth: (width: number) => void
   setQueuePanelMode: (mode: QueuePanelMode) => void
   setQueuePanelHeight: (height: number) => void
@@ -53,6 +56,7 @@ function getToastDuration(type: ToastType, customDuration?: number): number {
 export const useUiStore = create<UiStore>((set, get) => ({
   appearance: DEFAULT_THEME_VALUE,
   locale: DEFAULT_LANGUAGE,
+  showHiddenFiles: false,
   connectionPanelWidth: DEFAULT_CONNECTION_PANEL_WIDTH,
   queuePanelMode: QUEUE_PANEL_MODE.EXPANDED,
   queuePanelHeight: DEFAULT_QUEUE_PANEL_HEIGHT,
@@ -62,8 +66,8 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
   setAppearance: (appearance) => {
     set({ appearance })
-    const { locale } = get()
-    void configApi.set(STORE_KEY.UI, { appearance, locale })
+    const { locale, showHiddenFiles } = get()
+    void configApi.set(STORE_KEY.UI, { appearance, locale, showHiddenFiles })
   },
 
   setFileViewMode: (sessionId, fileViewMode) => {
@@ -74,8 +78,14 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
   setLocale: (locale) => {
     set({ locale })
-    const { appearance } = get()
-    void configApi.set(STORE_KEY.UI, { appearance, locale })
+    const { appearance, showHiddenFiles } = get()
+    void configApi.set(STORE_KEY.UI, { appearance, locale, showHiddenFiles })
+  },
+
+  setShowHiddenFiles: (showHiddenFiles) => {
+    set({ showHiddenFiles })
+    const { appearance, locale } = get()
+    void configApi.set(STORE_KEY.UI, { appearance, locale, showHiddenFiles })
   },
 
   setConnectionPanelWidth: (connectionPanelWidth) => {
@@ -94,6 +104,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
     set({
       appearance: settings.appearance ?? DEFAULT_THEME_VALUE,
       locale: settings.locale ?? DEFAULT_LANGUAGE,
+      showHiddenFiles: settings.showHiddenFiles ?? false,
       fileViewModes: {},
       initialized: true,
     })

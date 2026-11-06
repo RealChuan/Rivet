@@ -401,6 +401,7 @@ describe('ProtocolService 请求包装', () => {
         permissions: '',
         owner: '',
         absolutePath: '/a.txt',
+        isHidden: false,
       },
       {
         name: 'sub',
@@ -410,6 +411,7 @@ describe('ProtocolService 请求包装', () => {
         permissions: '',
         owner: '',
         absolutePath: '/sub',
+        isHidden: false,
       },
     ])
   })
@@ -489,6 +491,7 @@ describe('ProtocolService 请求包装', () => {
       size: 0,
       modifyTime: 0,
       absolutePath: '/dir/old.txt',
+      isHidden: false,
     }
 
     await harness.service.mkdir('s1', '/new', 'req-mkdir')
@@ -529,6 +532,7 @@ describe('ProtocolService.copy', () => {
     size: 0,
     modifyTime: 0,
     absolutePath: '/a.txt',
+    isHidden: false,
   }
 
   it('provider 有服务端 copy 时直接调用，不打开流', async () => {

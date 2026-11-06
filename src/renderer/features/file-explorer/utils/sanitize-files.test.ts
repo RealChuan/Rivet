@@ -11,7 +11,18 @@ const valid = {
 
 describe('sanitizeFiles', () => {
   it('保留合法项并补齐可选字段', () => {
-    expect(sanitizeFiles([valid])).toEqual([{ ...valid, permissions: '', owner: '' }])
+    expect(sanitizeFiles([valid])).toEqual([
+      { ...valid, permissions: '', owner: '', isHidden: false },
+    ])
+  })
+
+  it('缺 isHidden 时按点号规则兜底', () => {
+    expect(sanitizeFiles([valid])[0]?.isHidden).toBe(false)
+    expect(sanitizeFiles([{ ...valid, name: '.env' }])[0]?.isHidden).toBe(true)
+  })
+
+  it('保留数据层给出的隐藏判定', () => {
+    expect(sanitizeFiles([{ ...valid, isHidden: true }])[0]?.isHidden).toBe(true)
   })
 
   it('丢弃空名、非法 type、负数大小与缺失绝对路径的项', () => {

@@ -12,6 +12,7 @@ const FILE: FileInfo = {
   size: 1,
   modifyTime: 0,
   absolutePath: '/a.txt',
+  isHidden: false,
 }
 
 function createApiStub() {

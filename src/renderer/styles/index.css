@@ -52,17 +52,23 @@
   --color-overlay: rgba(9, 9, 11, 0.24);
   --color-danger-border: rgba(239, 68, 68, 0.3);
 
-  /* 阴影 */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.03);
-  --shadow-dialog:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 1px 2px rgba(9, 9, 11, 0.06),
-    0 12px 32px -8px rgba(9, 9, 11, 0.2);
-  --shadow-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
+  /* 转发到运行期变量，@theme 的值会被编译期内联，写死颜色会让 .dark 覆盖失效 */
+  --shadow-sm: var(--elevation-sm);
+  --shadow-dropdown: var(--elevation-dropdown);
+  --shadow-dialog: var(--elevation-dialog);
+  --shadow-toast: var(--elevation-toast);
 
-  /* 字号 */
-  --font-size-2xs: 11px;
-  --font-size-sm: 13px;
+  /*
+   * 字号：覆盖 Tailwind 默认值，统一到四档。
+   * 2xs 12 微观标注（标题栏、紧凑下拉）· xs 13 数据与标签 · sm 15 正文与名称 · base 16 标题。
+   * 13px 与 body 基准一致，任何位置都不低于 12px。
+   */
+  --text-2xs: 0.75rem;
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.375rem;
 
   /* 字体 */
   --font-sans: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -80,6 +86,16 @@
   --animate-status-pulse: status-pulse 2s ease-in-out infinite;
   --animate-progress-indeterminate: loading-bar 1.5s ease-in-out infinite;
   --animate-progress-shimmer: progress-shimmer 2s ease-in-out infinite;
+}
+
+/* ========== 阴影（运行期取值） ========== */
+:root {
+  --elevation-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --elevation-dropdown: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  --elevation-dialog:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 1px 2px rgba(9, 9, 11, 0.06),
+    0 12px 32px -8px rgba(9, 9, 11, 0.2);
+  --elevation-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
 }
 
 /* ========== Dark 模式覆盖 ========== */
@@ -127,12 +143,12 @@
   --color-danger-border: rgba(248, 113, 113, 0.25);
 
   /* 阴影 */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
-  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.15);
-  --shadow-dialog:
+  --elevation-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --elevation-dropdown: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.15);
+  --elevation-dialog:
     inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4),
     0 16px 40px -8px rgba(0, 0, 0, 0.6);
-  --shadow-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+  --elevation-toast: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
 }
 
 /* ========== 无窗口级材质：主界面改用不透明底色 ========== */

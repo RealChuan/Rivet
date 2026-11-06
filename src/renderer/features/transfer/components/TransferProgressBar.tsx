@@ -5,16 +5,23 @@ interface TransferProgressBarProps {
   transferred: number
   total: number
   status: string
+  /** hover tooltip：列宽有限，条本身不带文字时可在这里补全数值 */
+  title?: string | undefined
 }
 
-export const TransferProgressBar = ({ transferred, total, status }: TransferProgressBarProps) => {
+export const TransferProgressBar = ({
+  transferred,
+  total,
+  status,
+  title,
+}: TransferProgressBarProps) => {
   const percentage = total > 0 ? Math.min(Math.round((transferred / total) * 100), 100) : 0
   const isRunning = status === OPERATION_STATUS.RUNNING
   const isFailed = status === OPERATION_STATUS.FAILED
   const showIndeterminate = isRunning && percentage === 0
 
   return (
-    <div className="flex items-center gap-2 flex-1 min-w-0">
+    <div className="flex items-center gap-2 flex-1 min-w-0" title={title}>
       <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden min-w-16 relative">
         <div
           className={cn(

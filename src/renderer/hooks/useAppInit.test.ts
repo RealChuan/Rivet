@@ -103,7 +103,7 @@ describe('useApplicationInitialization', () => {
 
   it('should initialize with saved settings and change language', async () => {
     setupMocks()
-    const savedSettings = { appearance: 'dark', locale: 'zh-CN' }
+    const savedSettings = { appearance: 'dark', locale: 'zh-CN', showHiddenFiles: true }
     mockConfigGet.mockResolvedValue({ success: true, value: savedSettings })
 
     renderHook(() => useApplicationInitialization())
@@ -112,6 +112,7 @@ describe('useApplicationInitialization', () => {
       expect(mockInitialize).toHaveBeenCalledWith({
         appearance: 'dark',
         locale: 'zh-CN',
+        showHiddenFiles: true,
       })
       expect(mockChangeLanguage).toHaveBeenCalledWith('zh-CN')
     })

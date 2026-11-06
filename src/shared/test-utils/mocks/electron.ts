@@ -48,6 +48,8 @@ export const app = {
 // === Shell ===
 export const shell = {
   openExternal: vi.fn().mockResolvedValue(true),
+  openPath: vi.fn().mockResolvedValue(''),
+  showItemInFolder: vi.fn(),
 }
 
 // === BrowserWindow ===

@@ -185,7 +185,9 @@
       "permissions": "权限",
       "reconnectHint": "点击重新连接",
       "retry": "重试",
+      "selectedCount": "已选 {{count}} 项 / 共 {{total}} 项",
       "size": "大小",
+      "totalCount": "共 {{count}} 项",
       "truncated": "目录条目超过 20000，仅显示前 20000 项",
       "viewGrid": "宫格视图",
       "viewList": "列表视图"
@@ -233,6 +235,28 @@
     "passwordInput": {
       "hidePassword": "隐藏密码",
       "showPassword": "显示密码"
+    },
+    "settings": {
+      "cache": {
+        "clear": "清除旧日志",
+        "clearSuccess": "已释放 {{size}}",
+        "hint": "只清理跨天旧日志与归档，当前日志保留",
+        "size": "缓存大小"
+      },
+      "concurrencyHint": "并发数全局生效，对所有连接有效",
+      "files": "文件",
+      "hiddenFiles": {
+        "hint": "名字以 . 开头的文件与目录",
+        "label": "显示隐藏文件"
+      },
+      "log": {
+        "dir": "日志位置",
+        "open": "打开所在位置"
+      },
+      "maintenance": "维护",
+      "open": "设置",
+      "title": "设置",
+      "transfer": "传输"
     },
     "sortButton": {
       "sortConnections": "排序连接"
@@ -309,8 +333,7 @@
         "title": "错误详情"
       },
       "folderStats": {
-        "fileCount": "{{completed}}/{{total}} 文件",
-        "scanning": "已完成 {{completed}} · 已发现 {{total}}"
+        "fileCount": "{{completed}}/{{total}} 文件"
       },
       "path": {
         "destination": "目标",
@@ -328,7 +351,6 @@
         "scope": "任务范围",
         "scopeAll": "全部连接",
         "scopeCurrent": "当前连接",
-        "settings": "并发设置",
         "unknownConnection": "未知连接",
         "viewAll": "查看全部"
       },
@@ -341,6 +363,7 @@
       "status": {
         "failed": "失败",
         "failedCount": "{{count}} 失败",
+        "scanning": "扫描中",
         "waiting": "等待中"
       },
       "upload": "上传"

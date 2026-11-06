@@ -186,7 +186,9 @@ export default interface Resources {
       "permissions": "Permissions",
       "reconnectHint": "Click to reconnect",
       "retry": "Retry",
+      "selectedCount": "{{count}} of {{total}} selected" | "{{count}} of {{total}} selected",
       "size": "Size",
+      "totalCount": "{{count}} item" | "{{count}} items",
       "truncated": "Directory has more than 20,000 entries; showing the first 20,000.",
       "viewGrid": "Grid view",
       "viewList": "List view"
@@ -234,6 +236,28 @@ export default interface Resources {
     "passwordInput": {
       "hidePassword": "Hide password",
       "showPassword": "Show password"
+    },
+    "settings": {
+      "cache": {
+        "clear": "Clear old logs",
+        "clearSuccess": "Freed {{size}}",
+        "hint": "Only older and archived logs are removed; the active log is kept",
+        "size": "Cache size"
+      },
+      "concurrencyHint": "Concurrency applies globally to all connections",
+      "files": "Files",
+      "hiddenFiles": {
+        "hint": "Files and folders whose name starts with a dot",
+        "label": "Show hidden files"
+      },
+      "log": {
+        "dir": "Log location",
+        "open": "Open containing folder"
+      },
+      "maintenance": "Maintenance",
+      "open": "Settings",
+      "title": "Settings",
+      "transfer": "Transfers"
     },
     "sortButton": {
       "sortConnections": "Sort Connections"
@@ -310,8 +334,7 @@ export default interface Resources {
         "title": "Error Details"
       },
       "folderStats": {
-        "fileCount": "{{completed}}/{{total}} files",
-        "scanning": "{{completed}} done · {{total}} found"
+        "fileCount": "{{completed}}/{{total}} files"
       },
       "path": {
         "destination": "Destination",
@@ -329,7 +352,6 @@ export default interface Resources {
         "scope": "Task scope",
         "scopeAll": "All connections",
         "scopeCurrent": "This connection",
-        "settings": "Concurrency",
         "unknownConnection": "Unknown connection",
         "viewAll": "View all"
       },
@@ -342,6 +364,7 @@ export default interface Resources {
       "status": {
         "failed": "Failed",
         "failedCount": "{{count}} failed" | "{{count}} failed",
+        "scanning": "Scanning",
         "waiting": "Waiting"
       },
       "upload": "Upload"

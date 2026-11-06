@@ -15,20 +15,18 @@ export const ParentDirectoryButton = ({ currentPath, onNavigate }: ParentDirecto
   }
 
   return (
-    <div className="flex items-center justify-center py-2.5 border-t border-border">
-      <button
-        onClick={onNavigate}
-        className={`
-          px-3.5 py-1.5 rounded bg-transparent border border-border
-          text-xs text-text flex items-center gap-1.5
-          hover:bg-hover transition-colors
-          focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
-        `}
-      >
-        <ChevronLeft className="w-3.5 h-3.5 stroke-current stroke-2" />
-        {t(($) => $.fileExplorerList.parentDirectory)}
-      </button>
-    </div>
+    <button
+      onClick={onNavigate}
+      className={`
+        px-3.5 py-1.5 rounded bg-transparent border border-border
+        text-xs text-text flex items-center gap-1.5
+        hover:bg-hover transition-colors
+        focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
+      `}
+    >
+      <ChevronLeft className="w-3.5 h-3.5 stroke-current stroke-2" />
+      {t(($) => $.fileExplorerList.parentDirectory)}
+    </button>
   )
 }
 

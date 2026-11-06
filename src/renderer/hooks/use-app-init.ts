@@ -25,15 +25,20 @@ export const useApplicationInitialization = () => {
         savedSettings = await configApi.get<UiSettings>(STORE_KEY.UI)
       } catch (error) {
         logger.catch(error, { action: 'load-settings' })
-        initialize({ appearance: DEFAULT_THEME_VALUE, locale: DEFAULT_LANGUAGE })
+        initialize({
+          appearance: DEFAULT_THEME_VALUE,
+          locale: DEFAULT_LANGUAGE,
+          showHiddenFiles: false,
+        })
         await i18n.changeLanguage(DEFAULT_LANGUAGE)
         return
       }
 
       const appearance = savedSettings?.appearance ?? DEFAULT_THEME_VALUE
       const locale = savedSettings?.locale ?? DEFAULT_LANGUAGE
+      const showHiddenFiles = savedSettings?.showHiddenFiles ?? false
 
-      initialize({ appearance, locale })
+      initialize({ appearance, locale, showHiddenFiles })
       await i18n.changeLanguage(locale)
     }
 

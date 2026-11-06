@@ -1,7 +1,7 @@
 import type React from 'react'
 import { Upload } from 'lucide-react'
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { FILE_VIEW_MODE, MAX_LIST_ENTRIES, PROTOCOL } from '@shared/constants/index.js'
@@ -32,6 +32,7 @@ import {
   type ArrowKey,
 } from '../virtualization/layout.js'
 import FileExplorerDialogs from './FileExplorerDialogs.js'
+import FileExplorerStatusBar from './FileExplorerStatusBar.js'
 import FileGrid from './FileGrid.js'
 import FileList from './FileList.js'
 import FileListHeader from './FileListHeader.js'
@@ -40,7 +41,6 @@ import {
   FileExplorerListError,
   FileExplorerListLoading,
 } from './FileListStates.js'
-import ParentDirectoryButton from './ParentDirectoryButton.js'
 
 interface FileViewProps {
   sessionId: string
@@ -60,6 +60,7 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
   const connections = useConnectionStore((state) => state.connections)
   const session = sessions.find((s) => s.sessionId === sessionId)
   const mode = useUiStore((state) => state.fileViewModes[sessionId] ?? FILE_VIEW_MODE.LIST)
+  const showHiddenFiles = useUiStore((state) => state.showHiddenFiles)
   const connection = connections.find((c) => c.id === session?.connectionId)
   const isSftp = connection?.protocol === PROTOCOL.SFTP
   const { startMixedUpload } = useFileExplorerTransferActions()
@@ -68,7 +69,12 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
   const { files, isLoading, isFetching, error, refetch } = useDirectoryList(sessionId, currentPath)
   const { markSessionStale } = useDirectoryInvalidation()
   const listState = useFileListState()
-  const { sortBy, sortOrder, sortedFiles, handleSort } = useFileSort(files)
+  // 隐藏文件在排序前就滤掉：条目数、截断提示、框选、状态栏都只认可见项。
+  const visibleFiles = useMemo(
+    () => (showHiddenFiles ? files : files.filter((file) => !file.isHidden)),
+    [files, showHiddenFiles],
+  )
+  const { sortBy, sortOrder, sortedFiles, handleSort } = useFileSort(visibleFiles)
   const selection = useSelection(sortedFiles)
   const clearSelection = selection.clear
   const copyMove = useFileCopyMove(sessionId)
@@ -235,6 +241,8 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
   }
 
   const truncated = sortedFiles.length >= MAX_LIST_ENTRIES
+  // 框选松手前 selection 还没写回，用实时覆盖数，否则拖动时计数会滞后。
+  const selectedCount = hasStartedDrag ? dragSelection.size : selection.selectedPaths.size
 
   return (
     <ContextMenuPrimitive.Root
@@ -344,7 +352,12 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
           </div>
         </ContextMenuPrimitive.Trigger>
 
-        <ParentDirectoryButton currentPath={currentPath} onNavigate={handleParentDirectory} />
+        <FileExplorerStatusBar
+          currentPath={currentPath}
+          onNavigate={handleParentDirectory}
+          selectedCount={selectedCount}
+          totalCount={sortedFiles.length}
+        />
 
         <FileExplorerDialogs
           sessionId={sessionId}

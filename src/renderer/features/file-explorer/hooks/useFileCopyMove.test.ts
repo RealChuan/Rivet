@@ -72,6 +72,7 @@ const createMockFile = (
   permissions: 'rw-r--r--',
   owner: 'user',
   absolutePath: path ?? `/${name}`,
+  isHidden: false,
 })
 
 const successListResponse = (files: FileInfo[] = []) => ({
