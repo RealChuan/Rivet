@@ -7,6 +7,7 @@ const mockOnTasksEnqueued = vi.fn()
 const mockOnProgress = vi.fn()
 const mockOnTaskCompleted = vi.fn()
 const mockOnTaskFailed = vi.fn()
+const mockOnTaskStatusChanged = vi.fn()
 const mockOnTaskRemoved = vi.fn()
 const mockGetTasks = vi.fn().mockResolvedValue({ success: true, value: [], error: null })
 const mockGetConcurrency = vi.fn().mockResolvedValue({ success: true, value: 5, error: null })
@@ -19,6 +20,7 @@ vi.stubGlobal('window', {
       onProgress: mockOnProgress,
       onTaskCompleted: mockOnTaskCompleted,
       onTaskFailed: mockOnTaskFailed,
+      onTaskStatusChanged: mockOnTaskStatusChanged,
       onTaskRemoved: mockOnTaskRemoved,
       getTasks: mockGetTasks,
       getConcurrency: mockGetConcurrency,
@@ -454,6 +456,7 @@ describe('useTransferStore', () => {
       expect(mockOnProgress).toHaveBeenCalled()
       expect(mockOnTaskCompleted).toHaveBeenCalled()
       expect(mockOnTaskFailed).toHaveBeenCalled()
+      expect(mockOnTaskStatusChanged).toHaveBeenCalled()
       expect(mockOnTaskRemoved).toHaveBeenCalled()
     })
 
@@ -463,12 +466,14 @@ describe('useTransferStore', () => {
       const unsub3 = vi.fn()
       const unsub4 = vi.fn()
       const unsub5 = vi.fn()
+      const unsub6 = vi.fn()
 
       mockOnTasksEnqueued.mockReturnValue(unsub1)
       mockOnProgress.mockReturnValue(unsub2)
       mockOnTaskCompleted.mockReturnValue(unsub3)
       mockOnTaskFailed.mockReturnValue(unsub4)
-      mockOnTaskRemoved.mockReturnValue(unsub5)
+      mockOnTaskStatusChanged.mockReturnValue(unsub5)
+      mockOnTaskRemoved.mockReturnValue(unsub6)
 
       const cleanup = useTransferStore.getState().startListening()
       cleanup()
@@ -478,6 +483,7 @@ describe('useTransferStore', () => {
       expect(unsub3).toHaveBeenCalled()
       expect(unsub4).toHaveBeenCalled()
       expect(unsub5).toHaveBeenCalled()
+      expect(unsub6).toHaveBeenCalled()
     })
   })
 })

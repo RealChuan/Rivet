@@ -30,6 +30,13 @@ export interface TransferTask {
   waitingFileCount?: number | undefined
   /** 目录扫描是否结束。在此之前 `totalFileCount` 只是“已发现”的数量，不是总数。 */
   scanCompleted?: boolean
+  /** 下载首次解析冲突后确定的落盘路径；续传沿用它，不再重新判定冲突。 */
+  resolvedLocalPath?: string
+  /**
+   * 本次是「继续/重试」而不是首次执行：下载会跳过已完成的文件，
+   * 并从 `.rivet-download` 半成品的字节数接着传。
+   */
+  resumeDownload?: boolean
 }
 
 export interface UploadOperation {

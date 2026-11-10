@@ -83,7 +83,7 @@ export function TitleBar({
               left: 0,
               top: 0,
               width: '100%',
-              height: 36,
+              height: TITLEBAR_HEIGHT,
               paddingLeft: windowChrome === 'mac-hidden' ? 80 : 12,
             }
       }

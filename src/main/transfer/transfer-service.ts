@@ -24,7 +24,16 @@ import type {
 } from './executor-types.js'
 import type { ProgressAggregator } from './progress-aggregator.js'
 import { logger } from '../utils/logger.js'
+import { TRANSFER_PAUSE_REASON } from './abort-reason.js'
 import { TaskSemaphore } from './semaphore.js'
+
+/** 只有下载能暂停：上传方向没有写偏移入口，暂停后只能从头再来。 */
+function canPause(task: TransferTask): boolean {
+  return (
+    task.direction === TRANSFER_DIRECTION.DOWNLOAD &&
+    (task.status === OPERATION_STATUS.WAITING || task.status === OPERATION_STATUS.RUNNING)
+  )
+}
 
 export interface TransferServiceOptions {
   getProvider(sessionId: string): FileProvider | undefined
@@ -34,6 +43,8 @@ export interface TransferServiceOptions {
   progress: ProgressAggregator
   /** 任务终结时回调，用于系统通知；发送事件在前、清理任务在后。 */
   notify?(task: TransferTask, outcome: TransferOutcome): void
+  /** 移除任务时清掉它留下的本地半成品（`.rivet-download`）。 */
+  cleanupLocalTemps?(task: TransferTask): Promise<void>
   maxFinishedTasks?: number
 }
 
@@ -148,6 +159,11 @@ export class TransferService {
       return
     }
 
+    if (task.status === OPERATION_STATUS.PAUSED) {
+      this.removeTaskWithEvent(task)
+      return
+    }
+
     if (task.status === OPERATION_STATUS.WAITING) {
       task.status = OPERATION_STATUS.CANCELLED
       const controller = this.controllers.get(taskId)
@@ -171,6 +187,34 @@ export class TransferService {
     }
   }
 
+  pause(taskId: string): Promise<void> {
+    const task = this.tasks.get(taskId)
+    if (!task || !canPause(task)) return Promise.resolve()
+
+    // 排队中的任务只需改状态；运行中的任务靠 abort 停下，执行器据此保留半成品。
+    this.controllers.get(taskId)?.abort(TRANSFER_PAUSE_REASON)
+    task.status = OPERATION_STATUS.PAUSED
+    this.emitStatus(task)
+    return Promise.resolve()
+  }
+
+  resume(taskId: string): Promise<void> {
+    const task = this.tasks.get(taskId)
+    if (task?.status !== OPERATION_STATUS.PAUSED) return Promise.resolve()
+
+    task.status = OPERATION_STATUS.WAITING
+    task.errorMessage = undefined
+    task.resumeDownload = true
+    this.emitStatus(task)
+    this.schedule()
+    return Promise.resolve()
+  }
+
+  /** 任务状态变化（暂停/继续）不在 progress 快照里，单独发一条，渲染层据此改按钮。 */
+  private emitStatus(task: TransferTask): void {
+    this.emit(EVENT_CHANNEL.TASK_STATUS_CHANGED, { taskId: task.id, status: task.status })
+  }
+
   retry(taskId: string): Promise<void> {
     this.retrySync(taskId)
     return Promise.resolve()
@@ -183,6 +227,8 @@ export class TransferService {
     task.status = OPERATION_STATUS.WAITING
     task.errorMessage = undefined
     task.transferredSize = 0
+    // 下载重试接着传：已落盘的文件跳过，半成品从断点续；上传仍是从头。
+    task.resumeDownload = task.direction === TRANSFER_DIRECTION.DOWNLOAD
     task.startedAt = undefined
     task.completedFileCount = undefined
     task.activeFileCount = undefined
@@ -240,6 +286,20 @@ export class TransferService {
         this.controllers.get(task.id)?.abort()
       }
       this.removeTaskWithEvent(task)
+    }
+  }
+
+  /**
+   * 退出前收尾：任务不落盘，退出等于全部放弃，所以先掐断在途传输，
+   * 再把每个任务留下的半成品清掉。调用方需要给它时间上限。
+   */
+  async shutdown(): Promise<void> {
+    const tasks = [...this.tasks.values()]
+    for (const controller of this.controllers.values()) controller.abort()
+
+    // 串行清理：同时展开多个目录会让退出时的 IO 更抖，反正有上限兜底。
+    for (const task of tasks) {
+      await (this.options.cleanupLocalTemps?.(task) ?? Promise.resolve())
     }
   }
 
@@ -349,6 +409,10 @@ export class TransferService {
       switch (outcome.kind) {
         case 'completed':
           this.completeTask(task)
+          break
+        case 'paused':
+          task.status = OPERATION_STATUS.PAUSED
+          this.emitStatus(task)
           break
         case 'failed':
           logger.error(`Transfer task failed: ${outcome.message}`, {
@@ -478,6 +542,8 @@ export class TransferService {
   }
 
   private removeTaskWithEvent(task: TransferTask): void {
+    // 任务被放弃（暂停后删除、失败后移除、取消），磁盘上不该留下半成品。
+    void this.options.cleanupLocalTemps?.(task)
     this.removeTask(task.id)
     this.emit(EVENT_CHANNEL.TASK_REMOVED, { taskId: task.id })
   }

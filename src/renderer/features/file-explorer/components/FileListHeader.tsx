@@ -6,6 +6,7 @@ import {
   type SortOrderWithDirection,
 } from '@shared/constants/index.js'
 import { cn } from '../../../utils/index.js'
+import { FILE_LIST_HEADER_ATTR } from '../utils/data-attributes.js'
 
 interface ColumnWidths {
   name: number
@@ -125,7 +126,7 @@ export const FileListHeader = ({
 
   return (
     <div
-      data-file-list-header
+      {...FILE_LIST_HEADER_ATTR}
       className="flex items-center h-8 border-b border-border bg-transparent shrink-0 select-none"
     >
       <ColumnHeader

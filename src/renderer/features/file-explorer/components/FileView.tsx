@@ -34,6 +34,7 @@ import {
   useSelection,
   useVirtualRows,
 } from '../hooks/index.js'
+import { FILE_DATA_SELECTOR, FILE_DATASET_KEY } from '../utils/data-attributes.js'
 import {
   computeFileViewLayout,
   FILE_GRID_CELL_HEIGHT,
@@ -175,8 +176,10 @@ export const FileView = ({ sessionId, currentPath, filterQuery = '' }: FileViewP
   useEffect(() => {
     const focusedPath = selection.focusedPath
     if (!focusedPath) return
-    const nodes = scrollRef.current?.querySelectorAll<HTMLElement>('[data-file-path]')
-    const target = Array.from(nodes ?? []).find((node) => node.dataset.filePath === focusedPath)
+    const nodes = scrollRef.current?.querySelectorAll<HTMLElement>(FILE_DATA_SELECTOR.PATH)
+    const target = Array.from(nodes ?? []).find(
+      (node) => node.dataset[FILE_DATASET_KEY.PATH] === focusedPath,
+    )
     target?.focus({ preventScroll: true })
     target?.scrollIntoView?.({ block: 'nearest' })
   }, [selection.focusedPath])
@@ -414,7 +417,7 @@ export const FileView = ({ sessionId, currentPath, filterQuery = '' }: FileViewP
             className="flex-1 min-h-10 relative overflow-hidden outline-none"
             onContextMenu={(e) => {
               const target = e.target as HTMLElement
-              if (!target.closest('[data-file-item]')) {
+              if (!target.closest(FILE_DATA_SELECTOR.ITEM)) {
                 handleContextMenu()
               }
             }}

@@ -62,6 +62,8 @@ describe('通道契约', () => {
       'transfer.cancelAll',
       'transfer.retry',
       'transfer.retryAll',
+      'transfer.pause',
+      'transfer.resume',
       'transfer.getTasks',
       'transfer.getConcurrency',
       'transfer.setConcurrency',
@@ -125,8 +127,10 @@ describe('通道契约', () => {
       'transfer.progress',
       'transfer.taskCompleted',
       'transfer.taskFailed',
+      'transfer.taskStatusChanged',
       'transfer.taskRemoved',
       'app.closeRequested',
+      'app.cleanupStarted',
       'window.stateChanged',
     ])
   })

@@ -8,6 +8,7 @@ import { FileIcon } from '../../../components/common/index.js'
 import { cn } from '../../../utils/index.js'
 import { computeTotalWidth } from '../hooks/use-column-resizing.js'
 import { FILE_DRAG_MIME, type FileDragMove } from '../hooks/use-file-drag-move.js'
+import { FILE_DRAG_SOURCE_ATTR, fileItemDataAttrs } from '../utils/data-attributes.js'
 
 export interface ColumnWidths {
   name: number
@@ -68,7 +69,7 @@ export const FileListItem = ({
   const sizeContent = file.type === FILE_TYPE.FILE ? formatFileSize(file.size ?? 0, lng) : '-'
   const modifyTimeContent = formatDate(file.modifyTime ?? 0, lng)
   // 已选中的条目整行可拖；未选中时只有名称列可拖，其余列留给框选（资源管理器行为）。
-  const rowDragProps = isSelected ? { draggable: true, 'data-drag-source': '' } : {}
+  const rowDragProps = isSelected ? { draggable: true, ...FILE_DRAG_SOURCE_ATTR } : {}
 
   return (
     <div
@@ -76,8 +77,7 @@ export const FileListItem = ({
       aria-selected={isSelected || isPending}
       tabIndex={isFocused ? 0 : -1}
       data-testid="file-row"
-      data-file-item={file.name}
-      data-file-path={file.absolutePath}
+      {...fileItemDataAttrs(file)}
       {...rowDragProps}
       className={cn(
         'flex items-center border-b border-border min-w-full box-border relative select-none transition-colors duration-150 outline-none',
@@ -126,7 +126,7 @@ export const FileListItem = ({
         style={{ width: columnWidths.name }}
         title={file.name}
         draggable
-        data-drag-source=""
+        {...FILE_DRAG_SOURCE_ATTR}
       >
         <div className="px-2.5">
           <FileIcon type={file.type} name={file.name} />

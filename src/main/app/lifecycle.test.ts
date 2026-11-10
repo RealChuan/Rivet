@@ -33,6 +33,7 @@ vi.mock('./window-theme.js', () => ({
 vi.mock('../services/index.js', () => ({
   sessionManager: { safeUnregisterAll: vi.fn() },
   sessionRegistry: { count: 0 },
+  transferService: { shutdown: vi.fn().mockResolvedValue(undefined) },
 }))
 
 vi.mock('./window-factory.js', () => ({
@@ -42,6 +43,7 @@ vi.mock('./window-factory.js', () => ({
 vi.mock('./main-window.js', () => ({
   setMainWindow: (...args: unknown[]) => mockSetMainWindow(...args),
   getMainWindow: () => mockGetMainWindow(),
+  sendToMainWindow: vi.fn(),
 }))
 
 vi.mock('../services/transfer/index.js', () => ({
@@ -65,6 +67,7 @@ vi.mock('@shared/contract/events.contract.js', () => ({
   EVENT_CHANNEL: {
     HAS_ACTIVE_TASKS: 'transfer.hasActiveTasks',
     CLOSE_REQUESTED: 'app.closeRequested',
+    CLEANUP_STARTED: 'app.cleanupStarted',
   },
 }))
 

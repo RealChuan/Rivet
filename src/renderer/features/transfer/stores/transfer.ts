@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { TransferDirection } from '@shared/constants/transfer.js'
+import type { OperationStatus, TransferDirection } from '@shared/constants/transfer.js'
 import type {
   OperationProgressInfo,
   TransferProgressData,
@@ -56,6 +56,7 @@ export interface TransferState {
     fileSize?: number | undefined
   }) => void
   handleTaskFailed: (data: { taskId: string; errorMessage: string }) => void
+  handleTaskStatusChanged: (data: { taskId: string; status: OperationStatus }) => void
   handleTaskRemoved: (data: { taskId: string }) => void
 
   restoreActiveTasks: () => Promise<void>
@@ -146,6 +147,14 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     }))
   },
 
+  handleTaskStatusChanged: (data) => {
+    set((state) => ({
+      tasks: state.tasks.map((task) =>
+        task.id === data.taskId ? { ...task, status: data.status } : task,
+      ),
+    }))
+  },
+
   handleTaskRemoved: (data) => {
     set((state) => {
       const tasks = state.tasks.filter((t) => t.id !== data.taskId)
@@ -206,6 +215,7 @@ export const useTransferStore = create<TransferState>((set, get) => ({
       transferEvents.onProgress((data) => get().handleProgress(data)),
       transferEvents.onTaskCompleted((data) => get().handleTaskCompleted(data)),
       transferEvents.onTaskFailed((data) => get().handleTaskFailed(data)),
+      transferEvents.onTaskStatusChanged((data) => get().handleTaskStatusChanged(data)),
       transferEvents.onTaskRemoved((data) => get().handleTaskRemoved(data)),
     ]
     return () => unsubs.forEach((fn) => fn())

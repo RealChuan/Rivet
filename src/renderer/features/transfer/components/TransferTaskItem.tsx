@@ -1,5 +1,5 @@
 import type React from 'react'
-import { ChevronRight, Info, RotateCcw, Trash, X } from 'lucide-react'
+import { ChevronRight, Info, Pause, Play, RotateCcw, Trash, X } from 'lucide-react'
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -9,6 +9,7 @@ import { FILE_TYPE } from '@shared/constants/index.js'
 import {
   TRANSFER_CONFIG,
   OPERATION_STATUS,
+  TRANSFER_DIRECTION,
   TRANSFER_OPERATION_TYPE,
 } from '@shared/constants/transfer.js'
 import { formatFileSize } from '@shared/utils/index.js'
@@ -29,11 +30,12 @@ export const QUEUE_PATH_BLOCK_HEIGHT = 40
 export const QUEUE_DETAIL_PADDING = 12
 export const QUEUE_OPERATION_ROW_HEIGHT = 28
 
-// [名称 1fr] [大小 9rem] [进度 6.5rem] [速度 4.5rem] [剩余 3.5rem] [操作 2rem]
+// [名称 1fr] [大小 9rem] [进度 6.5rem] [速度 4.5rem] [剩余 3.5rem] [操作 3.5rem]
 // 除名称列外都按内容给足宽度，名称列用剩余空间：宁可截断名称，也不截断数据。
-const GRID_COLS = 'grid grid-cols-[minmax(0,1fr)_9rem_6.5rem_4.5rem_3.5rem_2rem] gap-x-3'
+// 操作列按两个 24px 按钮（暂停 + 取消）留位，挤成 2rem 会让图标互相压边。
+const GRID_COLS = 'grid grid-cols-[minmax(0,1fr)_9rem_6.5rem_4.5rem_3.5rem_3.5rem] gap-x-3'
 const SUB_GRID_COLS =
-  'grid grid-cols-[1.25rem_minmax(0,1fr)_9rem_6.5rem_4.5rem_3.5rem_2rem] gap-x-3'
+  'grid grid-cols-[1.25rem_minmax(0,1fr)_9rem_6.5rem_4.5rem_3.5rem_3.5rem] gap-x-3'
 
 interface InlineOperationRowProps {
   op: OperationProgressInfo
@@ -114,6 +116,8 @@ interface TransferTaskItemProps {
   onRetry?: (taskId: string) => void
   onCancel?: (taskId: string) => void
   onRemove?: (taskId: string) => void
+  onPause?: (taskId: string) => void
+  onResume?: (taskId: string) => void
   style?: React.CSSProperties
 }
 
@@ -124,6 +128,8 @@ export const TransferTaskItem = ({
   onRetry,
   onCancel,
   onRemove,
+  onPause,
+  onResume,
   style,
 }: TransferTaskItemProps) => {
   const { t, i18n } = useTranslation()
@@ -138,6 +144,9 @@ export const TransferTaskItem = ({
   const isFailed = task.status === OPERATION_STATUS.FAILED
   const isRunning = task.status === OPERATION_STATUS.RUNNING
   const isWaiting = task.status === OPERATION_STATUS.WAITING
+  const isPaused = task.status === OPERATION_STATUS.PAUSED
+  // 只有下载能暂停；上传方向没有写偏移入口，暂停等于从头再来。
+  const canPause = task.direction === TRANSFER_DIRECTION.DOWNLOAD && (isRunning || isWaiting)
 
   const transferredSize = progress?.transferredSize ?? task.transferredSize
   const fileSize = progress?.fileSize ?? task.fileSize
@@ -166,13 +175,15 @@ export const TransferTaskItem = ({
   // 文件夹的字节总量扫描结束才是真值，之前算出来的剩余时间会偏小。
   const statusText = isFailed
     ? t(($) => $.transfer.status.failed)
-    : isWaiting
-      ? t(($) => $.transfer.status.waiting)
-      : isFolder
-        ? scanCompleted
-          ? formatRemainingTime(remainingSeconds)
-          : t(($) => $.transfer.status.scanning)
-        : formatRemainingTime(remainingSeconds)
+    : isPaused
+      ? t(($) => $.transfer.status.paused)
+      : isWaiting
+        ? t(($) => $.transfer.status.waiting)
+        : isFolder
+          ? scanCompleted
+            ? formatRemainingTime(remainingSeconds)
+            : t(($) => $.transfer.status.scanning)
+          : formatRemainingTime(remainingSeconds)
 
   const menuItemClass = cn(
     'w-full px-3 py-2 text-left text-sm bg-transparent border-none rounded-md',
@@ -272,8 +283,28 @@ export const TransferTaskItem = ({
               {statusText}
             </span>
 
-            <div className="flex items-center justify-end">
-              {(isRunning || isWaiting) && (
+            <div className="flex items-center justify-end gap-0.5">
+              {canPause && (
+                <button
+                  type="button"
+                  onClick={() => onPause?.(task.id)}
+                  className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center bg-transparent border-none text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+                  aria-label={t(($) => $.transfer.action.pause)}
+                >
+                  <Pause className="w-4.5 h-4.5" />
+                </button>
+              )}
+              {isPaused && (
+                <button
+                  type="button"
+                  onClick={() => onResume?.(task.id)}
+                  className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center bg-transparent border-none text-text-muted hover:text-accent hover:bg-selected transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+                  aria-label={t(($) => $.transfer.action.resume)}
+                >
+                  <Play className="w-4 h-4" />
+                </button>
+              )}
+              {(isRunning || isWaiting || isPaused) && (
                 <button
                   type="button"
                   onClick={() => onCancel?.(task.id)}
@@ -316,7 +347,25 @@ export const TransferTaskItem = ({
                 {t(($) => $.transfer.action.viewErrorDetails)}
               </ContextMenuPrimitive.Item>
             )}
-            {(isRunning || isWaiting) && (
+            {canPause && (
+              <ContextMenuPrimitive.Item
+                className={menuItemClass}
+                onSelect={() => onPause?.(task.id)}
+              >
+                <Pause />
+                {t(($) => $.transfer.action.pause)}
+              </ContextMenuPrimitive.Item>
+            )}
+            {isPaused && (
+              <ContextMenuPrimitive.Item
+                className={menuItemClass}
+                onSelect={() => onResume?.(task.id)}
+              >
+                <Play />
+                {t(($) => $.transfer.action.resume)}
+              </ContextMenuPrimitive.Item>
+            )}
+            {(isRunning || isWaiting || isPaused) && (
               <ContextMenuPrimitive.Item
                 className={cn(menuItemClass, 'text-danger')}
                 onSelect={() => onCancel?.(task.id)}

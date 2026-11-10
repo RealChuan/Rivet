@@ -9,6 +9,11 @@ import { getParentPath, joinPaths, pathBasename } from '@shared/utils/index.js'
 const REMOTE_TEMP_SUFFIX = '.rivet-tmp'
 const LOCAL_TEMP_SUFFIX = '.rivet-download'
 
+/** 判断某个文件名是不是我们留下的本地半成品；清理任务时按它筛。 */
+export function isLocalTempName(name: string): boolean {
+  return name.endsWith(LOCAL_TEMP_SUFFIX)
+}
+
 export function remoteTempPath(target: string): string {
   const name = pathBasename(target)
   return joinPaths(getParentPath(target), `.${name}.${crypto.randomUUID()}${REMOTE_TEMP_SUFFIX}`)

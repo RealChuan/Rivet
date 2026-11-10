@@ -86,6 +86,7 @@ export class ProtocolService {
   private readonly options: ProtocolServiceOptions
   private hasActiveTasksFn: (sessionId: string) => boolean
   private sessionOpenedHandler: (() => void) | undefined
+  private sessionClosedHandler: (sessionId: string) => void = () => undefined
 
   constructor(options: ProtocolServiceOptions) {
     this.options = options
@@ -98,6 +99,11 @@ export class ProtocolService {
 
   setSessionOpenedHandler(fn: (() => void) | undefined): void {
     this.sessionOpenedHandler = fn
+  }
+
+  /** 会话关闭后清理残留传输任务；由 services/index.ts 接上传输服务，避免这里依赖它。 */
+  setSessionClosedHandler(fn: (sessionId: string) => void): void {
+    this.sessionClosedHandler = fn
   }
 
   private send(channel: string, data: unknown): void {
@@ -366,6 +372,8 @@ export class ProtocolService {
       return this.failure(id, toErrorInfo(error, ERROR_CODE.DISCONNECT_ERROR))
     } finally {
       this.options.sessions.unregister(sessionId)
+      // 会话没了，它名下的传输任务既跑不动也重试不了，留着只会占列表。
+      this.sessionClosedHandler(sessionId)
     }
   }
 

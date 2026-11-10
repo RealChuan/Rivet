@@ -1,7 +1,8 @@
 import { app } from 'electron'
 import { CLOSE_BEHAVIOR, TIMEOUTS } from '@shared/constants/index.js'
+import { EVENT_CHANNEL } from '@shared/contract/events.contract.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
-import { sessionManager, sessionRegistry } from '../services/index.js'
+import { sessionManager, sessionRegistry, transferService } from '../services/index.js'
 import { flushStores, getUiSettings } from '../stores/index.js'
 import { logger } from '../utils/index.js'
 import {
@@ -12,7 +13,7 @@ import {
   requestClose,
   resetCloseGuard,
 } from './close-guard.js'
-import { getMainWindow, setMainWindow } from './main-window.js'
+import { getMainWindow, sendToMainWindow, setMainWindow } from './main-window.js'
 import { destroyTray } from './tray.js'
 import { createAppWindow } from './window-factory.js'
 import { applyWindowTheme, attachSystemThemeListener } from './window-theme.js'
@@ -39,6 +40,22 @@ export async function disconnectAllSessions(): Promise<void> {
   }
 }
 
+/**
+ * 任务不落盘，退出就等于全部放弃，所以要把半成品一起清掉。
+ * 这里不设超时：宁可多等几秒，也不要留下清不干净的临时文件；
+ * 期间渲染层会盖一层「正在清理」的遮罩，用户不会以为卡死。
+ */
+async function cleanupTransferTemps(): Promise<void> {
+  try {
+    // 通知是尽力而为：发不出去也要继续清理，不能因为界面没响应就跳过。
+    sendToMainWindow(EVENT_CHANNEL.CLEANUP_STARTED, {})
+    await transferService.shutdown()
+  } catch (error: unknown) {
+    const errMsg = formatErrorMessage(error)
+    logger.error(`Error during transfer temp cleanup: ${errMsg}`)
+  }
+}
+
 export async function cleanupAndExit(
   signalName: string,
   shouldSaveConfig: boolean,
@@ -48,6 +65,7 @@ export async function cleanupAndExit(
 
   try {
     await disconnectAllSessions()
+    await cleanupTransferTemps()
     if (shouldSaveConfig) {
       await flushStores()
     }
@@ -92,6 +110,9 @@ export function setupAppLifecycle(): void {
 
       try {
         await disconnectAllSessions()
+        // 剩下的都是本地 IO：撤掉强制退出的兜底，否则可能把清理掐在半路。
+        clearTimeout(forceExitTimeout)
+        await cleanupTransferTemps()
         await flushStores()
       } catch (error: unknown) {
         const errMsg = formatErrorMessage(error)

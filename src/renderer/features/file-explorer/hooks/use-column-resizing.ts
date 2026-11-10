@@ -8,6 +8,12 @@ const FIXED_COLUMNS_WIDTH = DEFAULT_PERMISSIONS_WIDTH
 const GAP_WIDTH = 6
 const MIN_COLUMN_WIDTH = 50
 const SCROLLBAR_WIDTH = 17
+/**
+ * 列数与列间隙数。SFTP 多 owner、permissions 两列：固定列 3（size/permissions/owner）、
+ * 总列 5；其余协议固定列 1（size）、总列 3。间隙数恒等于列数。
+ */
+const SFTP_COLUMN_COUNTS = { fixedColumns: 3, gaps: 5 } as const
+const DEFAULT_COLUMN_COUNTS = { fixedColumns: 1, gaps: 3 } as const
 
 interface ColumnWidths {
   name: number
@@ -46,12 +52,17 @@ function computeColumnWidths(
 ): ColumnWidths {
   const { numFixedColumns, numGaps, permissionsWidth, ownerWidth } = isSftp
     ? {
-        numFixedColumns: 3,
-        numGaps: 5,
+        numFixedColumns: SFTP_COLUMN_COUNTS.fixedColumns,
+        numGaps: SFTP_COLUMN_COUNTS.gaps,
         permissionsWidth: FIXED_COLUMNS_WIDTH,
         ownerWidth: FIXED_COLUMNS_WIDTH,
       }
-    : { numFixedColumns: 1, numGaps: 3, permissionsWidth: 0, ownerWidth: 0 }
+    : {
+        numFixedColumns: DEFAULT_COLUMN_COUNTS.fixedColumns,
+        numGaps: DEFAULT_COLUMN_COUNTS.gaps,
+        permissionsWidth: 0,
+        ownerWidth: 0,
+      }
 
   const totalFixedWidth =
     FIXED_COLUMNS_WIDTH * numFixedColumns + DEFAULT_MODIFY_TIME_WIDTH + GAP_WIDTH * numGaps

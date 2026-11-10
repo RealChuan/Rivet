@@ -27,6 +27,8 @@ export const transferContract = defineContract({
   'transfer.cancelAll': { args: [z.string().optional()], result: voidResultSchema },
   'transfer.retry': { args: [z.string()], result: voidResultSchema },
   'transfer.retryAll': { args: [z.string().optional()], result: voidResultSchema },
+  'transfer.pause': { args: [z.string()], result: voidResultSchema },
+  'transfer.resume': { args: [z.string()], result: voidResultSchema },
   'transfer.getTasks': {
     args: [z.string().optional()],
     result: resultSchemaOf(z.array(transferTaskSchema)),

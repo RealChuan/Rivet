@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 
 import type { FileInfo } from '@shared/types/index.js'
+import { FILE_DATA_SELECTOR } from '../utils/data-attributes.js'
 import { computeDragSelectionIndices } from '../virtualization/layout.js'
 
 interface Point {
@@ -124,9 +125,9 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return
     if ((e.target as HTMLElement).closest('button')) return
-    if ((e.target as HTMLElement).closest('[data-file-list-header]')) return
+    if ((e.target as HTMLElement).closest(FILE_DATA_SELECTOR.LIST_HEADER)) return
     // 拖动源（名称列、已选中条目）走移动，其余区域归框选。
-    if ((e.target as HTMLElement).closest('[data-drag-source]')) return
+    if ((e.target as HTMLElement).closest(FILE_DATA_SELECTOR.DRAG_SOURCE)) return
 
     const scrollContainer = scrollContainerRef.current
     if (!scrollContainer) return

@@ -1,5 +1,6 @@
 import { Readable, Writable } from 'node:stream'
 import { describe, expect, it, vi } from 'vitest'
+import type { Entry } from '@shared/domain/entry.js'
 import type { TransferProgressData, TransferTask } from '@shared/types/index.js'
 import type { OperationProgressInfo } from '@shared/types/index.js'
 import {
@@ -55,12 +56,19 @@ function missing(): Promise<never> {
   return Promise.reject(new ProviderError(ERROR_CODE.NOT_FOUND, 'missing'))
 }
 
-function makeProvider(options: { remote?: Record<string, string>; failWrite?: Error } = {}) {
+function makeProvider(
+  options: {
+    remote?: Record<string, string>
+    failWrite?: Error
+    listing?: Record<string, Entry[]>
+  } = {},
+) {
   const files = new Map(Object.entries(options.remote ?? {}))
   const written: Record<string, Uint8Array[]> = {}
   const commits: string[] = []
   const aborts: string[] = []
   const closes: string[] = []
+  const readStarts: number[] = []
 
   const openWrite = vi.fn((path: string) => {
     if (options.failWrite) return Promise.reject(options.failWrite)
@@ -84,12 +92,19 @@ function makeProvider(options: { remote?: Record<string, string>; failWrite?: Er
 
   const provider: FileProvider = {
     ...createFakeProvider(),
+    list: (path: string) =>
+      (async function* () {
+        await Promise.resolve()
+        for (const entry of options.listing?.[path] ?? []) yield entry
+      })(),
     stat: vi.fn((path: string) => (files.has(path) ? Promise.resolve({} as never) : missing())),
-    openRead: (path) =>
-      Promise.resolve({
+    openRead: (path, opts) => {
+      const start = opts?.start ?? 0
+      if (start > 0) readStarts.push(start)
+      return Promise.resolve({
         stream: new ReadableStream<Uint8Array>({
           start(controller) {
-            controller.enqueue(new TextEncoder().encode(files.get(path) ?? ''))
+            controller.enqueue(new TextEncoder().encode((files.get(path) ?? '').slice(start)))
             controller.close()
           },
         }),
@@ -97,11 +112,12 @@ function makeProvider(options: { remote?: Record<string, string>; failWrite?: Er
           closes.push(path)
           return Promise.resolve()
         },
-      }),
+      })
+    },
     openWrite,
   }
 
-  return { provider, files, written, commits, aborts, closes, openWrite }
+  return { provider, files, written, commits, aborts, closes, readStarts, openWrite }
 }
 
 function makeLocalFs(initial: Record<string, string> = {}) {
@@ -137,9 +153,11 @@ function makeLocalFs(initial: Record<string, string> = {}) {
       files.delete(path)
       return Promise.resolve()
     },
-    createReadStream: (path) => Readable.from([Buffer.from(files.get(path) ?? '')]),
-    createWriteStream: (path) => {
-      const chunks: Buffer[] = []
+    createReadStream: (path, options) =>
+      Readable.from([Buffer.from((files.get(path) ?? '').slice(options?.start ?? 0))]),
+    createWriteStream: (path, options) => {
+      const existing = options?.append === true ? (files.get(path) ?? '') : ''
+      const chunks: Buffer[] = existing === '' ? [] : [Buffer.from(existing)]
       const stream = new Writable({
         write(chunk: Buffer, _encoding, callback) {
           chunks.push(chunk)
@@ -237,6 +255,60 @@ describe('FileTransferExecutor 下载', () => {
     expect(provider.closes).toEqual(['/remote/a.txt'])
     const reported = report.mock.calls.map(([data]) => data.transferredSize)
     expect(reported.at(-1)).toBe(6)
+  })
+
+  it('本地已有半成品时从它的字节数续传，而不是从头再下', async () => {
+    const provider = makeProvider({ remote: { '/remote/a.txt': 'abcdef' } })
+    const local = makeLocalFs({ '/local/a.txt.rivet-download': 'abcd' })
+    const { hooks, report } = createHooks()
+    const executor = createExecutor(provider.provider, local.localFs)
+    const task = fileTask({ direction: TRANSFER_DIRECTION.DOWNLOAD, resumeDownload: true })
+    task.resolvedLocalPath = '/local/a.txt'
+
+    const outcome = await executor.execute(task, new AbortController().signal, hooks)
+
+    expect(outcome).toEqual({ kind: 'completed' })
+    expect(provider.readStarts).toEqual([4])
+    expect(local.files.get('/local/a.txt')).toBe('abcdef')
+    const reported = report.mock.calls.map(([data]) => data.transferredSize)
+    expect(reported.at(-1)).toBe(6)
+  })
+
+  it('文件夹续传：已完成的跳过、半成品接着传、缺的重新下载', async () => {
+    const provider = makeProvider({
+      remote: { '/r/keep.txt': 'AAAA', '/r/partial.bin': 'BBBBBB', '/r/new.txt': 'CC' },
+      listing: {
+        '/r': [
+          { name: 'keep.txt', kind: 'file', size: 4, mtime: 0, path: '/r/keep.txt' },
+          { name: 'partial.bin', kind: 'file', size: 6, mtime: 0, path: '/r/partial.bin' },
+          { name: 'new.txt', kind: 'file', size: 2, mtime: 0, path: '/r/new.txt' },
+        ],
+      },
+    })
+    const local = makeLocalFs({
+      '/l/keep.txt': 'AAAA',
+      '/l/partial.bin.rivet-download': 'BBBB',
+    })
+    const { hooks } = createHooks()
+    const executor = createExecutor(provider.provider, local.localFs)
+    const task = fileTask({
+      itemType: FILE_TYPE.DIRECTORY,
+      direction: TRANSFER_DIRECTION.DOWNLOAD,
+      localPath: '/l',
+      remotePath: '/r',
+      itemName: 'r',
+      resumeDownload: true,
+      resolvedLocalPath: '/l',
+    })
+
+    const outcome = await executor.execute(task, new AbortController().signal, hooks)
+
+    expect(outcome).toEqual({ kind: 'completed' })
+    expect(local.files.get('/l/partial.bin')).toBe('BBBBBB')
+    expect(local.files.get('/l/new.txt')).toBe('CC')
+    // 只有半成品那一个文件带了读取起点。
+    expect(provider.readStarts).toEqual([4])
+    expect(task.completedFileCount).toBe(3)
   })
 
   it('下载中断时删除临时文件并返回 cancelled', async () => {

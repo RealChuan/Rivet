@@ -21,6 +21,7 @@ export const electronAPI = {
     setTheme: (theme) => send('app.setTheme', theme),
     setLocale: (locale) => send('app.setLocale', locale),
     onCloseRequested: (callback) => subscribe('app.closeRequested', callback),
+    onCleanupStarted: (callback) => subscribe('app.cleanupStarted', callback),
   },
 
   clipboard: {
@@ -95,6 +96,8 @@ export const electronAPI = {
     cancelAll: (sessionId) => invoke('transfer.cancelAll', sessionId),
     retry: (taskId) => invoke('transfer.retry', taskId),
     retryAll: (sessionId) => invoke('transfer.retryAll', sessionId),
+    pause: (taskId) => invoke('transfer.pause', taskId),
+    resume: (taskId) => invoke('transfer.resume', taskId),
     getTasks: (sessionId) => invoke('transfer.getTasks', sessionId),
     getConcurrency: (direction) => invoke('transfer.getConcurrency', direction),
     setConcurrency: (max, direction) => invoke('transfer.setConcurrency', max, direction),
@@ -105,6 +108,7 @@ export const electronAPI = {
     onProgress: (callback) => subscribe('transfer.progress', callback),
     onTaskCompleted: (callback) => subscribe('transfer.taskCompleted', callback),
     onTaskFailed: (callback) => subscribe('transfer.taskFailed', callback),
+    onTaskStatusChanged: (callback) => subscribe('transfer.taskStatusChanged', callback),
     onTaskRemoved: (callback) => subscribe('transfer.taskRemoved', callback),
   },
 } satisfies ElectronAPI

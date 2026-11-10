@@ -50,6 +50,7 @@ function createApiStub() {
       onProgress: vi.fn(),
       onTaskCompleted: vi.fn(),
       onTaskFailed: vi.fn(),
+      onTaskStatusChanged: vi.fn(),
       onTaskRemoved: vi.fn(),
     },
     dialog: { getPathForFile: vi.fn(), showOpenDialog: vi.fn(), showSaveDialog: vi.fn() },

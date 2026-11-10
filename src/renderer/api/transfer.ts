@@ -24,6 +24,14 @@ export const transferApi = {
     unwrap(await window.electronAPI.transfer.retryAll(sessionId))
   },
 
+  pause: async (taskId: string): Promise<void> => {
+    unwrap(await window.electronAPI.transfer.pause(taskId))
+  },
+
+  resume: async (taskId: string): Promise<void> => {
+    unwrap(await window.electronAPI.transfer.resume(taskId))
+  },
+
   getTasks: async (sessionId?: string): Promise<TransferTask[]> =>
     unwrap(await window.electronAPI.transfer.getTasks(sessionId)),
 
@@ -56,6 +64,8 @@ export const transferEvents = {
     window.electronAPI.transfer.onTaskCompleted(callback),
   onTaskFailed: (callback: Parameters<TransferEventApi['onTaskFailed']>[0]) =>
     window.electronAPI.transfer.onTaskFailed(callback),
+  onTaskStatusChanged: (callback: Parameters<TransferEventApi['onTaskStatusChanged']>[0]) =>
+    window.electronAPI.transfer.onTaskStatusChanged(callback),
   onTaskRemoved: (callback: Parameters<TransferEventApi['onTaskRemoved']>[0]) =>
     window.electronAPI.transfer.onTaskRemoved(callback),
 }

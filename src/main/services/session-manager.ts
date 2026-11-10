@@ -39,6 +39,8 @@ class SessionManager {
 
   unregister(sessionId: string): void {
     providerSessionRegistry.unregister(sessionId)
+    // 心跳判定死亡会绕过守卫直接拆会话，这里补一次任务清理。
+    transferService.cleanupSessionTasks(sessionId)
     if (providerSessionRegistry.count === 0 && this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval)
       this.heartbeatInterval = null

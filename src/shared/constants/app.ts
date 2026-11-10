@@ -67,6 +67,16 @@ export const TITLEBAR_OVERLAY_COLORS = {
   light: { color: '#ffffff', symbolColor: '#171717' },
   dark: { color: '#1e1e1e', symbolColor: '#e5e5e5' },
 } as const
+
+/**
+ * 窗口底色：有窗口材质时透明，否则与标题栏同色，
+ * 否则加载瞬间会和标题栏出现色差。
+ */
+export const WINDOW_BACKGROUND = {
+  TRANSPARENT: '#00000000',
+  light: TITLEBAR_OVERLAY_COLORS.light.color,
+  dark: TITLEBAR_OVERLAY_COLORS.dark.color,
+} as const
 /** 连接面板默认宽度 */
 export const DEFAULT_CONNECTION_PANEL_WIDTH = 260
 /** 传输队列面板收起态高度 */

@@ -1,5 +1,10 @@
 import { nativeTheme } from 'electron'
-import { TITLEBAR_HEIGHT, TITLEBAR_OVERLAY_COLORS, type Theme } from '@shared/constants/index.js'
+import {
+  THEME,
+  TITLEBAR_HEIGHT,
+  TITLEBAR_OVERLAY_COLORS,
+  type Theme,
+} from '@shared/constants/index.js'
 import { supportsBackgroundMaterial, supportsVibrancy } from '../utils/index.js'
 import { getMainWindow } from './main-window.js'
 import { getWindowChromeMode } from './window-chrome.js'
@@ -31,8 +36,8 @@ export function attachSystemThemeListener(): void {
   if (systemThemeListenerAttached) return
   systemThemeListenerAttached = true
   nativeTheme.on('updated', () => {
-    if (nativeTheme.themeSource === 'system') {
-      applyWindowTheme('system')
+    if (nativeTheme.themeSource === THEME.SYSTEM) {
+      applyWindowTheme(THEME.SYSTEM)
     }
   })
 }

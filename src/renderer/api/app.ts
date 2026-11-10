@@ -17,4 +17,7 @@ export const appApi = {
 
   onCloseRequested: (callback: Parameters<AppEventApi['onCloseRequested']>[0]) =>
     window.electronAPI.app.onCloseRequested(callback),
+
+  onCleanupStarted: (callback: Parameters<AppEventApi['onCleanupStarted']>[0]) =>
+    window.electronAPI.app.onCleanupStarted(callback),
 }

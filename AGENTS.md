@@ -29,6 +29,7 @@
 
 - 翻译 key 只改 `src/shared/i18n/locales/*.json`（主进程与渲染层共用），`pnpm run i18n:types` 生成 `resources.d.ts`。
 - 测试里的 `ResizeObserver` 是 no-op 桩；需要尺寸的用例自行 stub 并手动触发。
+- 常量在所属域旁定义，不建跨域大而全常量表：超时与并发走 `TIMEOUTS`/`TRANSFER_CONFIG`；Tailwind 类名（含 z-index）与像素布局参数保持字面量（抽成 JS 常量会丢样式或制造远距离耦合）；判别联合的 tag 值（`TaskOutcome`、`Credentials.kind` 等）不抽常量。
 
 ## 禁止
 

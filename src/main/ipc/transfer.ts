@@ -24,6 +24,14 @@ export function setupTransferIpcHandlers(): void {
       transferService.retryAll(sessionId)
       return ok(undefined)
     },
+    'transfer.pause': async (taskId) => {
+      await transferService.pause(taskId)
+      return ok(undefined)
+    },
+    'transfer.resume': async (taskId) => {
+      await transferService.resume(taskId)
+      return ok(undefined)
+    },
     'transfer.getTasks': (sessionId) => ok(transferService.getTasks(sessionId)),
     'transfer.getConcurrency': (direction) => ok(transferService.getConcurrency(direction)),
     'transfer.setConcurrency': (max, direction) => {

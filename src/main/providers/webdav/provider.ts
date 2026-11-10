@@ -224,6 +224,15 @@ export function createWebdavProvider(options: WebdavProviderOptions): FileProvid
         ...(opts.signal !== undefined ? { signal: opts.signal } : {}),
       })
 
+      // 服务器可能忽略 Range 直接回 200 全量：当成续传会把整条流接在半成品后面。
+      if (opts.start !== undefined && response.status !== 206) {
+        await response.body.cancel().catch(() => {})
+        throw new ProviderError(
+          ERROR_CODE.DOWNLOAD_ERROR,
+          'Server ignored the Range request; cannot resume from an offset',
+        )
+      }
+
       return {
         stream: response.body,
         close: async () => {

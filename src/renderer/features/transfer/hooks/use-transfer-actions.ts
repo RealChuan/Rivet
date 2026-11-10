@@ -37,6 +37,8 @@ interface UseTransferActionsReturn {
   cancelAll: (sessionId?: string) => Promise<void>
   retryTask: (taskId: string) => Promise<void>
   retryAll: (sessionId?: string) => Promise<void>
+  pauseTask: (taskId: string) => Promise<void>
+  resumeTask: (taskId: string) => Promise<void>
 }
 
 export function useTransferActions(): UseTransferActionsReturn {
@@ -202,6 +204,14 @@ export function useTransferActions(): UseTransferActionsReturn {
     await transferApi.retryAll(sessionId)
   }
 
+  const pauseTask = async (taskId: string) => {
+    await transferApi.pause(taskId)
+  }
+
+  const resumeTask = async (taskId: string) => {
+    await transferApi.resume(taskId)
+  }
+
   return {
     startUpload,
     startMixedUpload,
@@ -210,5 +220,7 @@ export function useTransferActions(): UseTransferActionsReturn {
     cancelAll,
     retryTask,
     retryAll,
+    pauseTask,
+    resumeTask,
   }
 }

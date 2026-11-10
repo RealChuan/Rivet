@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SORT_ORDER } from '@shared/constants/sort.js'
+import { FILE_DATA_SELECTOR } from '../utils/data-attributes.js'
 import { FileListHeader } from './FileListHeader.js'
 
 vi.mock('react-i18next', () => ({
@@ -61,7 +62,7 @@ describe('FileListHeader', () => {
 
   it('should show sort indicator for current sort column', () => {
     render(<FileListHeader {...defaultProps} sortBy="name" sortOrder={SORT_ORDER.ASC} />)
-    const header = document.querySelector('[data-file-list-header]')
+    const header = document.querySelector(FILE_DATA_SELECTOR.LIST_HEADER)
     if (!header) throw new Error('Header not found')
     const buttons = header.querySelectorAll('button')
     const nameButton = Array.from(buttons).find((b) =>
@@ -74,7 +75,7 @@ describe('FileListHeader', () => {
 
   it('should not show sort indicator for non-sort column', () => {
     render(<FileListHeader {...defaultProps} sortBy="name" sortOrder={SORT_ORDER.ASC} />)
-    const header = document.querySelector('[data-file-list-header]')
+    const header = document.querySelector(FILE_DATA_SELECTOR.LIST_HEADER)
     if (!header) throw new Error('Header not found')
     const buttons = header.querySelectorAll('button')
     const sizeButton = Array.from(buttons).find((b) =>
@@ -117,7 +118,7 @@ describe('FileListHeader', () => {
 
   it('should apply rotate-180 class for desc sort order', () => {
     render(<FileListHeader {...defaultProps} sortBy="name" sortOrder={SORT_ORDER.DESC} />)
-    const header = document.querySelector('[data-file-list-header]')
+    const header = document.querySelector(FILE_DATA_SELECTOR.LIST_HEADER)
     if (!header) throw new Error('Header not found')
     const buttons = header.querySelectorAll('button')
     const nameButton = Array.from(buttons).find((b) =>

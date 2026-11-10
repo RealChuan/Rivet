@@ -4,6 +4,8 @@ export const OPERATION_STATUS = {
   COMPLETED: 'completed',
   FAILED: 'failed',
   CANCELLED: 'cancelled',
+  /** 用户暂停：任务留在列表里，凭本地半成品继续（当前仅支持下载）。 */
+  PAUSED: 'paused',
 } as const
 
 export type OperationStatus = (typeof OPERATION_STATUS)[keyof typeof OPERATION_STATUS]

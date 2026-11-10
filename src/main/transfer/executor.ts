@@ -19,6 +19,7 @@ import type { FileProvider } from '../providers/types.js'
 import type { ExecutorHooks, TaskOutcome, TransferExecutor } from './executor-types.js'
 import type { LocalFs } from './local-fs.js'
 import { localTempPath } from '../utils/temp-path.js'
+import { isPauseAbort } from './abort-reason.js'
 import { resolveDownloadTarget, resolveUploadTarget } from './conflict.js'
 import { TaskSemaphore } from './semaphore.js'
 
@@ -166,6 +167,7 @@ export class FileTransferExecutor implements TransferExecutor {
         ? await this.upload(provider, task, signal, hooks)
         : await this.download(provider, task, signal, hooks)
     } catch (error) {
+      if (isPauseAbort(signal)) return { kind: 'paused' }
       if (signal.aborted) return { kind: 'cancelled' }
       return {
         kind: 'failed',
@@ -202,6 +204,8 @@ export class FileTransferExecutor implements TransferExecutor {
     task.activeFileCount = 0
     task.waitingFileCount = 0
     task.transferredSize = 0
+    // 续传会重新扫一遍，之前的“扫描完成”不再成立。
+    task.scanCompleted = false
     // 文件夹的字节总量只能边扫边累加；扫描结束前它就是“已发现字节数”。
     task.fileSize = 0
     this.reportFolder(task, hooks)
@@ -265,6 +269,8 @@ export class FileTransferExecutor implements TransferExecutor {
 
     await waitForIdle()
 
+    // 暂停与取消都终止了扫描，区别在于父任务状态由服务决定。
+    if (isPauseAbort(signal)) return { kind: 'paused' }
     if (signal.aborted) return { kind: 'cancelled' }
 
     const [firstFailure] = failures
@@ -373,10 +379,20 @@ export class FileTransferExecutor implements TransferExecutor {
     signal: AbortSignal,
     startFile: (op: FolderFileOp) => Promise<void>,
   ): Promise<boolean> {
-    const target = await resolveDownloadTarget(this.options.localFs, task, { signal })
-    if ('skip' in target) return true
+    // 续传沿用首次解析出的目录，不再重问冲突；只有首次执行才判定目标。
+    const resumingPath = task.resumeDownload === true ? task.resolvedLocalPath : undefined
+    let localRoot: string
 
-    await this.options.localFs.mkdir(target.path)
+    if (resumingPath === undefined) {
+      const target = await resolveDownloadTarget(this.options.localFs, task, { signal })
+      if ('skip' in target) return true
+      localRoot = target.path
+      task.resolvedLocalPath = localRoot
+    } else {
+      localRoot = resumingPath
+    }
+
+    await this.options.localFs.mkdir(localRoot)
 
     const scanSlots = new TaskSemaphore(TRANSFER_CONFIG.FOLDER_SCAN_CONCURRENCY)
 
@@ -394,7 +410,8 @@ export class FileTransferExecutor implements TransferExecutor {
       return listed
     }
 
-    const queue: FolderDir[] = [{ local: target.path, remote: task.remotePath }]
+    const queue: FolderDir[] = [{ local: localRoot, remote: task.remotePath }]
+    const resuming = resumingPath !== undefined
     let index = 0
 
     const processDir = async (dir: FolderDir): Promise<void> => {
@@ -414,6 +431,15 @@ export class FileTransferExecutor implements TransferExecutor {
           continue
         }
 
+        // 续传时「文件在且没有半成品」即视为上次已下完；服务器改没改不重下。
+        if (resuming && (await this.isAlreadyDownloaded(localPath))) {
+          task.totalFileCount = (task.totalFileCount ?? 0) + 1
+          task.completedFileCount = (task.completedFileCount ?? 0) + 1
+          task.fileSize += entry.size
+          task.transferredSize += entry.size
+          continue
+        }
+
         await startFile({
           id: `${task.id}:op:${index}`,
           localPath,
@@ -429,6 +455,15 @@ export class FileTransferExecutor implements TransferExecutor {
     await drainDirQueue(queue, signal, processDir)
 
     return false
+  }
+
+  /** 目录里已经落盘、且没有 `.rivet-download` 半成品的文件，视为上次已下完。 */
+  private async isAlreadyDownloaded(localPath: string): Promise<boolean> {
+    const stat = await this.options.localFs.stat(localPath).catch(() => null)
+    if (stat === null || stat.isDirectory) return false
+
+    const temp = await this.options.localFs.stat(localTempPath(localPath)).catch(() => null)
+    return temp === null
   }
 
   private async runFolderOp(
@@ -463,6 +498,8 @@ export class FileTransferExecutor implements TransferExecutor {
       ...parent,
       id: op.id,
       itemType: FILE_TYPE.FILE,
+      // 父任务记的是目录路径，子文件必须自己重新判定落盘目标。
+      resolvedLocalPath: op.localPath,
       localPath: op.localPath,
       localDir: op.localDir,
       remotePath: op.remotePath,
@@ -494,11 +531,13 @@ export class FileTransferExecutor implements TransferExecutor {
     }
 
     try {
-      if (parent.direction === TRANSFER_DIRECTION.UPLOAD) {
-        await this.upload(provider, childTask, signal, childHooks)
-      } else {
-        await this.download(provider, childTask, signal, childHooks)
-      }
+      const outcome =
+        parent.direction === TRANSFER_DIRECTION.UPLOAD
+          ? await this.upload(provider, childTask, signal, childHooks)
+          : await this.download(provider, childTask, signal, childHooks)
+
+      // 暂停/取消的子文件没传完，不能算进已完成数；父任务的状态由服务统一收口。
+      if (outcome.kind !== 'completed') return
 
       parent.completedFileCount = (parent.completedFileCount ?? 0) + 1
       hooks.reportOperation({
@@ -570,22 +609,57 @@ export class FileTransferExecutor implements TransferExecutor {
     }
   }
 
+  /**
+   * 续传检查点：上次停在 `<target>.rivet-download` 里，字节数就是下次的起点。
+   * 目标路径只在首次解析冲突时确定，之后沿用，避免续传又弹一次冲突。
+   */
+  private async resumePoint(
+    task: TransferTask,
+  ): Promise<{ path: string; tempPath: string; offset: number } | null> {
+    // 只有「继续/重试」才认临时文件；否则可能是上一个任务的残留，续上去就是脏数据。
+    if (task.resumeDownload !== true) return null
+
+    // 冲突解析可能改了落盘名（保留两者），所以优先用当时记下的路径。
+    const targetPath = task.resolvedLocalPath ?? task.localPath
+    const tempPath = localTempPath(targetPath)
+    const stat = await this.options.localFs.stat(tempPath).catch(() => null)
+    if (stat === null || stat.isDirectory || stat.size <= 0) return null
+    // 临时文件已经与源文件等长：无法判断内容是否完整，重下比假装完整安全。
+    if (task.fileSize > 0 && stat.size >= task.fileSize) return null
+
+    return { path: targetPath, tempPath, offset: stat.size }
+  }
+
   private async download(
     provider: FileProvider,
     task: TransferTask,
     signal: AbortSignal,
     hooks: ExecutorHooks,
   ): Promise<TaskOutcome> {
-    const target = await resolveDownloadTarget(this.options.localFs, task, { signal })
-    if ('skip' in target) return { kind: 'completed' }
+    const resumed = await this.resumePoint(task)
+    let targetPath: string
+    let offset = 0
 
-    const tempPath = localTempPath(target.path)
+    if (resumed !== null) {
+      targetPath = resumed.path
+      offset = resumed.offset
+      task.resolvedLocalPath = targetPath
+    } else {
+      const target = await this.resolveDownloadTargetFor(task, signal)
+      if (target === null) return { kind: 'completed' }
+      targetPath = target.path
+    }
 
-    const handle = await provider.openRead(task.remotePath, { signal })
+    const tempPath = localTempPath(targetPath)
+
+    const handle = await provider.openRead(task.remotePath, {
+      signal,
+      ...(offset > 0 ? { start: offset } : {}),
+    })
     const reporter = createProgressReporter(task, (data) => hooks.report(data))
 
     try {
-      let transferred = 0
+      let transferred = offset
       const counter = new Transform({
         transform(chunk: Buffer, _encoding, callback) {
           transferred += chunk.length
@@ -597,12 +671,14 @@ export class FileTransferExecutor implements TransferExecutor {
       await pipeline(
         Readable.fromWeb(handle.stream as NodeReadableStream<Uint8Array>),
         counter,
-        this.options.localFs.createWriteStream(tempPath),
+        this.options.localFs.createWriteStream(tempPath, { append: offset > 0 }),
         { signal },
       )
-      await this.options.localFs.rename(tempPath, target.path)
+      await this.options.localFs.rename(tempPath, targetPath)
       return { kind: 'completed' }
     } catch (error) {
+      // 只有暂停保留半成品；取消和失败都清掉，避免留下无法继续的垃圾。
+      if (isPauseAbort(signal)) return { kind: 'paused' }
       await this.options.localFs.unlink(tempPath).catch(() => {})
       if (signal.aborted) return { kind: 'cancelled' }
       throw error
@@ -610,5 +686,16 @@ export class FileTransferExecutor implements TransferExecutor {
       reporter.flush()
       await handle.close().catch(() => {})
     }
+  }
+
+  /** 解析下载目标并记下路径；冲突策略判定被跳过时返回 null。 */
+  private async resolveDownloadTargetFor(
+    task: TransferTask,
+    signal: AbortSignal,
+  ): Promise<{ path: string } | null> {
+    const target = await resolveDownloadTarget(this.options.localFs, task, { signal })
+    if ('skip' in target) return null
+    task.resolvedLocalPath = target.path
+    return target
   }
 }

@@ -16,8 +16,10 @@ export interface LocalFs {
   rename(from: string, to: string): Promise<void>
   rm(path: string): Promise<void>
   unlink(path: string): Promise<void>
-  createReadStream(path: string): Readable
-  createWriteStream(path: string): Writable
+  /** `start` 用于断点续传：跳过已下好的字节。 */
+  createReadStream(path: string, options?: { start?: number }): Readable
+  /** `append` 为真时接着写已有文件，而不是截断重来。 */
+  createWriteStream(path: string, options?: { append?: boolean }): Writable
 }
 
 export const nodeLocalFs: LocalFs = {
@@ -51,6 +53,8 @@ export const nodeLocalFs: LocalFs = {
     await fs.promises.unlink(path)
   },
 
-  createReadStream: (path) => fs.createReadStream(path),
-  createWriteStream: (path) => fs.createWriteStream(path),
+  createReadStream: (path, options) =>
+    fs.createReadStream(path, options?.start === undefined ? {} : { start: options.start }),
+  createWriteStream: (path, options) =>
+    fs.createWriteStream(path, { flags: options?.append === true ? 'a' : 'w' }),
 }

@@ -5,6 +5,7 @@ import { FILE_TYPE } from '@shared/constants/index.js'
 import { FileIcon } from '../../../components/common/index.js'
 import { cn } from '../../../utils/index.js'
 import { FILE_DRAG_MIME, type FileDragMove } from '../hooks/use-file-drag-move.js'
+import { FILE_DRAG_SOURCE_ATTR, fileItemDataAttrs } from '../utils/data-attributes.js'
 import { FILE_GRID_GAP } from '../virtualization/layout.js'
 
 interface FileGridItemProps {
@@ -44,8 +45,7 @@ export const FileGridItem = ({
     role="gridcell"
     aria-selected={isSelected}
     tabIndex={isFocused ? 0 : -1}
-    data-file-item={file.name}
-    data-file-path={file.absolutePath}
+    {...fileItemDataAttrs(file)}
     className={cn(
       'flex flex-col items-center justify-center gap-2 p-2 m-1 rounded-md select-none outline-none transition-colors duration-150',
       isSelected ? 'bg-selected text-accent' : 'bg-transparent text-text hover:bg-hover',
@@ -83,7 +83,7 @@ export const FileGridItem = ({
       dragMove.dropOn(file)
     }}
   >
-    <div className="relative" draggable data-drag-source="">
+    <div className="relative" draggable {...FILE_DRAG_SOURCE_ATTR}>
       <FileIcon type={file.type} name={file.name} className="w-14 h-14" />
       {isFavorite && (
         <Star
@@ -96,7 +96,7 @@ export const FileGridItem = ({
     <span
       className="text-xs leading-tight w-full text-center truncate"
       draggable
-      data-drag-source=""
+      {...FILE_DRAG_SOURCE_ATTR}
     >
       {file.name}
     </span>

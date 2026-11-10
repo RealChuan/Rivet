@@ -2,6 +2,7 @@
 export default interface Resources {
   "translation": {
     "app": {
+      "cleaningTemps": "Cleaning up temporary files…",
       "name": "Rivet",
       "subtitle": "SFTP / SMB / WebDAV / S3 File Browser"
     },
@@ -344,7 +345,9 @@ export default interface Resources {
       "action": {
         "cancel": "Cancel",
         "cancelAll": "Cancel All",
+        "pause": "Pause",
         "remove": "Remove",
+        "resume": "Resume",
         "retry": "Retry",
         "sort": "Sort",
         "viewErrorDetails": "View Error Details"
@@ -402,6 +405,7 @@ export default interface Resources {
       "status": {
         "failed": "Failed",
         "failedCount": "{{count}} failed" | "{{count}} failed",
+        "paused": "Paused",
         "scanning": "Scanning",
         "waiting": "Waiting"
       },

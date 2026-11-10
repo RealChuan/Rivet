@@ -7,7 +7,9 @@ import { getTransferSettings } from '../../stores/index.js'
 import { FileTransferExecutor } from '../../transfer/executor.js'
 import { nodeLocalFs } from '../../transfer/local-fs.js'
 import { ProgressAggregator } from '../../transfer/progress-aggregator.js'
+import { cleanupLocalTemps } from '../../transfer/temp-cleanup.js'
 import { TransferService } from '../../transfer/transfer-service.js'
+import { logger } from '../../utils/index.js'
 
 const progress = new ProgressAggregator({
   flushMs: PROGRESS_BATCH_MS,
@@ -25,6 +27,10 @@ export const transferService = new TransferService({
     sendToMainWindow(channel as (typeof EVENT_CHANNEL)[keyof typeof EVENT_CHANNEL], payload),
   progress,
   notify: notifyTransferFinished,
+  cleanupLocalTemps: (task) =>
+    cleanupLocalTemps(nodeLocalFs, task).catch((error: unknown) => {
+      logger.catch(error, { action: 'cleanup-local-temps', taskId: task.id })
+    }),
 })
 
 export function applyPersistedConcurrency(): void {

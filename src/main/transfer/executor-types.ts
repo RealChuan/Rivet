@@ -6,7 +6,11 @@ import type {
 } from '@shared/types/index.js'
 
 export type TaskOutcome =
-  { kind: 'completed' } | { kind: 'failed'; message: string } | { kind: 'cancelled' }
+  | { kind: 'completed' }
+  | { kind: 'failed'; message: string }
+  | { kind: 'cancelled' }
+  /** 用户暂停：临时文件保留，继续时从它的字节数接着下。 */
+  | { kind: 'paused' }
 
 export interface ExecutorHooks {
   acquire(key: string, signal: AbortSignal): Promise<void>

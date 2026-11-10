@@ -1,6 +1,7 @@
 {
   "translation": {
     "app": {
+      "cleaningTemps": "Cleaning up temporary files…",
       "name": "Rivet",
       "subtitle": "SFTP / SMB / WebDAV / S3 File Browser"
     },
@@ -351,7 +352,9 @@
       "action": {
         "cancel": "Cancel",
         "cancelAll": "Cancel All",
+        "pause": "Pause",
         "remove": "Remove",
+        "resume": "Resume",
         "retry": "Retry",
         "sort": "Sort",
         "viewErrorDetails": "View Error Details"
@@ -410,6 +413,7 @@
         "failed": "Failed",
         "failedCount_one": "{{count}} failed",
         "failedCount_other": "{{count}} failed",
+        "paused": "Paused",
         "scanning": "Scanning",
         "waiting": "Waiting"
       },

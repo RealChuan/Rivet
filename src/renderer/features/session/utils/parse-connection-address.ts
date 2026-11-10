@@ -1,6 +1,7 @@
 import {
   PORT_SFTP,
   PORT_SMB,
+  PORT_WEBDAV_HTTP,
   PORT_WEBDAV_HTTPS,
   PROTOCOL,
   SCHEME,
@@ -34,8 +35,8 @@ interface SchemeRule {
 const SCHEME_RULES: Record<string, SchemeRule> = {
   sftp: { protocol: PROTOCOL.SFTP, defaultPort: PORT_SFTP },
   smb: { protocol: PROTOCOL.SMB, defaultPort: PORT_SMB },
-  webdav: { protocol: PROTOCOL.WEBDAV, defaultPort: 80, scheme: SCHEME.HTTP },
-  dav: { protocol: PROTOCOL.WEBDAV, defaultPort: 80, scheme: SCHEME.HTTP },
+  webdav: { protocol: PROTOCOL.WEBDAV, defaultPort: PORT_WEBDAV_HTTP, scheme: SCHEME.HTTP },
+  dav: { protocol: PROTOCOL.WEBDAV, defaultPort: PORT_WEBDAV_HTTP, scheme: SCHEME.HTTP },
   webdavs: { protocol: PROTOCOL.WEBDAV, defaultPort: PORT_WEBDAV_HTTPS, scheme: SCHEME.HTTPS },
   davs: { protocol: PROTOCOL.WEBDAV, defaultPort: PORT_WEBDAV_HTTPS, scheme: SCHEME.HTTPS },
 }

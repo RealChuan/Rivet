@@ -87,7 +87,7 @@ interface TransferListProps {
 }
 
 export const TransferList = ({ tasks, grouped, resolveSessionName }: TransferListProps) => {
-  const { retryTask, cancelTask } = useTransferActions()
+  const { retryTask, cancelTask, pauseTask, resumeTask } = useTransferActions()
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set())
   // 展开会改变行高，虚拟化的测量缓存必须显式失效。
   const [measureRevision, setMeasureRevision] = useState(0)
@@ -125,6 +125,20 @@ export const TransferList = ({ tasks, grouped, resolveSessionName }: TransferLis
       void cancelTask(taskId)
     },
     [cancelTask],
+  )
+
+  const handlePause = useCallback(
+    (taskId: string) => {
+      void pauseTask(taskId)
+    },
+    [pauseTask],
+  )
+
+  const handleResume = useCallback(
+    (taskId: string) => {
+      void resumeTask(taskId)
+    },
+    [resumeTask],
   )
 
   const estimateSize = useCallback(
@@ -165,11 +179,13 @@ export const TransferList = ({ tasks, grouped, resolveSessionName }: TransferLis
           onRetry={handleRetry}
           onCancel={handleCancel}
           onRemove={handleCancel}
+          onPause={handlePause}
+          onResume={handleResume}
           style={style}
         />
       )
     },
-    [expandedIds, handleCancel, handleRetry, toggleExpand],
+    [expandedIds, handleCancel, handlePause, handleResume, handleRetry, toggleExpand],
   )
 
   return (

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { AppCleanupOverlay } from './components/common/AppCleanupOverlay.js'
 import { useApplicationInitialization } from './hooks/use-app-init.js'
 import { useGlobalShortcuts } from './hooks/use-global-shortcuts.js'
 import { useLocaleSync } from './hooks/use-locale-sync.js'
@@ -17,13 +18,21 @@ const App = () => {
 
   if (!initialized) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-transparent">
-        <div className="text-text-muted text-sm">{t(($) => $.fileExplorerList.loading)}</div>
-      </div>
+      <>
+        <div className="h-screen w-screen flex items-center justify-center bg-transparent">
+          <div className="text-text-muted text-sm">{t(($) => $.fileExplorerList.loading)}</div>
+        </div>
+        <AppCleanupOverlay />
+      </>
     )
   }
 
-  return <MainLayout />
+  return (
+    <>
+      <MainLayout />
+      <AppCleanupOverlay />
+    </>
+  )
 }
 
 export default App

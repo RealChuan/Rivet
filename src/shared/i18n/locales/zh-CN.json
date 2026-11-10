@@ -1,6 +1,7 @@
 {
   "translation": {
     "app": {
+      "cleaningTemps": "正在清理临时文件…",
       "name": "Rivet",
       "subtitle": "SFTP / SMB / WebDAV / S3 文件浏览器"
     },
@@ -343,7 +344,9 @@
       "action": {
         "cancel": "取消",
         "cancelAll": "全部取消",
+        "pause": "暂停",
         "remove": "移除",
+        "resume": "继续",
         "retry": "重试",
         "sort": "排序",
         "viewErrorDetails": "查看错误详情"
@@ -401,6 +404,7 @@
       "status": {
         "failed": "失败",
         "failedCount": "{{count}} 失败",
+        "paused": "已暂停",
         "scanning": "扫描中",
         "waiting": "等待中"
       },

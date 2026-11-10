@@ -4,12 +4,15 @@ import {
   APP_NAME,
   DEFAULT_MAIN_WINDOW_HEIGHT,
   DEFAULT_MAIN_WINDOW_WIDTH,
+  DEFAULT_THEME_VALUE,
   DIALOG_SIZE,
   MACOS_TRAFFIC_LIGHT_POSITION,
   MIN_MAIN_WINDOW_HEIGHT,
   MIN_MAIN_WINDOW_WIDTH,
+  THEME,
   TITLEBAR_HEIGHT,
   TITLEBAR_OVERLAY_COLORS,
+  WINDOW_BACKGROUND,
   type Theme,
 } from '@shared/constants/index.js'
 import { EVENT_CHANNEL } from '@shared/contract/events.contract.js'
@@ -62,9 +65,9 @@ function showWhenReady(win: BrowserWindow): void {
  * 唯一主窗口。WCO 只在 Windows 11 启用；macOS 用 hidden titlebar + 红绿灯；
  * Windows 10/Linux 用无边框窗口 + 自绘标题栏。有窗口材质时底色透明，否则实色。
  */
-export function createAppWindow(theme: Theme = 'system'): BrowserWindow {
+export function createAppWindow(theme: Theme = DEFAULT_THEME_VALUE): BrowserWindow {
   const chrome = getWindowChromeMode()
-  const dark = theme === 'dark' || (theme === 'system' && nativeTheme.shouldUseDarkColors)
+  const dark = theme === THEME.DARK || (theme === THEME.SYSTEM && nativeTheme.shouldUseDarkColors)
   const usesGlass = supportsVibrancy() || supportsBackgroundMaterial()
 
   const chromeOptions: BrowserWindowConstructorOptions =
@@ -72,7 +75,7 @@ export function createAppWindow(theme: Theme = 'system'): BrowserWindow {
       ? {
           titleBarStyle: 'hidden',
           titleBarOverlay: {
-            ...TITLEBAR_OVERLAY_COLORS[dark ? 'dark' : 'light'],
+            ...TITLEBAR_OVERLAY_COLORS[dark ? THEME.DARK : THEME.LIGHT],
             height: TITLEBAR_HEIGHT,
           },
           ...(supportsBackgroundMaterial() ? { backgroundMaterial: 'mica' as const } : {}),
@@ -92,7 +95,11 @@ export function createAppWindow(theme: Theme = 'system'): BrowserWindow {
     minHeight: MIN_MAIN_WINDOW_HEIGHT,
     title: APP_NAME,
     frame: chrome === 'custom' ? false : true,
-    backgroundColor: usesGlass ? '#00000000' : dark ? '#1e1e1e' : '#ffffff',
+    backgroundColor: usesGlass
+      ? WINDOW_BACKGROUND.TRANSPARENT
+      : dark
+        ? WINDOW_BACKGROUND.dark
+        : WINDOW_BACKGROUND.light,
     ...chromeOptions,
     show: false,
     webPreferences: {

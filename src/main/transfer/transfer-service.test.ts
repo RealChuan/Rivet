@@ -77,6 +77,7 @@ function makeHarness(options: HarnessOptions = {}) {
   const stat = vi.fn<TaskStatPort['stat']>(() => Promise.resolve({ size: 10 }))
   const readdir = vi.fn<TaskStatPort['readdir']>(() => Promise.resolve([]))
   const localFs: TaskStatPort = { stat, readdir }
+  const cleanupLocalTemps = vi.fn()
   const providedExecutor = options.executor
   const execute = vi.fn<TransferExecutor['execute']>(
     providedExecutor
@@ -90,6 +91,7 @@ function makeHarness(options: HarnessOptions = {}) {
     localFs,
     send,
     progress,
+    cleanupLocalTemps,
     ...(options.maxFinishedTasks !== undefined
       ? { maxFinishedTasks: options.maxFinishedTasks }
       : {}),
@@ -98,7 +100,18 @@ function makeHarness(options: HarnessOptions = {}) {
   const events = (channel: string): unknown[] =>
     sent.filter(([name]) => name === channel).map(([, payload]) => payload)
 
-  return { service, execute, send, sent, events, localFs, stat, readdir, progress }
+  return {
+    service,
+    execute,
+    send,
+    sent,
+    events,
+    localFs,
+    stat,
+    readdir,
+    progress,
+    cleanupLocalTemps,
+  }
 }
 
 function resolved(outcome: TaskOutcome): Promise<TaskOutcome> {
@@ -424,5 +437,110 @@ describe('TransferService 进度载荷', () => {
 
     await harness.service.cancel('t1')
     await vi.waitFor(() => expect(harness.service.getTasks()).toHaveLength(0))
+  })
+})
+
+describe('TransferService 暂停与继续', () => {
+  it('暂停运行中的下载：保留任务、状态变为 paused 并发出状态事件', async () => {
+    const execute = vi.fn<TransferExecutor['execute']>(() => new Promise<TaskOutcome>(() => {}))
+    const harness = makeHarness({ executor: { execute } })
+    await harness.service.addTasks([createTask({ direction: TRANSFER_DIRECTION.DOWNLOAD })])
+    await vi.waitFor(() => expect(execute).toHaveBeenCalledOnce())
+
+    await harness.service.pause('t1')
+
+    expect(harness.service.getTasks()[0]?.status).toBe(OPERATION_STATUS.PAUSED)
+    expect(harness.events(EVENT_CHANNEL.TASK_STATUS_CHANGED)).toEqual([
+      { taskId: 't1', status: OPERATION_STATUS.PAUSED },
+    ])
+  })
+
+  it('继续把暂停任务放回等待队列', async () => {
+    const execute = vi.fn<TransferExecutor['execute']>(() => new Promise<TaskOutcome>(() => {}))
+    const harness = makeHarness({ executor: { execute } })
+    await harness.service.addTasks([createTask({ direction: TRANSFER_DIRECTION.DOWNLOAD })])
+    await vi.waitFor(() => expect(execute).toHaveBeenCalledOnce())
+    await harness.service.pause('t1')
+
+    await harness.service.resume('t1')
+
+    // 并发槽空闲时 schedule 会立刻重新起跑，所以这里断言的是"离开暂停"而不是停在 waiting。
+    expect(harness.service.getTasks()[0]?.status).toBe(OPERATION_STATUS.RUNNING)
+    expect(harness.events(EVENT_CHANNEL.TASK_STATUS_CHANGED)).toContainEqual({
+      taskId: 't1',
+      status: OPERATION_STATUS.WAITING,
+    })
+  })
+
+  it('上传任务不可暂停', async () => {
+    const execute = vi.fn<TransferExecutor['execute']>(() => new Promise<TaskOutcome>(() => {}))
+    const harness = makeHarness({ executor: { execute } })
+    await harness.service.addTasks([createTask()])
+    await vi.waitFor(() => expect(execute).toHaveBeenCalledOnce())
+
+    await harness.service.pause('t1')
+
+    expect(harness.service.getTasks()[0]?.status).toBe(OPERATION_STATUS.RUNNING)
+  })
+
+  it('执行器返回 paused 时任务留在列表里', async () => {
+    const harness = makeHarness({
+      executor: { execute: vi.fn(() => resolved({ kind: 'paused' })) },
+    })
+    await harness.service.addTasks([createTask({ direction: TRANSFER_DIRECTION.DOWNLOAD })])
+
+    await vi.waitFor(() =>
+      expect(harness.service.getTasks()[0]?.status).toBe(OPERATION_STATUS.PAUSED),
+    )
+  })
+})
+
+describe('TransferService 移除任务时的半成品清理', () => {
+  it('移除暂停中的下载任务会触发本地清理', async () => {
+    const execute = vi.fn<TransferExecutor['execute']>(() => new Promise<TaskOutcome>(() => {}))
+    const harness = makeHarness({ executor: { execute } })
+    await harness.service.addTasks([createTask({ direction: TRANSFER_DIRECTION.DOWNLOAD })])
+    await vi.waitFor(() => expect(execute).toHaveBeenCalledOnce())
+    await harness.service.pause('t1')
+
+    await harness.service.cancel('t1')
+
+    expect(harness.service.getTasks()).toHaveLength(0)
+    expect(harness.cleanupLocalTemps).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }))
+  })
+
+  it('正常完成的任务不触发清理', async () => {
+    const harness = makeHarness()
+    await harness.service.addTasks([createTask({ direction: TRANSFER_DIRECTION.DOWNLOAD })])
+
+    await vi.waitFor(() => expect(harness.service.getTasks()).toHaveLength(0))
+
+    expect(harness.cleanupLocalTemps).not.toHaveBeenCalled()
+  })
+})
+
+describe('TransferService 退出收尾', () => {
+  it('中止在途传输并逐个清理半成品', async () => {
+    const signals: AbortSignal[] = []
+    const execute = vi.fn<TransferExecutor['execute']>((_task, signal) => {
+      signals.push(signal)
+      return new Promise<TaskOutcome>(() => {})
+    })
+    const harness = makeHarness({ executor: { execute } })
+    await harness.service.addTasks([
+      createTask({ id: 't1', direction: TRANSFER_DIRECTION.DOWNLOAD }),
+      createTask({
+        id: 't2',
+        direction: TRANSFER_DIRECTION.DOWNLOAD,
+        localPath: '/local/b.txt',
+        remotePath: '/remote/b.txt',
+      }),
+    ])
+    await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(2))
+
+    await harness.service.shutdown()
+
+    expect(signals.every((signal) => signal.aborted)).toBe(true)
+    expect(harness.cleanupLocalTemps).toHaveBeenCalledTimes(2)
   })
 })

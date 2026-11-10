@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { OperationStatus } from '../constants/transfer.js'
 import type { FolderStatsProgress } from '../types/folder-stats.js'
 import type { TransferProgressData, TransferTask } from '../types/transfer.js'
 import { defineEvents, type PayloadOf } from './define.js'
@@ -31,8 +32,13 @@ export const eventsContract = defineEvents({
   'transfer.taskFailed': {
     payload: z.object({ taskId: z.string(), errorMessage: z.string() }),
   },
+  'transfer.taskStatusChanged': {
+    payload: z.object({ taskId: z.string(), status: z.custom<OperationStatus>() }),
+  },
   'transfer.taskRemoved': { payload: z.object({ taskId: z.string() }) },
   'app.closeRequested': { payload: z.object({ reason: z.enum(['close', 'quit']) }) },
+  /** 退出前清临时文件可能耗时，通知渲染层盖住界面，别让用户以为卡死了。 */
+  'app.cleanupStarted': { payload: z.object({}) },
   'window.stateChanged': { payload: z.object({ isMaximized: z.boolean() }) },
 })
 
@@ -48,7 +54,9 @@ export const EVENT_CHANNEL = {
   PROGRESS: 'transfer.progress',
   TASK_COMPLETED: 'transfer.taskCompleted',
   TASK_FAILED: 'transfer.taskFailed',
+  TASK_STATUS_CHANGED: 'transfer.taskStatusChanged',
   TASK_REMOVED: 'transfer.taskRemoved',
   CLOSE_REQUESTED: 'app.closeRequested',
+  CLEANUP_STARTED: 'app.cleanupStarted',
   WINDOW_STATE_CHANGED: 'window.stateChanged',
 } as const
