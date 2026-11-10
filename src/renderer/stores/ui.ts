@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import type { UiSettings } from '@shared/types/index.js'
 import {
+  CLOSE_BEHAVIOR,
+  type CloseBehavior,
   DEFAULT_CONNECTION_PANEL_WIDTH,
   DEFAULT_LANGUAGE,
   DEFAULT_QUEUE_PANEL_HEIGHT,
@@ -21,17 +23,23 @@ interface UiStore {
   locale: SupportedLanguageLiteral | ''
   /** 是否显示以 `.` 开头的隐藏条目 */
   showHiddenFiles: boolean
+  /** 关闭主窗口时的行为 */
+  closeBehavior: CloseBehavior
   connectionPanelWidth: number
   queuePanelMode: QueuePanelMode
   queuePanelHeight: number
   initialized: boolean
   /** 每个 session/页面独立的视图模式；仅内存，默认 list */
   fileViewModes: Record<string, FileViewMode>
+  /** 正在编辑地址栏的 sessionId；null 表示全部处于面包屑状态 */
+  addressEditingSessionId: string | null
   toasts: Toast[]
   setAppearance: (appearance: Theme) => void
   setFileViewMode: (sessionId: string, mode: FileViewMode) => void
+  setAddressEditing: (sessionId: string | null) => void
   setLocale: (locale: SupportedLanguageLiteral) => void
   setShowHiddenFiles: (showHiddenFiles: boolean) => void
+  setCloseBehavior: (closeBehavior: CloseBehavior) => void
   setConnectionPanelWidth: (width: number) => void
   setQueuePanelMode: (mode: QueuePanelMode) => void
   setQueuePanelHeight: (height: number) => void
@@ -53,21 +61,41 @@ function getToastDuration(type: ToastType, customDuration?: number): number {
   return type === TOAST_TYPE.ERROR ? TIMEOUTS.TOAST_ERROR_DURATION : TIMEOUTS.TOAST_DEFAULT_DURATION
 }
 
+/** UI 设置的持久化入口：四个字段始终整体写入，避免部分更新漏字段。 */
+function persistUiSettings(state: {
+  appearance: Theme
+  locale: SupportedLanguageLiteral | ''
+  showHiddenFiles: boolean
+  closeBehavior: CloseBehavior
+}): void {
+  void configApi.set(STORE_KEY.UI, {
+    appearance: state.appearance,
+    locale: state.locale,
+    showHiddenFiles: state.showHiddenFiles,
+    closeBehavior: state.closeBehavior,
+  })
+}
+
 export const useUiStore = create<UiStore>((set, get) => ({
   appearance: DEFAULT_THEME_VALUE,
   locale: DEFAULT_LANGUAGE,
   showHiddenFiles: false,
+  closeBehavior: CLOSE_BEHAVIOR.TRAY,
   connectionPanelWidth: DEFAULT_CONNECTION_PANEL_WIDTH,
   queuePanelMode: QUEUE_PANEL_MODE.EXPANDED,
   queuePanelHeight: DEFAULT_QUEUE_PANEL_HEIGHT,
   initialized: false,
   fileViewModes: {},
+  addressEditingSessionId: null,
   toasts: [],
+
+  setAddressEditing: (addressEditingSessionId) => {
+    set({ addressEditingSessionId })
+  },
 
   setAppearance: (appearance) => {
     set({ appearance })
-    const { locale, showHiddenFiles } = get()
-    void configApi.set(STORE_KEY.UI, { appearance, locale, showHiddenFiles })
+    persistUiSettings(get())
   },
 
   setFileViewMode: (sessionId, fileViewMode) => {
@@ -78,14 +106,17 @@ export const useUiStore = create<UiStore>((set, get) => ({
 
   setLocale: (locale) => {
     set({ locale })
-    const { appearance, showHiddenFiles } = get()
-    void configApi.set(STORE_KEY.UI, { appearance, locale, showHiddenFiles })
+    persistUiSettings(get())
   },
 
   setShowHiddenFiles: (showHiddenFiles) => {
     set({ showHiddenFiles })
-    const { appearance, locale } = get()
-    void configApi.set(STORE_KEY.UI, { appearance, locale, showHiddenFiles })
+    persistUiSettings(get())
+  },
+
+  setCloseBehavior: (closeBehavior) => {
+    set({ closeBehavior })
+    persistUiSettings(get())
   },
 
   setConnectionPanelWidth: (connectionPanelWidth) => {
@@ -105,6 +136,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
       appearance: settings.appearance ?? DEFAULT_THEME_VALUE,
       locale: settings.locale ?? DEFAULT_LANGUAGE,
       showHiddenFiles: settings.showHiddenFiles ?? false,
+      closeBehavior: settings.closeBehavior ?? CLOSE_BEHAVIOR.TRAY,
       fileViewModes: {},
       initialized: true,
     })

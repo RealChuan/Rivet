@@ -5,10 +5,12 @@ import {
   Download,
   Copy,
   CopyPlus,
+  ClipboardCopy,
   ClipboardPaste,
   FolderInput,
   Pencil,
   Scissors,
+  Star,
   Trash,
   FolderCog,
 } from 'lucide-react'
@@ -35,6 +37,10 @@ interface FileExplorerContextMenuProps {
   onUploadFolder: () => void
   onDownload: (files: FileInfo[]) => void
   onProperties: (file: FileInfo) => void
+  /** 传入空数组表示复制当前目录路径 */
+  onCopyPath: (files: FileInfo[]) => void
+  isFavorite: (file: FileInfo) => boolean
+  onToggleFavorite: (file: FileInfo) => void
 }
 
 export const FileExplorerContextMenu = ({
@@ -53,8 +59,15 @@ export const FileExplorerContextMenu = ({
   onUploadFolder,
   onDownload,
   onProperties,
+  onCopyPath,
+  isFavorite,
+  onToggleFavorite,
 }: FileExplorerContextMenuProps) => {
   const { t } = useTranslation()
+
+  const singleDirectory =
+    files.length === 1 && files[0]?.type === FILE_TYPE.DIRECTORY ? files[0] : undefined
+  const favorite = singleDirectory ? isFavorite(singleDirectory) : false
 
   const itemClass = cn(
     'w-full px-3 py-2 text-left text-xs text-text',
@@ -96,6 +109,15 @@ export const FileExplorerContextMenu = ({
               <FolderUp className="w-3.5 h-3.5 stroke-current stroke-2" />
               {t(($) => $.file.action.uploadFolder)}
             </ContextMenuPrimitive.Item>
+            <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
+            <ContextMenuPrimitive.Item
+              data-testid="context-copy-path"
+              className={itemClass}
+              onSelect={() => onCopyPath([])}
+            >
+              <ClipboardCopy className="w-3.5 h-3.5 stroke-current stroke-2" />
+              {t(($) => $.file.action.copyPath)}
+            </ContextMenuPrimitive.Item>
           </>
         ) : (
           <>
@@ -106,6 +128,14 @@ export const FileExplorerContextMenu = ({
             <ContextMenuPrimitive.Item className={itemClass} onSelect={() => onCopy(files)}>
               <Copy className="w-3.5 h-3.5 stroke-current stroke-2" />
               {t(($) => $.file.action.copy)} {files.length > 1 ? `(${files.length})` : ''}
+            </ContextMenuPrimitive.Item>
+            <ContextMenuPrimitive.Item
+              data-testid="context-copy-path"
+              className={itemClass}
+              onSelect={() => onCopyPath(files)}
+            >
+              <ClipboardCopy className="w-3.5 h-3.5 stroke-current stroke-2" />
+              {t(($) => $.file.action.copyPath)} {files.length > 1 ? `(${files.length})` : ''}
             </ContextMenuPrimitive.Item>
             <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
             <ContextMenuPrimitive.Item className={itemClass} onSelect={() => onCopyTo(files)}>
@@ -146,15 +176,26 @@ export const FileExplorerContextMenu = ({
               <Trash className="w-3.5 h-3.5 stroke-current stroke-2" />
               {t(($) => $.common.action.delete)} {files.length > 1 ? `(${files.length})` : ''}
             </ContextMenuPrimitive.Item>
-            {files.length === 1 && files[0]?.type === FILE_TYPE.DIRECTORY && (
+            {singleDirectory && (
               <>
                 <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
                 <ContextMenuPrimitive.Item
+                  data-testid="context-favorite"
                   className={itemClass}
-                  onSelect={() => {
-                    const file = files[0]
-                    if (file) onProperties(file)
-                  }}
+                  onSelect={() => onToggleFavorite(singleDirectory)}
+                >
+                  <Star
+                    className={cn(
+                      'w-3.5 h-3.5 stroke-current stroke-2',
+                      favorite && 'fill-current text-accent',
+                    )}
+                  />
+                  {favorite ? t(($) => $.favorites.remove) : t(($) => $.favorites.add)}
+                </ContextMenuPrimitive.Item>
+                <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
+                <ContextMenuPrimitive.Item
+                  className={itemClass}
+                  onSelect={() => onProperties(singleDirectory)}
                 >
                   <FolderCog className="w-3.5 h-3.5 stroke-current stroke-2" />
                   {t(($) => $.file.action.properties)}

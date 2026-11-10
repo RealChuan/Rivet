@@ -48,7 +48,12 @@ export const FileExplorerListError = ({ error, onRetry }: FileExplorerListErrorP
   )
 }
 
-export const FileExplorerListEmpty = () => {
+interface FileExplorerListEmptyProps {
+  /** 过滤后为空时文案要区分「空目录」和「没有匹配项」 */
+  filtered?: boolean | undefined
+}
+
+export const FileExplorerListEmpty = ({ filtered = false }: FileExplorerListEmptyProps) => {
   const { t } = useTranslation()
 
   return (
@@ -56,7 +61,9 @@ export const FileExplorerListEmpty = () => {
       <div className="w-12 h-12 rounded-xl bg-hover border border-border flex items-center justify-center">
         <Folder className="w-5 h-5 stroke-text-muted stroke-[1.5]" />
       </div>
-      <p className="text-xs text-text-muted">{t(($) => $.fileExplorerList.empty)}</p>
+      <p className="text-xs text-text-muted">
+        {filtered ? t(($) => $.fileExplorerList.noMatches) : t(($) => $.fileExplorerList.empty)}
+      </p>
     </div>
   )
 }

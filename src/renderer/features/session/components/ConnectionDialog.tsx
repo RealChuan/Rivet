@@ -13,6 +13,7 @@ import {
   SCHEME,
 } from '@shared/constants/index.js'
 import { dialogApi } from '../../../api/dialog.js'
+import { protocolApi } from '../../../api/protocol.js'
 import { ConfirmationDialog } from '../../../components/common/ConfirmationDialog.js'
 import Button from '../../../components/ui/Button.js'
 import GlassDialog from '../../../components/ui/GlassDialog.js'
@@ -25,6 +26,11 @@ interface ConnectionDialogProps {
   onClose: () => void
   onSave: (input: ConnectionSaveInput) => Promise<void>
   config?: ConnectionConfig | undefined
+  /**
+   * 新建连接时的预填字段（目前来自「粘贴地址」）。必须是引用稳定的对象：
+   * 它和 `config` 一起作为重置表单的依赖，传内联字面量会在每次父组件渲染时清空用户输入。
+   */
+  prefill?: Partial<ConnectionFormValues> | undefined
 }
 
 const getDefaultPort = (protocol: ProtocolType): string => {
@@ -65,13 +71,23 @@ function initialValues(config: ConnectionConfig | undefined): ConnectionFormValu
   }
 }
 
-export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDialogProps) => {
+export const ConnectionDialog = ({
+  open,
+  onClose,
+  onSave,
+  config,
+  prefill,
+}: ConnectionDialogProps) => {
   const { t } = useTranslation()
   const isMountedRef = useRef(true)
   const [values, setValues] = useState<ConnectionFormValues>(() => initialValues(config))
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [showCertWarning, setShowCertWarning] = useState(false)
+  const [bucketPickerOpen, setBucketPickerOpen] = useState(false)
+  const [buckets, setBuckets] = useState<string[]>([])
+  const [bucketError, setBucketError] = useState('')
+  const [bucketsLoading, setBucketsLoading] = useState(false)
   const hasStoredSecret = Boolean(config?.secretRef)
 
   useEffect(() => {
@@ -82,10 +98,10 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
   }, [])
 
   useEffect(() => {
-    // 对话框复用时按打开时的 config 重置表单。
+    // 对话框复用时按打开时的 config 重置表单；预填只覆盖它给出的字段。
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (open) setValues(initialValues(config))
-  }, [open, config])
+    if (open) setValues({ ...initialValues(config), ...prefill })
+  }, [open, config, prefill])
 
   const handleChange = <K extends keyof ConnectionFormValues>(
     key: K,
@@ -171,6 +187,46 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
     await doSave()
   }
 
+  /** 表单 → 连接配置；保存与「列桶」共用同一份，避免两处字段漂移。 */
+  const buildConnection = (): ConnectionSaveInput['connection'] => {
+    const authKind = effectiveAuthKind()
+    return {
+      name: values.name.trim(),
+      protocol: values.protocol,
+      host: values.host.trim(),
+      port: parseInt(values.port, 10),
+      username: values.username.trim(),
+      authKind,
+      ...(authKind === 'privateKey' ? { privateKeyPath: values.privateKeyPath.trim() } : {}),
+      ...(authKind === 'agent' && values.agentPath.trim()
+        ? { agentPath: values.agentPath.trim() }
+        : {}),
+      ...(values.protocol === PROTOCOL.SMB
+        ? {
+            share: values.share.trim(),
+            ...(values.domain.trim() ? { domain: values.domain.trim() } : {}),
+          }
+        : {}),
+      ...(values.protocol === PROTOCOL.WEBDAV
+        ? {
+            basePath: values.basePath.trim(),
+            scheme: values.scheme,
+            rejectUnauthorized: values.rejectUnauthorized,
+          }
+        : {}),
+      ...(values.protocol === PROTOCOL.S3
+        ? {
+            bucket: values.bucket.trim(),
+            region: values.region.trim(),
+            pathStyle: values.pathStyle,
+            basePath: values.basePath.trim(),
+            scheme: values.scheme,
+            rejectUnauthorized: values.rejectUnauthorized,
+          }
+        : {}),
+    }
+  }
+
   const doSave = async () => {
     setIsLoading(true)
     setError('')
@@ -184,41 +240,7 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
 
     try {
       await onSave({
-        connection: {
-          name: values.name.trim(),
-          protocol: values.protocol,
-          host: values.host.trim(),
-          port: parseInt(values.port, 10),
-          username: values.username.trim(),
-          authKind,
-          ...(authKind === 'privateKey' ? { privateKeyPath: values.privateKeyPath.trim() } : {}),
-          ...(authKind === 'agent' && values.agentPath.trim()
-            ? { agentPath: values.agentPath.trim() }
-            : {}),
-          ...(values.protocol === PROTOCOL.SMB
-            ? {
-                share: values.share.trim(),
-                ...(values.domain.trim() ? { domain: values.domain.trim() } : {}),
-              }
-            : {}),
-          ...(values.protocol === PROTOCOL.WEBDAV
-            ? {
-                basePath: values.basePath.trim(),
-                scheme: values.scheme,
-                rejectUnauthorized: values.rejectUnauthorized,
-              }
-            : {}),
-          ...(values.protocol === PROTOCOL.S3
-            ? {
-                bucket: values.bucket.trim(),
-                region: values.region.trim(),
-                pathStyle: values.pathStyle,
-                basePath: values.basePath.trim(),
-                scheme: values.scheme,
-                rejectUnauthorized: values.rejectUnauthorized,
-              }
-            : {}),
-        },
+        connection: buildConnection(),
         ...(secret ? { secret } : {}),
         saveSecret: values.saveSecret,
       })
@@ -248,6 +270,25 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
       if (filePath) handleChange('privateKeyPath', filePath)
     } catch (err) {
       logger.catch(err, { action: 'browse-private-key' })
+    }
+  }
+
+  const loadBuckets = async () => {
+    setBucketPickerOpen(true)
+    setBucketsLoading(true)
+    setBucketError('')
+    try {
+      const list = await protocolApi.listBuckets({
+        connection: buildConnection(),
+        ...(values.password ? { secret: values.password } : {}),
+        ...(config ? { connectionId: config.id } : {}),
+      })
+      if (isMountedRef.current) setBuckets(list)
+    } catch (err) {
+      logger.catch(err, { action: 'list-buckets' })
+      if (isMountedRef.current) setBucketError(resolveErrorMessage(t, err))
+    } finally {
+      if (isMountedRef.current) setBucketsLoading(false)
     }
   }
 
@@ -291,6 +332,7 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
           onChange={handleChange}
           onBrowsePrivateKey={() => void handleBrowsePrivateKey()}
           hasStoredSecret={hasStoredSecret}
+          onBrowseBuckets={() => void loadBuckets()}
         />
 
         {error && (
@@ -328,6 +370,48 @@ export const ConnectionDialog = ({ open, onClose, onSave, config }: ConnectionDi
         confirmText={t(($) => $.connectionDialog.continue)}
         cancelText={t(($) => $.common.action.cancel)}
       />
+
+      <GlassDialog open={bucketPickerOpen} onClose={() => setBucketPickerOpen(false)}>
+        <h2 className="text-base font-semibold text-text mb-3">
+          {t(($) => $.connectionDialog.bucketsTitle)}
+        </h2>
+        <div className="max-h-72 overflow-auto flex flex-col gap-1" data-testid="bucket-list">
+          {bucketsLoading && (
+            <span className="text-xs text-text-muted">{t(($) => $.fileExplorerList.loading)}</span>
+          )}
+          {!bucketsLoading && bucketError !== '' && (
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-danger-light rounded-md text-danger text-xs">
+              <AlertCircle className="w-3.5 h-3.5 stroke-current stroke-2" />
+              <span>{bucketError}</span>
+            </div>
+          )}
+          {!bucketsLoading && bucketError === '' && buckets.length === 0 && (
+            <span className="text-xs text-text-muted">
+              {t(($) => $.connectionDialog.bucketsEmpty)}
+            </span>
+          )}
+          {!bucketsLoading &&
+            bucketError === '' &&
+            buckets.map((bucket) => (
+              <button
+                key={bucket}
+                type="button"
+                onClick={() => {
+                  handleChange('bucket', bucket)
+                  setBucketPickerOpen(false)
+                }}
+                className="text-left px-3 py-2 rounded-md text-sm text-text bg-transparent border-none hover:bg-selected"
+              >
+                {bucket}
+              </button>
+            ))}
+        </div>
+        <div className="flex justify-end mt-4">
+          <Button type="button" variant="secondary" onClick={() => setBucketPickerOpen(false)}>
+            {t(($) => $.common.action.cancel)}
+          </Button>
+        </div>
+      </GlassDialog>
     </GlassDialog>
   )
 }

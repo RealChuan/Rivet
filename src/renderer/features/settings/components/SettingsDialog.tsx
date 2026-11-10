@@ -5,9 +5,11 @@ import { Button, GlassDialog } from '../../../components/ui/index.js'
 import { cn } from '../../../utils/index.js'
 import { ConcurrencyFields } from '../../transfer/components/ConcurrencyFields.js'
 import FilesSection from './FilesSection.js'
+import GeneralSection from './GeneralSection.js'
 import MaintenanceSection from './MaintenanceSection.js'
 
 const SETTINGS_SECTION = {
+  GENERAL: 'general',
   TRANSFER: 'transfer',
   FILES: 'files',
   MAINTENANCE: 'maintenance',
@@ -26,9 +28,10 @@ interface SettingsDialogProps {
  */
 export const SettingsDialog = ({ open, onClose }: SettingsDialogProps) => {
   const { t } = useTranslation()
-  const [active, setActive] = useState<SettingsSection>(SETTINGS_SECTION.TRANSFER)
+  const [active, setActive] = useState<SettingsSection>(SETTINGS_SECTION.GENERAL)
 
   const sections = [
+    { id: SETTINGS_SECTION.GENERAL, label: t(($) => $.settings.general) },
     { id: SETTINGS_SECTION.TRANSFER, label: t(($) => $.settings.transfer) },
     { id: SETTINGS_SECTION.FILES, label: t(($) => $.settings.files) },
     { id: SETTINGS_SECTION.MAINTENANCE, label: t(($) => $.settings.maintenance) },
@@ -78,6 +81,7 @@ export const SettingsDialog = ({ open, onClose }: SettingsDialogProps) => {
           <div className="w-px bg-border shrink-0" />
 
           <div className="flex-1 min-w-0 overflow-y-auto pl-1">
+            {active === SETTINGS_SECTION.GENERAL && <GeneralSection />}
             {active === SETTINGS_SECTION.TRANSFER && <ConcurrencyFields />}
             {active === SETTINGS_SECTION.FILES && <FilesSection />}
             {active === SETTINGS_SECTION.MAINTENANCE && <MaintenanceSection />}

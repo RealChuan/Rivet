@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { type Session } from '@shared/types/index.js'
+import { useLastPathsStore } from './last-paths.js'
 
 export interface SessionStore {
   sessions: Session[]
@@ -41,6 +42,9 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
 
   updateCurrentPath: (sessionId, path) => {
     get().updateSession(sessionId, { currentPath: path })
+
+    const connectionId = get().getSessionById(sessionId)?.connectionId
+    if (connectionId) useLastPathsStore.getState().remember(connectionId, path)
   },
 
   setOperating: (sessionId, operating) => {

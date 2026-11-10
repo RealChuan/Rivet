@@ -26,6 +26,14 @@ export const FILE_TYPE = {
 
 export type FileType = (typeof FILE_TYPE)[keyof typeof FILE_TYPE]
 
+/** 点关闭按钮时的行为：最小化到托盘（保持连接与传输）或退出应用 */
+export const CLOSE_BEHAVIOR = {
+  TRAY: 'tray',
+  QUIT: 'quit',
+} as const
+
+export type CloseBehavior = (typeof CLOSE_BEHAVIOR)[keyof typeof CLOSE_BEHAVIOR]
+
 export const HOST_KEY_DIALOG_TYPE = {
   UNKNOWN: 'unknown',
   MISMATCH: 'mismatch',

@@ -100,3 +100,59 @@ export const safeStorage = {
 export const contextBridge = {
   exposeInMainWorld: vi.fn(),
 }
+
+// === Clipboard ===
+export const clipboard = {
+  writeText: vi.fn(() => Promise.resolve()),
+  readText: vi.fn(() => ''),
+}
+
+// === Notification ===
+export interface MockNotification {
+  title: string
+  body: string
+  on: ReturnType<typeof vi.fn>
+  show: ReturnType<typeof vi.fn>
+}
+
+/** 测试断言用：每次构造都记录下来。 */
+export const notifications: MockNotification[] = []
+
+export const Notification = Object.assign(
+  vi.fn(function (this: MockNotification, options: { title: string; body: string }) {
+    this.title = options.title
+    this.body = options.body
+    this.on = vi.fn()
+    this.show = vi.fn()
+    notifications.push(this)
+  }),
+  { isSupported: vi.fn(() => true) },
+)
+
+// === Tray / Menu ===
+export interface MockTray {
+  setToolTip: ReturnType<typeof vi.fn>
+  setContextMenu: ReturnType<typeof vi.fn>
+  on: ReturnType<typeof vi.fn>
+  destroy: ReturnType<typeof vi.fn>
+}
+
+/** 测试断言用：托盘实例。 */
+export const trays: MockTray[] = []
+
+export const Tray = vi.fn(function (this: MockTray) {
+  this.setToolTip = vi.fn()
+  this.setContextMenu = vi.fn()
+  this.on = vi.fn()
+  this.destroy = vi.fn()
+  trays.push(this)
+})
+
+export const Menu = {
+  buildFromTemplate: vi.fn((template: unknown) => ({ template })),
+}
+
+export const nativeImage = {
+  createFromBitmap: vi.fn(() => ({ setTemplateImage: vi.fn() })),
+  createFromBuffer: vi.fn(() => ({ addRepresentation: vi.fn() })),
+}

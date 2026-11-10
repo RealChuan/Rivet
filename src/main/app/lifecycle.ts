@@ -1,11 +1,19 @@
-import { app, BrowserWindow } from 'electron'
-import { TIMEOUTS } from '@shared/constants/index.js'
+import { app } from 'electron'
+import { CLOSE_BEHAVIOR, TIMEOUTS } from '@shared/constants/index.js'
 import { formatErrorMessage } from '@shared/utils/index.js'
 import { sessionManager, sessionRegistry } from '../services/index.js'
 import { flushStores, getUiSettings } from '../stores/index.js'
 import { logger } from '../utils/index.js'
-import { isCloseConfirmed, requestClose, resetCloseGuard } from './close-guard.js'
+import {
+  forceQuit,
+  isCloseConfirmed,
+  isQuitting,
+  markQuitting,
+  requestClose,
+  resetCloseGuard,
+} from './close-guard.js'
 import { getMainWindow, setMainWindow } from './main-window.js'
+import { destroyTray } from './tray.js'
 import { createAppWindow } from './window-factory.js'
 import { applyWindowTheme, attachSystemThemeListener } from './window-theme.js'
 
@@ -44,6 +52,7 @@ export async function cleanupAndExit(
       await flushStores()
     }
   } finally {
+    destroyTray()
     if (exitCode === 0) {
       app.quit()
     } else {
@@ -69,6 +78,7 @@ export function setupAppLifecycle(): void {
       return
     }
 
+    markQuitting()
     event.preventDefault()
     logger.info('App quitting, cleaning up sessions...')
 
@@ -88,6 +98,7 @@ export function setupAppLifecycle(): void {
         logger.error(`Error during quit cleanup: ${errMsg}`)
       } finally {
         clearTimeout(forceExitTimeout)
+        destroyTray()
         app.exit(0)
       }
     })()
@@ -121,18 +132,49 @@ function createAndTrackMainWindow(): void {
   applyWindowTheme(theme)
   win.once('closed', () => setMainWindow(null))
   win.on('close', (event) => {
+    // 真正退出时不再拦截，否则托盘模式会把窗口反复藏回来。
+    if (isQuitting()) return
+
+    if (getUiSettings().closeBehavior === CLOSE_BEHAVIOR.TRAY) {
+      event.preventDefault()
+      win.hide()
+      return
+    }
+
     if (requestClose(win, 'close')) {
       event.preventDefault()
     }
   })
 }
 
+/** 托盘「显示主界面」与 macOS dock 激活共用：隐藏的窗口重新显示，没有窗口就重建。 */
+export function showMainWindow(): void {
+  const win = getMainWindow()
+  if (!win) {
+    createAndTrackMainWindow()
+    return
+  }
+  win.show()
+  win.focus()
+}
+
+/** 托盘「退出」：有活跃传输时先把窗口拉到前台，交给渲染层的二次确认。 */
+export function requestQuitFromTray(): void {
+  const win = getMainWindow()
+  if (win && requestClose(win, 'quit')) {
+    win.show()
+    win.focus()
+    return
+  }
+
+  forceQuit()
+  app.quit()
+}
+
 export function createMainWindow(): void {
   createAndTrackMainWindow()
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createAndTrackMainWindow()
-    }
+    showMainWindow()
   })
 }

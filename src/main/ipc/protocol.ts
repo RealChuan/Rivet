@@ -7,8 +7,11 @@ export function setupProtocolIpcHandlers(): void {
     'protocol.connect': (config) => protocolService.connect(config),
     'protocol.disconnect': (sessionId, requestId) =>
       protocolService.disconnect(sessionId, requestId),
-    'protocol.list': (sessionId, path, requestId) =>
-      protocolService.list(sessionId, path, requestId),
+    'protocol.listBuckets': (request) => protocolService.listBuckets(request),
+    'protocol.list': (sessionId, path, requestId, limit) =>
+      protocolService.list(sessionId, path, requestId, limit),
+    'protocol.stat': (sessionId, path, requestId) =>
+      protocolService.stat(sessionId, path, requestId),
     'protocol.mkdir': (sessionId, path, requestId) =>
       protocolService.mkdir(sessionId, path, requestId),
     'protocol.rename': (sessionId, file, newName, requestId) =>

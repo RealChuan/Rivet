@@ -27,7 +27,7 @@
 
 ## 约定
 
-- 翻译 key 只改 `src/renderer/i18n/locales/*.json`，`pnpm run i18n:types` 生成 `resources.d.ts`。
+- 翻译 key 只改 `src/shared/i18n/locales/*.json`（主进程与渲染层共用），`pnpm run i18n:types` 生成 `resources.d.ts`。
 - 测试里的 `ResizeObserver` 是 no-op 桩；需要尺寸的用例自行 stub 并手动触发。
 
 ## 禁止

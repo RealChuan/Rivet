@@ -25,12 +25,16 @@ const EMPTY: DirectoryListResult = {
  * 目录列表的唯一数据来源。
  * queryKey 决定「谁的结果算数」，AbortSignal 决定「谁需要被真正中止」。
  */
-export function useDirectoryList(sessionId: string, path: string): DirectoryListResult {
+export function useDirectoryList(
+  sessionId: string,
+  path: string,
+  limit?: number,
+): DirectoryListResult {
   const enabled = sessionId.length > 0
   const cancellable = useRef(false)
 
   const query = useQuery({
-    queryKey: queryKeys.directory(sessionId, path),
+    queryKey: queryKeys.directory(sessionId, path, limit),
     queryFn: async (context) => {
       // dev 的 StrictMode 会把首次挂载卸载再挂回。首个查询不消费 signal，React Query 才会
       // 复用同一个 promise；否则它刚发出就被取消，主进程白记一条 REQUEST_ABORTED。
@@ -38,6 +42,7 @@ export function useDirectoryList(sessionId: string, path: string): DirectoryList
         sessionId,
         path,
         cancellable.current ? context.signal : undefined,
+        limit,
       )
       cancellable.current = true
       return files

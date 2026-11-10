@@ -90,6 +90,9 @@ export interface DeduplicateResult {
   duplicates: TransferTask[]
 }
 
+/** 任务终态（取消不算）：通知与日志共用。 */
+export type TransferOutcome = 'completed' | 'failed'
+
 export interface LocalFileInfo {
   name: string
   size: number

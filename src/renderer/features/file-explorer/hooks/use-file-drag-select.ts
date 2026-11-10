@@ -125,6 +125,8 @@ export function useFileDragSelect(options: UseFileDragSelectOptions): UseFileDra
     if (e.button !== 0) return
     if ((e.target as HTMLElement).closest('button')) return
     if ((e.target as HTMLElement).closest('[data-file-list-header]')) return
+    // 拖动源（名称列、已选中条目）走移动，其余区域归框选。
+    if ((e.target as HTMLElement).closest('[data-drag-source]')) return
 
     const scrollContainer = scrollContainerRef.current
     if (!scrollContainer) return

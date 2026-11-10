@@ -1,9 +1,15 @@
 import { z } from 'zod'
-import type { ConnectRequest, FileInfo, OperationResult } from '../types/index.js'
+import type {
+  ConnectRequest,
+  FileInfo,
+  ListBucketsRequest,
+  OperationResult,
+} from '../types/index.js'
 import { defineContract } from './define.js'
 import { resultSchemaOf, voidResultSchema } from './schema.js'
 
 const connectRequestSchema = z.custom<ConnectRequest>()
+const listBucketsRequestSchema = z.custom<ListBucketsRequest>()
 const fileInfoSchema = z.custom<FileInfo>()
 const operationResultSchema = z.custom<OperationResult>()
 
@@ -20,9 +26,21 @@ export const protocolContract = defineContract({
     args: [z.string(), z.string().optional()],
     result: voidResultSchema,
   },
+  'protocol.listBuckets': {
+    args: [listBucketsRequestSchema],
+    result: resultSchemaOf(z.array(z.string())),
+  },
+  /**
+   * `limit` 是本次列举的上限（默认 `MAX_LIST_ENTRIES`）：「加载更多」用一个更大的值重列，
+   * 保持无状态，排序与过滤始终看到同一份完整结果。
+   */
   'protocol.list': {
-    args: [z.string(), z.string(), z.string().optional()],
+    args: [z.string(), z.string(), z.string().optional(), z.number().int().positive().optional()],
     result: resultSchemaOf(z.array(fileInfoSchema)),
+  },
+  'protocol.stat': {
+    args: [z.string(), z.string(), z.string().optional()],
+    result: resultSchemaOf(fileInfoSchema),
   },
   'protocol.mkdir': {
     args: [z.string(), z.string(), z.string().optional()],

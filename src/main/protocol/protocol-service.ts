@@ -13,6 +13,7 @@ import {
   type ErrorInfo,
   type FileInfo,
   type HostKeyErrorDetail,
+  type ListBucketsRequest,
   ok,
   type OperationResult,
   type Result,
@@ -23,6 +24,7 @@ import { sendToMainWindow, type EventChannel } from '../app/main-window.js'
 import { requestRegistry, type RequestRegistry } from '../ipc/request-registry.js'
 import { ProviderError } from '../providers/errors.js'
 import { createProvider, type ProviderFactoryOptions } from '../providers/registry.js'
+import { listBuckets as listS3Buckets } from '../providers/s3/client.js'
 import {
   providerSessionRegistry,
   type SessionHandle,
@@ -371,10 +373,35 @@ export class ProtocolService {
     this.options.requests.cancel(requestId)
   }
 
+  /**
+   * 列出账号可见的 S3 桶：连接对话框用它代替手打桶名。
+   * 连接尚未建立，因此不走会话注册表，只借用传输层之外的 SDK 客户端。
+   */
+  async listBuckets(request: ListBucketsRequest): Promise<Result<string[]>> {
+    const stored = request.connectionId
+      ? await this.options.getConnectionSecret(request.connectionId)
+      : undefined
+    const secret = request.secret ?? (stored?.success ? stored.value : undefined)
+    if (!secret) {
+      return err(createErrorInfo(ERROR_CODE.INVALID_CONFIG, 'S3 credentials are required'))
+    }
+
+    // id 只用于日志与已知主机检索，草稿连接给一个占位值即可。
+    const config: ConnectionConfig = { ...request.connection, id: request.connectionId ?? 'draft' }
+    try {
+      const credentials = this.buildCredentials(config, secret)
+      return ok(await listS3Buckets(config, credentials, AbortSignal.timeout(TIMEOUTS.LIST)))
+    } catch (error) {
+      logger.catch(error, { action: 'list-buckets' })
+      return err(toErrorInfo(error, ERROR_CODE.LIST_ERROR))
+    }
+  }
+
   async list(
     sessionId: string,
     remotePath: string,
     requestId?: string,
+    limit: number = MAX_LIST_ENTRIES,
   ): Promise<Result<FileInfo[]>> {
     return this.runSessionRequest(
       sessionId,
@@ -388,12 +415,8 @@ export class ProtocolService {
         const entries: FileInfo[] = []
 
         for await (const entry of provider.list(path, { signal })) {
-          if (entries.length >= MAX_LIST_ENTRIES) {
-            logger.warn('Directory listing truncated', {
-              sessionId,
-              path,
-              limit: MAX_LIST_ENTRIES,
-            })
+          if (entries.length >= limit) {
+            logger.warn('Directory listing truncated', { sessionId, path, limit })
             break
           }
           entries.push(toFileInfo(entry))
@@ -401,6 +424,22 @@ export class ProtocolService {
 
         return entries
       },
+    )
+  }
+
+  /**
+   * 单条目探测：地址栏提交前用它确认路径存在且是目录，避免把坏路径写进 `currentPath`。
+   * S3 的「目录存在」由 provider 用前缀判定，不存在直接 `NOT_FOUND`。
+   */
+  async stat(sessionId: string, remotePath: string, requestId?: string): Promise<Result<FileInfo>> {
+    return this.runSessionRequest(
+      sessionId,
+      requestId,
+      TIMEOUTS.LIST,
+      ERROR_CODE.LIST_ERROR,
+      'stat',
+      false,
+      async (provider, signal) => toFileInfo(await provider.stat(sanitize(remotePath), signal)),
     )
   }
 

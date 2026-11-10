@@ -38,5 +38,17 @@ describe('config-facade', () => {
     expect(getConfigurationValue('nope').success).toBe(false)
     expect(setConfigurationValue(STORE_KEY.UI, { appearance: 'neon' }).success).toBe(false)
     expect(setConfigurationValue(STORE_KEY.CONNECTIONS, {}).success).toBe(false)
+    expect(setConfigurationValue(STORE_KEY.LAST_PATHS, { c1: 1 }).success).toBe(false)
+  })
+
+  it('round-trips the last path per connection', () => {
+    expect(setConfigurationValue(STORE_KEY.LAST_PATHS, { c1: '/home/user/work' }).success).toBe(
+      true,
+    )
+    expect(getConfigurationValue(STORE_KEY.LAST_PATHS)).toEqual({
+      success: true,
+      value: { c1: '/home/user/work' },
+      error: null,
+    })
   })
 })

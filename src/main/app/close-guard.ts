@@ -8,14 +8,31 @@ export type CloseReason = 'close' | 'quit'
 
 let pendingReason: CloseReason | null = null
 let confirmed = false
+let quitting = false
 
 export function isCloseConfirmed(): boolean {
   return confirmed
 }
 
+/** 退出流程已经开始：窗口 close 事件不再按托盘行为拦截。 */
+export function isQuitting(): boolean {
+  return quitting
+}
+
+export function markQuitting(): void {
+  quitting = true
+}
+
 export function resetCloseGuard(): void {
   pendingReason = null
   confirmed = false
+  quitting = false
+}
+
+/** 托盘菜单「退出」：跳过活跃传输确认，直接进入退出清理。 */
+export function forceQuit(): void {
+  pendingReason = null
+  confirmed = true
 }
 
 /**

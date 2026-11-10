@@ -24,17 +24,27 @@ describe('SettingsDialog', () => {
     vi.clearAllMocks()
   })
 
-  it('展示标题与三个分区入口', () => {
+  it('展示标题与四个分区入口', () => {
     render(<SettingsDialog open onClose={vi.fn()} />)
 
     expect(screen.getByText('settings.title')).not.toBeNull()
+    expect(screen.getByText('settings.general')).not.toBeNull()
     expect(screen.getByText('settings.transfer')).not.toBeNull()
     expect(screen.getByText('settings.files')).not.toBeNull()
     expect(screen.getByText('settings.maintenance')).not.toBeNull()
   })
 
-  it('默认落在传输分区', () => {
+  it('默认落在通用分区', () => {
     render(<SettingsDialog open onClose={vi.fn()} />)
+
+    expect(screen.getByTestId('close-behavior')).not.toBeNull()
+    expect(screen.queryByTestId('upload-concurrency')).toBeNull()
+  })
+
+  it('切到传输分区展示并发设置', async () => {
+    render(<SettingsDialog open onClose={vi.fn()} />)
+
+    await userEvent.click(screen.getByText('settings.transfer'))
 
     expect(screen.getByTestId('upload-concurrency')).not.toBeNull()
     expect(screen.getByTestId('download-concurrency')).not.toBeNull()

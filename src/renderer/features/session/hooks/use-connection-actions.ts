@@ -7,6 +7,7 @@ import { useActiveTaskGuard } from '../../../hooks/use-active-task-guard.js'
 import { useUiStore } from '../../../stores/index.js'
 import { logger } from '../../../utils/index.js'
 import { useConnectionStore } from '../stores/connection.js'
+import { useLastPathsStore } from '../stores/last-paths.js'
 import { useSessionStore } from '../stores/session.js'
 import { useSessionConnect } from './use-session-connect.js'
 
@@ -134,6 +135,7 @@ export const useConnectionActions = () => {
         removeSession(session.sessionId)
       }
       await deleteConnection(connectionToDelete)
+      useLastPathsStore.getState().forget(connectionToDelete)
       addToast({ type: TOAST_TYPE.INFO, message: t(($) => $.toast.deleteConnectionSuccess) })
     } catch (error) {
       logger.catch(error, { connectionId: connectionToDelete, action: 'delete-connection' })

@@ -39,5 +39,5 @@ export const PORT_SMB = 445
 export const PORT_WEBDAV_HTTPS = 443
 export const PORT_S3 = 443
 
-/** 单次目录列举的上限。超过后截断并记录一条警告，UI 标注留给计划 3。 */
+/** 单次目录列举的默认上限，也是「加载更多」的步长：点一次多列一页。 */
 export const MAX_LIST_ENTRIES = 20000

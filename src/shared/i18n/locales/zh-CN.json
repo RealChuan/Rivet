@@ -47,7 +47,10 @@
       "moreActions": "更多操作",
       "newConnection": "新建连接",
       "newConnectionHint": "创建您的第一个连接",
-      "noConnections": "暂无连接"
+      "noConnections": "暂无连接",
+      "pasteAddress": "粘贴地址",
+      "pasteFailed": "读取剪贴板失败",
+      "pasteInvalid": "剪贴板里没有可识别的连接地址"
     },
     "connectionDialog": {
       "accessKeyId": "Access Key ID",
@@ -65,6 +68,8 @@
       "bucket": "存储桶",
       "bucketPlaceholder": "my-bucket",
       "bucketRequired": "请输入存储桶名",
+      "bucketsEmpty": "这个账号下没有可用的存储桶",
+      "bucketsTitle": "选择存储桶",
       "certWarningMessage": "您正在连接到一个证书无效的服务器。请自行承担风险继续。",
       "certWarningTitle": "证书警告",
       "connectFailed": "连接失败",
@@ -156,9 +161,17 @@
       "UNKNOWN": "操作失败",
       "UPLOAD_ERROR": "上传失败"
     },
+    "favorites": {
+      "add": "添加到收藏夹",
+      "empty": "还没有收藏",
+      "hint": "在文件夹上右键即可收藏",
+      "remove": "从收藏夹移除",
+      "title": "收藏夹"
+    },
     "file": {
       "action": {
         "copy": "复制",
+        "copyPath": "复制路径",
         "copyTo": "复制到...",
         "cut": "剪切",
         "download": "下载",
@@ -174,21 +187,34 @@
       "dropToUpload": "拖放以上传"
     },
     "fileExplorerList": {
+      "back": "后退",
+      "clearFilter": "清空过滤",
       "dateModified": "修改日期",
       "disconnected": "已断开连接",
+      "editAddress": "编辑路径",
       "empty": "空目录",
       "error": "加载失败",
+      "filteredCount": "匹配 {{count}} 项 / 共 {{total}} 项",
+      "filterPlaceholder": "过滤当前目录",
+      "forward": "前进",
+      "invalidAddress": "仅支持当前连接内的绝对路径，且不能包含 ..",
       "loading": "加载中...",
+      "loadMore": "加载更多",
+      "moveConflict": "目标目录已有同名条目",
+      "moveFailed": "移动失败：{{message}}",
       "name": "名称",
+      "noMatches": "没有匹配项",
+      "notDirectory": "该路径不是目录",
       "owner": "所有者",
       "parentDirectory": "上级目录",
       "permissions": "权限",
       "reconnectHint": "点击重新连接",
       "retry": "重试",
       "selectedCount": "已选 {{count}} 项 / 共 {{total}} 项",
+      "selectedFolders": "{{count}} 个文件夹",
       "size": "大小",
       "totalCount": "共 {{count}} 项",
-      "truncated": "目录条目超过 20000，仅显示前 20000 项",
+      "truncated": "目录条目超过 {{limit}}，仅显示前 {{limit}} 项",
       "viewGrid": "宫格视图",
       "viewList": "列表视图"
     },
@@ -232,6 +258,10 @@
       "lightMode": "浅色模式",
       "system": "系统"
     },
+    "notification": {
+      "completed": "传输完成",
+      "failed": "传输失败"
+    },
     "passwordInput": {
       "hidePassword": "隐藏密码",
       "showPassword": "显示密码"
@@ -243,8 +273,15 @@
         "hint": "只清理跨天旧日志与归档，当前日志保留",
         "size": "缓存大小"
       },
+      "closeBehavior": {
+        "hint": "最小化到托盘时连接与传输继续；托盘菜单可重新打开或退出",
+        "label": "关闭窗口时",
+        "quit": "退出应用",
+        "tray": "最小化到托盘"
+      },
       "concurrencyHint": "并发数全局生效，对所有连接有效",
       "files": "文件",
+      "general": "通用",
       "hiddenFiles": {
         "hint": "名字以 . 开头的文件与目录",
         "label": "显示隐藏文件"
@@ -283,6 +320,7 @@
       "connectionLost": "{{protocol}} 连接 \"{{name}}\" 已断开",
       "connectionSuccess": "{{protocol}} 连接 \"{{name}}\" 成功",
       "copyFailed": "复制失败",
+      "copyPathSuccess": "路径已复制",
       "copySuccess": "复制成功",
       "createFolderFailed": "创建文件夹失败",
       "createFolderSuccess": "文件夹创建成功",
@@ -367,6 +405,10 @@
         "waiting": "等待中"
       },
       "upload": "上传"
+    },
+    "tray": {
+      "quit": "退出",
+      "show": "显示主界面"
     }
   }
 }

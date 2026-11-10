@@ -8,6 +8,8 @@ const mockWin = {
   on: vi.fn(),
   once: vi.fn(),
   isDestroyed: vi.fn(() => false),
+  show: vi.fn(),
+  focus: vi.fn(),
   webContents: { send: vi.fn() },
 }
 
@@ -51,6 +53,7 @@ vi.mock('../protocol/protocol-service.js', () => ({
 }))
 
 vi.mock('@shared/constants/index.js', () => ({
+  APP_NAME: 'Rivet',
   TIMEOUTS: { FORCE_EXIT: 5000 },
 }))
 
@@ -59,7 +62,10 @@ vi.mock('@shared/utils/index.js', () => ({
 }))
 
 vi.mock('@shared/contract/events.contract.js', () => ({
-  EVENT_CHANNEL: { HAS_ACTIVE_TASKS: 'transfer.hasActiveTasks' },
+  EVENT_CHANNEL: {
+    HAS_ACTIVE_TASKS: 'transfer.hasActiveTasks',
+    CLOSE_REQUESTED: 'app.closeRequested',
+  },
 }))
 
 function setSessionCount(registry: { count: number }, value: number): void {
@@ -67,8 +73,43 @@ function setSessionCount(registry: { count: number }, value: number): void {
 }
 
 describe('lifecycle', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    const { resetCloseGuard } = await import('./close-guard.js')
+    resetCloseGuard()
+  })
+
+  describe('requestQuitFromTray', () => {
+    it('有活跃传输时先展示窗口并交给渲染层确认', async () => {
+      const { requestQuitFromTray } = await import('./lifecycle.js')
+      const { transferService } = await import('../services/transfer/index.js')
+      const { EVENT_CHANNEL } = await import('@shared/contract/events.contract.js')
+
+      mockGetMainWindow.mockReturnValue(mockWin)
+      vi.mocked(transferService.hasActiveTasks).mockReturnValue(true)
+
+      requestQuitFromTray()
+
+      expect(mockWin.show).toHaveBeenCalled()
+      expect(mockWin.focus).toHaveBeenCalled()
+      expect(mockWin.webContents.send).toHaveBeenCalledWith(EVENT_CHANNEL.CLOSE_REQUESTED, {
+        reason: 'quit',
+      })
+      expect(app.quit).not.toHaveBeenCalled()
+    })
+
+    it('没有活跃传输时跳过确认直接退出', async () => {
+      const { requestQuitFromTray } = await import('./lifecycle.js')
+      const { transferService } = await import('../services/transfer/index.js')
+
+      mockGetMainWindow.mockReturnValue(mockWin)
+      vi.mocked(transferService.hasActiveTasks).mockReturnValue(false)
+
+      requestQuitFromTray()
+
+      expect(app.quit).toHaveBeenCalled()
+      expect(mockWin.webContents.send).not.toHaveBeenCalled()
+    })
   })
 
   describe('disconnectAllSessions', () => {

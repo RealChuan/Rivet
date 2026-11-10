@@ -48,7 +48,10 @@ export default interface Resources {
       "moreActions": "More actions",
       "newConnection": "New Connection",
       "newConnectionHint": "Create your first connection",
-      "noConnections": "No connections"
+      "noConnections": "No connections",
+      "pasteAddress": "Paste address",
+      "pasteFailed": "Could not read the clipboard",
+      "pasteInvalid": "No connection address found in the clipboard"
     },
     "connectionDialog": {
       "accessKeyId": "Access Key ID",
@@ -66,6 +69,8 @@ export default interface Resources {
       "bucket": "Bucket",
       "bucketPlaceholder": "my-bucket",
       "bucketRequired": "Bucket name is required",
+      "bucketsEmpty": "No buckets available for this account",
+      "bucketsTitle": "Select bucket",
       "certWarningMessage": "You are connecting to a server with an invalid certificate. Proceed at your own risk.",
       "certWarningTitle": "Certificate Warning",
       "connectFailed": "Connection failed",
@@ -157,9 +162,17 @@ export default interface Resources {
       "UNKNOWN": "Operation failed",
       "UPLOAD_ERROR": "Upload failed"
     },
+    "favorites": {
+      "add": "Add to favorites",
+      "empty": "No favorites yet",
+      "hint": "Right-click a folder to add it here",
+      "remove": "Remove from favorites",
+      "title": "Favorites"
+    },
     "file": {
       "action": {
         "copy": "Copy",
+        "copyPath": "Copy Path",
         "copyTo": "Copy to...",
         "cut": "Cut",
         "download": "Download",
@@ -175,21 +188,34 @@ export default interface Resources {
       "dropToUpload": "Drop to Upload"
     },
     "fileExplorerList": {
+      "back": "Back",
+      "clearFilter": "Clear filter",
       "dateModified": "Date Modified",
       "disconnected": "Disconnected",
+      "editAddress": "Edit path",
       "empty": "Empty directory",
       "error": "Error",
+      "filterPlaceholder": "Filter current folder",
+      "filteredCount": "{{count}} of {{total}} matched" | "{{count}} of {{total}} matched",
+      "forward": "Forward",
+      "invalidAddress": "Only absolute paths within this connection are supported, without ..",
+      "loadMore": "Load more",
       "loading": "Loading...",
+      "moveConflict": "The target folder already has an item with this name",
+      "moveFailed": "Move failed: {{message}}",
       "name": "Name",
+      "noMatches": "No matches",
+      "notDirectory": "That path is not a directory",
       "owner": "Owner",
       "parentDirectory": "Parent Directory",
       "permissions": "Permissions",
       "reconnectHint": "Click to reconnect",
       "retry": "Retry",
       "selectedCount": "{{count}} of {{total}} selected" | "{{count}} of {{total}} selected",
+      "selectedFolders": "{{count}} folder" | "{{count}} folders",
       "size": "Size",
       "totalCount": "{{count}} item" | "{{count}} items",
-      "truncated": "Directory has more than 20,000 entries; showing the first 20,000.",
+      "truncated": "Directory has more than {{limit}} entries; showing the first {{limit}}.",
       "viewGrid": "Grid view",
       "viewList": "List view"
     },
@@ -233,6 +259,10 @@ export default interface Resources {
       "lightMode": "Light Mode",
       "system": "System"
     },
+    "notification": {
+      "completed": "Transfer complete",
+      "failed": "Transfer failed"
+    },
     "passwordInput": {
       "hidePassword": "Hide password",
       "showPassword": "Show password"
@@ -244,8 +274,15 @@ export default interface Resources {
         "hint": "Only older and archived logs are removed; the active log is kept",
         "size": "Cache size"
       },
+      "closeBehavior": {
+        "hint": "Minimizing to tray keeps connections and transfers running; the tray menu can reopen or quit",
+        "label": "When closing the window",
+        "quit": "Quit app",
+        "tray": "Minimize to tray"
+      },
       "concurrencyHint": "Concurrency applies globally to all connections",
       "files": "Files",
+      "general": "General",
       "hiddenFiles": {
         "hint": "Files and folders whose name starts with a dot",
         "label": "Show hidden files"
@@ -284,6 +321,7 @@ export default interface Resources {
       "connectionLost": "{{protocol}} connection \"{{name}}\" lost",
       "connectionSuccess": "{{protocol}} connection \"{{name}}\" connected",
       "copyFailed": "Copy failed",
+      "copyPathSuccess": "Path copied",
       "copySuccess": "Copied successfully",
       "createFolderFailed": "Failed to create folder",
       "createFolderSuccess": "Folder created successfully",
@@ -368,6 +406,10 @@ export default interface Resources {
         "waiting": "Waiting"
       },
       "upload": "Upload"
+    },
+    "tray": {
+      "quit": "Quit",
+      "show": "Show Rivet"
     }
   }
 }

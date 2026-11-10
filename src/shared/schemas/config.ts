@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { UiSettings } from '@shared/types/settings.js'
 import {
+  CLOSE_BEHAVIOR,
   DEFAULT_THEME_VALUE,
   FILE_VIEW_MODE,
   PROTOCOL,
@@ -19,23 +20,34 @@ const sortOrderValues = [SORT_ORDER.NONE, SORT_ORDER.ASC, SORT_ORDER.DESC] as co
 const protocolValues = [PROTOCOL.SFTP, PROTOCOL.SMB, PROTOCOL.WEBDAV, PROTOCOL.S3] as const
 const schemeValues = ['http', 'https'] as const
 const authKindValues = ['password', 'privateKey', 'agent', 'accessKey'] as const
+const closeBehaviorValues = [CLOSE_BEHAVIOR.TRAY, CLOSE_BEHAVIOR.QUIT] as const
 
 export const themeSchema = z.enum(themeValues)
 export const localeSchema = z.enum(localeValues)
 export const fileViewModeSchema = z.enum(fileViewModeValues)
 export const sortOrderSchema = z.enum(sortOrderValues)
 
+export const closeBehaviorSchema = z.enum(closeBehaviorValues)
+
 export const uiSettingsSchema = z.object({
   appearance: themeSchema,
   locale: localeSchema,
   showHiddenFiles: z.boolean(),
+  closeBehavior: closeBehaviorSchema,
 })
 
 export const defaultUiSettings: UiSettings = {
   appearance: DEFAULT_THEME_VALUE,
   locale: '',
   showHiddenFiles: false,
+  closeBehavior: CLOSE_BEHAVIOR.TRAY,
 }
+
+/** 收藏夹：connectionId → 该连接下收藏的远端目录。 */
+export const favoritesSchema = z.record(z.string(), z.array(z.string()))
+
+/** 最后停留目录：connectionId → 远端路径。 */
+export const lastPathsSchema = z.record(z.string(), z.string())
 
 export const transferSettingsSchema = z.object({
   maxUploadConcurrency: z
@@ -76,6 +88,8 @@ export const settingsFileSchema = z.object({
   ui: uiSettingsSchema,
   transfer: transferSettingsSchema,
   connectionSortOrder: sortOrderSchema,
+  favorites: favoritesSchema,
+  lastPaths: lastPathsSchema,
 })
 
 export const connectionsFileSchema = z.object({

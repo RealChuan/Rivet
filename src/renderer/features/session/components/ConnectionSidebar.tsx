@@ -1,12 +1,17 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { SORT_ORDER } from '@shared/constants/index.js'
+import { SORT_ORDER, TOAST_TYPE } from '@shared/constants/index.js'
+import type { ConnectionFormValues } from './ConnectionFormFields.js'
+import { clipboardApi } from '../../../api/clipboard.js'
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog.js'
+import { useUiStore } from '../../../stores/index.js'
+import logger from '../../../utils/logger.js'
 import { HostKeyVerificationDialog } from '../../host-key/index.js'
 import { useConnectionActions } from '../hooks/use-connection-actions.js'
 import { useSessionDisconnect } from '../hooks/use-session-disconnect.js'
 import { useConnectionStore } from '../stores/connection.js'
 import { useSessionStore } from '../stores/session.js'
+import { parseConnectionAddress } from '../utils/parse-connection-address.js'
 import ConnectionDialog from './ConnectionDialog.js'
 import ConnectionList from './ConnectionList.js'
 import SidebarHeader from './SidebarHeader.js'
@@ -40,6 +45,9 @@ export const ConnectionSidebar = () => {
     }
   }
   const [connectionDialogOpen, setConnectionDialogOpen] = React.useState(false)
+  /** 「粘贴地址」带出来的表单预填；引用稳定，对话框靠它重置表单。 */
+  const [prefill, setPrefill] = useState<Partial<ConnectionFormValues> | null>(null)
+  const addToast = useUiStore((state) => state.addToast)
 
   useSessionDisconnect()
 
@@ -75,6 +83,38 @@ export const ConnectionSidebar = () => {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleNewConnection = () => {
+    setPrefill(null)
+    setConnectionDialogOpen(true)
+  }
+
+  /** 从剪贴板认一条连接地址；认不出来就明说，不弹一个空表单让用户猜。 */
+  const handlePasteAddress = async () => {
+    let text: string
+    try {
+      text = await clipboardApi.readText()
+    } catch (error) {
+      logger.catch(error, { action: 'read-clipboard' })
+      addToast({ type: TOAST_TYPE.ERROR, message: t(($) => $.connection.pasteFailed) })
+      return
+    }
+
+    const parsed = parseConnectionAddress(text)
+    if (!parsed) {
+      addToast({ type: TOAST_TYPE.ERROR, message: t(($) => $.connection.pasteInvalid) })
+      return
+    }
+
+    setEditConfig(null)
+    setReconnectConfig(null)
+    setPrefill({
+      protocol: parsed.protocol,
+      host: parsed.host,
+      port: parsed.port,
+      username: parsed.username,
+      ...(parsed.share === undefined ? {} : { share: parsed.share }),
+      ...(parsed.basePath === undefined ? {} : { basePath: parsed.basePath }),
+      ...(parsed.scheme === undefined ? {} : { scheme: parsed.scheme }),
+    })
     setConnectionDialogOpen(true)
   }
 
@@ -95,7 +135,10 @@ export const ConnectionSidebar = () => {
   return (
     <>
       <div className="h-full flex flex-col bg-transparent" data-testid="connection-page">
-        <SidebarHeader onNewConnection={handleNewConnection} />
+        <SidebarHeader
+          onNewConnection={handleNewConnection}
+          onPasteAddress={() => void handlePasteAddress()}
+        />
 
         <div className="flex-1 overflow-hidden">
           <ConnectionList
@@ -119,9 +162,11 @@ export const ConnectionSidebar = () => {
             setConnectionDialogOpen(false)
             setReconnectConfig(null)
             setEditConfig(null)
+            setPrefill(null)
           }}
           onSave={reconnectConfig ? handleReconnectSubmit : wrappedHandleSaveConnection}
           config={editConfig ?? reconnectConfig ?? undefined}
+          prefill={prefill ?? undefined}
         />
         <ConfirmationDialog
           open={deleteConfirmOpen}

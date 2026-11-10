@@ -7,6 +7,7 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListBucketsCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
@@ -101,18 +102,13 @@ function abortOptions(signal: AbortSignal | undefined): { abortSignal?: AbortSig
   return signal === undefined ? {} : { abortSignal: signal }
 }
 
-/** 真实实现：把 aws-sdk 的命令翻译成端口方法，所有错误统一折叠成 ProviderError。 */
-export function createS3Client(config: ConnectionConfig, credentials: Credentials): S3ClientPort {
+/** 只依赖端点与凭证的 SDK 客户端：连接与「列出桶」共用，避免两份超时/证书配置。 */
+function createSdkClient(config: ConnectionConfig, credentials: Credentials): S3Client {
   if (credentials.kind !== 'accessKey') {
     throw new ProviderError(ERROR_CODE.INVALID_CONFIG, 'S3 requires accessKey credentials')
   }
 
-  const bucket = config.bucket ?? ''
-  if (bucket === '') {
-    throw new ProviderError(ERROR_CODE.INVALID_CONFIG, 'S3 bucket is required')
-  }
-
-  const client = new S3Client({
+  return new S3Client({
     region: config.region ?? 'us-east-1',
     endpoint: endpointOf(config),
     forcePathStyle: config.pathStyle ?? true,
@@ -128,6 +124,35 @@ export function createS3Client(config: ConnectionConfig, credentials: Credential
     requestChecksumCalculation: 'WHEN_REQUIRED',
     responseChecksumValidation: 'WHEN_REQUIRED',
   })
+}
+
+/** 列出账号可见的桶；连接对话框用它代替手打桶名。 */
+export async function listBuckets(
+  config: ConnectionConfig,
+  credentials: Credentials,
+  signal?: AbortSignal,
+): Promise<string[]> {
+  const client = createSdkClient(config, credentials)
+  try {
+    const output = await client.send(new ListBucketsCommand({}), abortOptions(signal))
+    return (output.Buckets ?? []).flatMap((entry) =>
+      typeof entry.Name === 'string' && entry.Name.length > 0 ? [entry.Name] : [],
+    )
+  } catch (error) {
+    throw toS3ProviderError(error, 'listBuckets')
+  } finally {
+    client.destroy()
+  }
+}
+
+/** 真实实现：把 aws-sdk 的命令翻译成端口方法，所有错误统一折叠成 ProviderError。 */
+export function createS3Client(config: ConnectionConfig, credentials: Credentials): S3ClientPort {
+  const bucket = config.bucket ?? ''
+  if (bucket === '') {
+    throw new ProviderError(ERROR_CODE.INVALID_CONFIG, 'S3 bucket is required')
+  }
+
+  const client = createSdkClient(config, credentials)
 
   function fail(error: unknown, action: string): ProviderError {
     return toS3ProviderError(error, action)

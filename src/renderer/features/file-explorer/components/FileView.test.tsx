@@ -5,6 +5,7 @@ import type * as SharedConstants from '@shared/constants/index.js'
 import type { ConnectionConfig, FileInfo, Session } from '@shared/types/index.js'
 import type * as FileExplorerHooks from '../hooks/index.js'
 import { TransferActionsContext } from '../contexts/transfer-actions.js'
+import { useFavoritesStore } from '../stores/favorites.js'
 import { FileView } from './FileView.js'
 
 const transferActions = {
@@ -13,10 +14,16 @@ const transferActions = {
   startDownload: vi.fn(),
 }
 
-const renderFileView = () =>
+const mockUpdateCurrentPath = vi.fn()
+
+const renderFileView = (options: { filterQuery?: string; currentPath?: string } = {}) =>
   render(
     <TransferActionsContext value={transferActions}>
-      <FileView sessionId="s1" currentPath="/" />
+      <FileView
+        sessionId="s1"
+        currentPath={options.currentPath ?? '/'}
+        filterQuery={options.filterQuery}
+      />
     </TransferActionsContext>,
   )
 
@@ -103,7 +110,7 @@ vi.mock('../../session/stores/session.js', () => ({
   useSessionStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
       sessions: mockSessions,
-      updateCurrentPath: vi.fn(),
+      updateCurrentPath: mockUpdateCurrentPath,
       setOperating: vi.fn(),
     }),
 }))
@@ -150,6 +157,15 @@ vi.mock('../hooks/index.js', async (importOriginal) => {
       sortedFiles: files,
       handleSort: vi.fn(),
     }),
+    useFileDragMove: () => ({
+      draggingPaths: new Set<string>(),
+      dropTargetPath: null,
+      beginDrag: vi.fn(),
+      endDrag: vi.fn(),
+      dragOver: vi.fn(),
+      dragLeave: vi.fn(),
+      dropOn: vi.fn(),
+    }),
     useFileDragSelect: () => ({
       isDragging: false,
       hasStartedDrag: false,
@@ -188,6 +204,8 @@ beforeEach(() => {
   mockDragSelection.clear()
   mockCopyMove.canPaste = false
   mockCopyMove.cutPaths = new Set()
+  mockUpdateCurrentPath.mockClear()
+  useFavoritesStore.setState({ favorites: {} })
 })
 
 describe('FileView', () => {
@@ -351,5 +369,104 @@ describe('FileView', () => {
 
     await userEvent.click(screen.getByText('a.txt'))
     expect(counter.textContent).toBe('fileExplorerList.selectedCount')
+  })
+
+  it('过滤只保留名称匹配的条目', () => {
+    mockDirectory.files = [
+      { ...FILE, name: 'docs', absolutePath: '/docs' },
+      { ...FILE, name: 'photos', type: 'file', absolutePath: '/photos' },
+    ]
+
+    renderFileView({ filterQuery: 'pho' })
+
+    expect(screen.getByText('photos')).not.toBeNull()
+    expect(screen.queryByText('docs')).toBeNull()
+  })
+
+  it('过滤无匹配时区分「没有匹配项」与「空目录」', () => {
+    renderFileView({ filterQuery: 'zzz' })
+
+    expect(screen.getByText('fileExplorerList.noMatches')).not.toBeNull()
+    expect(screen.queryByText('fileExplorerList.empty')).toBeNull()
+  })
+
+  it('过滤时状态栏显示匹配数', () => {
+    mockDirectory.files = [
+      { ...FILE, name: 'docs', absolutePath: '/docs' },
+      { ...FILE, name: 'photos', type: 'file', absolutePath: '/photos' },
+    ]
+
+    renderFileView({ filterQuery: 'pho' })
+
+    expect(screen.getByTestId('file-explorer-count').textContent).toBe(
+      'fileExplorerList.filteredCount',
+    )
+  })
+
+  it('Enter 打开焦点目录', async () => {
+    renderFileView()
+
+    await userEvent.click(screen.getByText('docs'))
+    await userEvent.keyboard('{Enter}')
+
+    expect(mockUpdateCurrentPath).toHaveBeenCalledWith('s1', '/docs')
+  })
+
+  it('Backspace 返回上级目录', async () => {
+    renderFileView({ currentPath: '/a/b' })
+
+    await userEvent.click(screen.getByText('docs'))
+    await userEvent.keyboard('{Backspace}')
+
+    expect(mockUpdateCurrentPath).toHaveBeenCalledWith('s1', '/a')
+  })
+
+  it('Home / End 跳到首项与末项', async () => {
+    mockDirectory.files = ['a', 'b', 'c'].map((name) => ({
+      ...FILE,
+      name,
+      absolutePath: `/${name}`,
+    }))
+    renderFileView()
+
+    await userEvent.click(screen.getByText('a'))
+    await userEvent.keyboard('{End}')
+    expect(cellByName('c')?.getAttribute('aria-selected')).toBe('true')
+
+    await userEvent.keyboard('{Home}')
+    expect(cellByName('a')?.getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('Shift+方向键扩展选择区间', async () => {
+    mockDirectory.files = ['a', 'b', 'c'].map((name) => ({
+      ...FILE,
+      name,
+      absolutePath: `/${name}`,
+    }))
+    renderFileView()
+
+    await userEvent.click(screen.getByText('a'))
+    await userEvent.keyboard('{Shift>}{ArrowDown}{/Shift}')
+
+    expect(cellByName('a')?.getAttribute('aria-selected')).toBe('true')
+    expect(cellByName('b')?.getAttribute('aria-selected')).toBe('true')
+    expect(cellByName('c')?.getAttribute('aria-selected')).toBe('false')
+  })
+
+  it('收藏的目录在名称旁显示星标', () => {
+    useFavoritesStore.setState({ favorites: { c1: ['/docs'] } })
+    renderFileView()
+
+    expect(screen.getByTestId('favorite-star')).not.toBeNull()
+  })
+
+  it('Escape 清空选择', async () => {
+    renderFileView()
+
+    await userEvent.click(screen.getByText('docs'))
+    expect(cellByName('docs')?.getAttribute('aria-selected')).toBe('true')
+
+    await userEvent.keyboard('{Escape}')
+    expect(cellByName('docs')?.getAttribute('aria-selected')).toBe('false')
   })
 })

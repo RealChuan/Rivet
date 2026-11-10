@@ -6,8 +6,10 @@ import { useSessionConnect } from './use-session-connect.js'
 const mockHandleConnectWithHostKey = vi.fn()
 const mockReplaceSession = vi.fn()
 const mockGetConnectionById = vi.fn()
+const mockStat = vi.fn()
 
 const mockSessions: Array<{ sessionId: string }> = []
+const mockLastPath: { value: string | undefined } = { value: undefined }
 
 vi.mock('./host-key-connect.js', () => ({
   handleConnectWithHostKey: (...args: unknown[]): Promise<unknown> =>
@@ -31,8 +33,21 @@ vi.mock('../stores/connection.js', () => ({
   },
 }))
 
+vi.mock('../stores/last-paths.js', () => ({
+  useLastPathsStore: {
+    getState: () => ({ getPath: (): string | undefined => mockLastPath.value }),
+  },
+}))
+
+vi.mock('../../../api/protocol.js', () => ({
+  protocolApi: {
+    stat: (sessionId: string, path: string): unknown => mockStat(sessionId, path),
+  },
+}))
+
 vi.mock('@shared/constants/index.js', () => ({
   ROOT_PATH: '/',
+  FILE_TYPE: { FILE: 'file', DIRECTORY: 'directory' },
 }))
 
 const mockConfig: ConnectionConfig = {
@@ -54,6 +69,8 @@ describe('useSessionConnect', () => {
       retry: false,
     })
     mockGetConnectionById.mockReturnValue({ ...mockConfig })
+    mockStat.mockReset()
+    mockLastPath.value = undefined
   })
 
   describe('connectSession', () => {
@@ -65,6 +82,75 @@ describe('useSessionConnect', () => {
       expect(success).toBe(true)
       expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith({ connection: mockConfig })
       expect(mockReplaceSession).toHaveBeenCalled()
+    })
+
+    it('should start at root when no path is remembered', async () => {
+      const { result } = renderHook(() => useSessionConnect())
+
+      await result.current.connectSession({ connection: mockConfig })
+
+      expect(mockStat).not.toHaveBeenCalled()
+      expect(mockReplaceSession).toHaveBeenCalledWith(
+        'conn-1',
+        expect.objectContaining({ currentPath: '/' }),
+      )
+    })
+
+    it('should restore the remembered directory after verifying it with stat', async () => {
+      mockLastPath.value = '/home/user/work'
+      mockStat.mockResolvedValue({ type: 'directory' })
+
+      const { result } = renderHook(() => useSessionConnect())
+
+      await result.current.connectSession({ connection: mockConfig })
+
+      expect(mockStat).toHaveBeenCalledWith('sess-1', '/home/user/work')
+      expect(mockReplaceSession).toHaveBeenCalledWith(
+        'conn-1',
+        expect.objectContaining({ currentPath: '/home/user/work' }),
+      )
+    })
+
+    it('should fall back to root when the remembered path is gone', async () => {
+      mockLastPath.value = '/home/user/work'
+      mockStat.mockRejectedValue(new Error('no such file'))
+
+      const { result } = renderHook(() => useSessionConnect())
+
+      await result.current.connectSession({ connection: mockConfig })
+
+      expect(mockReplaceSession).toHaveBeenCalledWith(
+        'conn-1',
+        expect.objectContaining({ currentPath: '/' }),
+      )
+    })
+
+    it('should fall back to root when the remembered path is a file', async () => {
+      mockLastPath.value = '/home/user/file.txt'
+      mockStat.mockResolvedValue({ type: 'file' })
+
+      const { result } = renderHook(() => useSessionConnect())
+
+      await result.current.connectSession({ connection: mockConfig })
+
+      expect(mockReplaceSession).toHaveBeenCalledWith(
+        'conn-1',
+        expect.objectContaining({ currentPath: '/' }),
+      )
+    })
+
+    it('should skip the stat probe when the remembered path is already root', async () => {
+      mockLastPath.value = '/'
+
+      const { result } = renderHook(() => useSessionConnect())
+
+      await result.current.connectSession({ connection: mockConfig })
+
+      expect(mockStat).not.toHaveBeenCalled()
+      expect(mockReplaceSession).toHaveBeenCalledWith(
+        'conn-1',
+        expect.objectContaining({ currentPath: '/' }),
+      )
     })
 
     it('should return false on failed connection', async () => {

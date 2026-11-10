@@ -1,5 +1,6 @@
 import { logger } from '../utils/index.js'
 import { setupAppIpcHandlers } from './app.js'
+import { setupClipboardIpcHandlers } from './clipboard.js'
 import { setupConfigIpcHandlers } from './config.js'
 import { setupDialogIpcHandlers } from './dialog.js'
 import { setupHostKeyIpcHandlers } from './host-key.js'
@@ -10,6 +11,7 @@ import { setupWindowIpcHandlers } from './window.js'
 
 export function setupIpcHandlers(): void {
   setupAppIpcHandlers()
+  setupClipboardIpcHandlers()
   setupProtocolIpcHandlers()
   setupConfigIpcHandlers()
   setupDialogIpcHandlers()

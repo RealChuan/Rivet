@@ -96,7 +96,7 @@ describe('TargetFolderDialog', () => {
     await userEvent.dblClick(await screen.findByText('docs'))
 
     await waitFor(() =>
-      expect(listMock).toHaveBeenCalledWith('s1', '/docs', expect.any(AbortSignal)),
+      expect(listMock).toHaveBeenCalledWith('s1', '/docs', expect.any(AbortSignal), undefined),
     )
   })
 

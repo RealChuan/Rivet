@@ -7,10 +7,14 @@ import {
   disposeSettings,
   flushSettings,
   getConnectionSortOrder,
+  getFavorites,
+  getLastPaths,
   getTransferSettings,
   getUiSettings,
   initializeSettings,
   setConnectionSortOrder,
+  setFavorites,
+  setLastPaths,
   setTransferSettings,
   setUiSettings,
 } from './settings-repository.js'
@@ -32,6 +36,7 @@ describe('settings-repository', () => {
     const ui = getUiSettings()
     expect(ui.appearance).toBe('system')
     expect(ui.locale).toBe('zh-CN')
+    expect(ui.closeBehavior).toBe('tray')
 
     await flushSettings()
 
@@ -42,17 +47,37 @@ describe('settings-repository', () => {
   })
 
   it('persists ui, transfer and sortOrder', async () => {
-    setUiSettings({ appearance: 'dark', locale: 'en-US', showHiddenFiles: true })
+    setUiSettings({
+      appearance: 'dark',
+      locale: 'en-US',
+      showHiddenFiles: true,
+      closeBehavior: 'quit',
+    })
     setTransferSettings({ maxUploadConcurrency: 8, maxDownloadConcurrency: 7 })
     setConnectionSortOrder(SORT_ORDER.DESC)
     await flushSettings()
 
-    expect(getUiSettings()).toEqual({ appearance: 'dark', locale: 'en-US', showHiddenFiles: true })
+    expect(getUiSettings()).toEqual({
+      appearance: 'dark',
+      locale: 'en-US',
+      showHiddenFiles: true,
+      closeBehavior: 'quit',
+    })
     expect(getTransferSettings()).toEqual({
       maxUploadConcurrency: 8,
       maxDownloadConcurrency: 7,
     })
     expect(getConnectionSortOrder()).toBe(SORT_ORDER.DESC)
+  })
+
+  it('persists favorites per connection', () => {
+    expect(setFavorites({ c1: ['/a', '/b'] }).success).toBe(true)
+    expect(getFavorites()).toEqual({ c1: ['/a', '/b'] })
+  })
+
+  it('persists the last path per connection', () => {
+    expect(setLastPaths({ c1: '/home/user/work' }).success).toBe(true)
+    expect(getLastPaths()).toEqual({ c1: '/home/user/work' })
   })
 
   it('clamps concurrency into MIN/MAX before writing', () => {

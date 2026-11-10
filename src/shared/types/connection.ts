@@ -48,3 +48,13 @@ export type ConnectionSaveInput = {
   secret?: string
   saveSecret: boolean
 }
+
+/**
+ * 「列出可用桶」的入参：连接还没落库，所以既带上草稿，也允许带明文 secret；
+ * 编辑已保存的连接时用 `connectionId` 让主进程去取钥匙串里的 secret。
+ */
+export interface ListBucketsRequest {
+  connection: ConnectionSaveInput['connection']
+  connectionId?: string
+  secret?: string
+}

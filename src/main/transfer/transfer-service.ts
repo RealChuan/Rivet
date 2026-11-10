@@ -3,6 +3,7 @@ import type {
   DeduplicateResult,
   LocalFileInfo,
   OperationProgressInfo,
+  TransferOutcome,
   TransferProgressData,
   TransferTask,
 } from '@shared/types/index.js'
@@ -31,6 +32,8 @@ export interface TransferServiceOptions {
   localFs: TaskStatPort
   send(channel: string, payload: unknown): void
   progress: ProgressAggregator
+  /** 任务终结时回调，用于系统通知；发送事件在前、清理任务在后。 */
+  notify?(task: TransferTask, outcome: TransferOutcome): void
   maxFinishedTasks?: number
 }
 
@@ -375,6 +378,7 @@ export class TransferService {
       transferredSize: task.transferredSize,
       fileSize: task.fileSize,
     })
+    this.options.notify?.(task, 'completed')
     this.removeTask(task.id)
   }
 
@@ -385,6 +389,7 @@ export class TransferService {
       taskId: task.id,
       errorMessage: message,
     })
+    this.options.notify?.(task, 'failed')
     this.enforceFinishedLimit()
   }
 

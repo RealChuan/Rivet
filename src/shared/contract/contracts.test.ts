@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { appContract, appOneWayContract } from './app.contract.js'
+import { clipboardContract } from './clipboard.contract.js'
 import { configContract } from './config.contract.js'
 import { dialogContract } from './dialog.contract.js'
 import { eventsContract } from './events.contract.js'
@@ -17,7 +18,11 @@ import { windowContract, windowOneWayContract } from './window.contract.js'
 describe('通道契约', () => {
   it('app 契约', () => {
     expect(Object.keys(appContract)).toEqual(['app.confirmClose'])
-    expect(Object.keys(appOneWayContract)).toEqual(['app.setTheme'])
+    expect(Object.keys(appOneWayContract)).toEqual(['app.setTheme', 'app.setLocale'])
+  })
+
+  it('clipboard 契约', () => {
+    expect(Object.keys(clipboardContract)).toEqual(['clipboard.writeText', 'clipboard.readText'])
   })
 
   it('config 契约', () => {
@@ -36,7 +41,9 @@ describe('通道契约', () => {
     expect(Object.keys(protocolContract)).toEqual([
       'protocol.connect',
       'protocol.disconnect',
+      'protocol.listBuckets',
       'protocol.list',
+      'protocol.stat',
       'protocol.mkdir',
       'protocol.rename',
       'protocol.delete',
@@ -89,6 +96,7 @@ describe('通道契约', () => {
   it('请求契约恰好是所有请求域之并集，无重复无遗漏', () => {
     const union = [
       ...Object.keys(appContract),
+      ...Object.keys(clipboardContract),
       ...Object.keys(configContract),
       ...Object.keys(dialogContract),
       ...Object.keys(hostKeyContract),

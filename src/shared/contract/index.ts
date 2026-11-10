@@ -1,4 +1,5 @@
 import { appContract, appOneWayContract } from './app.contract.js'
+import { clipboardContract } from './clipboard.contract.js'
 import { configContract } from './config.contract.js'
 import { dialogContract } from './dialog.contract.js'
 import { hostKeyContract } from './hostkey.contract.js'
@@ -8,6 +9,7 @@ import { transferContract } from './transfer.contract.js'
 import { windowContract, windowOneWayContract } from './window.contract.js'
 
 export { appContract, appOneWayContract } from './app.contract.js'
+export { clipboardContract } from './clipboard.contract.js'
 export { configContract } from './config.contract.js'
 
 export type { ApiOf, ArgsOf, ClientOf, IpcDef, ResultOf } from './define.js'
@@ -27,6 +29,7 @@ import type { Events } from './events.contract.js'
 /** 请求/响应通道。新增请求通道 = 在这里出现一个 key。 */
 export const invokeContract = {
   ...appContract,
+  ...clipboardContract,
   ...configContract,
   ...dialogContract,
   ...hostKeyContract,
@@ -49,6 +52,7 @@ export type OneWayContract = typeof oneWayContract
  */
 export type ElectronAPI = {
   app: ApiOf<'app', InvokeContract> & SendApiOf<'app', OneWayContract> & EventApi<'app', Events>
+  clipboard: ApiOf<'clipboard', InvokeContract>
   protocol: ApiOf<'protocol', InvokeContract> & EventApi<'protocol', Events>
   config: ApiOf<'config', InvokeContract>
   dialog: ApiOf<'dialog', InvokeContract> & { getPathForFile: (file: File) => string }

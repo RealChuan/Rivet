@@ -8,7 +8,13 @@ import {
   type SortOrder,
   type SupportedLanguageLiteral,
 } from '@shared/constants/index.js'
-import { settingsFileSchema, defaultUiSettings, type SettingsFile } from '@shared/schemas/config.js'
+import {
+  defaultUiSettings,
+  favoritesSchema,
+  lastPathsSchema,
+  settingsFileSchema,
+  type SettingsFile,
+} from '@shared/schemas/config.js'
 import {
   createErrorInfo,
   err,
@@ -54,6 +60,8 @@ export function initializeSettings(baseDir: string): void {
       },
       transfer: defaultTransferSettings(),
       connectionSortOrder: SORT_ORDER.NONE,
+      favorites: {},
+      lastPaths: {},
     }),
   })
 }
@@ -75,12 +83,51 @@ export function setUiSettings(value: UiSettings): Result<void, ErrorInfo> {
         appearance: value.appearance,
         locale: value.locale,
         showHiddenFiles: value.showHiddenFiles,
+        closeBehavior: value.closeBehavior,
       },
     }))
     return ok(undefined)
   } catch (error) {
     logger.catch(error, { action: 'set-ui-settings' })
     return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Invalid UI settings value'))
+  }
+}
+
+export function getFavorites(): Record<string, string[]> {
+  return requireStore().get().favorites
+}
+
+export function setFavorites(value: Record<string, string[]>): Result<void, ErrorInfo> {
+  const parsed = favoritesSchema.safeParse(value)
+  if (!parsed.success) {
+    return err(createErrorInfo(ERROR_CODE.INVALID_CONFIG, 'Invalid favorites value'))
+  }
+
+  try {
+    requireStore().update((current) => ({ ...current, favorites: parsed.data }))
+    return ok(undefined)
+  } catch (error) {
+    logger.catch(error, { action: 'set-favorites' })
+    return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to persist favorites'))
+  }
+}
+
+export function getLastPaths(): Record<string, string> {
+  return requireStore().get().lastPaths
+}
+
+export function setLastPaths(value: Record<string, string>): Result<void, ErrorInfo> {
+  const parsed = lastPathsSchema.safeParse(value)
+  if (!parsed.success) {
+    return err(createErrorInfo(ERROR_CODE.INVALID_CONFIG, 'Invalid lastPaths value'))
+  }
+
+  try {
+    requireStore().update((current) => ({ ...current, lastPaths: parsed.data }))
+    return ok(undefined)
+  } catch (error) {
+    logger.catch(error, { action: 'set-last-paths' })
+    return err(createErrorInfo(ERROR_CODE.CONFIG_ERROR, 'Failed to persist lastPaths'))
   }
 }
 

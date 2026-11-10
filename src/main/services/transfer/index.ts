@@ -1,6 +1,7 @@
 import { PROGRESS_BATCH_MS, TRANSFER_DIRECTION } from '@shared/constants/index.js'
 import { EVENT_CHANNEL } from '@shared/contract/events.contract.js'
 import { sendToMainWindow } from '../../app/main-window.js'
+import { notifyTransferFinished } from '../../app/notifications.js'
 import { providerSessionRegistry } from '../../providers/session-registry.js'
 import { getTransferSettings } from '../../stores/index.js'
 import { FileTransferExecutor } from '../../transfer/executor.js'
@@ -23,6 +24,7 @@ export const transferService = new TransferService({
   send: (channel, payload) =>
     sendToMainWindow(channel as (typeof EVENT_CHANNEL)[keyof typeof EVENT_CHANNEL], payload),
   progress,
+  notify: notifyTransferFinished,
 })
 
 export function applyPersistedConcurrency(): void {

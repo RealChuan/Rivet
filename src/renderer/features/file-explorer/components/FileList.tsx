@@ -4,6 +4,7 @@ import type { RefObject } from 'react'
 import type { FileInfo } from '@shared/types/index.js'
 import type { SelectionModel } from '../hooks/use-selection.js'
 import { computeTotalWidth } from '../hooks/use-column-resizing.js'
+import { type FileDragMove } from '../hooks/use-file-drag-move.js'
 import FileListItem, { type ColumnWidths } from './FileListItem.js'
 
 interface FileListProps {
@@ -18,6 +19,10 @@ interface FileListProps {
   dragSelection: ReadonlySet<string>
   /** 剪切中的条目，置灰显示 */
   cutSelection: ReadonlySet<string>
+  /** 已收藏的条目，名称后显示星标 */
+  favoritePaths: ReadonlySet<string>
+  /** 远程内拖拽移动 */
+  dragMove: FileDragMove
   scrollRef: RefObject<HTMLDivElement | null>
   onActivate: (file: FileInfo) => void
   onContextMenu: (file: FileInfo) => void
@@ -35,6 +40,8 @@ export const FileList = ({
   selection,
   dragSelection,
   cutSelection,
+  favoritePaths,
+  dragMove,
   scrollRef,
   onActivate,
   onContextMenu,
@@ -79,8 +86,12 @@ export const FileList = ({
                 isPending={false}
                 isHovered={false}
                 isFocused={selection.focusedPath === file.absolutePath}
+                isFavorite={favoritePaths.has(file.absolutePath)}
                 rowHeight={rowHeight}
                 isSftp={isSftp}
+                dragMove={dragMove}
+                isDragging={dragMove.draggingPaths.has(file.absolutePath)}
+                isDropTarget={dragMove.dropTargetPath === file.absolutePath}
                 onHover={onHover}
                 onClick={(e) => {
                   selection.select(file.absolutePath, {

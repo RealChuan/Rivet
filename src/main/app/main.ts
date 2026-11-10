@@ -10,11 +10,18 @@
 import { app, session } from 'electron'
 
 import { APP_NAME } from '@shared/constants/index.js'
+import { initializeI18n } from '../i18n/index.js'
 import { setupIpcHandlers } from '../ipc/index.js'
 import { applyPersistedConcurrency } from '../services/transfer/index.js'
-import { initializeStores } from '../stores/index.js'
+import { getUiSettings, initializeStores } from '../stores/index.js'
 import { logger } from '../utils/index.js'
-import { createMainWindow, setupAppLifecycle } from './index.js'
+import {
+  createMainWindow,
+  requestQuitFromTray,
+  setupAppLifecycle,
+  setupTray,
+  showMainWindow,
+} from './index.js'
 import { initSentry } from './sentry.js'
 
 initSentry()
@@ -47,9 +54,11 @@ void app.whenReady().then(() => {
   })
 
   initializeStores()
+  initializeI18n(getUiSettings().locale)
   applyPersistedConcurrency()
   setupIpcHandlers()
   createMainWindow()
+  setupTray({ onShow: showMainWindow, onQuit: requestQuitFromTray })
 })
 
 setupAppLifecycle()

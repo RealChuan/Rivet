@@ -3,6 +3,7 @@ import type React from 'react'
 import type { RefObject } from 'react'
 import type { FileInfo } from '@shared/types/index.js'
 import type { SelectionModel } from '../hooks/use-selection.js'
+import { type FileDragMove } from '../hooks/use-file-drag-move.js'
 import FileGridItem from './FileGridItem.js'
 
 interface FileGridProps {
@@ -16,6 +17,10 @@ interface FileGridProps {
   dragSelection: ReadonlySet<string>
   /** 剪切中的条目，置灰显示 */
   cutSelection: ReadonlySet<string>
+  /** 已收藏的条目，图标右上角显示星标 */
+  favoritePaths: ReadonlySet<string>
+  /** 远程内拖拽移动 */
+  dragMove: FileDragMove
   scrollRef: RefObject<HTMLDivElement | null>
   containerWidth: number
   onActivate: (file: FileInfo) => void
@@ -32,6 +37,8 @@ export const FileGrid = ({
   selection,
   dragSelection,
   cutSelection,
+  favoritePaths,
+  dragMove,
   scrollRef,
   containerWidth,
   onActivate,
@@ -76,8 +83,12 @@ export const FileGrid = ({
                   }
                   isCut={cutSelection.has(file.absolutePath)}
                   isFocused={selection.focusedPath === file.absolutePath}
+                  isFavorite={favoritePaths.has(file.absolutePath)}
                   width={cellWidth}
                   height={rowHeight}
+                  dragMove={dragMove}
+                  isDragging={dragMove.draggingPaths.has(file.absolutePath)}
+                  isDropTarget={dragMove.dropTargetPath === file.absolutePath}
                   onSelect={(e) => {
                     selection.select(file.absolutePath, {
                       ctrl: e.ctrlKey || e.metaKey,

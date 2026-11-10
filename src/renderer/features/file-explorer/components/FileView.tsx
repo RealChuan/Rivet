@@ -4,7 +4,13 @@ import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { FILE_VIEW_MODE, MAX_LIST_ENTRIES, PROTOCOL } from '@shared/constants/index.js'
+import {
+  FILE_TYPE,
+  FILE_VIEW_MODE,
+  type FileViewMode,
+  MAX_LIST_ENTRIES,
+  PROTOCOL,
+} from '@shared/constants/index.js'
 import { type FileInfo } from '@shared/types/index.js'
 import { dialogApi } from '../../../api/dialog.js'
 import { useUiStore } from '../../../stores/index.js'
@@ -13,11 +19,15 @@ import { useSessionStore } from '../../session/stores/session.js'
 import { useFileExplorerTransferActions } from '../contexts/transfer-actions.js'
 import {
   useColumnResizing,
+  useConnectionFavorites,
+  useCopyPath,
   useDirectoryInvalidation,
   useDirectoryList,
   useDirectoryNavigation,
   useElementWidth,
+  FILE_DRAG_MIME,
   useFileCopyMove,
+  useFileDragMove,
   useFileDragSelect,
   useFileListState,
   useFileSort,
@@ -45,6 +55,8 @@ import {
 interface FileViewProps {
   sessionId: string
   currentPath: string
+  /** 当前目录的名称过滤词；空串表示不过滤 */
+  filterQuery?: string | undefined
 }
 
 const ARROW_KEYS: readonly string[] = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
@@ -53,7 +65,18 @@ function isArrowKey(key: string): key is ArrowKey {
   return ARROW_KEYS.includes(key)
 }
 
-export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
+/** 翻页步长：列表按可视行数，宫格再乘列数。容器高度拿不到时退化成一行。 */
+function pageStep(
+  mode: FileViewMode,
+  columns: number,
+  rowHeight: number,
+  viewportHeight: number,
+): number {
+  const rows = Math.max(1, Math.floor(viewportHeight / rowHeight))
+  return rows * (mode === FILE_VIEW_MODE.GRID ? columns : 1)
+}
+
+export const FileView = ({ sessionId, currentPath, filterQuery = '' }: FileViewProps) => {
   const { t } = useTranslation()
   const sessions = useSessionStore((state) => state.sessions)
   const updateCurrentPath = useSessionStore((state) => state.updateCurrentPath)
@@ -66,7 +89,17 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
   const { startMixedUpload } = useFileExplorerTransferActions()
   const [isDragOver, setIsDragOver] = useState(false)
 
-  const { files, isLoading, isFetching, error, refetch } = useDirectoryList(sessionId, currentPath)
+  /** 每个目录各自记住「加载更多」翻了几页，回来时不必从头再列。 */
+  const [listPages, setListPages] = useState<Record<string, number>>({})
+  const pageKey = `${sessionId}\u0000${currentPath}`
+  const listPageCount = listPages[pageKey] ?? 1
+  const listLimit = listPageCount * MAX_LIST_ENTRIES
+
+  const { files, isLoading, isFetching, error, refetch } = useDirectoryList(
+    sessionId,
+    currentPath,
+    listLimit,
+  )
   const { markSessionStale } = useDirectoryInvalidation()
   const listState = useFileListState()
   // 隐藏文件在排序前就滤掉：条目数、截断提示、框选、状态栏都只认可见项。
@@ -74,10 +107,19 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
     () => (showHiddenFiles ? files : files.filter((file) => !file.isHidden)),
     [files, showHiddenFiles],
   )
-  const { sortBy, sortOrder, sortedFiles, handleSort } = useFileSort(visibleFiles)
+  // 过滤插在隐藏文件之后、排序之前：条目数、截断提示、框选都只认可见项。
+  const matchedFiles = useMemo(() => {
+    const query = filterQuery.trim().toLowerCase()
+    if (query === '') return visibleFiles
+    return visibleFiles.filter((file) => file.name.toLowerCase().includes(query))
+  }, [filterQuery, visibleFiles])
+  const { sortBy, sortOrder, sortedFiles, handleSort } = useFileSort(matchedFiles)
   const selection = useSelection(sortedFiles)
+  const dragMove = useFileDragMove(sessionId, selection)
   const clearSelection = selection.clear
   const copyMove = useFileCopyMove(sessionId)
+  const { copyPaths } = useCopyPath()
+  const { favoritePaths } = useConnectionFavorites(sessionId)
 
   const { actualColumnWidths, handleResizeStart, containerRef, resetColumnWidths } =
     useColumnResizing({ isSftp })
@@ -117,13 +159,18 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
     if (!isLoading) resetColumnWidths()
   }, [isLoading, resetColumnWidths])
 
-  // 切 host / 切目录时清掉上一台机器的选择与滚动位置，避免复用残留状态。
+  // 切 host / 切目录 / 改过滤词时清掉选择与滚动位置，避免复用残留状态。
   useEffect(() => {
     clearSelection()
     if (typeof scrollRef.current?.scrollTo === 'function') {
       scrollRef.current.scrollTo({ top: 0 })
     }
-  }, [sessionId, currentPath, clearSelection])
+  }, [sessionId, currentPath, filterQuery, clearSelection])
+
+  // 进入目录后把焦点交给列表容器，方向键不必先点一次；改过滤词时不抢输入框焦点。
+  useEffect(() => {
+    containerRef.current?.focus({ preventScroll: true })
+  }, [sessionId, currentPath, containerRef])
 
   useEffect(() => {
     const focusedPath = selection.focusedPath
@@ -153,12 +200,22 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
     handleDoubleClick(file)
   }
 
+  const focusedEntry = sortedFiles.find((file) => file.absolutePath === selection.focusedPath)
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     const target = e.target
     if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
 
     if (e.ctrlKey || e.metaKey) {
       const key = e.key.toLowerCase()
+
+      // Ctrl+Shift+C 与资源管理器一致：复制选中项路径，没有选中则复制当前目录。
+      if (key === 'c' && e.shiftKey) {
+        e.preventDefault()
+        const paths = selection.selectedEntries.map((entry) => entry.absolutePath)
+        void copyPaths(paths.length > 0 ? paths : [currentPath])
+        return
+      }
 
       if (key === 'a') {
         e.preventDefault()
@@ -186,24 +243,91 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
     }
 
     if (isArrowKey(e.key)) {
+      const delta = navigationDelta(e.key, { mode, columns: layout.columns })
+      if (delta === 0) return
       e.preventDefault()
-      selection.moveFocus(navigationDelta(e.key, { mode, columns: layout.columns }))
+      selection.moveFocus(delta, { extend: e.shiftKey })
+      return
+    }
+
+    switch (e.key) {
+      case 'Enter':
+        if (!focusedEntry) return
+        e.preventDefault()
+        handleActivate(focusedEntry)
+        return
+
+      case 'Backspace':
+        e.preventDefault()
+        handleParentDirectory()
+        return
+
+      case 'Home':
+        e.preventDefault()
+        selection.focusEdge('start', { extend: e.shiftKey })
+        return
+
+      case 'End':
+        e.preventDefault()
+        selection.focusEdge('end', { extend: e.shiftKey })
+        return
+
+      case 'PageUp':
+      case 'PageDown': {
+        e.preventDefault()
+        const step = pageStep(
+          mode,
+          layout.columns,
+          layout.rowHeight,
+          scrollRef.current?.clientHeight ?? 0,
+        )
+        selection.moveFocus(e.key === 'PageUp' ? -step : step, { extend: e.shiftKey })
+        return
+      }
+
+      case 'Delete':
+        if (selection.selectedEntries.length === 0) return
+        e.preventDefault()
+        listState.openDeleteDialog(selection.selectedEntries)
+        return
+
+      case 'F2': {
+        if (selection.selectedEntries.length !== 1) return
+        const target = focusedEntry ?? selection.selectedEntries[0]
+        if (!target) return
+        e.preventDefault()
+        listState.openRenameDialog(target)
+        return
+      }
+
+      case 'Escape':
+        clearSelection()
+        return
+
+      default:
+        return
     }
   }
 
+  /** 行内拖动只认私有 MIME：`Files` 才是从操作系统拖进来的上传。 */
+  const isInternalDrag = (e: React.DragEvent) => e.dataTransfer.types.includes(FILE_DRAG_MIME)
+
   const handleDragOver = (e: React.DragEvent) => {
+    if (isInternalDrag(e)) return
     e.preventDefault()
     e.stopPropagation()
     setIsDragOver(true)
   }
 
   const handleDragLeave = (e: React.DragEvent) => {
+    if (isInternalDrag(e)) return
     e.preventDefault()
     e.stopPropagation()
     setIsDragOver(false)
   }
 
   const handleDrop = (e: React.DragEvent) => {
+    if (isInternalDrag(e)) return
     e.preventDefault()
     e.stopPropagation()
     setIsDragOver(false)
@@ -240,9 +364,18 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
     return <FileExplorerListError error={error.message} onRetry={() => void refetch()} />
   }
 
-  const truncated = sortedFiles.length >= MAX_LIST_ENTRIES
+  const truncated = files.length >= listLimit
+  const isFiltering = filterQuery.trim() !== ''
   // 框选松手前 selection 还没写回，用实时覆盖数，否则拖动时计数会滞后。
   const selectedCount = hasStartedDrag ? dragSelection.size : selection.selectedPaths.size
+  // 文件夹不递归：只报数量，大小只累加文件。
+  const selectedSize = selection.selectedEntries.reduce(
+    (sum, file) => (file.type === FILE_TYPE.FILE ? sum + (file.size ?? 0) : sum),
+    0,
+  )
+  const selectedFolderCount = selection.selectedEntries.filter(
+    (file) => file.type === FILE_TYPE.DIRECTORY,
+  ).length
 
   return (
     <ContextMenuPrimitive.Root
@@ -262,14 +395,23 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
           </div>
         )}
         {truncated && (
-          <div className="px-4 py-1.5 text-xs text-text-muted border-b border-border shrink-0">
-            {t(($) => $.fileExplorerList.truncated)}
+          <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-text-muted border-b border-border shrink-0">
+            <span>{t(($) => $.fileExplorerList.truncated, { limit: listLimit })}</span>
+            <button
+              type="button"
+              data-testid="file-list-load-more"
+              onClick={() => setListPages((prev) => ({ ...prev, [pageKey]: listPageCount + 1 }))}
+              className="text-accent hover:underline"
+            >
+              {t(($) => $.fileExplorerList.loadMore)}
+            </button>
           </div>
         )}
         <ContextMenuPrimitive.Trigger asChild>
           <div
             ref={containerRef}
-            className="flex-1 min-h-10 relative overflow-hidden"
+            tabIndex={0}
+            className="flex-1 min-h-10 relative overflow-hidden outline-none"
             onContextMenu={(e) => {
               const target = e.target as HTMLElement
               if (!target.closest('[data-file-item]')) {
@@ -303,7 +445,7 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
               )}
 
               {sortedFiles.length === 0 ? (
-                <FileExplorerListEmpty />
+                <FileExplorerListEmpty filtered={isFiltering} />
               ) : (
                 <div className="flex-1 min-h-0 relative">
                   {mode === FILE_VIEW_MODE.GRID ? (
@@ -316,6 +458,8 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
                       selection={selection}
                       dragSelection={dragSelection}
                       cutSelection={copyMove.cutPaths}
+                      favoritePaths={favoritePaths}
+                      dragMove={dragMove}
                       scrollRef={scrollRef}
                       containerWidth={containerWidth}
                       onActivate={handleActivate}
@@ -333,6 +477,8 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
                       selection={selection}
                       dragSelection={dragSelection}
                       cutSelection={copyMove.cutPaths}
+                      favoritePaths={favoritePaths}
+                      dragMove={dragMove}
                       scrollRef={scrollRef}
                       onActivate={handleActivate}
                       onContextMenu={handleContextMenu}
@@ -356,7 +502,11 @@ export const FileView = ({ sessionId, currentPath }: FileViewProps) => {
           currentPath={currentPath}
           onNavigate={handleParentDirectory}
           selectedCount={selectedCount}
-          totalCount={sortedFiles.length}
+          selectedSize={selectedSize}
+          selectedFolderCount={selectedFolderCount}
+          visibleCount={sortedFiles.length}
+          listedCount={files.length}
+          isFiltering={isFiltering}
         />
 
         <FileExplorerDialogs

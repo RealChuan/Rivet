@@ -1,8 +1,8 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { SUPPORTED_LANGUAGE } from '@shared/constants/index.js'
-import enUS from './locales/en-US.json' with { type: 'json' }
-import zhCN from './locales/zh-CN.json' with { type: 'json' }
+import enUS from '@shared/i18n/locales/en-US.json' with { type: 'json' }
+import zhCN from '@shared/i18n/locales/zh-CN.json' with { type: 'json' }
 
 const resources = {
   [SUPPORTED_LANGUAGE.ZH_CN]: zhCN,

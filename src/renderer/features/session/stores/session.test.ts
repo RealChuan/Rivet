@@ -1,6 +1,16 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Session } from '@shared/types/index.js'
+import { STORE_KEY } from '@shared/constants/index.js'
+import { useLastPathsStore } from './last-paths.js'
 import { useSessionStore } from './session.js'
+
+const mockConfigSet = vi.fn()
+
+vi.stubGlobal('window', {
+  electronAPI: {
+    config: { get: vi.fn(), set: mockConfigSet },
+  },
+})
 
 const makeSession = (overrides: Partial<Session> = {}): Session => ({
   sessionId: 'sess-1',
@@ -13,6 +23,9 @@ const makeSession = (overrides: Partial<Session> = {}): Session => ({
 
 describe('useSessionStore', () => {
   beforeEach(() => {
+    mockConfigSet.mockReset()
+    mockConfigSet.mockResolvedValue({ success: true, value: undefined })
+    useLastPathsStore.setState({ lastPaths: {} })
     useSessionStore.setState({
       sessions: [],
       activeSessionId: null,
@@ -64,6 +77,22 @@ describe('useSessionStore', () => {
 
     expect(useSessionStore.getState().getSessionById('sess-1')?.currentPath).toBe('/var')
     expect(useSessionStore.getState().getSessionById('sess-2')?.currentPath).toBe('/home')
+  })
+
+  it('updateCurrentPath 按 connectionId 记住最后路径', () => {
+    useSessionStore.setState({ sessions: [makeSession()] })
+
+    useSessionStore.getState().updateCurrentPath('sess-1', '/var/log')
+
+    expect(useLastPathsStore.getState().lastPaths).toEqual({ 'conn-1': '/var/log' })
+    expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.LAST_PATHS, { 'conn-1': '/var/log' })
+  })
+
+  it('updateCurrentPath 目标会话不存在时不写 last-paths', () => {
+    useSessionStore.getState().updateCurrentPath('missing', '/var/log')
+
+    expect(useLastPathsStore.getState().lastPaths).toEqual({})
+    expect(mockConfigSet).not.toHaveBeenCalled()
   })
 
   it('setOperating 写入 isOperating', () => {

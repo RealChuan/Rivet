@@ -23,8 +23,14 @@ export function createQueryClient(): QueryClient {
 export const queryClient = createQueryClient()
 
 export const queryKeys = {
-  /** 目录列表：按会话与远端路径分桶，天然隔离陈旧响应。 */
-  directory: (sessionId: string, path: string) => ['list', sessionId, path] as const,
+  /**
+   * 目录列表：按会话、远端路径与列举上限分桶，天然隔离陈旧响应。
+   * 不传 `limit` 时只给前缀，供按路径批量失效使用。
+   */
+  directory: (sessionId: string, path: string, limit?: number) =>
+    limit === undefined
+      ? (['list', sessionId, path] as const)
+      : (['list', sessionId, path, limit] as const),
   /** 同一会话的全部目录请求；TanStack Query 按前缀匹配，用于批量失效与在飞统计。 */
   session: (sessionId: string) => ['list', sessionId] as const,
 }

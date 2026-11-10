@@ -1,8 +1,23 @@
 import type { ConnectRequest, Session } from '@shared/types/index.js'
-import { ROOT_PATH } from '@shared/constants/index.js'
+import { FILE_TYPE, ROOT_PATH } from '@shared/constants/index.js'
+import { protocolApi } from '../../../api/protocol.js'
 import { useConnectionStore } from '../stores/connection.js'
+import { useLastPathsStore } from '../stores/last-paths.js'
 import { useSessionStore } from '../stores/session.js'
 import { handleConnectWithHostKey } from './host-key-connect.js'
+
+/** 恢复上次停留的目录：先 `stat` 确认，失效就静默回到根目录，别让连接一上来就进错误态。 */
+async function resolveInitialPath(sessionId: string, connectionId: string): Promise<string> {
+  const remembered = useLastPathsStore.getState().getPath(connectionId)
+  if (!remembered || remembered === ROOT_PATH) return ROOT_PATH
+
+  try {
+    const entry = await protocolApi.stat(sessionId, remembered)
+    return entry.type === FILE_TYPE.DIRECTORY ? remembered : ROOT_PATH
+  } catch {
+    return ROOT_PATH
+  }
+}
 
 export function useSessionConnect() {
   const connectSession = async (request: ConnectRequest): Promise<boolean> => {
@@ -16,10 +31,11 @@ export function useSessionConnect() {
       return false
     }
 
+    const sessionId = result.sessionId
     const session: Session = {
-      sessionId: result.sessionId,
+      sessionId,
       connectionId: request.connection.id,
-      currentPath: ROOT_PATH,
+      currentPath: await resolveInitialPath(sessionId, request.connection.id),
       isConnected: true,
       isOperating: false,
     }

@@ -15,18 +15,3 @@ allowBuilds:
   fs-xattr: true
   macos-alias: true
   ssh2: true
-
-minimumReleaseAgeExclude:
-  - '@aws-sdk/client-s3@3.1163.0'
-  - '@playwright/test@1.65.0'
-  - '@tanstack/query-core@5.106.1'
-  - '@tanstack/react-query@5.106.1'
-  - i18next-cli@1.85.1
-  - i18next@26.7.2
-  - jsdom@31.0.0
-  - lucide-react@1.69.0
-  - playwright-core@1.65.0
-  - playwright@1.65.0
-  - react-i18next@17.1.13
-  - undici@8.12.4
-  - vite@8.3.6

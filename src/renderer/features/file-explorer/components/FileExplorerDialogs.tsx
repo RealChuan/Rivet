@@ -5,6 +5,8 @@ import { isOk } from '@shared/types/index.js'
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog.js'
 import TextInputDialog from '../../../components/common/TextInputDialog.js'
 import { useUiStore } from '../../../stores/index.js'
+import { useConnectionFavorites } from '../hooks/use-connection-favorites.js'
+import { useCopyPath } from '../hooks/use-copy-path.js'
 import { type UseFileCopyMoveReturn } from '../hooks/use-file-copy-move.js'
 import { useFileDeletion } from '../hooks/use-file-deletion.js'
 import { type UseFileListStateReturn } from '../hooks/use-file-list-state.js'
@@ -36,6 +38,8 @@ export const FileExplorerDialogs = ({
   const { t } = useTranslation()
   const addToast = useUiStore((state) => state.addToast)
 
+  const { copyPaths } = useCopyPath()
+  const { favoritePaths, toggleFavorite } = useConnectionFavorites(sessionId)
   const { handleDelete } = useFileDeletion(sessionId)
   const { handleRename } = useFileRenaming(sessionId)
   const { handleCreateFolder } = useFolderCreation(sessionId)
@@ -199,6 +203,12 @@ export const FileExplorerDialogs = ({
           )
         }}
         onProperties={openPropertiesDialog}
+        onCopyPath={(files) => {
+          const paths = files.length > 0 ? files.map((file) => file.absolutePath) : [currentPath]
+          void copyPaths(paths)
+        }}
+        isFavorite={(file) => favoritePaths.has(file.absolutePath)}
+        onToggleFavorite={(file) => toggleFavorite(file.absolutePath)}
       />
     </>
   )

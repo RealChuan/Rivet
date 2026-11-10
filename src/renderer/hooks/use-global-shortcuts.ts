@@ -1,18 +1,43 @@
 import { useEffect } from 'react'
 import { FILE_VIEW_MODE } from '@shared/constants/index.js'
 import { useDirectoryInvalidation } from '../features/file-explorer/hooks/index.js'
+import { useNavigationHistoryStore } from '../features/file-explorer/stores/navigation-history.js'
 import { useSessionStore } from '../features/session/stores/session.js'
 import { useUiStore } from '../stores/ui.js'
 
 export const useGlobalShortcuts = () => {
-  const { invalidateSession } = useDirectoryInvalidation()
+  const { invalidateSession, markSessionStale } = useDirectoryInvalidation()
   const activeSessionId = useSessionStore((state) => state.activeSessionId)
+  const activeConnectionId = useSessionStore(
+    (state) => state.sessions.find((s) => s.sessionId === state.activeSessionId)?.connectionId,
+  )
+  const updateCurrentPath = useSessionStore((state) => state.updateCurrentPath)
   const setFileViewMode = useUiStore((state) => state.setFileViewMode)
+  const setAddressEditing = useUiStore((state) => state.setAddressEditing)
+  const stepHistory = useNavigationHistoryStore((state) => state.step)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
+
+      // Alt+←/→ 与资源管理器一致；只对当前会话生效，隐藏会话不响应。
+      if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        if (!activeSessionId || !activeConnectionId) return
+        e.preventDefault()
+        const path = stepHistory(activeConnectionId, e.key === 'ArrowLeft' ? -1 : 1)
+        if (path === null) return
+        updateCurrentPath(activeSessionId, path)
+        void markSessionStale(activeSessionId)
+        return
+      }
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
+        if (!activeSessionId) return
+        e.preventDefault()
+        setAddressEditing(activeSessionId)
+        return
+      }
 
       if ((e.ctrlKey || e.metaKey) && e.key === '1') {
         e.preventDefault()
@@ -36,5 +61,14 @@ export const useGlobalShortcuts = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [activeSessionId, invalidateSession, setFileViewMode])
+  }, [
+    activeConnectionId,
+    activeSessionId,
+    invalidateSession,
+    markSessionStale,
+    setAddressEditing,
+    setFileViewMode,
+    stepHistory,
+    updateCurrentPath,
+  ])
 }

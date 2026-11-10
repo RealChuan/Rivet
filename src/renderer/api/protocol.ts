@@ -1,4 +1,9 @@
-import type { ConnectRequest, FileInfo, OperationResult } from '@shared/types/index.js'
+import type {
+  ConnectRequest,
+  FileInfo,
+  ListBucketsRequest,
+  OperationResult,
+} from '@shared/types/index.js'
 import { forwardAbort } from './abort.js'
 import { unwrap } from './result.js'
 
@@ -10,18 +15,41 @@ export const protocolApi = {
     unwrap(await window.electronAPI.protocol.disconnect(sessionId, requestId))
   },
 
+  /** 连接对话框用：拿当前表单的端点与凭证列出可选的 S3 桶。 */
+  listBuckets: async (request: ListBucketsRequest): Promise<string[]> =>
+    unwrap(await window.electronAPI.protocol.listBuckets(request)),
+
   /**
    * 目录枚举。`requestId` 只用于把渲染层的 AbortSignal 桥接成主进程取消，
    * 不参与任何「结果是否陈旧」的判断——那由 TanStack Query 的 queryKey 负责。
    */
-  list: async (sessionId: string, path: string, signal?: AbortSignal): Promise<FileInfo[]> => {
+  list: async (
+    sessionId: string,
+    path: string,
+    signal?: AbortSignal,
+    limit?: number,
+  ): Promise<FileInfo[]> => {
     const requestId = crypto.randomUUID()
     const dispose = forwardAbort(signal, () => {
       void protocolApi.cancel(requestId)
     })
 
     try {
-      return unwrap(await window.electronAPI.protocol.list(sessionId, path, requestId))
+      return unwrap(await window.electronAPI.protocol.list(sessionId, path, requestId, limit))
+    } finally {
+      dispose()
+    }
+  },
+
+  /** 地址栏校验用；与 list 一样把 AbortSignal 桥接成主进程取消。 */
+  stat: async (sessionId: string, path: string, signal?: AbortSignal): Promise<FileInfo> => {
+    const requestId = crypto.randomUUID()
+    const dispose = forwardAbort(signal, () => {
+      void protocolApi.cancel(requestId)
+    })
+
+    try {
+      return unwrap(await window.electronAPI.protocol.stat(sessionId, path, requestId))
     } finally {
       dispose()
     }

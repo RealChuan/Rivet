@@ -44,6 +44,8 @@ interface ConnectionFormFieldsProps {
   onChange: <K extends keyof ConnectionFormValues>(key: K, value: ConnectionFormValues[K]) => void
   onBrowsePrivateKey: () => void
   hasStoredSecret: boolean
+  /** 仅 S3：打开「选择桶」对话框 */
+  onBrowseBuckets: () => void
 }
 
 export const ConnectionFormFields = ({
@@ -51,6 +53,7 @@ export const ConnectionFormFields = ({
   onChange,
   onBrowsePrivateKey,
   hasStoredSecret,
+  onBrowseBuckets,
 }: ConnectionFormFieldsProps) => {
   const { t } = useTranslation()
   const isWebdav = values.protocol === PROTOCOL.WEBDAV
@@ -168,9 +171,19 @@ export const ConnectionFormFields = ({
         <>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-text mb-1.5">
-                {t(($) => $.connectionDialog.bucket)}
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-medium text-text">
+                  {t(($) => $.connectionDialog.bucket)}
+                </label>
+                <button
+                  type="button"
+                  data-testid="connection-browse-buckets"
+                  onClick={onBrowseBuckets}
+                  className="text-xs text-accent bg-transparent border-none p-0 hover:underline"
+                >
+                  {t(($) => $.connectionDialog.browse)}
+                </button>
+              </div>
               <Input
                 type="text"
                 data-testid="connection-bucket"

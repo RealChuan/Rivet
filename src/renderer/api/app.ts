@@ -11,6 +11,10 @@ export const appApi = {
     window.electronAPI.app.setTheme(theme)
   },
 
+  setLocale: (locale: 'zh-CN' | 'en-US'): void => {
+    window.electronAPI.app.setLocale(locale)
+  },
+
   onCloseRequested: (callback: Parameters<AppEventApi['onCloseRequested']>[0]) =>
     window.electronAPI.app.onCloseRequested(callback),
 }

@@ -94,6 +94,41 @@ describe('useSelection', () => {
     expect(result.current.focusedPath).toBe('/e')
   })
 
+  it('没有焦点时首次方向键选中第一项', () => {
+    const { result } = renderHook(() => useSelection(entries))
+
+    act(() => result.current.moveFocus(-1))
+    expect(result.current.focusedPath).toBe('/a')
+
+    act(() => result.current.moveFocus(2))
+    expect(result.current.focusedPath).toBe('/c')
+  })
+
+  it('Shift 扩展从锚点连成区间，锚点保持不变', () => {
+    const { result } = renderHook(() => useSelection(entries))
+
+    act(() => result.current.select('/b', NONE))
+    act(() => result.current.moveFocus(2, { extend: true }))
+
+    expect([...result.current.selectedPaths]).toEqual(['/b', '/c', '/d'])
+    expect(result.current.anchorPath).toBe('/b')
+    expect(result.current.focusedPath).toBe('/d')
+
+    act(() => result.current.moveFocus(-1, { extend: true }))
+    expect([...result.current.selectedPaths]).toEqual(['/b', '/c'])
+  })
+
+  it('focusEdge 跳到首尾并把选择替换为单项', () => {
+    const { result } = renderHook(() => useSelection(entries))
+
+    act(() => result.current.focusEdge('end'))
+    expect(result.current.focusedPath).toBe('/e')
+    expect([...result.current.selectedPaths]).toEqual(['/e'])
+
+    act(() => result.current.focusEdge('start', { extend: true }))
+    expect([...result.current.selectedPaths]).toEqual(['/a', '/b', '/c', '/d', '/e'])
+  })
+
   it('selectedEntries 保持 entries 顺序', () => {
     const { result } = renderHook(() => useSelection(entries))
 

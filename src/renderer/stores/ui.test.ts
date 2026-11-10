@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  CLOSE_BEHAVIOR,
   DEFAULT_LANGUAGE,
   DEFAULT_THEME_VALUE,
   STORE_KEY,
@@ -30,6 +31,7 @@ describe('useUiStore', () => {
       appearance: DEFAULT_THEME_VALUE,
       locale: DEFAULT_LANGUAGE,
       showHiddenFiles: false,
+      closeBehavior: CLOSE_BEHAVIOR.TRAY,
       connectionPanelWidth: 260,
       queuePanelMode: QUEUE_PANEL_MODE.EXPANDED,
       queuePanelHeight: 260,
@@ -87,6 +89,7 @@ describe('useUiStore', () => {
         appearance: THEME.LIGHT,
         locale: DEFAULT_LANGUAGE,
         showHiddenFiles: false,
+        closeBehavior: CLOSE_BEHAVIOR.TRAY,
       })
     })
 
@@ -98,6 +101,7 @@ describe('useUiStore', () => {
         appearance: THEME.DARK,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
         showHiddenFiles: false,
+        closeBehavior: CLOSE_BEHAVIOR.TRAY,
       })
     })
   })
@@ -116,6 +120,7 @@ describe('useUiStore', () => {
         appearance: DEFAULT_THEME_VALUE,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
         showHiddenFiles: false,
+        closeBehavior: CLOSE_BEHAVIOR.TRAY,
       })
     })
 
@@ -127,6 +132,7 @@ describe('useUiStore', () => {
         appearance: THEME.DARK,
         locale: SUPPORTED_LANGUAGE.ZH_CN,
         showHiddenFiles: false,
+        closeBehavior: CLOSE_BEHAVIOR.TRAY,
       })
     })
   })
@@ -141,6 +147,22 @@ describe('useUiStore', () => {
         appearance: THEME.DARK,
         locale: SUPPORTED_LANGUAGE.EN_US,
         showHiddenFiles: true,
+        closeBehavior: CLOSE_BEHAVIOR.TRAY,
+      })
+    })
+  })
+
+  describe('setCloseBehavior', () => {
+    it('updates state and persists with current appearance/locale', () => {
+      useUiStore.setState({ appearance: THEME.DARK, locale: SUPPORTED_LANGUAGE.EN_US })
+      useUiStore.getState().setCloseBehavior(CLOSE_BEHAVIOR.QUIT)
+
+      expect(useUiStore.getState().closeBehavior).toBe(CLOSE_BEHAVIOR.QUIT)
+      expect(mockConfigSet).toHaveBeenCalledWith(STORE_KEY.UI, {
+        appearance: THEME.DARK,
+        locale: SUPPORTED_LANGUAGE.EN_US,
+        showHiddenFiles: false,
+        closeBehavior: CLOSE_BEHAVIOR.QUIT,
       })
     })
   })

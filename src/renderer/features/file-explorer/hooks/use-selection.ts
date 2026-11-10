@@ -6,6 +6,11 @@ export interface SelectionModifiers {
   shift: boolean
 }
 
+export interface SelectionMoveOptions {
+  /** Shift+方向键：从锚点扩展区间，锚点本身不动 */
+  extend?: boolean
+}
+
 export interface SelectionModel {
   selectedPaths: ReadonlySet<string>
   anchorPath: string | null
@@ -16,7 +21,8 @@ export interface SelectionModel {
   replace: (paths: readonly string[]) => void
   selectAll: () => void
   clear: () => void
-  moveFocus: (delta: number) => void
+  moveFocus: (delta: number, options?: SelectionMoveOptions) => void
+  focusEdge: (edge: 'start' | 'end', options?: SelectionMoveOptions) => void
   focus: (path: string) => void
 }
 
@@ -81,24 +87,44 @@ export function useSelection(entries: FileInfo[]): SelectionModel {
     setFocusedPath(null)
   }, [])
 
-  const moveFocus = useCallback(
-    (delta: number) => {
-      if (delta === 0 || entries.length === 0) return
-      const currentIndex = focusedPath
-        ? entries.findIndex((entry) => entry.absolutePath === focusedPath)
-        : 0
-      const nextIndex = clamp(
-        (currentIndex === -1 ? 0 : currentIndex) + delta,
-        0,
-        entries.length - 1,
-      )
+  const applyFocus = useCallback(
+    (nextIndex: number, extend: boolean) => {
       const nextPath = entries[nextIndex]?.absolutePath
-      if (!nextPath) return
-      setSelectedPaths(new Set([nextPath]))
-      setAnchorPath(nextPath)
+      if (nextPath === undefined) return
+
+      if (extend && anchorPath) {
+        const anchorIndex = entries.findIndex((entry) => entry.absolutePath === anchorPath)
+        const from = anchorIndex === -1 ? nextIndex : anchorIndex
+        const start = Math.min(from, nextIndex)
+        const end = Math.max(from, nextIndex)
+        setSelectedPaths(new Set(entries.slice(start, end + 1).map((entry) => entry.absolutePath)))
+      } else {
+        setSelectedPaths(new Set([nextPath]))
+        setAnchorPath(nextPath)
+      }
       setFocusedPath(nextPath)
     },
-    [entries, focusedPath],
+    [anchorPath, entries],
+  )
+
+  const moveFocus = useCallback(
+    (delta: number, options?: SelectionMoveOptions) => {
+      if (delta === 0 || entries.length === 0) return
+      // 没有焦点时把首次按键当作「选中第一项」，与资源管理器一致。
+      const base = focusedPath
+        ? entries.findIndex((entry) => entry.absolutePath === focusedPath)
+        : -1
+      applyFocus(clamp(base + delta, 0, entries.length - 1), options?.extend === true)
+    },
+    [applyFocus, entries, focusedPath],
+  )
+
+  const focusEdge = useCallback(
+    (edge: 'start' | 'end', options?: SelectionMoveOptions) => {
+      if (entries.length === 0) return
+      applyFocus(edge === 'start' ? 0 : entries.length - 1, options?.extend === true)
+    },
+    [applyFocus, entries.length],
   )
 
   const focus = useCallback((path: string) => {
@@ -118,6 +144,7 @@ export function useSelection(entries: FileInfo[]): SelectionModel {
     selectAll,
     clear,
     moveFocus,
+    focusEdge,
     focus,
   }
 }

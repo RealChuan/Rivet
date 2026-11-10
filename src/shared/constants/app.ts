@@ -41,6 +41,8 @@ export const STORE_KEY = {
   TRANSFER: 'transfer',
   CONNECTIONS: 'connections',
   CONNECTION_SORT_ORDER: 'connectionSortOrder',
+  FAVORITES: 'favorites',
+  LAST_PATHS: 'lastPaths',
 } as const
 
 export type StoreKey = (typeof STORE_KEY)[keyof typeof STORE_KEY]

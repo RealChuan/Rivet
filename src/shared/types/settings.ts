@@ -1,4 +1,4 @@
-import type { SupportedLanguageLiteral, Theme } from '@shared/constants/index.js'
+import type { CloseBehavior, SupportedLanguageLiteral, Theme } from '@shared/constants/index.js'
 
 /**
  * UI 设置接口
@@ -23,6 +23,13 @@ export interface UiSettings {
 
   /** 是否显示以 `.` 开头的隐藏条目 */
   showHiddenFiles: boolean
+
+  /**
+   * 关闭主窗口时的行为
+   * - tray: 隐藏到系统托盘，连接与传输继续
+   * - quit: 退出应用
+   */
+  closeBehavior: CloseBehavior
 }
 
 /**

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useApplicationInitialization } from './hooks/use-app-init.js'
 import { useGlobalShortcuts } from './hooks/use-global-shortcuts.js'
+import { useLocaleSync } from './hooks/use-locale-sync.js'
 import { useApplicationTheme } from './hooks/use-theme.js'
 import { MainLayout } from './layout/MainLayout.js'
 import { useUiStore } from './stores/ui.js'
@@ -12,6 +13,7 @@ const App = () => {
   useApplicationInitialization()
   useApplicationTheme()
   useGlobalShortcuts()
+  useLocaleSync()
 
   if (!initialized) {
     return (

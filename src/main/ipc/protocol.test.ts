@@ -8,6 +8,7 @@ vi.mock('../protocol/protocol-service.js', () => ({
     connect: vi.fn().mockResolvedValue({ success: true, value: undefined, error: undefined }),
     disconnect: vi.fn().mockResolvedValue({ success: true, value: undefined, error: undefined }),
     list: vi.fn().mockResolvedValue({ success: true, value: [], error: undefined }),
+    stat: vi.fn().mockResolvedValue({ success: true, value: undefined, error: undefined }),
     mkdir: vi.fn().mockResolvedValue({ success: true, value: undefined, error: undefined }),
     rename: vi.fn().mockResolvedValue({ success: true, value: undefined, error: undefined }),
     delete: vi.fn().mockResolvedValue({ success: true, value: undefined, error: undefined }),
@@ -51,9 +52,21 @@ describe('protocol IPC handlers', () => {
 
     const call = handleMock.mock.calls.find(([channel]) => channel === 'protocol.list')
     if (!call) throw new Error('protocol.list not registered')
-    await call[1]({}, 's1', '/tmp')
+    await call[1]({}, 's1', '/tmp', undefined, 500)
 
-    expect(protocolService.list).toHaveBeenCalledWith('s1', '/tmp', undefined)
+    expect(protocolService.list).toHaveBeenCalledWith('s1', '/tmp', undefined, 500)
+  })
+
+  it('stat 通道把参数原样转给协议服务', async () => {
+    const { protocolService } = await import('../protocol/protocol-service.js')
+    const { setupProtocolIpcHandlers } = await import('./protocol.js')
+    setupProtocolIpcHandlers()
+
+    const call = handleMock.mock.calls.find(([channel]) => channel === 'protocol.stat')
+    if (!call) throw new Error('protocol.stat not registered')
+    await call[1]({}, 's1', '/tmp', 'r1')
+
+    expect(protocolService.stat).toHaveBeenCalledWith('s1', '/tmp', 'r1')
   })
 
   it('参数类型错误时返回 INVALID_CONFIG', async () => {

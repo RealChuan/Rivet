@@ -19,13 +19,22 @@ export const electronAPI = {
   app: {
     confirmClose: () => invoke('app.confirmClose'),
     setTheme: (theme) => send('app.setTheme', theme),
+    setLocale: (locale) => send('app.setLocale', locale),
     onCloseRequested: (callback) => subscribe('app.closeRequested', callback),
+  },
+
+  clipboard: {
+    writeText: (text) => invoke('clipboard.writeText', text),
+    readText: () => invoke('clipboard.readText'),
   },
 
   protocol: {
     connect: (config) => invoke('protocol.connect', config),
     disconnect: (sessionId, requestId) => invoke('protocol.disconnect', sessionId, requestId),
-    list: (sessionId, path, requestId) => invoke('protocol.list', sessionId, path, requestId),
+    listBuckets: (request) => invoke('protocol.listBuckets', request),
+    list: (sessionId, path, requestId, limit) =>
+      invoke('protocol.list', sessionId, path, requestId, limit),
+    stat: (sessionId, path, requestId) => invoke('protocol.stat', sessionId, path, requestId),
     mkdir: (sessionId, path, requestId) => invoke('protocol.mkdir', sessionId, path, requestId),
     rename: (sessionId, file, newName, requestId) =>
       invoke('protocol.rename', sessionId, file, newName, requestId),
