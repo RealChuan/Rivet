@@ -34,6 +34,7 @@ describe('useApplicationInitialization', () => {
   const mockStartTransferListening = vi.fn(() => vi.fn())
   const mockRestoreActiveTasks = vi.fn().mockResolvedValue(undefined)
   const mockLoadConcurrency = vi.fn().mockResolvedValue(undefined)
+  const mockLoadSpeedLimits = vi.fn().mockResolvedValue(undefined)
   const mockConfigGet = vi.fn()
 
   afterEach(() => {
@@ -66,12 +67,14 @@ describe('useApplicationInitialization', () => {
           startListening: typeof mockStartTransferListening
           restoreActiveTasks: typeof mockRestoreActiveTasks
           loadConcurrency: typeof mockLoadConcurrency
+          loadSpeedLimits: typeof mockLoadSpeedLimits
         }) => unknown,
       ) =>
         selector({
           startListening: mockStartTransferListening,
           restoreActiveTasks: mockRestoreActiveTasks,
           loadConcurrency: mockLoadConcurrency,
+          loadSpeedLimits: mockLoadSpeedLimits,
         }),
     )
     ;(useTranslation as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -164,12 +167,14 @@ describe('useApplicationInitialization', () => {
           startListening: typeof mockStartTransferListening
           restoreActiveTasks: typeof mockRestoreActiveTasks
           loadConcurrency: typeof mockLoadConcurrency
+          loadSpeedLimits: typeof mockLoadSpeedLimits
         }) => unknown,
       ) =>
         selector({
           startListening: mockStartTransferListening,
           restoreActiveTasks: mockRestoreActiveTasks,
           loadConcurrency: mockLoadConcurrency,
+          loadSpeedLimits: mockLoadSpeedLimits,
         }),
     )
 
@@ -181,6 +186,7 @@ describe('useApplicationInitialization', () => {
       expect(mockStartTransferListening).toHaveBeenCalled()
       expect(mockRestoreActiveTasks).toHaveBeenCalled()
       expect(mockLoadConcurrency).toHaveBeenCalled()
+      expect(mockLoadSpeedLimits).toHaveBeenCalled()
     })
   })
 })

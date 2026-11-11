@@ -72,6 +72,9 @@ export const protocolApi = {
     unwrap(await window.electronAPI.protocol.delete(sessionId, file))
   },
 
+  shareLink: async (sessionId: string, file: FileInfo, expiresInSeconds: number): Promise<string> =>
+    unwrap(await window.electronAPI.protocol.shareLink(sessionId, file, expiresInSeconds)),
+
   copy: async (sessionId: string, file: FileInfo, targetPath: string): Promise<void> => {
     unwrap(await window.electronAPI.protocol.copy(sessionId, file, targetPath))
   },

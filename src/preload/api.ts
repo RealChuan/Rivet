@@ -42,6 +42,8 @@ export const electronAPI = {
     chmod: (sessionId, file, mode, requestId) =>
       invoke('protocol.chmod', sessionId, file, mode, requestId),
     delete: (sessionId, file, requestId) => invoke('protocol.delete', sessionId, file, requestId),
+    shareLink: (sessionId, file, expiresInSeconds) =>
+      invoke('protocol.shareLink', sessionId, file, expiresInSeconds),
     copy: (sessionId, file, targetPath, requestId) =>
       invoke('protocol.copy', sessionId, file, targetPath, requestId),
     move: (sessionId, file, targetPath, requestId) =>
@@ -113,6 +115,9 @@ export const electronAPI = {
     getTasks: (sessionId) => invoke('transfer.getTasks', sessionId),
     getConcurrency: (direction) => invoke('transfer.getConcurrency', direction),
     setConcurrency: (max, direction) => invoke('transfer.setConcurrency', max, direction),
+    getSpeedLimit: (direction) => invoke('transfer.getSpeedLimit', direction),
+    setSpeedLimit: (bytesPerSecond, direction) =>
+      invoke('transfer.setSpeedLimit', bytesPerSecond, direction),
     checkLocalFiles: (localDir) => invoke('transfer.checkLocalFiles', localDir),
     getLastDir: (key) => invoke('transfer.getLastDir', key),
     setLastDir: (key, dir) => invoke('transfer.setLastDir', key, dir),

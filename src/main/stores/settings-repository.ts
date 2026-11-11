@@ -39,6 +39,8 @@ function defaultTransferSettings(): TransferSettings {
   return {
     maxUploadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
     maxDownloadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
+    maxUploadBytesPerSecond: TRANSFER_CONFIG.DEFAULT_SPEED_LIMIT,
+    maxDownloadBytesPerSecond: TRANSFER_CONFIG.DEFAULT_SPEED_LIMIT,
   }
 }
 
@@ -143,12 +145,18 @@ export function getTransferSettings(): TransferSettings {
 export function setTransferSettings(value: TransferSettings): Result<void, ErrorInfo> {
   const clamp = (n: number): number =>
     Math.min(TRANSFER_CONFIG.MAX_CONCURRENCY, Math.max(TRANSFER_CONFIG.MIN_CONCURRENCY, n))
+  const clampSpeed = (n: number): number =>
+    Math.round(
+      Math.min(TRANSFER_CONFIG.MAX_SPEED_LIMIT, Math.max(TRANSFER_CONFIG.MIN_SPEED_LIMIT, n)),
+    )
   try {
     requireStore().update((current) => ({
       ...current,
       transfer: {
         maxUploadConcurrency: clamp(value.maxUploadConcurrency),
         maxDownloadConcurrency: clamp(value.maxDownloadConcurrency),
+        maxUploadBytesPerSecond: clampSpeed(value.maxUploadBytesPerSecond),
+        maxDownloadBytesPerSecond: clampSpeed(value.maxDownloadBytesPerSecond),
       },
     }))
     return ok(undefined)

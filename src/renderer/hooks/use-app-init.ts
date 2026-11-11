@@ -36,6 +36,7 @@ export const useApplicationInitialization = () => {
   const startTransferListening = useTransferStore((state) => state.startListening)
   const restoreActiveTasks = useTransferStore((state) => state.restoreActiveTasks)
   const loadConcurrency = useTransferStore((state) => state.loadConcurrency)
+  const loadSpeedLimits = useTransferStore((state) => state.loadSpeedLimits)
 
   useEffect(() => {
     const initApp = async () => {
@@ -62,6 +63,7 @@ export const useApplicationInitialization = () => {
     const unsubscribe = startTransferListening()
     void restoreActiveTasks()
     void loadConcurrency()
+    void loadSpeedLimits()
     return unsubscribe
   }, [
     initialized,
@@ -72,6 +74,7 @@ export const useApplicationInitialization = () => {
     startTransferListening,
     restoreActiveTasks,
     loadConcurrency,
+    loadSpeedLimits,
   ])
 
   return { initialized }

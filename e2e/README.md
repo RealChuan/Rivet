@@ -9,7 +9,7 @@ pnpm run test:e2e
 pnpm run e2e:servers:down
 ```
 
-- SFTP: `127.0.0.1:2222`，`testuser` / `testpass`，用户 chroot 到家目录，只有 `upload/` 可写
+- SFTP: `127.0.0.1:2222`，`testuser` / `testpass`，用户 chroot 到家目录，只有 `upload/` 可写；公钥认信用 `sftp-keys/id_ed25519`（`e2e:servers` 生成）
 - SSH（终端用例）: `127.0.0.1:2223`，`testuser` / `testpass`，sftp 与 shell 同端口——终端复用会话的主机与端口，而 `atmoz/sftp` 只放行 sftp 子系统
 - SMB: `127.0.0.1:1445`，共享名 `rivet`，`testuser` / `testpass`；共享目录挂载到 `e2e/servers/smb-share`
   - Samba 显式限制为 SMB2（`server min/max protocol = SMB2`），与当前 v9u-smb2 provider 的能力一致
@@ -25,8 +25,9 @@ pnpm run e2e:servers:down
 容器里服务没起来时外部端口也能连上，所以不要用「端口能连」判断就绪（SFTP 集成测试曾因此在握手阶段报
 `Connection lost before handshake`）。
 
-Docker 不在本机时（例如服务跑在同一局域网的另一台 Debian 机器上），把 `e2e/servers` 目录拷过去执行
-`docker compose up -d --wait`，再用 `RIVET_E2E_HOST` 指向它；默认仍是 `127.0.0.1`，2222/2223/8080/1445/9000 需要能从测试机访问。
+Docker 不在本机时（例如服务跑在同一局域网的另一台 Debian 机器上），先在本地跑一次 `node scripts/e2e-sftp-key.mjs`，
+把 `e2e/servers`（含生成的 `sftp-keys`）拷过去执行 `docker compose up -d --wait`，再用 `RIVET_E2E_HOST` 指向它；
+默认仍是 `127.0.0.1`，2222/2223/8080/1445/9000 需要能从测试机访问。
 
 ```powershell
 $env:RIVET_E2E_HOST = '10.1.1.188'

@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { SORT_ORDER } from '@shared/constants/index.js'
+import { SORT_ORDER, TRANSFER_CONFIG } from '@shared/constants/index.js'
 import {
   disposeSettings,
   flushSettings,
@@ -54,7 +54,12 @@ describe('settings-repository', () => {
       closeBehavior: 'quit',
       terminalFontSize: 16,
     })
-    setTransferSettings({ maxUploadConcurrency: 8, maxDownloadConcurrency: 7 })
+    setTransferSettings({
+      maxUploadConcurrency: 8,
+      maxDownloadConcurrency: 7,
+      maxUploadBytesPerSecond: 1024 * 1024,
+      maxDownloadBytesPerSecond: 0,
+    })
     setConnectionSortOrder(SORT_ORDER.DESC)
     await flushSettings()
 
@@ -68,6 +73,8 @@ describe('settings-repository', () => {
     expect(getTransferSettings()).toEqual({
       maxUploadConcurrency: 8,
       maxDownloadConcurrency: 7,
+      maxUploadBytesPerSecond: 1024 * 1024,
+      maxDownloadBytesPerSecond: 0,
     })
     expect(getConnectionSortOrder()).toBe(SORT_ORDER.DESC)
   })
@@ -83,12 +90,33 @@ describe('settings-repository', () => {
   })
 
   it('clamps concurrency into MIN/MAX before writing', () => {
-    const result = setTransferSettings({ maxUploadConcurrency: 99, maxDownloadConcurrency: 0 })
+    const result = setTransferSettings({
+      maxUploadConcurrency: 99,
+      maxDownloadConcurrency: 0,
+      maxUploadBytesPerSecond: 0,
+      maxDownloadBytesPerSecond: 0,
+    })
 
     expect(result.success).toBe(true)
     expect(getTransferSettings()).toEqual({
       maxUploadConcurrency: 10,
       maxDownloadConcurrency: 1,
+      maxUploadBytesPerSecond: 0,
+      maxDownloadBytesPerSecond: 0,
+    })
+  })
+
+  it('clamps speed limits into MIN/MAX before writing', () => {
+    setTransferSettings({
+      maxUploadConcurrency: 5,
+      maxDownloadConcurrency: 5,
+      maxUploadBytesPerSecond: -1,
+      maxDownloadBytesPerSecond: TRANSFER_CONFIG.MAX_SPEED_LIMIT * 2,
+    })
+
+    expect(getTransferSettings()).toMatchObject({
+      maxUploadBytesPerSecond: 0,
+      maxDownloadBytesPerSecond: TRANSFER_CONFIG.MAX_SPEED_LIMIT,
     })
   })
 })

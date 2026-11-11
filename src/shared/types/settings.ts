@@ -37,9 +37,13 @@ export interface UiSettings {
 
 /**
  * 传输设置接口
- * 存储传输任务的并发配置
+ * 存储传输任务的并发与带宽配置
  */
 export interface TransferSettings {
   maxUploadConcurrency: number
   maxDownloadConcurrency: number
+  /** 上传限速（字节/秒），`0` 表示不限速。 */
+  maxUploadBytesPerSecond: number
+  /** 下载限速（字节/秒），`0` 表示不限速。 */
+  maxDownloadBytesPerSecond: number
 }

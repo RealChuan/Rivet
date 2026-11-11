@@ -507,6 +507,27 @@ export class ProtocolService {
     )
   }
 
+  async shareLink(
+    sessionId: string,
+    file: FileInfo,
+    expiresInSeconds: number,
+  ): Promise<Result<string>> {
+    return this.runSessionRequest(
+      sessionId,
+      undefined,
+      TIMEOUTS.PRESIGN,
+      ERROR_CODE.NOT_SUPPORTED,
+      'share-link',
+      false,
+      async (provider) => {
+        if (!provider.presign) {
+          throw new ProviderError(ERROR_CODE.NOT_SUPPORTED, 'Provider does not support share link')
+        }
+        return provider.presign(sanitize(file.absolutePath), { expiresInSeconds })
+      },
+    )
+  }
+
   async delete(sessionId: string, file: FileInfo, requestId?: string): Promise<Result<void>> {
     return this.runSessionRequest(
       sessionId,

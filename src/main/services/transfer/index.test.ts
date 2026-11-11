@@ -5,6 +5,8 @@ const mockSetConcurrency = vi.fn()
 const mockGetTransferSettings = vi.fn(() => ({
   maxUploadConcurrency: 7,
   maxDownloadConcurrency: 8,
+  maxUploadBytesPerSecond: 1024 * 512,
+  maxDownloadBytesPerSecond: 0,
 }))
 
 vi.mock('../../stores/index.js', () => ({
@@ -41,5 +43,27 @@ describe('applyPersistedConcurrency', () => {
 
     expect(mockSetConcurrency).toHaveBeenCalledWith(7, TRANSFER_DIRECTION.UPLOAD)
     expect(mockSetConcurrency).toHaveBeenCalledWith(8, TRANSFER_DIRECTION.DOWNLOAD)
+  })
+})
+
+describe('speed limits', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('applies persisted speed limits per direction', async () => {
+    const { applyPersistedSpeedLimits, getTransferSpeedLimit } = await import('./index.js')
+
+    applyPersistedSpeedLimits()
+
+    expect(getTransferSpeedLimit(TRANSFER_DIRECTION.UPLOAD)).toBe(1024 * 512)
+    expect(getTransferSpeedLimit(TRANSFER_DIRECTION.DOWNLOAD)).toBe(0)
+  })
+
+  it('clamps the applied value and returns the effective one', async () => {
+    const { setTransferSpeedLimit } = await import('./index.js')
+
+    expect(setTransferSpeedLimit(TRANSFER_DIRECTION.UPLOAD, -1)).toBe(0)
+    expect(setTransferSpeedLimit(TRANSFER_DIRECTION.UPLOAD, 1024 * 1024)).toBe(1024 * 1024)
   })
 })

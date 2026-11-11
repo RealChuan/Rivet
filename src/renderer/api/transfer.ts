@@ -42,6 +42,14 @@ export const transferApi = {
     unwrap(await window.electronAPI.transfer.setConcurrency(value, direction))
   },
 
+  /** 方向限速，单位字节/秒；`0` 表示不限速。 */
+  getSpeedLimit: async (direction: TransferDirection): Promise<number> =>
+    unwrap(await window.electronAPI.transfer.getSpeedLimit(direction)),
+
+  setSpeedLimit: async (bytesPerSecond: number, direction: TransferDirection): Promise<void> => {
+    unwrap(await window.electronAPI.transfer.setSpeedLimit(bytesPerSecond, direction))
+  },
+
   checkLocalFiles: async (localDir: string): Promise<LocalFileInfo[]> =>
     unwrap(await window.electronAPI.transfer.checkLocalFiles(localDir)),
 

@@ -13,6 +13,7 @@ import {
   S3Client,
   UploadPartCommand,
 } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { NodeHttpHandler } from '@smithy/node-http-handler'
 import https from 'node:https'
 import type { Credentials } from '@shared/domain/credentials.js'
@@ -57,7 +58,8 @@ export interface S3ClientPort {
   }): Promise<S3ListPage>
   headObject(key: string, signal?: AbortSignal): Promise<S3ObjectSummary | null>
   getObject(key: string, opts: { start?: number; signal?: AbortSignal }): Promise<S3ReadHandle>
-  putObject(key: string, body: Uint8Array, signal?: AbortSignal): Promise<void>
+  putObject(key: string, body: Uint8Array, contentType: string, signal?: AbortSignal): Promise<void>
+  presignGet(key: string, expiresInSeconds: number): Promise<string>
   deleteObject(key: string, signal?: AbortSignal): Promise<void>
   deleteObjects(keys: readonly string[], signal?: AbortSignal): Promise<void>
   copyObject(from: string, to: string, signal?: AbortSignal): Promise<void>
@@ -244,7 +246,7 @@ export function createS3Client(config: ConnectionConfig, credentials: Credential
       }
     },
 
-    async putObject(key, body, signal) {
+    async putObject(key, body, contentType, signal) {
       try {
         await client.send(
           new PutObjectCommand({
@@ -252,11 +254,23 @@ export function createS3Client(config: ConnectionConfig, credentials: Credential
             Key: key,
             Body: body,
             ContentLength: body.byteLength,
+            ContentType: contentType,
           }),
           abortOptions(signal),
         )
       } catch (error) {
         throw fail(error, 'upload')
+      }
+    },
+
+    /** 本地签名，不发请求。 */
+    async presignGet(key, expiresInSeconds) {
+      try {
+        return await getSignedUrl(client, new GetObjectCommand({ Bucket: bucket, Key: key }), {
+          expiresIn: expiresInSeconds,
+        })
+      } catch (error) {
+        throw fail(error, 'presign')
       }
     },
 

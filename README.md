@@ -36,7 +36,7 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 ### 传输
 
 - 文件与文件夹的上传、下载，支持拖拽上传。
-- 上传、下载各自独立的并发上限（1–10）。
+- 上传、下载各自独立的并发上限（1–10）；可分别限速（KB/s，0 表示不限速），同一方向的并发任务共享这份配额。
 - 任务进度与速度、子文件进度、失败详情、取消与重试。
 - 下载可暂停 / 继续：继续时从已下载的字节接着传，已落盘的文件不再重下；文件夹按「文件在且没有半成品」判定已完成。上传暂不支持断点续传。
 - 底部传输队列可收起、拖高或最大化；跨连接时按会话分组。
@@ -57,9 +57,9 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 
 ## SMB 说明
 
-当前 SMB 基于 `v9u-smb2`，上游有三处缺陷：`readdir` 结束时不关闭目录句柄，删除目录可能只进入 delete-pending，断开连接后才真正消失；写流在 `_final` 和 `_destroy` 中重复 CLOSE，上传会收到 `STATUS_FILE_CLOSED`；每次 `CREATE` 都在 `DesiredAccess` 里带上 `FILE_DELETE_CHILD`（目录才有的权限位），Samba 因此对既有文件的打开请求直接回 `STATUS_ACCESS_DENIED`，stat、下载、删除、重命名全部失败。
+当前 SMB 基于 `v9u-smb2`，上游三处缺陷都在应用层绕开，不修改依赖源码：`readdir` 把文件列表当句柄传给 CLOSE，目录句柄因此泄漏、删除可能只进 delete-pending（改为复用其消息层自行遍历，`src/main/providers/smb/readdir.ts`）；写流在 `_final`/`_destroy` 重复 CLOSE（包装后只关一次）；`CREATE` 的 `DesiredAccess` 带上目录专用的 `FILE_DELETE_CHILD`，Samba 对既有文件回 `ACCESS_DENIED`（在消息生成阶段剔除）。
 
-应用层对策：每次 SMB 操作使用独立连接并在结束时断开；删除后用独立连接轮询 `stat` 确认条目已消失，未消失则报删除失败；在 CREATE 消息生成阶段剔除 `FILE_DELETE_CHILD`（`src/main/providers/smb/client.ts`）；包装写流的 `_final`/`_destroy`（读流 EOF 同理），保证底层句柄只关闭一次。不修改依赖源码，代价是每次操作多一次会话建立。
+会话按空闲池复用（上限 4），失败的操作一律换新会话；并发读写各占一条会话，并行传输仍有各自的 TCP 连接。删除后按一次 `stat` 定性：条目还在就报失败，只有 delete-pending 才重试。
 
 已知限制：改名/移动固定 `ReplaceIfExists=true`，Windows 上目标已存在或被占用时返回 `ACCESS_DENIED`，界面按权限不足提示。
 
@@ -67,16 +67,18 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 
 对象存储没有目录、没有 rename，也没有原子覆盖：目录是前缀，空目录靠零字节的 `<prefix>/` 标记维持，改名是 copy + delete（目录改名会逐个对象搬运，中断会留下部分副本），上传的数据在 multipart 完成前对读端不可见。文件名（key）大小写敏感，`#`、`%`、`+`、空格由 SDK 负责编码。
 
-已知限制：不支持版本控制、ACL/桶策略与预签名分享；STS 临时凭证（sessionToken）未实现；「路径」以桶内前缀为根，不能跨桶浏览。
+上传时按扩展名写入 `Content-Type`（图片、PDF、文本在浏览器里能直接打开），右键可为单个对象生成预签名链接，默认一天有效。
+
+已知限制：不支持版本控制与 ACL/桶策略；STS 临时凭证（sessionToken）未实现；「路径」以桶内前缀为根，不能跨桶浏览。
 
 ## 技术栈
 
-| 层   | 选型                                                        |
-| ---- | ----------------------------------------------------------- |
-| 桌面 | Electron、electron-forge                                    |
-| 界面 | React、TypeScript、Vite、Zustand、TanStack Query / Virtual  |
-| 协议 | ssh2、undici、fast-xml-parser、v9u-smb2、@aws-sdk/client-s3 |
-| 日志 | electron-log（按天 + 按大小滚动）                           |
+| 层   | 选型                                                                                |
+| ---- | ----------------------------------------------------------------------------------- |
+| 桌面 | Electron、electron-forge                                                            |
+| 界面 | React、TypeScript、Vite、Zustand、TanStack Query / Virtual                          |
+| 协议 | ssh2、undici、fast-xml-parser、v9u-smb2、@aws-sdk/client-s3 与 s3-request-presigner |
+| 日志 | electron-log（按天 + 按大小滚动）                                                   |
 
 ## 开发
 
@@ -89,7 +91,7 @@ pnpm run verify
 ```
 
 - `pnpm run verify` 依次执行 typecheck、lint、单元测试、类型测试、i18n 检查、生产依赖审计与打包。
-- 真实服务集成测试（provider 层，默认不进 verify）：先起 `scripts/sftp/serve.py` 与 `scripts/dav/serve.py`（或 Docker），再 `RIVET_INTEGRATION=1 pnpm run test:integration`；S3 用例默认连 `127.0.0.1:9000`，可用 `RIVET_S3_ENDPOINT`、`RIVET_S3_BUCKET`、`RIVET_S3_ACCESS_KEY`、`RIVET_S3_SECRET_KEY` 指向任意 S3 兼容端点。
+- 真实服务集成测试（provider 层，默认不进 verify）：先起 `scripts/sftp/serve.py` 与 `scripts/dav/serve.py`（或 Docker），再 `RIVET_INTEGRATION=1 pnpm run test:integration`；S3 用例默认连 `127.0.0.1:9000`，可用 `RIVET_S3_ENDPOINT`、`RIVET_S3_BUCKET`、`RIVET_S3_ACCESS_KEY`、`RIVET_S3_SECRET_KEY` 指向任意 S3 兼容端点。SMB 用例默认连 `127.0.0.1:1445`，用 `RIVET_SMB_*` 覆盖。
 - E2E 需要 Docker：`pnpm run e2e:servers` → `pnpm run build` → `pnpm run test:e2e` → `pnpm run e2e:servers:down`。E2E 包含 SFTP、SSH 终端、SMB（Samba，SMB2-only）、WebDAV 与 S3（s3mock）。
 - 手动验证 SFTP 页面：`python scripts/sftp/serve.py`（Paramiko，依赖见 `scripts/sftp/requirements.txt`；`--auth publickey`、`--emit-client-key`、`--readonly`、`--rotate-host-key` 切换分支）。
 - 手动验证 SMB 页面：连接真实 SMB2 服务器；不知道共享名时用 `python scripts/smb/list-shares.py <host> --user <user>` 枚举。

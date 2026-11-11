@@ -20,6 +20,8 @@ export function setupProtocolIpcHandlers(): void {
       protocolService.chmod(sessionId, file, mode, requestId),
     'protocol.delete': (sessionId, file, requestId) =>
       protocolService.delete(sessionId, file, requestId),
+    'protocol.shareLink': (sessionId, file, expiresInSeconds) =>
+      protocolService.shareLink(sessionId, file, expiresInSeconds),
     'protocol.copy': (sessionId, file, targetPath, requestId) =>
       protocolService.copy(sessionId, file, targetPath, requestId),
     'protocol.move': (sessionId, file, targetPath, requestId) =>

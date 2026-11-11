@@ -76,9 +76,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      # e2e:servers 会先生成 SFTP 私钥用例要用的密钥对，再起 compose。
       - name: Start test servers
         id: servers
-        run: docker compose -f e2e/servers/docker-compose.yml up -d --wait --wait-timeout 180
+        run: pnpm run e2e:servers
 
       - name: Show test server state
         if: steps.servers.outcome == 'failure'
@@ -87,7 +88,10 @@ jobs:
           docker compose -f e2e/servers/docker-compose.yml logs
 
       - name: Run provider integration tests
-        run: RIVET_INTEGRATION=1 pnpm run test:integration
+        run: |
+          RIVET_INTEGRATION=1 \
+          RIVET_SFTP_PRIVATE_KEY=e2e/servers/sftp-keys/id_ed25519 \
+          pnpm run test:integration
 
       - name: Install Electron runtime libraries
         run: |

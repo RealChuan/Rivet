@@ -38,6 +38,12 @@ export const transferContract = defineContract({
     args: [z.number(), directionSchema],
     result: voidResultSchema,
   },
+  /** 方向限速，单位字节/秒；`0` 表示不限速。 */
+  'transfer.getSpeedLimit': { args: [directionSchema], result: resultSchemaOf(z.number()) },
+  'transfer.setSpeedLimit': {
+    args: [z.number(), directionSchema],
+    result: voidResultSchema,
+  },
   'transfer.checkLocalFiles': {
     args: [z.string()],
     result: resultSchemaOf(z.array(localFileInfoSchema)),

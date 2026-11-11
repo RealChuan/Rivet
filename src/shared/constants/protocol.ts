@@ -42,3 +42,7 @@ export const PORT_S3 = 443
 
 /** 单次目录列举的默认上限，也是「加载更多」的步长：点一次多列一页。 */
 export const MAX_LIST_ENTRIES = 20000
+
+/** 分享链接有效期：默认一天；上限是 S3 预签名允许的七天。 */
+export const SHARE_LINK_TTL_SECONDS = 24 * 60 * 60
+export const SHARE_LINK_MAX_TTL_SECONDS = 7 * 24 * 60 * 60

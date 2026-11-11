@@ -5,6 +5,7 @@ import type {
   ListBucketsRequest,
   OperationResult,
 } from '../types/index.js'
+import { SHARE_LINK_MAX_TTL_SECONDS } from '../constants/protocol.js'
 import { defineContract } from './define.js'
 import { resultSchemaOf, voidResultSchema } from './schema.js'
 
@@ -58,6 +59,11 @@ export const protocolContract = defineContract({
   'protocol.delete': {
     args: [z.string(), fileInfoSchema, z.string().optional()],
     result: voidResultSchema,
+  },
+  /** 分享直链，有效期上限七天（S3 限制）。 */
+  'protocol.shareLink': {
+    args: [z.string(), fileInfoSchema, z.number().int().positive().max(SHARE_LINK_MAX_TTL_SECONDS)],
+    result: resultSchemaOf(z.string()),
   },
   'protocol.copy': {
     args: [z.string(), fileInfoSchema, z.string(), z.string().optional()],

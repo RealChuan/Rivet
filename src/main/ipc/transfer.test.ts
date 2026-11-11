@@ -5,7 +5,12 @@ import { TRANSFER_DIRECTION } from '@shared/constants/index.js'
 import { transferContract } from '@shared/contract/transfer.contract.js'
 
 vi.mock('../stores/index.js', () => ({
-  getTransferSettings: vi.fn(() => ({ maxUploadConcurrency: 5, maxDownloadConcurrency: 5 })),
+  getTransferSettings: vi.fn(() => ({
+    maxUploadConcurrency: 5,
+    maxDownloadConcurrency: 5,
+    maxUploadBytesPerSecond: 0,
+    maxDownloadBytesPerSecond: 0,
+  })),
   setTransferSettings: vi.fn(() => ({ success: true, value: undefined, error: null })),
 }))
 
@@ -23,6 +28,8 @@ vi.mock('../services/transfer/index.js', () => ({
     getLastDir: vi.fn().mockReturnValue(null),
     setLastDir: vi.fn(),
   },
+  getTransferSpeedLimit: vi.fn().mockReturnValue(0),
+  setTransferSpeedLimit: vi.fn((_direction: unknown, bytesPerSecond: number) => bytesPerSecond),
 }))
 
 type Handler = (event: unknown, ...args: unknown[]) => Promise<unknown>
@@ -106,7 +113,39 @@ describe('transfer IPC handlers', () => {
     expect(setTransferSettings).toHaveBeenCalledWith({
       maxUploadConcurrency: 3,
       maxDownloadConcurrency: 5,
+      maxUploadBytesPerSecond: 0,
+      maxDownloadBytesPerSecond: 0,
     })
+  })
+
+  it('setSpeedLimit 写入方向限速并持久化实际生效值', async () => {
+    const { setupTransferIpcHandlers } = await import('./transfer.js')
+    const { setTransferSpeedLimit } = await import('../services/transfer/index.js')
+    vi.mocked(setTransferSpeedLimit).mockReturnValue(2048)
+    setupTransferIpcHandlers()
+
+    await getHandler('transfer.setSpeedLimit')({}, 4096, TRANSFER_DIRECTION.DOWNLOAD)
+
+    expect(setTransferSpeedLimit).toHaveBeenCalledWith(TRANSFER_DIRECTION.DOWNLOAD, 4096)
+    const { setTransferSettings } = await import('../stores/index.js')
+    expect(setTransferSettings).toHaveBeenCalledWith({
+      maxUploadConcurrency: 5,
+      maxDownloadConcurrency: 5,
+      maxUploadBytesPerSecond: 0,
+      maxDownloadBytesPerSecond: 2048,
+    })
+  })
+
+  it('getSpeedLimit 返回当前方向配额', async () => {
+    const { setupTransferIpcHandlers } = await import('./transfer.js')
+    const { getTransferSpeedLimit } = await import('../services/transfer/index.js')
+    vi.mocked(getTransferSpeedLimit).mockReturnValue(1024)
+    setupTransferIpcHandlers()
+
+    const result = await getHandler('transfer.getSpeedLimit')({}, TRANSFER_DIRECTION.UPLOAD)
+
+    expect(getTransferSpeedLimit).toHaveBeenCalledWith(TRANSFER_DIRECTION.UPLOAD)
+    expect(result).toMatchObject({ success: true, value: 1024 })
   })
 
   it('cancel 等待服务方法完成并返回 Result', async () => {

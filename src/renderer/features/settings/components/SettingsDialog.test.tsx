@@ -41,14 +41,16 @@ describe('SettingsDialog', () => {
     expect(screen.queryByTestId('upload-concurrency')).toBeNull()
   })
 
-  it('切到传输分区展示并发设置', async () => {
+  it('切到传输分区展示并发与限速设置', async () => {
     render(<SettingsDialog open onClose={vi.fn()} />)
 
     await userEvent.click(screen.getByText('settings.transfer'))
 
     expect(screen.getByTestId('upload-concurrency')).not.toBeNull()
     expect(screen.getByTestId('download-concurrency')).not.toBeNull()
-    expect(screen.getByText('settings.concurrencyHint')).not.toBeNull()
+    expect(screen.getByTestId('upload-speed-limit')).not.toBeNull()
+    expect(screen.getByTestId('download-speed-limit')).not.toBeNull()
+    expect(screen.getByText('settings.transferNote')).not.toBeNull()
   })
 
   it('切到文件分区展示隐藏文件开关', async () => {

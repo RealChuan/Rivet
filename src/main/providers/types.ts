@@ -33,4 +33,7 @@ export interface FileProvider {
 
   openRead(path: string, opts: { start?: number; signal?: AbortSignal }): Promise<ReadHandle>
   openWrite(path: string, opts: { overwrite: boolean; signal?: AbortSignal }): Promise<WriteHandle>
+
+  /** 生成分享直链；只有对象存储类协议提供。 */
+  presign?(path: string, opts: { expiresInSeconds: number }): Promise<string>
 }

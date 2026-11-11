@@ -55,7 +55,7 @@
     "i18n:check": "pnpm exec i18next-cli extract --ci && pnpm exec i18next-cli types --ci",
     "audit:prod": "pnpm audit --prod --registry=https://registry.npmjs.org",
     "test:e2e": "playwright test",
-    "e2e:servers": "docker compose -f e2e/servers/docker-compose.yml up -d --wait --wait-timeout 180",
+    "e2e:servers": "node scripts/e2e-sftp-key.mjs && docker compose -f e2e/servers/docker-compose.yml up -d --wait --wait-timeout 180",
     "e2e:servers:down": "docker compose -f e2e/servers/docker-compose.yml down -v",
     "package": "electron-forge make",
     "package:win": "pnpm run package:win:x64 && pnpm run package:win:arm64",
@@ -72,6 +72,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1166.0",
+    "@aws-sdk/s3-request-presigner": "3.1166.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@fontsource-variable/geist": "^5.3.0",
@@ -133,7 +134,7 @@
     "tailwindcss": "^4.3.5",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.2",
-    "vite": "^8.3.7",
+    "vite": "^8.3.8",
     "vitest": "^5.1.0"
   }
 }

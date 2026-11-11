@@ -168,13 +168,14 @@ function createAndTrackMainWindow(): void {
   })
 }
 
-/** 托盘「显示主界面」与 macOS dock 激活共用：隐藏的窗口重新显示，没有窗口就重建。 */
+/** 托盘、dock 激活与第二实例共用：隐藏或最小化的窗口重新显示，没有窗口就重建。 */
 export function showMainWindow(): void {
   const win = getMainWindow()
   if (!win) {
     createAndTrackMainWindow()
     return
   }
+  if (win.isMinimized()) win.restore()
   win.show()
   win.focus()
 }

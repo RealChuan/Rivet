@@ -1,9 +1,12 @@
 import { useTranslation } from 'react-i18next'
 
-import { TOAST_TYPE } from '@shared/constants/index.js'
-import { isOk } from '@shared/types/index.js'
+import { SHARE_LINK_TTL_SECONDS, TOAST_TYPE } from '@shared/constants/index.js'
+import { type FileInfo, isOk } from '@shared/types/index.js'
+import { clipboardApi } from '../../../api/clipboard.js'
+import { protocolApi } from '../../../api/protocol.js'
 import ConfirmationDialog from '../../../components/common/ConfirmationDialog.js'
 import TextInputDialog from '../../../components/common/TextInputDialog.js'
+import { resolveErrorMessage } from '../../../i18n/error-message.js'
 import { useUiStore } from '../../../stores/index.js'
 import { useConnectionFavorites } from '../hooks/use-connection-favorites.js'
 import { useCopyPath } from '../hooks/use-copy-path.js'
@@ -26,6 +29,7 @@ interface FileExplorerDialogsProps {
   listState: UseFileListStateReturn
   copyMove: UseFileCopyMoveReturn
   isSftp?: boolean | undefined
+  isS3?: boolean | undefined
   onClearSelection: () => void
 }
 
@@ -35,12 +39,25 @@ export const FileExplorerDialogs = ({
   listState,
   copyMove,
   isSftp,
+  isS3,
   onClearSelection,
 }: FileExplorerDialogsProps) => {
   const { t } = useTranslation()
   const addToast = useUiStore((state) => state.addToast)
 
   const { copyPaths } = useCopyPath()
+
+  const handleShareLink = (file: FileInfo) => {
+    void (async () => {
+      try {
+        const url = await protocolApi.shareLink(sessionId, file, SHARE_LINK_TTL_SECONDS)
+        await clipboardApi.writeText(url)
+        addToast({ type: TOAST_TYPE.SUCCESS, message: t(($) => $.toast.shareLinkSuccess) })
+      } catch (error) {
+        addToast({ type: TOAST_TYPE.ERROR, message: resolveErrorMessage(t, error) })
+      }
+    })()
+  }
   const { favoritePaths, toggleFavorite } = useConnectionFavorites(sessionId)
   const { handleDelete } = useFileDeletion(sessionId)
   const { handleRename } = useFileRenaming(sessionId)
@@ -227,6 +244,8 @@ export const FileExplorerDialogs = ({
         onProperties={openPropertiesDialog}
         onPermissions={openPermissionsDialog}
         isSftp={isSftp}
+        isS3={isS3}
+        onShareLink={handleShareLink}
         onCopyPath={(files) => {
           const paths = files.length > 0 ? files.map((file) => file.absolutePath) : [currentPath]
           void copyPaths(paths)

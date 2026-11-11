@@ -19,6 +19,7 @@ export default defineConfig({
         'electron-log/main',
         '@sentry/electron/main',
         '@aws-sdk/client-s3',
+        '@aws-sdk/s3-request-presigner',
         '@smithy/node-http-handler',
       ],
     },

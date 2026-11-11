@@ -42,11 +42,16 @@ export interface TransferState {
   scope: TransferScope
   maxUploadConcurrency: number
   maxDownloadConcurrency: number
+  /** 方向限速，单位字节/秒；`0` 表示不限速。 */
+  maxUploadBytesPerSecond: number
+  maxDownloadBytesPerSecond: number
 
   setActiveTab: (direction: TransferDirection) => void
   setScope: (scope: TransferScope) => void
   setMaxUploadConcurrency: (value: number) => void
   setMaxDownloadConcurrency: (value: number) => void
+  setMaxUploadBytesPerSecond: (value: number) => void
+  setMaxDownloadBytesPerSecond: (value: number) => void
 
   handleTasksEnqueued: (tasks: TransferTask[]) => void
   handleProgress: (batch: TransferProgressData[]) => void
@@ -61,6 +66,7 @@ export interface TransferState {
 
   restoreActiveTasks: () => Promise<void>
   loadConcurrency: () => Promise<void>
+  loadSpeedLimits: () => Promise<void>
   startListening: () => () => void
 }
 
@@ -82,6 +88,8 @@ export const useTransferStore = create<TransferState>((set, get) => ({
   scope: TRANSFER_SCOPE.CURRENT,
   maxUploadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
   maxDownloadConcurrency: TRANSFER_CONFIG.DEFAULT_CONCURRENCY,
+  maxUploadBytesPerSecond: TRANSFER_CONFIG.DEFAULT_SPEED_LIMIT,
+  maxDownloadBytesPerSecond: TRANSFER_CONFIG.DEFAULT_SPEED_LIMIT,
 
   setActiveTab: (direction) => {
     set({ activeTab: direction })
@@ -102,6 +110,20 @@ export const useTransferStore = create<TransferState>((set, get) => ({
     set({ maxDownloadConcurrency: value })
     void transferApi.setConcurrency(value, TRANSFER_DIRECTION.DOWNLOAD).catch((error) => {
       logger.catch(error, { action: 'set-concurrency', direction: TRANSFER_DIRECTION.DOWNLOAD })
+    })
+  },
+
+  setMaxUploadBytesPerSecond: (value) => {
+    set({ maxUploadBytesPerSecond: value })
+    void transferApi.setSpeedLimit(value, TRANSFER_DIRECTION.UPLOAD).catch((error) => {
+      logger.catch(error, { action: 'set-speed-limit', direction: TRANSFER_DIRECTION.UPLOAD })
+    })
+  },
+
+  setMaxDownloadBytesPerSecond: (value) => {
+    set({ maxDownloadBytesPerSecond: value })
+    void transferApi.setSpeedLimit(value, TRANSFER_DIRECTION.DOWNLOAD).catch((error) => {
+      logger.catch(error, { action: 'set-speed-limit', direction: TRANSFER_DIRECTION.DOWNLOAD })
     })
   },
 
@@ -206,6 +228,18 @@ export const useTransferStore = create<TransferState>((set, get) => ({
       set({ maxUploadConcurrency: upload, maxDownloadConcurrency: download })
     } catch (error) {
       logger.catch(error, { action: 'load-concurrency' })
+    }
+  },
+
+  loadSpeedLimits: async () => {
+    try {
+      const [upload, download] = await Promise.all([
+        transferApi.getSpeedLimit(TRANSFER_DIRECTION.UPLOAD),
+        transferApi.getSpeedLimit(TRANSFER_DIRECTION.DOWNLOAD),
+      ])
+      set({ maxUploadBytesPerSecond: upload, maxDownloadBytesPerSecond: download })
+    } catch (error) {
+      logger.catch(error, { action: 'load-speed-limits' })
     }
   },
 

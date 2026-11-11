@@ -3,11 +3,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button, GlassDialog } from '../../../components/ui/index.js'
 import { cn } from '../../../utils/index.js'
-import { ConcurrencyFields } from '../../transfer/components/ConcurrencyFields.js'
 import FilesSection from './FilesSection.js'
 import GeneralSection from './GeneralSection.js'
 import MaintenanceSection from './MaintenanceSection.js'
 import TerminalSection from './TerminalSection.js'
+import TransferSection from './TransferSection.js'
 
 const SETTINGS_SECTION = {
   GENERAL: 'general',
@@ -83,9 +83,10 @@ export const SettingsDialog = ({ open, onClose }: SettingsDialogProps) => {
 
           <div className="w-px bg-border shrink-0" />
 
-          <div className="flex-1 min-w-0 overflow-y-auto pl-1">
+          {/* 给滚动条留位置，gutter 固定避免切换分区时横跳 */}
+          <div className="flex-1 min-w-0 overflow-y-auto pl-1 pr-3 [scrollbar-gutter:stable]">
             {active === SETTINGS_SECTION.GENERAL && <GeneralSection />}
-            {active === SETTINGS_SECTION.TRANSFER && <ConcurrencyFields />}
+            {active === SETTINGS_SECTION.TRANSFER && <TransferSection />}
             {active === SETTINGS_SECTION.FILES && <FilesSection />}
             {active === SETTINGS_SECTION.TERMINAL && <TerminalSection />}
             {active === SETTINGS_SECTION.MAINTENANCE && <MaintenanceSection />}

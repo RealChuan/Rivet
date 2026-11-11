@@ -78,6 +78,11 @@ export const TRANSFER_CONFIG = {
   FOLDER_QUEUE_CONCURRENCY_FACTOR: 10,
   /** 目录预取窗口：队列短时才提前发起 mkdir/list，避免宽目录挂出成千上万个等待者。 */
   FOLDER_SCAN_PREFETCH: 64,
+  /** 限速以字节/秒存储，`0` 表示不限速。 */
+  MIN_SPEED_LIMIT: 0,
+  /** 1 GiB/s，够跑满万兆链路。 */
+  MAX_SPEED_LIMIT: 1024 * 1024 * 1024,
+  DEFAULT_SPEED_LIMIT: 0,
 } as const
 
 /** 主进程进度聚合窗口：同一 task 在窗口内只保留最后一条快照。 */

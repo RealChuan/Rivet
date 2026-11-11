@@ -92,7 +92,7 @@ async function collectEntries(provider: ReturnType<typeof createSmbProvider>, pa
 }
 
 describe('createSmbProvider', () => {
-  it('每次操作创建独立连接，结束后关闭', async () => {
+  it('连续操作复用同一条会话', async () => {
     const { client, port, stats } = makeClient()
     stats.set('root\\a.txt', stat('file'))
     const createClient = vi.fn(() => port)
@@ -103,15 +103,62 @@ describe('createSmbProvider', () => {
     expect(createClient).not.toHaveBeenCalled()
 
     await provider.stat('/root/a.txt', signal)
-    expect(createClient).toHaveBeenCalledWith(config, credentials)
+    await provider.stat('/root/a.txt', signal)
+    await provider.stat('/root/a.txt', signal)
+
     expect(createClient).toHaveBeenCalledTimes(1)
+    expect(createClient).toHaveBeenCalledWith(config, credentials)
+    expect(client.disconnect).not.toHaveBeenCalled()
+  })
+
+  it('操作失败后丢弃会话，下次重新创建', async () => {
+    const { client, port, stats } = makeClient()
+    stats.set('root\\a.txt', stat('file'))
+    const createClient = vi.fn(() => port)
+    const provider = createSmbProvider({ config, createClient })
+    const signal = new AbortController().signal
+
+    await provider.connect(credentials)
+    await expect(provider.stat('/missing.txt', signal)).rejects.toMatchObject({
+      code: ERROR_CODE.NOT_FOUND,
+    })
     expect(client.disconnect).toHaveBeenCalledTimes(1)
 
     await provider.stat('/root/a.txt', signal)
     expect(createClient).toHaveBeenCalledTimes(2)
-    expect(client.disconnect).toHaveBeenCalledTimes(2)
+  })
+
+  it('并发读各占一条会话，关闭后回到池里复用', async () => {
+    const { port } = makeClient()
+    const createClient = vi.fn(() => port)
+    const provider = createSmbProvider({ config, createClient })
+    const signal = new AbortController().signal
+
+    await provider.connect(credentials)
+    const first = await provider.openRead('/root/a.txt', { signal })
+    const second = await provider.openRead('/root/a.txt', { signal })
+    expect(createClient).toHaveBeenCalledTimes(2)
+
+    await first.close()
+    await second.close()
+
+    const third = await provider.openRead('/root/a.txt', { signal })
+    await third.close()
+    expect(createClient).toHaveBeenCalledTimes(2)
+  })
+
+  it('disconnect 关闭所有会话，之后的操作报 INVALID_STATE', async () => {
+    const { client, port } = makeClient()
+    const provider = createSmbProvider({ config, createClient: () => port })
+    const signal = new AbortController().signal
+
+    await provider.connect(credentials)
+    const handle = await provider.openRead('/root/a.txt', { signal })
 
     await provider.disconnect()
+    expect(client.disconnect).toHaveBeenCalledTimes(1)
+
+    await handle.close()
     await expect(provider.stat('/root/a.txt', signal)).rejects.toMatchObject({
       code: ERROR_CODE.INVALID_STATE,
     })
@@ -186,6 +233,43 @@ describe('createSmbProvider', () => {
 
     expect(client.unlink.mock.calls.map(([path]) => path)).toEqual(['root\\dir\\a.txt'])
     expect(client.rmdir.mock.calls.map(([path]) => path)).toEqual(['root\\dir\\sub', 'root\\dir'])
+  })
+
+  it('删除后服务端回 delete-pending 时继续等待，条目消失即返回', async () => {
+    const { client, port } = makeClient()
+    const directory = stat('directory')
+
+    client.stat
+      .mockResolvedValueOnce(directory)
+      .mockRejectedValueOnce(
+        new ProviderError(ERROR_CODE.PERMISSION_DENIED, 'delete pending', {
+          status: 'STATUS_DELETE_PENDING',
+        }),
+      )
+      .mockRejectedValueOnce(new ProviderError(ERROR_CODE.NOT_FOUND, 'gone'))
+
+    const provider = createSmbProvider({ config, createClient: () => port })
+    await provider.connect(credentials)
+
+    await provider.remove('/pending', new AbortController().signal)
+
+    expect(client.stat).toHaveBeenCalledTimes(3)
+    expect(client.rmdir).toHaveBeenCalledWith('pending')
+  })
+
+  it('删除后条目仍在时立即失败，不空等', async () => {
+    const { client, port } = makeClient()
+    const directory = stat('directory')
+
+    client.stat.mockResolvedValueOnce(directory).mockResolvedValueOnce(directory)
+
+    const provider = createSmbProvider({ config, createClient: () => port })
+    await provider.connect(credentials)
+
+    await expect(provider.remove('/stuck', new AbortController().signal)).rejects.toMatchObject({
+      code: ERROR_CODE.DELETE_ERROR,
+    })
+    expect(client.stat).toHaveBeenCalledTimes(2)
   })
 
   it('rename 使用 replace 语义', async () => {

@@ -1,7 +1,11 @@
 import { TRANSFER_DIRECTION } from '@shared/constants/index.js'
 import { transferContract } from '@shared/contract/transfer.contract.js'
 import { ok } from '@shared/domain/result.js'
-import { transferService } from '../services/transfer/index.js'
+import {
+  getTransferSpeedLimit,
+  setTransferSpeedLimit,
+  transferService,
+} from '../services/transfer/index.js'
 import { getTransferSettings, setTransferSettings } from '../stores/index.js'
 import { registerContract } from './register.js'
 
@@ -42,6 +46,16 @@ export function setupTransferIpcHandlers(): void {
         direction === TRANSFER_DIRECTION.UPLOAD
           ? { ...current, maxUploadConcurrency: value }
           : { ...current, maxDownloadConcurrency: value },
+      )
+    },
+    'transfer.getSpeedLimit': (direction) => ok(getTransferSpeedLimit(direction)),
+    'transfer.setSpeedLimit': (bytesPerSecond, direction) => {
+      const current = getTransferSettings()
+      const value = setTransferSpeedLimit(direction, bytesPerSecond)
+      return setTransferSettings(
+        direction === TRANSFER_DIRECTION.UPLOAD
+          ? { ...current, maxUploadBytesPerSecond: value }
+          : { ...current, maxDownloadBytesPerSecond: value },
       )
     },
     'transfer.checkLocalFiles': async (localDir) =>

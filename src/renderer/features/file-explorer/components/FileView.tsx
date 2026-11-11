@@ -87,6 +87,7 @@ export const FileView = ({ sessionId, currentPath, filterQuery = '' }: FileViewP
   const showHiddenFiles = useUiStore((state) => state.showHiddenFiles)
   const connection = connections.find((c) => c.id === session?.connectionId)
   const isSftp = connection?.protocol === PROTOCOL.SFTP
+  const isS3 = connection?.protocol === PROTOCOL.S3
   const { startMixedUpload } = useFileExplorerTransferActions()
   const [isDragOver, setIsDragOver] = useState(false)
 
@@ -518,6 +519,7 @@ export const FileView = ({ sessionId, currentPath, filterQuery = '' }: FileViewP
           listState={listState}
           copyMove={copyMove}
           isSftp={isSftp}
+          isS3={isS3}
           onClearSelection={selection.clear}
         />
       </div>

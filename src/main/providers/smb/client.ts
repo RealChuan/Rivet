@@ -4,6 +4,12 @@ import type { Credentials } from '@shared/domain/credentials.js'
 import type { ConnectionConfig } from '@shared/types/connection.js'
 import { ERROR_CODE } from '@shared/constants/index.js'
 import { ProviderError } from '../errors.js'
+import {
+  listDirectory,
+  type SmbRawDirEntry,
+  type SmbReaddirPorts,
+  type SmbRequestError,
+} from './readdir.js'
 
 interface Smb2Options {
   share: string
@@ -18,7 +24,6 @@ interface Smb2Options {
 interface Smb2Instance {
   disconnect(): void
   stat(path: string): Promise<SmbStatLike>
-  readdir(path: string, options: { stats: true }): Promise<SmbDirEntryLike[]>
   mkdir(path: string): Promise<void>
   rmdir(path: string): Promise<void>
   unlink(path: string): Promise<void>
@@ -90,6 +95,84 @@ function loadSmb2(): Smb2Constructor {
   return require('v9u-smb2')
 }
 
+interface SmbRequestTool {
+  request(
+    name: string,
+    params: object,
+    connection: object,
+    callback: (error: SmbRequestError | null, result?: unknown) => void,
+  ): void
+}
+
+interface SmbAutoPromise {
+  <A extends unknown[], R>(
+    method: (...args: [...A, (error: SmbRequestError | null, result?: R) => void]) => void,
+  ): (...args: A) => Promise<R>
+}
+
+interface SmbRequireConnect {
+  <A extends unknown[], R>(
+    method: (...args: [...A, (error: SmbRequestError | null, result?: R) => void]) => void,
+  ): (this: object, ...args: A) => void
+}
+
+interface SmbStatsTool {
+  (file: SmbRawDirEntry): SmbStatLike
+}
+
+function loadTool<T>(id: string): T {
+  const require = createRequire(import.meta.url) as (moduleId: string) => T
+  return require(id)
+}
+
+interface SmbDirectoryLister {
+  list(connection: object, path: string): Promise<SmbDirEntryLike[]>
+}
+
+let directoryLister: SmbDirectoryLister | null = null
+
+/** 用上游的消息层自己列目录（原因见 readdir.ts），连接与错误回传沿用它的包装。 */
+function loadDirectoryLister(): SmbDirectoryLister {
+  if (directoryLister !== null) return directoryLister
+
+  const forge = loadTool<SmbRequestTool>('v9u-smb2/lib/tools/smb2-forge.js')
+  const stats = loadTool<SmbStatsTool>('v9u-smb2/lib/tools/stats.js')
+  const autoPromise = loadTool<SmbAutoPromise>('v9u-smb2/lib/tools/auto-promise.js')
+  const { requireConnect } = loadTool<{ requireConnect: SmbRequireConnect }>(
+    'v9u-smb2/lib/tools/smb2-connection.js',
+  )
+
+  const ports: SmbReaddirPorts = {
+    request: (name, params, connection, callback) => {
+      forge.request(name, params, connection, callback)
+    },
+    stats,
+  }
+
+  function readdir(
+    this: object,
+    path: string,
+    callback: (error: SmbRequestError | null, result?: SmbDirEntryLike[]) => void,
+  ): void {
+    void listDirectory(ports, this, path).then(
+      (entries) => callback(null, entries),
+      (error: unknown) => {
+        callback(error instanceof Error ? error : new Error(String(error)))
+      },
+    )
+  }
+
+  const withConnection = autoPromise<[string], SmbDirEntryLike[]>(
+    requireConnect<[string], SmbDirEntryLike[]>(readdir),
+  )
+
+  const lister: SmbDirectoryLister = {
+    list: (connection, path) => withConnection.call(connection, path),
+  }
+  directoryLister = lister
+  return lister
+}
+
 /** v9u-smb2 的 stats 运行时包含 size，但类型声明没有，这里补上可选字段。 */
 export interface SmbStatLike {
   readonly birthtime: Date
@@ -142,10 +225,12 @@ export function createV9uSmbClient(
     autoCloseTimeout: 0,
   })
 
+  const lister = loadDirectoryLister()
+
   return {
     disconnect: () => client.disconnect(),
     stat: (path) => client.stat(path),
-    readdir: (path, options) => client.readdir(path, options),
+    readdir: (path, _options) => lister.list(client, path),
     mkdir: (path) => client.mkdir(path),
     rmdir: (path) => client.rmdir(path),
     unlink: (path) => client.unlink(path),

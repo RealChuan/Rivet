@@ -189,6 +189,7 @@ export default interface Resources {
         "permissions": "Permissions...",
         "properties": "Properties",
         "rename": "Rename",
+        "shareLink": "Copy Share Link",
         "upload": "Upload",
         "uploadFiles": "Upload Files...",
         "uploadFolder": "Upload Folder..."
@@ -298,7 +299,6 @@ export default interface Resources {
         "quit": "Quit app",
         "tray": "Minimize to tray"
       },
-      "concurrencyHint": "Concurrency applies globally to all connections",
       "files": "Files",
       "general": "General",
       "hiddenFiles": {
@@ -317,7 +317,12 @@ export default interface Resources {
         "label": "Terminal font size"
       },
       "title": "Settings",
-      "transfer": "Transfers"
+      "transfer": "Transfers",
+      "transferGroup": {
+        "concurrency": "Concurrency",
+        "speed": "Speed limit"
+      },
+      "transferNote": "Concurrency and speed limits apply to all connections. Transfers in one direction share the speed limit; 0 means unlimited"
     },
     "sortButton": {
       "sortConnections": "Sort Connections"
@@ -374,6 +379,7 @@ export default interface Resources {
       "refreshFailed": "Refresh failed",
       "renameFailed": "Rename failed",
       "renameSuccess": "Renamed successfully",
+      "shareLinkSuccess": "Share link copied",
       "uploadDuplicates": "{{count}} upload task already exists" | "{{count}} upload tasks already exist",
       "uploadFailed": "Upload failed"
     },
@@ -387,10 +393,6 @@ export default interface Resources {
         "retry": "Retry",
         "sort": "Sort",
         "viewErrorDetails": "View Error Details"
-      },
-      "concurrency": {
-        "download": "Download Concurrency",
-        "upload": "Upload Concurrency"
       },
       "confirmClose": {
         "message": "Transfers are still running. Closing the window will cancel them.",

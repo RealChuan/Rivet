@@ -6,6 +6,9 @@ services:
     image: atmoz/sftp:alpine
     command: testuser:testpass:1001::upload
     ports: ['2222:22']
+    volumes:
+      # 公钥认证用例的公钥，由 e2e:servers 生成。
+      - ./sftp-keys/id_ed25519.pub:/home/testuser/.ssh/keys/id_ed25519.pub:ro
     healthcheck:
       test: ['CMD-SHELL', 'nc -z 127.0.0.1 22']
       interval: 2s

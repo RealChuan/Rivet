@@ -13,6 +13,7 @@ import {
   TRANSFER_CONFIG,
   TRANSFER_DIRECTION,
   TRANSFER_OPERATION_TYPE,
+  type TransferDirection,
 } from '@shared/constants/index.js'
 import { joinPaths } from '@shared/utils/index.js'
 import type { FileProvider } from '../providers/types.js'
@@ -21,11 +22,14 @@ import type { LocalFs } from './local-fs.js'
 import { localTempPath } from '../utils/temp-path.js'
 import { isPauseAbort } from './abort-reason.js'
 import { resolveDownloadTarget, resolveUploadTarget } from './conflict.js'
+import { TransferRateLimiter } from './rate-limiter.js'
 import { TaskSemaphore } from './semaphore.js'
 
 export interface FileTransferExecutorOptions {
   getProvider(sessionId: string): FileProvider | undefined
   localFs: LocalFs
+  /** 上传/下载各一份配额；缺省即不限速。 */
+  rateLimiters?: Record<TransferDirection, TransferRateLimiter>
 }
 
 interface FolderDir {
@@ -143,9 +147,14 @@ function createProgressReporter(
  */
 export class FileTransferExecutor implements TransferExecutor {
   private readonly options: FileTransferExecutorOptions
+  private readonly rateLimiters: Record<TransferDirection, TransferRateLimiter>
 
   constructor(options: FileTransferExecutorOptions) {
     this.options = options
+    this.rateLimiters = options.rateLimiters ?? {
+      [TRANSFER_DIRECTION.UPLOAD]: new TransferRateLimiter(),
+      [TRANSFER_DIRECTION.DOWNLOAD]: new TransferRateLimiter(),
+    }
   }
 
   async execute(
@@ -583,11 +592,14 @@ export class FileTransferExecutor implements TransferExecutor {
       signal,
     })
     const reporter = createProgressReporter(task, (data) => hooks.report(data))
+    const limiter = this.rateLimiters[TRANSFER_DIRECTION.UPLOAD]
 
     try {
       let transferred = 0
       const counter = new TransformStream<Uint8Array, Uint8Array>({
-        transform: (chunk, controller) => {
+        // 先放行再计数，进度不会跑到数据前面。
+        transform: async (chunk, controller) => {
+          await limiter.consume(chunk.length, signal)
           transferred += chunk.length
           reporter.report(transferred)
           controller.enqueue(chunk)
@@ -657,14 +669,23 @@ export class FileTransferExecutor implements TransferExecutor {
       ...(offset > 0 ? { start: offset } : {}),
     })
     const reporter = createProgressReporter(task, (data) => hooks.report(data))
+    const limiter = this.rateLimiters[TRANSFER_DIRECTION.DOWNLOAD]
 
     try {
       let transferred = offset
       const counter = new Transform({
         transform(chunk: Buffer, _encoding, callback) {
-          transferred += chunk.length
-          reporter.report(transferred)
-          callback(null, chunk)
+          // consume 是异步的，而 transform 必须同步返回，只能在这里接回调。
+          void limiter.consume(chunk.length, signal).then(
+            () => {
+              transferred += chunk.length
+              reporter.report(transferred)
+              callback(null, chunk)
+            },
+            (error: unknown) => {
+              callback(error instanceof Error ? error : new Error('rate limit wait aborted'))
+            },
+          )
         },
       })
 

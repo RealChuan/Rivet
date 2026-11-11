@@ -5,8 +5,7 @@ import { defineConfig } from 'vitest/config'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 /**
- * 真实服务集成测试：默认门禁不跑，需要本机或 CI 先起 SFTP/SMB/WebDAV/S3 服务；
- * SMB 暂不进 provider 集成测试，走 e2e 的 Samba 容器。
+ * 真实服务集成测试：默认门禁不跑，需要先起 SFTP/SMB/WebDAV/S3 服务。
  *
  *   RIVET_INTEGRATION=1 pnpm run test:integration
  *
@@ -14,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
  * 也可用 RIVET_SFTP_ROOT 显式指定。WebDAV 用 RIVET_WEBDAV_URL 指定地址。
  *
  * 私钥用例需要 RIVET_SFTP_PRIVATE_KEY（可选 RIVET_SFTP_PRIVATE_KEY_PASSPHRASE），
- * 通常配合 `python scripts/sftp/serve.py --auth both --emit-client-key` 使用。
+ * 密钥对由 `pnpm run e2e:servers` 生成。
  */
 export default defineConfig({
   test: {
@@ -29,6 +28,9 @@ export default defineConfig({
     // 同一文件内共享一个会话，避免并发用例互相踩远端目录。
     fileParallelism: false,
     fsModuleCache: false,
+    // OpenSSL 3 默认不带 MD4，SMB 的 NTLM 握手会抛 ERR_OSSL_EVP_UNSUPPORTED，
+    // 这里给测试 worker 的 Node 启动参数补上 legacy provider。
+    execArgv: ['--openssl-legacy-provider'],
   },
   resolve: {
     tsconfigPaths: true,

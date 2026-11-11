@@ -6,6 +6,7 @@ import { isSubPath, joinPaths, normalizePath, pathBasename } from '@shared/utils
 import type { FileProvider, ReadHandle, WriteHandle } from '../types.js'
 import type { S3ClientPort, S3MultipartPart } from './client.js'
 import { ProviderError } from '../errors.js'
+import { contentTypeOf, DIRECTORY_CONTENT_TYPE } from './content-type.js'
 import { normalizeRootPrefix, toListPrefix, toObjectKey } from './paths.js'
 
 export interface S3ProviderOptions {
@@ -16,7 +17,6 @@ export interface S3ProviderOptions {
 /** S3 的最小分片 5 MiB，取 8 MiB 留出余量也压低分片数量。 */
 export const S3_PART_SIZE = 8 * 1024 * 1024
 const LIST_PAGE_SIZE = 1000
-const CONTENT_TYPE = 'application/octet-stream'
 const EMPTY_BODY = new Uint8Array(0)
 
 /**
@@ -111,7 +111,7 @@ export function createS3Provider(options: S3ProviderOptions): FileProvider {
       // 目录标记是零字节对象，直接重建即可：SeaweedFS 之类实现对尾斜杠 key 的
       // CopyObject 会返回 NoSuchKey。
       if (key.endsWith('/')) {
-        await getClient().putObject(target, EMPTY_BODY, signal)
+        await getClient().putObject(target, EMPTY_BODY, DIRECTORY_CONTENT_TYPE, signal)
         continue
       }
       await getClient().copyObject(key, target, signal)
@@ -252,6 +252,7 @@ export function createS3Provider(options: S3ProviderOptions): FileProvider {
       await getClient().putObject(
         `${toObjectKey(rootPrefix, normalized)}/`,
         EMPTY_BODY,
+        DIRECTORY_CONTENT_TYPE,
         opts.signal,
       )
     },
@@ -309,6 +310,13 @@ export function createS3Provider(options: S3ProviderOptions): FileProvider {
       return { stream: handle.stream, close: () => handle.close() }
     },
 
+    presign: (path, opts) => {
+      return getClient().presignGet(
+        toObjectKey(rootPrefix, normalizePath(path)),
+        opts.expiresInSeconds,
+      )
+    },
+
     openWrite: async (path, opts): Promise<WriteHandle> => {
       const activeClient = getClient()
       const normalized = normalizePath(path)
@@ -321,7 +329,8 @@ export function createS3Provider(options: S3ProviderOptions): FileProvider {
         }
       }
 
-      const uploadId = await activeClient.createMultipartUpload(key, CONTENT_TYPE, opts.signal)
+      const contentType = contentTypeOf(key)
+      const uploadId = await activeClient.createMultipartUpload(key, contentType, opts.signal)
       const parts: S3MultipartPart[] = []
       let buffer = new Uint8Array(S3_PART_SIZE)
       let filled = 0
@@ -367,7 +376,7 @@ export function createS3Provider(options: S3ProviderOptions): FileProvider {
             if (uploadedBytes === 0 && filled === 0) {
               // 0 字节对象不能靠分片完成，退回 PutObject。
               await activeClient.abortMultipartUpload({ key, uploadId })
-              await activeClient.putObject(key, EMPTY_BODY, opts.signal)
+              await activeClient.putObject(key, EMPTY_BODY, contentType, opts.signal)
             } else {
               await flush()
               await activeClient.completeMultipartUpload({

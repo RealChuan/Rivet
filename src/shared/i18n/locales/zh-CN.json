@@ -188,6 +188,7 @@
         "permissions": "权限…",
         "properties": "属性",
         "rename": "重命名",
+        "shareLink": "复制分享链接",
         "upload": "上传",
         "uploadFiles": "上传文件...",
         "uploadFolder": "上传文件夹..."
@@ -297,7 +298,6 @@
         "quit": "退出应用",
         "tray": "最小化到托盘"
       },
-      "concurrencyHint": "并发数全局生效，对所有连接有效",
       "files": "文件",
       "general": "通用",
       "hiddenFiles": {
@@ -316,7 +316,12 @@
         "label": "终端字号"
       },
       "title": "设置",
-      "transfer": "传输"
+      "transfer": "传输",
+      "transferGroup": {
+        "concurrency": "并发",
+        "speed": "限速"
+      },
+      "transferNote": "并发与限速全局生效，同一方向的并发任务共享限速，0 表示不限速"
     },
     "sortButton": {
       "sortConnections": "排序连接"
@@ -373,6 +378,7 @@
       "refreshFailed": "刷新失败",
       "renameFailed": "重命名失败",
       "renameSuccess": "重命名成功",
+      "shareLinkSuccess": "分享链接已复制",
       "uploadDuplicates": "{{count}} 个文件已存在于上传队列",
       "uploadFailed": "上传失败"
     },
@@ -386,10 +392,6 @@
         "retry": "重试",
         "sort": "排序",
         "viewErrorDetails": "查看错误详情"
-      },
-      "concurrency": {
-        "download": "下载并发",
-        "upload": "上传并发"
       },
       "confirmClose": {
         "message": "仍有传输任务在进行。关闭窗口会取消这些任务。",

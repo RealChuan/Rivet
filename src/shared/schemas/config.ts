@@ -63,6 +63,16 @@ export const transferSettingsSchema = z.object({
     .int()
     .min(TRANSFER_CONFIG.MIN_CONCURRENCY)
     .max(TRANSFER_CONFIG.MAX_CONCURRENCY),
+  maxUploadBytesPerSecond: z
+    .number()
+    .int()
+    .min(TRANSFER_CONFIG.MIN_SPEED_LIMIT)
+    .max(TRANSFER_CONFIG.MAX_SPEED_LIMIT),
+  maxDownloadBytesPerSecond: z
+    .number()
+    .int()
+    .min(TRANSFER_CONFIG.MIN_SPEED_LIMIT)
+    .max(TRANSFER_CONFIG.MAX_SPEED_LIMIT),
 })
 
 export const connectionSchema = z.object({

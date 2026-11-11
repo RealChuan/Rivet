@@ -36,6 +36,7 @@ Thumbs.db
 coverage/
 playwright-report/
 test-results/
+e2e/servers/sftp-keys/
 
 # Environment
 .env

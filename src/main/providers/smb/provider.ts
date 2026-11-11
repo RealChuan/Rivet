@@ -28,7 +28,7 @@ const CAPABILITIES: Capabilities = {
   caseSensitive: false,
 }
 
-/** 删除后确认条目已消失；delete-on-close 可能在连接关闭后才由服务端完成。 */
+/** 服务端明确回 delete-pending 时的等待上限；其余情况一次 stat 就下结论。 */
 const DELETE_VERIFY_ATTEMPTS = 10
 const DELETE_VERIFY_INTERVAL_MS = 100
 
@@ -70,6 +70,22 @@ async function statIfExists(
     if (providerError.code === ERROR_CODE.NOT_FOUND) return undefined
     throw providerError
   }
+}
+
+type RemovalState = 'gone' | 'exists' | 'pending'
+
+/** delete-pending 是「已标记删除、还有句柄没关」，只有它会自己变成 gone；其余都是最终结果。 */
+async function removalState(client: SmbClientPort, smbPath: string): Promise<RemovalState> {
+  let remaining: SmbStatLike | undefined
+  try {
+    remaining = await statIfExists(client, smbPath, ERROR_CODE.DELETE_ERROR)
+  } catch (error) {
+    const providerError = toProviderError(error, ERROR_CODE.DELETE_ERROR)
+    if (providerError.detail?.status !== 'STATUS_DELETE_PENDING') throw providerError
+    return 'pending'
+  }
+
+  return remaining === undefined ? 'gone' : 'exists'
 }
 
 async function ensureDirectory(
@@ -164,15 +180,43 @@ function closeReadableOnce(nodeStream: Readable): void {
   }
 }
 
+/** 空闲会话上限：复用握手成本，又不会无限堆积连接。 */
+const IDLE_SESSION_LIMIT = 4
+
 export function createSmbProvider(options: SmbProviderOptions): FileProvider {
   const createClient = options.createClient ?? createV9uSmbClient
-  let connectionFactory: (() => SmbClientPort) | null = null
+  let credentialsInUse: Credentials | null = null
+  /** 所有活着的会话；断开时一并关掉，包括正被流占用的那些。 */
+  const sessions = new Set<SmbClientPort>()
+  const idle: SmbClientPort[] = []
 
-  function createOperationClient(): SmbClientPort {
-    if (!connectionFactory) {
+  function openSession(): SmbClientPort {
+    if (credentialsInUse === null) {
       throw new ProviderError(ERROR_CODE.INVALID_STATE, 'SMB provider is not connected')
     }
-    return connectionFactory()
+
+    const reused = idle.pop()
+    if (reused !== undefined) return reused
+
+    const client = createClient(options.config, credentialsInUse)
+    sessions.add(client)
+    return client
+  }
+
+  function disposeSession(client: SmbClientPort): void {
+    // disconnect 已经收掉、或失败路径已经处置过的会话，不重复关闭。
+    if (!sessions.delete(client)) return
+    client.disconnect()
+  }
+
+  /** 只有正常结束才放回池里。失败一律换新会话：脏状态判断不了，猜错就是把残留带进下一个操作。 */
+  function parkSession(client: SmbClientPort): void {
+    if (!sessions.has(client) || idle.includes(client)) return
+    if (idle.length >= IDLE_SESSION_LIMIT) {
+      disposeSession(client)
+      return
+    }
+    idle.push(client)
   }
 
   async function withClient<T>(
@@ -180,33 +224,37 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
     operation: (client: SmbClientPort) => Promise<T>,
   ): Promise<T> {
     signal?.throwIfAborted()
-    const client = createOperationClient()
+    const client = openSession()
     try {
-      return await operation(client)
-    } finally {
-      client.disconnect()
+      const result = await operation(client)
+      parkSession(client)
+      return result
+    } catch (error) {
+      disposeSession(client)
+      throw error
     }
   }
 
+  /** 删除后确认条目消失。只有服务端明确回 delete-pending 时才值得等。 */
   async function waitUntilRemoved(smbPath: string, signal: AbortSignal | undefined): Promise<void> {
     await withClient(signal, async (client) => {
-      for (let attempt = 0; attempt < DELETE_VERIFY_ATTEMPTS; attempt += 1) {
-        if (attempt > 0) {
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, DELETE_VERIFY_INTERVAL_MS)
-          })
-          signal?.throwIfAborted()
+      for (let attempt = 0; ; attempt += 1) {
+        const state = await removalState(client, smbPath)
+        if (state === 'gone') return
+
+        if (state === 'exists') {
+          throw new ProviderError(ERROR_CODE.DELETE_ERROR, `delete did not take effect: ${smbPath}`)
         }
 
-        try {
-          const remaining = await statIfExists(client, smbPath, ERROR_CODE.DELETE_ERROR)
-          if (!remaining) return
-        } catch (error) {
-          const providerError = toProviderError(error, ERROR_CODE.DELETE_ERROR)
-          if (providerError.detail?.status !== 'STATUS_DELETE_PENDING') throw providerError
+        if (attempt >= DELETE_VERIFY_ATTEMPTS - 1) {
+          throw new ProviderError(ERROR_CODE.DELETE_ERROR, `delete still pending: ${smbPath}`)
         }
+
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, DELETE_VERIFY_INTERVAL_MS)
+        })
+        signal?.throwIfAborted()
       }
-      throw new ProviderError(ERROR_CODE.DELETE_ERROR, `delete did not take effect: ${smbPath}`)
     })
   }
 
@@ -222,12 +270,14 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
         )
       }
       toUncShare(options.config)
-      connectionFactory = () => createClient(options.config, credentials)
+      credentialsInUse = credentials
       return Promise.resolve()
     },
 
     disconnect: () => {
-      connectionFactory = null
+      credentialsInUse = null
+      for (const client of [...sessions]) disposeSession(client)
+      idle.length = 0
       return Promise.resolve()
     },
 
@@ -321,7 +371,7 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
     openRead: async (path, opts): Promise<ReadHandle> => {
       opts.signal?.throwIfAborted()
       const smbPath = toSmbPath(normalizePath(path))
-      const client = createOperationClient()
+      const client = openSession()
 
       let nodeStream: Readable
       try {
@@ -330,21 +380,28 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
           opts.start !== undefined ? { start: opts.start } : {},
         )
       } catch (error) {
-        client.disconnect()
+        disposeSession(client)
         throw toProviderError(error, ERROR_CODE.DOWNLOAD_ERROR)
       }
 
       closeReadableOnce(nodeStream)
 
-      let released = false
-      const release = (): void => {
-        if (released) return
-        released = true
-        client.disconnect()
+      let settled = false
+      const park = (): void => {
+        if (settled) return
+        settled = true
+        parkSession(client)
       }
+      const drop = (): void => {
+        if (settled) return
+        settled = true
+        disposeSession(client)
+      }
+      // 读流报错说明会话状态可疑，不再放回池里。
+      nodeStream.once('error', drop)
+
       const onAbort = (): void => {
         nodeStream.destroy()
-        release()
       }
       opts.signal?.addEventListener('abort', onAbort, { once: true })
       const detach = (): void => {
@@ -352,7 +409,7 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
       }
       nodeStream.once('close', () => {
         detach()
-        release()
+        park()
       })
 
       return {
@@ -360,7 +417,7 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
         close: () => {
           detach()
           nodeStream.destroy()
-          release()
+          park()
           return Promise.resolve()
         },
       }
@@ -368,7 +425,7 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
 
     openWrite: async (path, opts): Promise<WriteHandle> => {
       opts.signal?.throwIfAborted()
-      const client = createOperationClient()
+      const client = openSession()
       const virtualPath = normalizePath(path)
       const targetPath = toSmbPath(virtualPath)
       const tempPath = toSmbPath(remoteTempPath(virtualPath))
@@ -384,7 +441,7 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
         stage = 'create-temp'
         nodeStream = await client.createWriteStream(tempPath, { flags: 'wx' })
       } catch (error) {
-        client.disconnect()
+        disposeSession(client)
         const providerError = toProviderError(error, ERROR_CODE.UPLOAD_ERROR)
         throw new ProviderError(
           providerError.code,
@@ -413,6 +470,7 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
         stream: Writable.toWeb(nodeStream) as WritableStream<Uint8Array>,
 
         commit: async () => {
+          let committed = false
           try {
             await finished(nodeStream)
             if (aborted) {
@@ -431,6 +489,7 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
                 throw providerError
               }
             }
+            committed = true
           } catch (error) {
             await removeTemp()
             const providerError = toProviderError(error, ERROR_CODE.UPLOAD_ERROR)
@@ -441,7 +500,8 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
             )
           } finally {
             detach()
-            client.disconnect()
+            if (committed) parkSession(client)
+            else disposeSession(client)
           }
         },
 
@@ -451,7 +511,8 @@ export function createSmbProvider(options: SmbProviderOptions): FileProvider {
           nodeStream.destroy()
           await finished(nodeStream).catch(() => {})
           await removeTemp()
-          client.disconnect()
+          // 半途中断的写流不值得复用，换一条会话。
+          disposeSession(client)
         },
       }
     },

@@ -19,7 +19,7 @@
 
 ## 4. 传输
 
-任务状态机显式（waiting/running/paused/completed/failed/cancelled）。上传/下载各自有方向信号量，并发上限持久化在设置里。进度与速度由主进程聚合后节流推送；渲染层只合并快照。冲突策略在入队/执行前决定，执行器不弹 UI。
+任务状态机显式（waiting/running/paused/completed/failed/cancelled）。上传/下载各自有方向信号量，并发上限持久化在设置里；限速按方向共享一份配额，执行器在数据管道上按块预约带宽，与协议无关。进度与速度由主进程聚合后节流推送；渲染层只合并快照。冲突策略在入队/执行前决定，执行器不弹 UI。
 
 暂停只对下载成立：暂停与取消都走 abort，靠 `signal.reason` 区分，暂停保留 `<target>.rivet-download` 半成品，继续时按它的字节数 `openRead({ start })` 并追加写入。文件夹续传靠重扫：已落盘且没有半成品的文件算完成、直接跳过，有半成品的接着传，其余照常下载；目标目录沿用首次解析结果，不再重问冲突，服务器端的变化不触发重下。上传方向尚无写偏移入口，仍只有取消/重试。会话关闭（主动断开或心跳掉线）会连带清理该会话名下的任务。
 
@@ -33,7 +33,7 @@
 
 ## 7. 窗口与主题
 
-单窗口。Windows 11 使用 Window Controls Overlay 以保留 Snap Layouts；macOS 使用隐藏标题栏 + 原生红绿灯；其他平台使用无边框窗口 + 渲染层自绘标题栏。渲染层标题栏只在需要时占位，主题切换同时更新原生主题、overlay 颜色与窗口材质：Windows 11 22H2+ 用 Mica，macOS 13+ 用 vibrancy，其余平台回退不透明背景。只有主窗口的视觉随平台变化，对话框与菜单在所有平台使用同一套实心浮层样式。关闭守卫在主进程：有活跃传输时发 `app.closeRequested`，渲染层取消任务后调 `app.confirmClose`。
+单窗口、单实例（第二次启动只唤起已有窗口）。Windows 11 使用 Window Controls Overlay 以保留 Snap Layouts；macOS 使用隐藏标题栏 + 原生红绿灯；其他平台使用无边框窗口 + 渲染层自绘标题栏。渲染层标题栏只在需要时占位，主题切换同时更新原生主题、overlay 颜色与窗口材质：Windows 11 22H2+ 用 Mica，macOS 13+ 用 vibrancy，其余平台回退不透明背景。只有主窗口的视觉随平台变化，对话框与菜单在所有平台使用同一套实心浮层样式。关闭守卫在主进程：有活跃传输时发 `app.closeRequested`，渲染层取消任务后调 `app.confirmClose`。
 
 ## 8. 三条数据流
 

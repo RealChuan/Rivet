@@ -12,7 +12,7 @@ import { app, session } from 'electron'
 import { APP_NAME } from '@shared/constants/index.js'
 import { initializeI18n } from '../i18n/index.js'
 import { setupIpcHandlers } from '../ipc/index.js'
-import { applyPersistedConcurrency } from '../services/transfer/index.js'
+import { applyPersistedConcurrency, applyPersistedSpeedLimits } from '../services/transfer/index.js'
 import { getUiSettings, initializeStores } from '../stores/index.js'
 import { logger } from '../utils/index.js'
 import {
@@ -24,12 +24,19 @@ import {
 } from './index.js'
 import { initSentry } from './sentry.js'
 
-initSentry()
-
 app.setName(APP_NAME)
 app.enableSandbox()
 
-void app.whenReady().then(() => {
+/** 配置是整份 JSON 原子写，两个进程会互相覆盖；第二次启动只唤起已有窗口。 */
+function acquireSingleInstanceLock(): boolean {
+  if (app.requestSingleInstanceLock()) return true
+
+  logger.info('Another instance is already running, focusing it and exiting')
+  app.exit(0)
+  return false
+}
+
+function bootstrap(): void {
   logger.info('App ready, initializing...')
 
   // 拒绝所有权限请求
@@ -56,9 +63,22 @@ void app.whenReady().then(() => {
   initializeStores()
   initializeI18n(getUiSettings().locale)
   applyPersistedConcurrency()
+  applyPersistedSpeedLimits()
   setupIpcHandlers()
   createMainWindow()
   setupTray({ onShow: showMainWindow, onQuit: requestQuitFromTray })
-})
+}
 
-setupAppLifecycle()
+function start(): void {
+  if (!acquireSingleInstanceLock()) return
+
+  app.on('second-instance', () => {
+    showMainWindow()
+  })
+
+  initSentry()
+  void app.whenReady().then(bootstrap)
+  setupAppLifecycle()
+}
+
+start()

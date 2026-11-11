@@ -168,6 +168,13 @@ class MemoryS3Client implements S3ClientPort {
     return Promise.resolve()
   }
 
+  readonly presigned: Array<{ key: string; expiresInSeconds: number }> = []
+
+  presignGet(key: string, expiresInSeconds: number): Promise<string> {
+    this.presigned.push({ key, expiresInSeconds })
+    return Promise.resolve(`https://example.com/${key}?expires=${expiresInSeconds}`)
+  }
+
   close(): Promise<void> {
     this.closed = true
     return Promise.resolve()
@@ -281,6 +288,17 @@ describe('s3 provider', () => {
       dirIsEntity: false,
       caseSensitive: true,
     })
+  })
+
+  it('分享链接按桶内 key 签名，有效期透传', async () => {
+    const client = new MemoryS3Client()
+    client.seed('root/a.txt', 'a')
+    const provider = await connect(client, { basePath: 'root' })
+
+    const url = await provider.presign?.('/a.txt', { expiresInSeconds: 600 })
+
+    expect(client.presigned).toEqual([{ key: 'root/a.txt', expiresInSeconds: 600 }])
+    expect(url).toContain('root/a.txt')
   })
 
   it('列举时合并对象与虚目录，并把目录标记对象当目录', async () => {

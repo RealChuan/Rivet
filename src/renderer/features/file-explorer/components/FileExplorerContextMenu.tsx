@@ -14,6 +14,7 @@ import {
   Trash,
   Info,
   Lock,
+  Link2,
 } from 'lucide-react'
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import { useTranslation } from 'react-i18next'
@@ -41,6 +42,8 @@ interface FileExplorerContextMenuProps {
   /** 仅 SFTP 会话的单个条目可用 */
   onPermissions: (file: FileInfo) => void
   isSftp?: boolean | undefined
+  onShareLink: (file: FileInfo) => void
+  isS3?: boolean | undefined
   /** 传入空数组表示复制当前目录路径 */
   onCopyPath: (files: FileInfo[]) => void
   isFavorite: (file: FileInfo) => boolean
@@ -65,6 +68,8 @@ export const FileExplorerContextMenu = ({
   onProperties,
   onPermissions,
   isSftp,
+  onShareLink,
+  isS3,
   onCopyPath,
   isFavorite,
   onToggleFavorite,
@@ -193,6 +198,16 @@ export const FileExplorerContextMenu = ({
                   >
                     <Lock className="w-3.5 h-3.5 stroke-current stroke-2" />
                     {t(($) => $.file.action.permissions)}
+                  </ContextMenuPrimitive.Item>
+                )}
+                {isS3 && singleItem.type === FILE_TYPE.FILE && (
+                  <ContextMenuPrimitive.Item
+                    data-testid="context-share-link"
+                    className={itemClass}
+                    onSelect={() => onShareLink(singleItem)}
+                  >
+                    <Link2 className="w-3.5 h-3.5 stroke-current stroke-2" />
+                    {t(($) => $.file.action.shareLink)}
                   </ContextMenuPrimitive.Item>
                 )}
                 {singleDirectory && (
