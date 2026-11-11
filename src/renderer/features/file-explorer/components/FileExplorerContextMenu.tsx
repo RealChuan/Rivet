@@ -12,7 +12,8 @@ import {
   Scissors,
   Star,
   Trash,
-  FolderCog,
+  Info,
+  Lock,
 } from 'lucide-react'
 import { ContextMenu as ContextMenuPrimitive } from 'radix-ui'
 import { useTranslation } from 'react-i18next'
@@ -37,6 +38,9 @@ interface FileExplorerContextMenuProps {
   onUploadFolder: () => void
   onDownload: (files: FileInfo[]) => void
   onProperties: (file: FileInfo) => void
+  /** 仅 SFTP 会话的单个条目可用 */
+  onPermissions: (file: FileInfo) => void
+  isSftp?: boolean | undefined
   /** 传入空数组表示复制当前目录路径 */
   onCopyPath: (files: FileInfo[]) => void
   isFavorite: (file: FileInfo) => boolean
@@ -59,14 +63,16 @@ export const FileExplorerContextMenu = ({
   onUploadFolder,
   onDownload,
   onProperties,
+  onPermissions,
+  isSftp,
   onCopyPath,
   isFavorite,
   onToggleFavorite,
 }: FileExplorerContextMenuProps) => {
   const { t } = useTranslation()
 
-  const singleDirectory =
-    files.length === 1 && files[0]?.type === FILE_TYPE.DIRECTORY ? files[0] : undefined
+  const singleItem = files.length === 1 ? files[0] : undefined
+  const singleDirectory = singleItem?.type === FILE_TYPE.DIRECTORY ? singleItem : undefined
   const favorite = singleDirectory ? isFavorite(singleDirectory) : false
 
   const itemClass = cn(
@@ -176,28 +182,40 @@ export const FileExplorerContextMenu = ({
               <Trash className="w-3.5 h-3.5 stroke-current stroke-2" />
               {t(($) => $.common.action.delete)} {files.length > 1 ? `(${files.length})` : ''}
             </ContextMenuPrimitive.Item>
-            {singleDirectory && (
+            {singleItem && (
               <>
                 <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
+                {isSftp && (
+                  <ContextMenuPrimitive.Item
+                    data-testid="context-permissions"
+                    className={itemClass}
+                    onSelect={() => onPermissions(singleItem)}
+                  >
+                    <Lock className="w-3.5 h-3.5 stroke-current stroke-2" />
+                    {t(($) => $.file.action.permissions)}
+                  </ContextMenuPrimitive.Item>
+                )}
+                {singleDirectory && (
+                  <ContextMenuPrimitive.Item
+                    data-testid="context-favorite"
+                    className={itemClass}
+                    onSelect={() => onToggleFavorite(singleDirectory)}
+                  >
+                    <Star
+                      className={cn(
+                        'w-3.5 h-3.5 stroke-current stroke-2',
+                        favorite && 'fill-current text-accent',
+                      )}
+                    />
+                    {favorite ? t(($) => $.favorites.remove) : t(($) => $.favorites.add)}
+                  </ContextMenuPrimitive.Item>
+                )}
                 <ContextMenuPrimitive.Item
-                  data-testid="context-favorite"
+                  data-testid="context-properties"
                   className={itemClass}
-                  onSelect={() => onToggleFavorite(singleDirectory)}
+                  onSelect={() => onProperties(singleItem)}
                 >
-                  <Star
-                    className={cn(
-                      'w-3.5 h-3.5 stroke-current stroke-2',
-                      favorite && 'fill-current text-accent',
-                    )}
-                  />
-                  {favorite ? t(($) => $.favorites.remove) : t(($) => $.favorites.add)}
-                </ContextMenuPrimitive.Item>
-                <ContextMenuPrimitive.Separator className="h-px bg-border my-1" />
-                <ContextMenuPrimitive.Item
-                  className={itemClass}
-                  onSelect={() => onProperties(singleDirectory)}
-                >
-                  <FolderCog className="w-3.5 h-3.5 stroke-current stroke-2" />
+                  <Info className="w-3.5 h-3.5 stroke-current stroke-2" />
                   {t(($) => $.file.action.properties)}
                 </ContextMenuPrimitive.Item>
               </>

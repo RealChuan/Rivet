@@ -90,6 +90,7 @@ describe('useUiStore', () => {
         locale: DEFAULT_LANGUAGE,
         showHiddenFiles: false,
         closeBehavior: CLOSE_BEHAVIOR.TRAY,
+        terminalFontSize: 14,
       })
     })
 
@@ -102,6 +103,7 @@ describe('useUiStore', () => {
         locale: SUPPORTED_LANGUAGE.ZH_CN,
         showHiddenFiles: false,
         closeBehavior: CLOSE_BEHAVIOR.TRAY,
+        terminalFontSize: 14,
       })
     })
   })
@@ -121,6 +123,7 @@ describe('useUiStore', () => {
         locale: SUPPORTED_LANGUAGE.ZH_CN,
         showHiddenFiles: false,
         closeBehavior: CLOSE_BEHAVIOR.TRAY,
+        terminalFontSize: 14,
       })
     })
 
@@ -133,6 +136,7 @@ describe('useUiStore', () => {
         locale: SUPPORTED_LANGUAGE.ZH_CN,
         showHiddenFiles: false,
         closeBehavior: CLOSE_BEHAVIOR.TRAY,
+        terminalFontSize: 14,
       })
     })
   })
@@ -148,6 +152,7 @@ describe('useUiStore', () => {
         locale: SUPPORTED_LANGUAGE.EN_US,
         showHiddenFiles: true,
         closeBehavior: CLOSE_BEHAVIOR.TRAY,
+        terminalFontSize: 14,
       })
     })
   })
@@ -163,7 +168,25 @@ describe('useUiStore', () => {
         locale: SUPPORTED_LANGUAGE.EN_US,
         showHiddenFiles: false,
         closeBehavior: CLOSE_BEHAVIOR.QUIT,
+        terminalFontSize: 14,
       })
+    })
+  })
+
+  describe('setTerminalFontSize', () => {
+    it('clamps to the supported range and persists', () => {
+      useUiStore.getState().setTerminalFontSize(99)
+      expect(useUiStore.getState().terminalFontSize).toBe(20)
+
+      useUiStore.getState().setTerminalFontSize(1)
+      expect(useUiStore.getState().terminalFontSize).toBe(12)
+
+      useUiStore.getState().setTerminalFontSize(16)
+      expect(useUiStore.getState().terminalFontSize).toBe(16)
+      expect(mockConfigSet).toHaveBeenLastCalledWith(
+        STORE_KEY.UI,
+        expect.objectContaining({ terminalFontSize: 16 }),
+      )
     })
   })
 

@@ -5,6 +5,7 @@ import { dialogContract } from './dialog.contract.js'
 import { hostKeyContract } from './hostkey.contract.js'
 import { protocolContract } from './protocol.contract.js'
 import { systemContract } from './system.contract.js'
+import { terminalContract, terminalOneWayContract } from './terminal.contract.js'
 import { transferContract } from './transfer.contract.js'
 import { windowContract, windowOneWayContract } from './window.contract.js'
 
@@ -19,6 +20,7 @@ export type { Events } from './events.contract.js'
 export { hostKeyContract } from './hostkey.contract.js'
 export { protocolContract } from './protocol.contract.js'
 export { systemContract } from './system.contract.js'
+export { terminalContract, terminalOneWayContract } from './terminal.contract.js'
 export { transferContract } from './transfer.contract.js'
 export { windowContract, windowOneWayContract } from './window.contract.js'
 
@@ -35,6 +37,7 @@ export const invokeContract = {
   ...hostKeyContract,
   ...protocolContract,
   ...systemContract,
+  ...terminalContract,
   ...transferContract,
   ...windowContract,
 } as const
@@ -42,7 +45,11 @@ export const invokeContract = {
 export type InvokeContract = typeof invokeContract
 
 /** 单向通道：只能 `send`，不能 `invoke`。 */
-export const oneWayContract = { ...appOneWayContract, ...windowOneWayContract }
+export const oneWayContract = {
+  ...appOneWayContract,
+  ...terminalOneWayContract,
+  ...windowOneWayContract,
+}
 
 export type OneWayContract = typeof oneWayContract
 
@@ -58,6 +65,9 @@ export type ElectronAPI = {
   dialog: ApiOf<'dialog', InvokeContract> & { getPathForFile: (file: File) => string }
   hostKey: ApiOf<'hostKey', InvokeContract>
   system: ApiOf<'system', InvokeContract>
+  terminal: ApiOf<'terminal', InvokeContract> &
+    SendApiOf<'terminal', OneWayContract> &
+    EventApi<'terminal', Events>
   transfer: ApiOf<'transfer', InvokeContract> & EventApi<'transfer', Events>
   window: ApiOf<'window', InvokeContract> &
     SendApiOf<'window', OneWayContract> &

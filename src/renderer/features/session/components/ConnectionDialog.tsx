@@ -16,6 +16,7 @@ import { dialogApi } from '../../../api/dialog.js'
 import { protocolApi } from '../../../api/protocol.js'
 import { ConfirmationDialog } from '../../../components/common/ConfirmationDialog.js'
 import Button from '../../../components/ui/Button.js'
+import { DialogFooter } from '../../../components/ui/DialogFrame.js'
 import GlassDialog from '../../../components/ui/GlassDialog.js'
 import { resolveErrorMessage } from '../../../i18n/error-message.js'
 import logger from '../../../utils/logger.js'
@@ -342,7 +343,7 @@ export const ConnectionDialog = ({
           </div>
         )}
 
-        <div className="flex justify-end gap-2.5 mt-1">
+        <DialogFooter className="mt-1">
           <Button type="button" variant="secondary" onClick={onClose}>
             {t(($) => $.common.action.cancel)}
           </Button>
@@ -356,7 +357,7 @@ export const ConnectionDialog = ({
               ? t(($) => $.connectionDialog.connecting)
               : t(($) => $.connectionDialog.save)}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
 
       <ConfirmationDialog

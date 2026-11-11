@@ -7,28 +7,24 @@ import {
   LayoutGrid,
   List,
   ChevronDown,
+  SquareTerminal,
 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FILE_VIEW_MODE, TOAST_TYPE } from '@shared/constants/index.js'
+import { FILE_VIEW_MODE, PROTOCOL, TOAST_TYPE } from '@shared/constants/index.js'
 import TextInputDialog from '../../../components/common/TextInputDialog.js'
+import { IconButton } from '../../../components/ui/index.js'
 import { useClickOutside } from '../../../hooks/index.js'
 import { resolveErrorMessage } from '../../../i18n/error-message.js'
 import { useUiStore } from '../../../stores/index.js'
 import { cn } from '../../../utils/index.js'
+import { useConnectionStore } from '../../session/stores/connection.js'
 import { useSessionStore } from '../../session/stores/session.js'
+import { useTerminalStore } from '../../terminal/index.js'
 import { useDirectoryInvalidation, useFolderCreation, useTransferDialog } from '../hooks/index.js'
 
 interface FileExplorerToolbarProps {
   sessionId: string
-}
-
-interface ToolButtonProps {
-  onClick: () => void
-  title: string
-  isActive?: boolean
-  testId?: string
-  children: React.ReactNode
 }
 
 const ICON_CLASS = 'w-4 h-4 stroke-current stroke-2'
@@ -36,27 +32,6 @@ const ICON_CLASS_SM = 'w-3.5 h-3.5 stroke-current stroke-2'
 
 const focusRing =
   'focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2'
-
-/** 图标按钮：无描边，选中态沿用标签页的 accent-light 底色。 */
-const ToolButton = ({ onClick, title, isActive, testId, children }: ToolButtonProps) => (
-  <button
-    type="button"
-    {...(testId ? { 'data-testid': testId } : {})}
-    {...(isActive === undefined ? {} : { 'aria-pressed': isActive })}
-    onClick={onClick}
-    title={title}
-    aria-label={title}
-    className={cn(
-      'w-7 h-7 rounded-md flex items-center justify-center border-none transition-colors duration-150',
-      focusRing,
-      isActive
-        ? 'bg-accent-light text-accent'
-        : 'bg-transparent text-text-muted hover:bg-hover hover:text-text',
-    )}
-  >
-    {children}
-  </button>
-)
 
 interface ToolTextButtonProps {
   onClick: () => void
@@ -101,6 +76,11 @@ export const FileExplorerToolbar = ({ sessionId }: FileExplorerToolbarProps) => 
   const session = sessions.find((s) => s.sessionId === sessionId)
   const fileViewMode = useUiStore((state) => state.fileViewModes[sessionId] ?? FILE_VIEW_MODE.LIST)
   const setFileViewMode = useUiStore((state) => state.setFileViewMode)
+  const connections = useConnectionStore((state) => state.connections)
+  const toggleTerminal = useTerminalStore((state) => state.toggle)
+  const terminalOpen = useTerminalStore((state) => state.isOpen)
+  const isSftp =
+    connections.find((item) => item.id === session?.connectionId)?.protocol === PROTOCOL.SFTP
 
   const { openFilePicker, openFolderPicker } = useTransferDialog({
     sessionId,
@@ -194,39 +174,44 @@ export const FileExplorerToolbar = ({ sessionId }: FileExplorerToolbarProps) => 
       </div>
 
       <div className="flex items-center gap-1.5">
-        <button
-          type="button"
+        {isSftp && (
+          <IconButton
+            onClick={toggleTerminal}
+            label={t(($) => $.terminal.title)}
+            isActive={terminalOpen}
+            testId="toolbar-terminal"
+          >
+            <SquareTerminal className={ICON_CLASS} />
+          </IconButton>
+        )}
+
+        <IconButton
           onClick={() => void handleRefresh()}
-          title={`${t(($) => $.common.action.refresh)} (F5)`}
-          aria-label={t(($) => $.common.action.refresh)}
-          data-testid="toolbar-refresh"
-          className={cn(
-            'w-7 h-7 rounded-md flex items-center justify-center border-none bg-transparent',
-            'text-text-muted hover:bg-hover hover:text-text transition-colors',
-            focusRing,
-          )}
+          label={`${t(($) => $.common.action.refresh)} (F5)`}
+          ariaLabel={t(($) => $.common.action.refresh)}
+          testId="toolbar-refresh"
         >
           <RefreshCw className={ICON_CLASS} />
-        </button>
+        </IconButton>
 
         <div className="flex items-center gap-0.5">
-          <ToolButton
+          <IconButton
             onClick={() => setFileViewMode(sessionId, FILE_VIEW_MODE.LIST)}
-            title={t(($) => $.fileExplorerList.viewList)}
+            label={t(($) => $.fileExplorerList.viewList)}
             isActive={fileViewMode === FILE_VIEW_MODE.LIST}
             testId="view-mode-list"
           >
             <List className={ICON_CLASS} />
-          </ToolButton>
+          </IconButton>
 
-          <ToolButton
+          <IconButton
             onClick={() => setFileViewMode(sessionId, FILE_VIEW_MODE.GRID)}
-            title={t(($) => $.fileExplorerList.viewGrid)}
+            label={t(($) => $.fileExplorerList.viewGrid)}
             isActive={fileViewMode === FILE_VIEW_MODE.GRID}
             testId="view-mode-grid"
           >
             <LayoutGrid className={ICON_CLASS} />
-          </ToolButton>
+          </IconButton>
         </div>
       </div>
 

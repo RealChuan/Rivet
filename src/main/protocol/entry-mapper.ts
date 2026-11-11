@@ -10,6 +10,7 @@ export function toFileInfo(entry: Entry): FileInfo {
     size: entry.size,
     modifyTime: entry.mtime,
     permissions: entry.permissions ?? '',
+    ...(entry.mode !== undefined ? { mode: entry.mode } : {}),
     owner: entry.owner ?? '',
     absolutePath: entry.path,
     // 隐藏判定只在这里：协议能给出更准的结果就用它，否则按点号规则兜底。

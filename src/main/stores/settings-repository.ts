@@ -4,6 +4,7 @@ import {
   ERROR_CODE,
   SORT_ORDER,
   SUPPORTED_LANGUAGE,
+  TERMINAL_FONT_SIZE,
   TRANSFER_CONFIG,
   type SortOrder,
   type SupportedLanguageLiteral,
@@ -84,6 +85,10 @@ export function setUiSettings(value: UiSettings): Result<void, ErrorInfo> {
         locale: value.locale,
         showHiddenFiles: value.showHiddenFiles,
         closeBehavior: value.closeBehavior,
+        terminalFontSize: Math.min(
+          TERMINAL_FONT_SIZE.MAX,
+          Math.max(TERMINAL_FONT_SIZE.MIN, Math.round(value.terminalFontSize)),
+        ),
       },
     }))
     return ok(undefined)

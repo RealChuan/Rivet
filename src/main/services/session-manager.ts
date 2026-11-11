@@ -12,6 +12,8 @@ export type { SessionHandle } from '../providers/session-registry.js'
 interface SessionManagerCallbacks {
   disconnect: (sessionId: string) => Promise<Result<void, ErrorInfo>>
   ping: (sessionId: string) => Promise<Result<void, ErrorInfo>>
+  /** 会话消失时一并关闭其终端。 */
+  closeTerminals?: (sessionId: string) => void
 }
 
 /**
@@ -41,6 +43,7 @@ class SessionManager {
     providerSessionRegistry.unregister(sessionId)
     // 心跳判定死亡会绕过守卫直接拆会话，这里补一次任务清理。
     transferService.cleanupSessionTasks(sessionId)
+    this.callbacks.closeTerminals?.(sessionId)
     if (providerSessionRegistry.count === 0 && this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval)
       this.heartbeatInterval = null

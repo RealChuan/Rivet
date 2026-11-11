@@ -1,6 +1,7 @@
 import { Bookmark, Star, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { IconButton } from '../../../components/ui/index.js'
 import { useClickOutside } from '../../../hooks/index.js'
 import { useConnectionFavorites, useNavigateToDirectory } from '../hooks/index.js'
 
@@ -62,14 +63,14 @@ export const FileExplorerFavorites = ({ sessionId }: FileExplorerFavoritesProps)
                 >
                   {path}
                 </button>
-                <button
+                <IconButton
+                  size="sm"
+                  variant="danger"
                   onClick={() => toggleFavorite(path)}
-                  title={t(($) => $.favorites.remove)}
-                  aria-label={t(($) => $.favorites.remove)}
-                  className="p-1.5 rounded-md bg-transparent border-none text-text-muted hover:text-danger hover:bg-danger-light transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2 shrink-0"
+                  label={t(($) => $.favorites.remove)}
                 >
                   <X className="w-3.5 h-3.5 stroke-current stroke-2" />
-                </button>
+                </IconButton>
               </div>
             ))
           )}

@@ -5,6 +5,7 @@ import {
   DEFAULT_LANGUAGE,
   DEFAULT_THEME_VALUE,
   STORE_KEY,
+  TERMINAL_FONT_SIZE,
 } from '@shared/constants/index.js'
 import { type UiSettings } from '@shared/types/index.js'
 import { configApi } from '../api/config.js'
@@ -21,6 +22,7 @@ const FALLBACK_UI_SETTINGS: UiSettings = {
   locale: DEFAULT_LANGUAGE,
   showHiddenFiles: false,
   closeBehavior: CLOSE_BEHAVIOR.TRAY,
+  terminalFontSize: TERMINAL_FONT_SIZE.DEFAULT,
 }
 
 export const useApplicationInitialization = () => {

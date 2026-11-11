@@ -15,5 +15,6 @@ export {
 export { QueryProvider } from './QueryProvider.js'
 export { ApiError, isApiError, unwrap } from './result.js'
 export { systemApi } from './system.js'
+export { terminalApi } from './terminal.js'
 export { transferApi, transferEvents } from './transfer.js'
 export { windowApi } from './window.js'

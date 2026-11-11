@@ -7,11 +7,13 @@ import { ConcurrencyFields } from '../../transfer/components/ConcurrencyFields.j
 import FilesSection from './FilesSection.js'
 import GeneralSection from './GeneralSection.js'
 import MaintenanceSection from './MaintenanceSection.js'
+import TerminalSection from './TerminalSection.js'
 
 const SETTINGS_SECTION = {
   GENERAL: 'general',
   TRANSFER: 'transfer',
   FILES: 'files',
+  TERMINAL: 'terminal',
   MAINTENANCE: 'maintenance',
 } as const
 
@@ -34,6 +36,7 @@ export const SettingsDialog = ({ open, onClose }: SettingsDialogProps) => {
     { id: SETTINGS_SECTION.GENERAL, label: t(($) => $.settings.general) },
     { id: SETTINGS_SECTION.TRANSFER, label: t(($) => $.settings.transfer) },
     { id: SETTINGS_SECTION.FILES, label: t(($) => $.settings.files) },
+    { id: SETTINGS_SECTION.TERMINAL, label: t(($) => $.settings.terminal) },
     { id: SETTINGS_SECTION.MAINTENANCE, label: t(($) => $.settings.maintenance) },
   ] as const
 
@@ -84,6 +87,7 @@ export const SettingsDialog = ({ open, onClose }: SettingsDialogProps) => {
             {active === SETTINGS_SECTION.GENERAL && <GeneralSection />}
             {active === SETTINGS_SECTION.TRANSFER && <ConcurrencyFields />}
             {active === SETTINGS_SECTION.FILES && <FilesSection />}
+            {active === SETTINGS_SECTION.TERMINAL && <TerminalSection />}
             {active === SETTINGS_SECTION.MAINTENANCE && <MaintenanceSection />}
           </div>
         </div>

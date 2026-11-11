@@ -7,6 +7,7 @@ import {
   PROTOCOL,
   SORT_ORDER,
   SUPPORTED_LANGUAGE,
+  TERMINAL_FONT_SIZE,
   THEME,
   TRANSFER_CONFIG,
 } from '@shared/constants/index.js'
@@ -34,6 +35,7 @@ export const uiSettingsSchema = z.object({
   locale: localeSchema,
   showHiddenFiles: z.boolean(),
   closeBehavior: closeBehaviorSchema,
+  terminalFontSize: z.number().int().min(TERMINAL_FONT_SIZE.MIN).max(TERMINAL_FONT_SIZE.MAX),
 })
 
 export const defaultUiSettings: UiSettings = {
@@ -41,6 +43,7 @@ export const defaultUiSettings: UiSettings = {
   locale: '',
   showHiddenFiles: false,
   closeBehavior: CLOSE_BEHAVIOR.TRAY,
+  terminalFontSize: TERMINAL_FONT_SIZE.DEFAULT,
 }
 
 /** 收藏夹：connectionId → 该连接下收藏的远端目录。 */

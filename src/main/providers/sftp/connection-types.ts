@@ -8,6 +8,7 @@ export interface RawSftpEntry {
   size: number
   mtime: number
   permissions?: string
+  mode?: number
   owner?: string
 }
 

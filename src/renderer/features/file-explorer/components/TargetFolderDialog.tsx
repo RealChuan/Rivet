@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, X, FolderPlus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FolderPlus } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FILE_TYPE, ROOT_PATH, TOAST_TYPE, DIALOG_SIZE } from '@shared/constants/index.js'
@@ -8,6 +8,7 @@ import { protocolApi } from '../../../api/protocol.js'
 import { FileIcon } from '../../../components/common/index.js'
 import TextInputDialog from '../../../components/common/TextInputDialog.js'
 import Button from '../../../components/ui/Button.js'
+import { DialogHeader } from '../../../components/ui/DialogFrame.js'
 import GlassDialog from '../../../components/ui/GlassDialog.js'
 import { useUiStore } from '../../../stores/index.js'
 import { cn } from '../../../utils/index.js'
@@ -178,18 +179,7 @@ export const TargetFolderDialog = ({
         height={DIALOG_SIZE.LARGE.height}
       >
         <div className="flex flex-col h-113 w-full overflow-hidden">
-          <div className="flex items-center justify-between mb-4 shrink-0">
-            <h2 className="text-base font-semibold text-text">
-              {t(($) => $.targetFolderDialog.title)}
-            </h2>
-            <button
-              onClick={onClose}
-              aria-label={t(($) => $.common.close)}
-              className="p-1 rounded bg-transparent border-none text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-            >
-              <X className="w-4 h-4 stroke-current stroke-2" />
-            </button>
-          </div>
+          <DialogHeader title={t(($) => $.targetFolderDialog.title)} onClose={onClose} />
 
           <div className="pb-3 border-b border-border mb-3 shrink-0">
             <FileExplorerBreadcrumb

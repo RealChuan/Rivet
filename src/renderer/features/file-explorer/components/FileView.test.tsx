@@ -460,6 +460,14 @@ describe('FileView', () => {
     expect(screen.getByTestId('favorite-star')).not.toBeNull()
   })
 
+  it('宫格视图下收藏星标跟随名称行', () => {
+    mockUi.fileViewModes = { s1: 'grid' }
+    useFavoritesStore.setState({ favorites: { c1: ['/docs'] } })
+    renderFileView()
+
+    expect(screen.getByTestId('favorite-star').parentElement?.textContent).toBe('docs')
+  })
+
   it('Escape 清空选择', async () => {
     renderFileView()
 

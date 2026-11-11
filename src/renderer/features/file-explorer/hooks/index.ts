@@ -11,6 +11,7 @@ export { FILE_DRAG_MIME, type FileDragMove, useFileDragMove } from './use-file-d
 export { useFileDragSelect } from './use-file-drag-select.js'
 export { useFileListState } from './use-file-list-state.js'
 export { useFileOperation } from './use-file-operation.js'
+export { useFilePermissions } from './use-file-permissions.js'
 export { useFileRenaming } from './use-file-renaming.js'
 export { useFileSort } from './use-file-sort.js'
 export { useFolderCreation } from './use-folder-creation.js'

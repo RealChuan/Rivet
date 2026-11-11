@@ -50,6 +50,11 @@ export const protocolContract = defineContract({
     args: [z.string(), fileInfoSchema, z.string(), z.string().optional()],
     result: voidResultSchema,
   },
+  /** `mode` 是完整权限位（含 setuid/setgid/sticky），上限 0o7777。 */
+  'protocol.chmod': {
+    args: [z.string(), fileInfoSchema, z.number().int().min(0).max(0o7777), z.string().optional()],
+    result: voidResultSchema,
+  },
   'protocol.delete': {
     args: [z.string(), fileInfoSchema, z.string().optional()],
     result: voidResultSchema,

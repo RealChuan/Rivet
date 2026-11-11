@@ -94,6 +94,7 @@ function toRaw(name: string, attrs: Ssh2Stats, longname = ''): RawSftpEntry {
     size: attrs.size,
     mtime: attrs.mtime * 1000,
     permissions: formatMode(attrs.mode),
+    mode: attrs.mode,
     owner: ownerOf(longname),
   }
 }

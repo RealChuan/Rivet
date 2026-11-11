@@ -11,6 +11,7 @@ import {
   type TransferDirection,
   type TransferScope,
 } from '@shared/constants/transfer.js'
+import { IconButton } from '../../../components/ui/index.js'
 import Select from '../../../components/ui/Select.js'
 import { useUiStore } from '../../../stores/ui.js'
 import { cn } from '../../../utils/index.js'
@@ -33,9 +34,6 @@ interface QueuePanelHeaderProps {
   onSort: (field: TransferSortField) => void
   onCancelAll: () => void
 }
-
-const iconButtonClass =
-  'w-6 h-6 shrink-0 rounded-md flex items-center justify-center text-text-muted hover:text-text hover:bg-hover transition-colors cursor-default focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2'
 
 export const QueuePanelHeader = ({
   mode,
@@ -78,21 +76,17 @@ export const QueuePanelHeader = ({
       )}
       data-testid="queue-panel-header"
     >
-      <button
-        type="button"
-        className={iconButtonClass}
+      <IconButton
+        size="sm"
         onClick={() =>
           setQueuePanelMode(isCollapsed ? QUEUE_PANEL_MODE.EXPANDED : QUEUE_PANEL_MODE.COLLAPSED)
         }
-        aria-label={
-          isCollapsed ? t(($) => $.transfer.queue.expand) : t(($) => $.transfer.queue.collapse)
-        }
-        title={
+        label={
           isCollapsed ? t(($) => $.transfer.queue.expand) : t(($) => $.transfer.queue.collapse)
         }
       >
         {isCollapsed ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-      </button>
+      </IconButton>
 
       {!isCollapsed && (
         <div className="flex items-center gap-0.5">
@@ -138,16 +132,12 @@ export const QueuePanelHeader = ({
         </>
       )}
 
-      <button
-        type="button"
-        className={iconButtonClass}
+      <IconButton
+        size="sm"
         onClick={() =>
           setQueuePanelMode(isMaximized ? QUEUE_PANEL_MODE.EXPANDED : QUEUE_PANEL_MODE.MAXIMIZED)
         }
-        aria-label={
-          isMaximized ? t(($) => $.transfer.queue.restore) : t(($) => $.transfer.queue.maximize)
-        }
-        title={
+        label={
           isMaximized ? t(($) => $.transfer.queue.restore) : t(($) => $.transfer.queue.maximize)
         }
       >
@@ -156,7 +146,7 @@ export const QueuePanelHeader = ({
         ) : (
           <Maximize2 className="w-3.5 h-3.5" />
         )}
-      </button>
+      </IconButton>
 
       {!isCollapsed && hasActiveTasks && (
         <button

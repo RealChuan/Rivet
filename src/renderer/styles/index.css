@@ -210,16 +210,16 @@
     @apply bg-transparent;
   }
 
-  ::-webkit-inner-spin-button,
-  ::-webkit-outer-spin-button {
-    @apply h-4.5 opacity-60;
-    color: var(--color-text-muted);
+  /* 数字输入框去掉原生 spinbox：端口这类值靠键盘输入 */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
   }
 
-  ::-webkit-inner-spin-button:hover,
-  ::-webkit-outer-spin-button:hover {
-    @apply opacity-100;
-    color: var(--color-text);
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
   }
 
   /* 表单元素 */

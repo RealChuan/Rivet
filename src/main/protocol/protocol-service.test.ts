@@ -66,6 +66,7 @@ function createTestProvider() {
   const mkdir = vi.fn(() => Promise.resolve())
   const remove = vi.fn(() => Promise.resolve())
   const rename = vi.fn(() => Promise.resolve())
+  const chmod = vi.fn(() => Promise.resolve())
 
   const openRead = vi.fn<FileProvider['openRead']>(() =>
     Promise.resolve({
@@ -96,6 +97,7 @@ function createTestProvider() {
     mkdir,
     remove,
     rename,
+    chmod,
     openRead,
     openWrite,
   }
@@ -109,6 +111,7 @@ function createTestProvider() {
     mkdir,
     remove,
     rename,
+    chmod,
     openRead,
     openWrite,
   }
@@ -511,6 +514,44 @@ describe('ProtocolService 请求包装', () => {
       '/other/new.txt',
       expect.any(AbortSignal),
     )
+  })
+
+  it('chmod 转调 provider 并透传完整权限位', async () => {
+    const harness = makeHarness()
+    harness.registerSession()
+    const file: FileInfo = {
+      name: 'run.sh',
+      type: FILE_TYPE.FILE,
+      size: 0,
+      modifyTime: 0,
+      absolutePath: '/dir/run.sh',
+      isHidden: false,
+    }
+
+    const response = await harness.service.chmod('s1', file, 0o2755, 'req-chmod')
+
+    expect(response.success).toBe(true)
+    expect(harness.chmod).toHaveBeenCalledWith('/dir/run.sh', 0o2755, expect.any(AbortSignal))
+  })
+
+  it('chmod 失败以 CHMOD_ERROR 回传', async () => {
+    const harness = makeHarness()
+    harness.registerSession()
+    harness.chmod.mockRejectedValueOnce(new Error('permission denied'))
+    const file: FileInfo = {
+      name: 'run.sh',
+      type: FILE_TYPE.FILE,
+      size: 0,
+      modifyTime: 0,
+      absolutePath: '/dir/run.sh',
+      isHidden: false,
+    }
+
+    const response = await harness.service.chmod('s1', file, 0o600, 'req-chmod-fail')
+
+    expect(response.success).toBe(false)
+    if (response.success) return
+    expect(response.error.code).toBe(ERROR_CODE.CHMOD_ERROR)
   })
 
   it('路径遍历被拒绝为 PATH_TRAVERSAL', async () => {

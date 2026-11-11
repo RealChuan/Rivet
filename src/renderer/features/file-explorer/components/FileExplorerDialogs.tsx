@@ -10,12 +10,14 @@ import { useCopyPath } from '../hooks/use-copy-path.js'
 import { type UseFileCopyMoveReturn } from '../hooks/use-file-copy-move.js'
 import { useFileDeletion } from '../hooks/use-file-deletion.js'
 import { type UseFileListStateReturn } from '../hooks/use-file-list-state.js'
+import { useFilePermissions } from '../hooks/use-file-permissions.js'
 import { useFileRenaming } from '../hooks/use-file-renaming.js'
 import { useFolderCreation } from '../hooks/use-folder-creation.js'
 import { useTransferDialog } from '../hooks/use-transfer-dialog.js'
 import ConflictDialog from './ConflictDialog.js'
 import FileExplorerContextMenu from './FileExplorerContextMenu.js'
-import FolderPropertiesDialog from './FolderPropertiesDialog.js'
+import FilePropertiesDialog from './FilePropertiesDialog.js'
+import PermissionsDialog from './PermissionsDialog.js'
 import TargetFolderDialog from './TargetFolderDialog.js'
 
 interface FileExplorerDialogsProps {
@@ -42,6 +44,7 @@ export const FileExplorerDialogs = ({
   const { favoritePaths, toggleFavorite } = useConnectionFavorites(sessionId)
   const { handleDelete } = useFileDeletion(sessionId)
   const { handleRename } = useFileRenaming(sessionId)
+  const { handleChangePermissions } = useFilePermissions(sessionId)
   const { handleCreateFolder } = useFolderCreation(sessionId)
   const { openFilePicker, openFolderPicker, openDownloadDialog } = useTransferDialog({
     sessionId,
@@ -64,6 +67,10 @@ export const FileExplorerDialogs = ({
     propertiesDialogFile,
     openPropertiesDialog,
     closePropertiesDialog,
+    permissionsDialogOpen,
+    permissionsDialogFile,
+    openPermissionsDialog,
+    closePermissionsDialog,
   } = listState
 
   const {
@@ -171,11 +178,26 @@ export const FileExplorerDialogs = ({
         files={pendingFiles}
       />
 
-      <FolderPropertiesDialog
+      <FilePropertiesDialog
         open={propertiesDialogOpen}
         onClose={closePropertiesDialog}
         file={propertiesDialogFile}
         isSftp={isSftp}
+        onEditPermissions={(file) => {
+          closePropertiesDialog()
+          openPermissionsDialog(file)
+        }}
+      />
+
+      <PermissionsDialog
+        open={permissionsDialogOpen}
+        onClose={closePermissionsDialog}
+        file={permissionsDialogFile}
+        onApply={(mode) => {
+          if (!permissionsDialogFile) return
+          void handleChangePermissions(permissionsDialogFile, mode)
+          closePermissionsDialog()
+        }}
       />
 
       <FileExplorerContextMenu
@@ -203,6 +225,8 @@ export const FileExplorerDialogs = ({
           )
         }}
         onProperties={openPropertiesDialog}
+        onPermissions={openPermissionsDialog}
+        isSftp={isSftp}
         onCopyPath={(files) => {
           const paths = files.length > 0 ? files.map((file) => file.absolutePath) : [currentPath]
           void copyPaths(paths)

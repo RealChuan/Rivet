@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import Button from '../../components/ui/Button.js'
 import { logger } from '../../utils/index.js'
-import { GlassDialog } from '../ui/index.js'
+import { DialogFooter, GlassDialog } from '../ui/index.js'
 
 interface ConfirmationDialogProps {
   open: boolean
@@ -99,7 +99,7 @@ export const ConfirmationDialog = ({
           <p className="text-sm text-text-muted mb-5">{message}</p>
         ) : null}
 
-        <div className="flex justify-end gap-2.5 w-full">
+        <DialogFooter className="w-full">
           <Button variant="secondary" onClick={() => void handleCancel()}>
             {cancelText ?? t(($) => $.common.action.cancel)}
           </Button>
@@ -110,7 +110,7 @@ export const ConfirmationDialog = ({
           >
             {confirmText ?? t(($) => $.common.action.confirm)}
           </Button>
-        </div>
+        </DialogFooter>
       </div>
     </GlassDialog>
   )

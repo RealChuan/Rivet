@@ -83,23 +83,21 @@ export const FileGridItem = ({
       dragMove.dropOn(file)
     }}
   >
-    <div className="relative" draggable {...FILE_DRAG_SOURCE_ATTR}>
+    <div draggable {...FILE_DRAG_SOURCE_ATTR}>
       <FileIcon type={file.type} name={file.name} className="w-14 h-14" />
+    </div>
+    <div className="flex items-center justify-center gap-1 w-full min-w-0">
+      <span className="text-xs leading-tight min-w-0 truncate" draggable {...FILE_DRAG_SOURCE_ATTR}>
+        {file.name}
+      </span>
       {isFavorite && (
         <Star
           aria-hidden="true"
           data-testid="favorite-star"
-          className="w-3.5 h-3.5 absolute top-0 right-0 fill-current text-accent stroke-current stroke-2 drop-shadow"
+          className="w-3 h-3 shrink-0 fill-current text-accent stroke-current stroke-2"
         />
       )}
     </div>
-    <span
-      className="text-xs leading-tight w-full text-center truncate"
-      draggable
-      {...FILE_DRAG_SOURCE_ATTR}
-    >
-      {file.name}
-    </span>
   </div>
 )
 

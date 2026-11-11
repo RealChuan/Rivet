@@ -26,6 +26,7 @@ function toEntry(raw: RawSftpEntry, parentPath: string): Entry {
     size: raw.size,
     mtime: raw.mtime,
     ...(raw.permissions !== undefined ? { permissions: raw.permissions } : {}),
+    ...(raw.mode !== undefined ? { mode: raw.mode } : {}),
     ...(raw.owner !== undefined ? { owner: raw.owner } : {}),
     path: joinPaths(parentPath, raw.name),
   }

@@ -52,6 +52,7 @@ describe('settings-repository', () => {
       locale: 'en-US',
       showHiddenFiles: true,
       closeBehavior: 'quit',
+      terminalFontSize: 16,
     })
     setTransferSettings({ maxUploadConcurrency: 8, maxDownloadConcurrency: 7 })
     setConnectionSortOrder(SORT_ORDER.DESC)
@@ -62,6 +63,7 @@ describe('settings-repository', () => {
       locale: 'en-US',
       showHiddenFiles: true,
       closeBehavior: 'quit',
+      terminalFontSize: 16,
     })
     expect(getTransferSettings()).toEqual({
       maxUploadConcurrency: 8,

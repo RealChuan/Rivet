@@ -44,4 +44,9 @@ describe('toFileInfo', () => {
     expect(info.permissions).toBe('rw-r--r--')
     expect(info.owner).toBe('alice')
   })
+
+  it('原样透传权限位，缺省时不产生该字段', () => {
+    expect(toFileInfo({ ...base, mode: 0o100640 }).mode).toBe(0o100640)
+    expect('mode' in toFileInfo(base)).toBe(false)
+  })
 })

@@ -16,6 +16,8 @@ export function setupProtocolIpcHandlers(): void {
       protocolService.mkdir(sessionId, path, requestId),
     'protocol.rename': (sessionId, file, newName, requestId) =>
       protocolService.rename(sessionId, file, newName, requestId),
+    'protocol.chmod': (sessionId, file, mode, requestId) =>
+      protocolService.chmod(sessionId, file, mode, requestId),
     'protocol.delete': (sessionId, file, requestId) =>
       protocolService.delete(sessionId, file, requestId),
     'protocol.copy': (sessionId, file, targetPath, requestId) =>

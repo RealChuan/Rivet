@@ -43,10 +43,10 @@ export const RadioButton = ({
         value={value}
         disabled={disabled}
         className={cn(
-          'relative size-4 rounded-full border-2 transition-all duration-200',
-          'border-input-border bg-transparent hover:border-input-border-hover',
+          'relative size-4 rounded-full border transition-colors duration-150',
+          // 与 Checkbox 同源：input-border 在暗色卡片上几乎不可见
+          'border-text-muted/70 bg-transparent data-[state=unchecked]:hover:border-text-muted',
           'data-[state=checked]:border-accent data-[state=checked]:bg-accent',
-          'data-[state=checked]:shadow-[0_0_0_3px_var(--color-accent-light)]',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
           className,
         )}

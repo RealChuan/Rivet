@@ -24,6 +24,7 @@ const SELECTORS: Partial<Record<ErrorCode, ErrorSelector>> = {
   LIST_TIMEOUT: (t) => t(($) => $.errors.LIST_TIMEOUT),
   MKDIR_ERROR: (t) => t(($) => $.errors.MKDIR_ERROR),
   RENAME_ERROR: (t) => t(($) => $.errors.RENAME_ERROR),
+  CHMOD_ERROR: (t) => t(($) => $.errors.CHMOD_ERROR),
   DELETE_ERROR: (t) => t(($) => $.errors.DELETE_ERROR),
   COPY_ERROR: (t) => t(($) => $.errors.COPY_ERROR),
   MOVE_ERROR: (t) => t(($) => $.errors.MOVE_ERROR),
@@ -40,6 +41,10 @@ const SELECTORS: Partial<Record<ErrorCode, ErrorSelector>> = {
   PATH_ERROR: (t) => t(($) => $.errors.PATH_ERROR),
   INVALID_STATE: (t) => t(($) => $.errors.INVALID_STATE),
   SELF_CONTAINED: (t) => t(($) => $.errors.SELF_CONTAINED),
+  TERMINAL_NOT_SUPPORTED: (t) => t(($) => $.errors.TERMINAL_NOT_SUPPORTED),
+  TERMINAL_UNAVAILABLE: (t) => t(($) => $.errors.TERMINAL_UNAVAILABLE),
+  TERMINAL_OPEN_FAILED: (t) => t(($) => $.errors.TERMINAL_OPEN_FAILED),
+  TERMINAL_NOT_FOUND: (t) => t(($) => $.errors.TERMINAL_NOT_FOUND),
 }
 
 const KEY_BY_CODE: Partial<Record<ErrorCode, string>> = {
@@ -62,6 +67,7 @@ const KEY_BY_CODE: Partial<Record<ErrorCode, string>> = {
   LIST_TIMEOUT: 'errors.LIST_TIMEOUT',
   MKDIR_ERROR: 'errors.MKDIR_ERROR',
   RENAME_ERROR: 'errors.RENAME_ERROR',
+  CHMOD_ERROR: 'errors.CHMOD_ERROR',
   DELETE_ERROR: 'errors.DELETE_ERROR',
   COPY_ERROR: 'errors.COPY_ERROR',
   MOVE_ERROR: 'errors.MOVE_ERROR',
@@ -78,6 +84,10 @@ const KEY_BY_CODE: Partial<Record<ErrorCode, string>> = {
   PATH_ERROR: 'errors.PATH_ERROR',
   INVALID_STATE: 'errors.INVALID_STATE',
   SELF_CONTAINED: 'errors.SELF_CONTAINED',
+  TERMINAL_NOT_SUPPORTED: 'errors.TERMINAL_NOT_SUPPORTED',
+  TERMINAL_UNAVAILABLE: 'errors.TERMINAL_UNAVAILABLE',
+  TERMINAL_OPEN_FAILED: 'errors.TERMINAL_OPEN_FAILED',
+  TERMINAL_NOT_FOUND: 'errors.TERMINAL_NOT_FOUND',
 }
 
 export function errorMessageKey(code: ErrorCode): string {

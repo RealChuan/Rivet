@@ -10,6 +10,8 @@ export interface Entry {
   readonly size: number
   readonly mtime: number
   readonly permissions?: string
+  /** 权限位原值（含 setuid/setgid/sticky），供权限编辑器回填与保留特殊位 */
+  readonly mode?: number
   readonly owner?: string
   readonly path: string
   /**

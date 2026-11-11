@@ -17,6 +17,9 @@ export interface FileInfo {
   /** 权限字符串（SFTP 协议，格式如 rwxrwxrwx） */
   permissions?: string
 
+  /** 权限位（含文件类型位与 setuid/setgid/sticky），供权限编辑器回填并保留特殊位。 */
+  mode?: number
+
   /** 文件所有者（SFTP 协议） */
   owner?: string
 

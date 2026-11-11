@@ -24,6 +24,8 @@ export const TIMEOUTS = {
   MKDIR: 60000,
   /** 重命名文件超时时间（60秒） */
   RENAME: 60000,
+  /** 修改权限超时时间（60秒） */
+  CHMOD: 60000,
   /** 删除文件/目录超时时间（300秒，大目录递归删除需要较长时间） */
   DELETE: 300000,
   /** 协议连接超时时间（30秒） */
@@ -32,4 +34,8 @@ export const TIMEOUTS = {
   AUTO_SAVE_INTERVAL: 300000,
   /** 传输进度批量刷新间隔 (ms) */
   PROGRESS_FLUSH_MS: 250,
+  /** 终端输出批量刷新间隔 (ms)，约等于一帧 */
+  TERMINAL_FLUSH_MS: 16,
+  /** 终端建立连接与 shell 通道的超时时间 (ms) */
+  TERMINAL_OPEN: 15000,
 } as const

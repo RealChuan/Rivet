@@ -1,0 +1,24 @@
+/*
+ * 覆盖 xterm 自带表面样式与自绘滚动条：
+ * 滚动条默认 14px 方块，这里对齐全局的 6px 圆角滑块。
+ */
+.terminal-surface .xterm,
+.terminal-surface .xterm-viewport,
+.terminal-surface .xterm-screen {
+  background-color: transparent !important;
+}
+
+/* 内边距由外层容器给，xterm 自己不要再加。 */
+.terminal-surface .xterm {
+  padding: 0;
+}
+
+/* 宽高由 xterm 写成内联样式，需 !important 才能覆盖。 */
+.terminal-surface .xterm-scrollable-element > .scrollbar.vertical {
+  width: 6px !important;
+}
+
+.terminal-surface .xterm-scrollable-element > .scrollbar.vertical > .slider {
+  width: 6px !important;
+  border-radius: 9999px;
+}

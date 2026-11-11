@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { cn } from '../../../utils/index.js'
+import { IconButton } from '../../../components/ui/index.js'
 
 interface FileExplorerNavigationProps {
   canGoBack: boolean
@@ -17,40 +17,28 @@ export const FileExplorerNavigation = ({
 }: FileExplorerNavigationProps) => {
   const { t } = useTranslation()
 
-  const buttonClass = (enabled: boolean) =>
-    cn(
-      'w-8 h-8 rounded-md flex items-center justify-center border-none bg-transparent',
-      'transition-colors duration-150',
-      'focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2',
-      enabled
-        ? 'text-text-muted hover:text-text hover:bg-hover'
-        : 'text-text-muted opacity-35 cursor-default',
-    )
-
   return (
     <div className="flex items-center gap-0.5 shrink-0">
-      <button
-        type="button"
+      <IconButton
         onClick={onBack}
         disabled={!canGoBack}
-        title={`${t(($) => $.fileExplorerList.back)} (Alt+←)`}
-        aria-label={t(($) => $.fileExplorerList.back)}
-        data-testid="navigate-back"
-        className={buttonClass(canGoBack)}
+        size="lg"
+        label={`${t(($) => $.fileExplorerList.back)} (Alt+←)`}
+        ariaLabel={t(($) => $.fileExplorerList.back)}
+        testId="navigate-back"
       >
         <ArrowLeft className="w-4 h-4 stroke-current stroke-2" />
-      </button>
-      <button
-        type="button"
+      </IconButton>
+      <IconButton
         onClick={onForward}
         disabled={!canGoForward}
-        title={`${t(($) => $.fileExplorerList.forward)} (Alt+→)`}
-        aria-label={t(($) => $.fileExplorerList.forward)}
-        data-testid="navigate-forward"
-        className={buttonClass(canGoForward)}
+        size="lg"
+        label={`${t(($) => $.fileExplorerList.forward)} (Alt+→)`}
+        ariaLabel={t(($) => $.fileExplorerList.forward)}
+        testId="navigate-forward"
       >
         <ArrowRight className="w-4 h-4 stroke-current stroke-2" />
-      </button>
+      </IconButton>
     </div>
   )
 }

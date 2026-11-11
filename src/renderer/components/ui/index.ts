@@ -1,6 +1,8 @@
 export { Button } from './Button.js'
 export { Checkbox } from './Checkbox.js'
+export { DialogCloseButton, DialogFooter, DialogHeader } from './DialogFrame.js'
 export { GlassDialog } from './GlassDialog.js'
+export { IconButton } from './IconButton.js'
 export { Input } from './Input.js'
 export { PasswordInput } from './PasswordInput.js'
 export { RadioButton, RadioGroup } from './RadioButton.js'

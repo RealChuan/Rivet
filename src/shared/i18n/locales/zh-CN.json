@@ -12,7 +12,8 @@
         "confirm": "确认",
         "create": "创建",
         "delete": "删除",
-        "refresh": "刷新"
+        "refresh": "刷新",
+        "save": "保存"
       },
       "close": "关闭",
       "selectPlaceholder": "请选择...",
@@ -129,6 +130,7 @@
       "AGENT_NOT_AVAILABLE": "SSH agent 不可用",
       "ALREADY_EXISTS": "目标已存在",
       "AUTH_ERROR": "认证失败",
+      "CHMOD_ERROR": "修改权限失败",
       "CONFIG_ERROR": "配置读写失败",
       "CONN_FAILED": "连接失败",
       "CONN_NOT_FOUND": "连接不存在",
@@ -159,6 +161,10 @@
       "REQUEST_ABORTED": "请求已取消",
       "REQUEST_TIMEOUT": "请求超时",
       "SELF_CONTAINED": "不能操作自身或其子目录",
+      "TERMINAL_NOT_FOUND": "终端会话不存在",
+      "TERMINAL_NOT_SUPPORTED": "只有 SFTP 连接支持终端",
+      "TERMINAL_OPEN_FAILED": "打开终端失败",
+      "TERMINAL_UNAVAILABLE": "该服务器不允许交互式 shell",
       "UNKNOWN": "操作失败",
       "UPLOAD_ERROR": "上传失败"
     },
@@ -179,6 +185,7 @@
         "moveTo": "移动到...",
         "newFolder": "新建文件夹",
         "paste": "粘贴",
+        "permissions": "权限…",
         "properties": "属性",
         "rename": "重命名",
         "upload": "上传",
@@ -219,23 +226,6 @@
       "viewGrid": "宫格视图",
       "viewList": "列表视图"
     },
-    "folderProperties": {
-      "calculate": "计算",
-      "calculating": "计算中...",
-      "cancelCalculation": "取消",
-      "cancelled": "计算已取消",
-      "completed": "计算完成",
-      "errorCount": "失败目录: {{count}}",
-      "failed": "计算失败",
-      "fileCount": "文件数",
-      "folderCount": "文件夹数",
-      "modifyTime": "修改时间",
-      "owner": "所有者",
-      "permissions": "权限",
-      "recalculate": "重新计算",
-      "scanning": "正在扫描: {{path}}",
-      "size": "大小"
-    },
     "hostKey": {
       "algorithm": "密钥算法",
       "fingerprint": "主机密钥指纹",
@@ -267,6 +257,33 @@
       "hidePassword": "隐藏密码",
       "showPassword": "显示密码"
     },
+    "permissions": {
+      "execute": "执行",
+      "group": "组",
+      "octal": "八进制",
+      "other": "其他",
+      "owner": "所有者",
+      "read": "读取",
+      "title": "修改权限",
+      "write": "写入"
+    },
+    "properties": {
+      "calculate": "计算",
+      "calculating": "计算中...",
+      "cancelCalculation": "取消",
+      "cancelled": "计算已取消",
+      "completed": "计算完成",
+      "errorCount": "失败目录: {{count}}",
+      "failed": "计算失败",
+      "fileCount": "文件数",
+      "folderCount": "文件夹数",
+      "modifyTime": "修改时间",
+      "owner": "所有者",
+      "permissions": "权限",
+      "recalculate": "重新计算",
+      "scanning": "正在扫描: {{path}}",
+      "size": "大小"
+    },
     "settings": {
       "cache": {
         "clear": "清除旧日志",
@@ -293,6 +310,11 @@
       },
       "maintenance": "维护",
       "open": "设置",
+      "terminal": "终端",
+      "terminalFontSize": {
+        "hint": "只影响终端，文件列表字号不跟着变。",
+        "label": "终端字号"
+      },
       "title": "设置",
       "transfer": "传输"
     },
@@ -301,6 +323,19 @@
     },
     "targetFolderDialog": {
       "title": "选择目标文件夹"
+    },
+    "terminal": {
+      "action": {
+        "close": "关闭终端",
+        "maximize": "最大化",
+        "restore": "还原"
+      },
+      "status": {
+        "connecting": "连接中…",
+        "error": "终端不可用",
+        "exited": "已退出"
+      },
+      "title": "终端"
     },
     "textInputDialog": {
       "folderNamePlaceholder": "文件夹名称",
@@ -334,6 +369,7 @@
       "downloadFailed": "下载失败",
       "moveFailed": "移动失败",
       "moveSuccess": "移动成功",
+      "permissionsSuccess": "权限已更新",
       "refreshFailed": "刷新失败",
       "renameFailed": "重命名失败",
       "renameSuccess": "重命名成功",

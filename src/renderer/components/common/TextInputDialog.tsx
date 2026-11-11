@@ -2,7 +2,7 @@ import type React from 'react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Button from '../../components/ui/Button.js'
-import { GlassDialog } from '../ui/index.js'
+import { DialogFooter, GlassDialog, Input } from '../ui/index.js'
 
 interface TextInputDialogProps {
   open: boolean
@@ -43,27 +43,22 @@ export const TextInputDialog = ({
     <GlassDialog open={open} onClose={onClose}>
       <h2 className="text-base font-semibold text-text mb-4">{title}</h2>
       <form onSubmit={handleSubmit}>
-        <input
+        <Input
           type="text"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
           autoFocus
-          className={`
-            w-full px-3 py-2.5 bg-surface border border-border rounded-md
-            text-text text-sm mb-4 transition-all duration-150
-            focus:border-accent focus:ring-2 focus:ring-ring
-            outline-none
-          `}
+          className="mb-4"
         />
-        <div className="flex justify-end gap-2.5">
+        <DialogFooter>
           <Button type="button" variant="secondary" onClick={onClose}>
             {t(($) => $.common.action.cancel)}
           </Button>
           <Button type="submit" variant="primary" disabled={!value.trim()}>
             {submitText ?? t(($) => $.common.action.confirm)}
           </Button>
-        </div>
+        </DialogFooter>
       </form>
     </GlassDialog>
   )

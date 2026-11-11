@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
-import { FILE_VIEW_MODE } from '@shared/constants/index.js'
+import { FILE_VIEW_MODE, PROTOCOL } from '@shared/constants/index.js'
 import { useDirectoryInvalidation } from '../features/file-explorer/hooks/index.js'
 import { useNavigationHistoryStore } from '../features/file-explorer/stores/navigation-history.js'
+import { useConnectionStore } from '../features/session/stores/connection.js'
 import { useSessionStore } from '../features/session/stores/session.js'
+import { useTerminalStore } from '../features/terminal/stores/terminal.js'
 import { useUiStore } from '../stores/ui.js'
 
 export const useGlobalShortcuts = () => {
@@ -15,9 +17,21 @@ export const useGlobalShortcuts = () => {
   const setFileViewMode = useUiStore((state) => state.setFileViewMode)
   const setAddressEditing = useUiStore((state) => state.setAddressEditing)
   const stepHistory = useNavigationHistoryStore((state) => state.step)
+  const connections = useConnectionStore((state) => state.connections)
+  const toggleTerminal = useTerminalStore((state) => state.toggle)
+  const isSftpSession =
+    connections.find((item) => item.id === activeConnectionId)?.protocol === PROTOCOL.SFTP
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+` 必须早于输入框守卫：xterm 的输入元件是 textarea。
+      if ((e.ctrlKey || e.metaKey) && e.key === '`') {
+        if (!isSftpSession) return
+        e.preventDefault()
+        toggleTerminal()
+        return
+      }
+
       const target = e.target
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return
 
@@ -65,10 +79,12 @@ export const useGlobalShortcuts = () => {
     activeConnectionId,
     activeSessionId,
     invalidateSession,
+    isSftpSession,
     markSessionStale,
     setAddressEditing,
     setFileViewMode,
     stepHistory,
+    toggleTerminal,
     updateCurrentPath,
   ])
 }

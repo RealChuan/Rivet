@@ -41,6 +41,14 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 - 下载可暂停 / 继续：继续时从已下载的字节接着传，已落盘的文件不再重下；文件夹按「文件在且没有半成品」判定已完成。上传暂不支持断点续传。
 - 底部传输队列可收起、拖高或最大化；跨连接时按会话分组。
 
+### 终端
+
+- SFTP 连接可以在底部抽屉里打开交互式 shell，`` Ctrl+` `` 切换；打开时自动 `cd` 到当前浏览目录。
+- 与文件会话同生共死：断开连接或心跳掉线会一并关闭终端。
+- 只做最基础的命令交互：没有多标签、tmux、端口转发、会话恢复，也没有本地 shell。
+- 服务器拒绝 shell 时提示「该服务器不允许交互式 shell」；只放行 sftp 子系统的（例如 `ForceCommand internal-sftp`）会打印服务端原文后标为「已退出」。判定只能匹配 ssh2 的错误文案。
+- SMB、WebDAV、S3 不提供终端入口。
+
 ### 体验
 
 - 浅色 / 深色 / 跟随系统主题；Windows 11 22H2+ 的 Mica、macOS 13+ 的 vibrancy。
@@ -82,7 +90,7 @@ pnpm run verify
 
 - `pnpm run verify` 依次执行 typecheck、lint、单元测试、类型测试、i18n 检查、生产依赖审计与打包。
 - 真实服务集成测试（provider 层，默认不进 verify）：先起 `scripts/sftp/serve.py` 与 `scripts/dav/serve.py`（或 Docker），再 `RIVET_INTEGRATION=1 pnpm run test:integration`；S3 用例默认连 `127.0.0.1:9000`，可用 `RIVET_S3_ENDPOINT`、`RIVET_S3_BUCKET`、`RIVET_S3_ACCESS_KEY`、`RIVET_S3_SECRET_KEY` 指向任意 S3 兼容端点。
-- E2E 需要 Docker：`pnpm run e2e:servers` → `pnpm run build` → `pnpm run test:e2e` → `pnpm run e2e:servers:down`。E2E 包含 SFTP、SMB（Samba，SMB2-only）、WebDAV 与 S3（s3mock）。
+- E2E 需要 Docker：`pnpm run e2e:servers` → `pnpm run build` → `pnpm run test:e2e` → `pnpm run e2e:servers:down`。E2E 包含 SFTP、SSH 终端、SMB（Samba，SMB2-only）、WebDAV 与 S3（s3mock）。
 - 手动验证 SFTP 页面：`python scripts/sftp/serve.py`（Paramiko，依赖见 `scripts/sftp/requirements.txt`；`--auth publickey`、`--emit-client-key`、`--readonly`、`--rotate-host-key` 切换分支）。
 - 手动验证 SMB 页面：连接真实 SMB2 服务器；不知道共享名时用 `python scripts/smb/list-shares.py <host> --user <user>` 枚举。
 - 手动验证 WebDAV 页面：`python scripts/dav/serve.py`（WsgiDAV，依赖见 `scripts/dav/requirements.txt`；`--auth digest`、`--https`、`--base-path`、`--readonly` 切换分支）。

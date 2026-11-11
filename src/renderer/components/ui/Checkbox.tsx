@@ -10,9 +10,19 @@ interface CheckboxProps {
   disabled?: boolean
   id?: string
   className?: string
+  /** 没有可见文字时用它提供无障碍名（如权限矩阵里的单元格） */
+  'aria-label'?: string
 }
 
-export const Checkbox = ({ checked, onChange, label, disabled, id, className }: CheckboxProps) => {
+export const Checkbox = ({
+  checked,
+  onChange,
+  label,
+  disabled,
+  id,
+  className,
+  'aria-label': ariaLabel,
+}: CheckboxProps) => {
   const handleCheckedChange = (value: boolean | 'indeterminate') => {
     if (onChange && value !== 'indeterminate') {
       onChange(value)
@@ -25,15 +35,17 @@ export const Checkbox = ({ checked, onChange, label, disabled, id, className }: 
       checked={checked}
       onCheckedChange={handleCheckedChange}
       disabled={disabled}
+      aria-label={ariaLabel}
       className={cn(
-        'size-4 rounded-[3px] border-2 flex items-center justify-center',
-        'transition-all duration-200',
+        // 只保留「边框 + 填充 + 对勾」，不加光晕与背景块。
+        // 描边取 text-muted/70：input-border 在暗色卡片上几乎不可见。
+        'size-4 shrink-0 rounded-[3px] border flex items-center justify-center',
+        'transition-colors duration-150',
+        'border-text-muted/70 bg-transparent',
         'data-[state=checked]:bg-accent data-[state=checked]:border-accent',
-        'data-[state=checked]:shadow-[0_0_0_3px_var(--color-accent-light)]',
-        'border-input-border bg-transparent',
-        'hover:border-input-border-hover',
+        'data-[state=unchecked]:hover:border-text-muted',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
-        disabled && 'cursor-not-allowed',
+        disabled ? 'cursor-not-allowed' : 'cursor-default',
         !label && disabled && 'opacity-50',
         className,
       )}

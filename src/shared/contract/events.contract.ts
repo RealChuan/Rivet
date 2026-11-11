@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { OperationStatus } from '../constants/transfer.js'
 import type { FolderStatsProgress } from '../types/folder-stats.js'
+import type { TerminalExitInfo } from '../types/terminal.js'
 import type { TransferProgressData, TransferTask } from '../types/transfer.js'
 import { defineEvents, type PayloadOf } from './define.js'
 
@@ -36,6 +37,12 @@ export const eventsContract = defineEvents({
     payload: z.object({ taskId: z.string(), status: z.custom<OperationStatus>() }),
   },
   'transfer.taskRemoved': { payload: z.object({ taskId: z.string() }) },
+  /** 终端输出：原始字节，避免 chunk 边界切裂多字节字符。 */
+  'terminal.data': {
+    payload: z.object({ terminalId: z.string(), data: z.custom<Uint8Array>() }),
+  },
+  /** 终端消失的唯一信号：用户 exit、主动 close、连接错误都收敛到这里。 */
+  'terminal.exit': { payload: z.custom<TerminalExitInfo>() },
   'app.closeRequested': { payload: z.object({ reason: z.enum(['close', 'quit']) }) },
   /** 退出前清临时文件可能耗时，通知渲染层盖住界面，别让用户以为卡死了。 */
   'app.cleanupStarted': { payload: z.object({}) },
@@ -56,6 +63,8 @@ export const EVENT_CHANNEL = {
   TASK_FAILED: 'transfer.taskFailed',
   TASK_STATUS_CHANGED: 'transfer.taskStatusChanged',
   TASK_REMOVED: 'transfer.taskRemoved',
+  TERMINAL_DATA: 'terminal.data',
+  TERMINAL_EXIT: 'terminal.exit',
   CLOSE_REQUESTED: 'app.closeRequested',
   CLEANUP_STARTED: 'app.cleanupStarted',
   WINDOW_STATE_CHANGED: 'window.stateChanged',

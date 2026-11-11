@@ -14,6 +14,7 @@ import {
 } from '@shared/constants/transfer.js'
 import { formatFileSize } from '@shared/utils/index.js'
 import { FileIcon } from '../../../components/common/index.js'
+import { IconButton } from '../../../components/ui/index.js'
 import { cn } from '../../../utils/index.js'
 import { useTransferStore } from '../stores/transfer.js'
 import { computeRemainingSeconds, formatRemainingTime, formatSpeed } from '../utils/format.js'
@@ -285,14 +286,13 @@ export const TransferTaskItem = ({
 
             <div className="flex items-center justify-end gap-0.5">
               {canPause && (
-                <button
-                  type="button"
+                <IconButton
+                  size="sm"
                   onClick={() => onPause?.(task.id)}
-                  className="w-6 h-6 shrink-0 rounded-md flex items-center justify-center bg-transparent border-none text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-                  aria-label={t(($) => $.transfer.action.pause)}
+                  label={t(($) => $.transfer.action.pause)}
                 >
                   <Pause className="w-4.5 h-4.5" />
-                </button>
+                </IconButton>
               )}
               {isPaused && (
                 <button
@@ -305,24 +305,23 @@ export const TransferTaskItem = ({
                 </button>
               )}
               {(isRunning || isWaiting || isPaused) && (
-                <button
-                  type="button"
+                <IconButton
+                  size="sm"
+                  variant="danger"
                   onClick={() => onCancel?.(task.id)}
-                  className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none text-text-muted hover:text-danger hover:bg-danger-light transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-                  aria-label={t(($) => $.transfer.action.cancel)}
+                  label={t(($) => $.transfer.action.cancel)}
                 >
                   <X />
-                </button>
+                </IconButton>
               )}
               {isFailed && (
-                <button
-                  type="button"
+                <IconButton
+                  size="sm"
                   onClick={() => onRemove?.(task.id)}
-                  className="w-6 h-6 rounded-md flex items-center justify-center bg-transparent border-none text-text-muted hover:text-text hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-                  aria-label={t(($) => $.transfer.action.remove)}
+                  label={t(($) => $.transfer.action.remove)}
                 >
                   <X />
-                </button>
+                </IconButton>
               )}
             </div>
           </div>

@@ -8,6 +8,7 @@ import { hostKeyContract } from './hostkey.contract.js'
 import { invokeContract, oneWayContract } from './index.js'
 import { protocolContract } from './protocol.contract.js'
 import { systemContract } from './system.contract.js'
+import { terminalContract, terminalOneWayContract } from './terminal.contract.js'
 import { transferContract } from './transfer.contract.js'
 import { windowContract, windowOneWayContract } from './window.contract.js'
 
@@ -46,6 +47,7 @@ describe('通道契约', () => {
       'protocol.stat',
       'protocol.mkdir',
       'protocol.rename',
+      'protocol.chmod',
       'protocol.delete',
       'protocol.copy',
       'protocol.move',
@@ -71,6 +73,11 @@ describe('通道契约', () => {
       'transfer.getLastDir',
       'transfer.setLastDir',
     ])
+  })
+
+  it('terminal 契约', () => {
+    expect(Object.keys(terminalContract)).toEqual(['terminal.open', 'terminal.close'])
+    expect(Object.keys(terminalOneWayContract)).toEqual(['terminal.write', 'terminal.resize'])
   })
 
   it('window 契约', () => {
@@ -104,6 +111,7 @@ describe('通道契约', () => {
       ...Object.keys(hostKeyContract),
       ...Object.keys(protocolContract),
       ...Object.keys(systemContract),
+      ...Object.keys(terminalContract),
       ...Object.keys(transferContract),
       ...Object.keys(windowContract),
     ]
@@ -113,9 +121,13 @@ describe('通道契约', () => {
     expect(Object.keys(invokeContract).some((channel) => channel in oneWayContract)).toBe(false)
   })
 
-  it('单向契约恰好是 app 与 window 的并集', () => {
+  it('单向契约恰好是 app、terminal 与 window 的并集', () => {
     expect(Object.keys(oneWayContract).sort()).toEqual(
-      [...Object.keys(appOneWayContract), ...Object.keys(windowOneWayContract)].sort(),
+      [
+        ...Object.keys(appOneWayContract),
+        ...Object.keys(terminalOneWayContract),
+        ...Object.keys(windowOneWayContract),
+      ].sort(),
     )
   })
 
@@ -129,6 +141,8 @@ describe('通道契约', () => {
       'transfer.taskFailed',
       'transfer.taskStatusChanged',
       'transfer.taskRemoved',
+      'terminal.data',
+      'terminal.exit',
       'app.closeRequested',
       'app.cleanupStarted',
       'window.stateChanged',

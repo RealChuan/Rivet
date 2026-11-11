@@ -63,6 +63,11 @@ export const protocolApi = {
     unwrap(await window.electronAPI.protocol.rename(sessionId, file, newName))
   },
 
+  /** `mode` 是完整权限位；调用方负责保留 setuid/setgid/sticky。 */
+  chmod: async (sessionId: string, file: FileInfo, mode: number): Promise<void> => {
+    unwrap(await window.electronAPI.protocol.chmod(sessionId, file, mode))
+  },
+
   delete: async (sessionId: string, file: FileInfo): Promise<void> => {
     unwrap(await window.electronAPI.protocol.delete(sessionId, file))
   },

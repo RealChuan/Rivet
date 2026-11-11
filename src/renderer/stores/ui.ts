@@ -10,6 +10,7 @@ import {
   type FileViewMode,
   STORE_KEY,
   type SupportedLanguageLiteral,
+  TERMINAL_FONT_SIZE,
   type Theme,
   TIMEOUTS,
   TOAST_TYPE,
@@ -25,6 +26,8 @@ interface UiStore {
   showHiddenFiles: boolean
   /** 关闭主窗口时的行为 */
   closeBehavior: CloseBehavior
+  /** 终端字号（px） */
+  terminalFontSize: number
   connectionPanelWidth: number
   queuePanelMode: QueuePanelMode
   queuePanelHeight: number
@@ -41,6 +44,7 @@ interface UiStore {
   setShowHiddenFiles: (showHiddenFiles: boolean) => void
   setCloseBehavior: (closeBehavior: CloseBehavior) => void
   setConnectionPanelWidth: (width: number) => void
+  setTerminalFontSize: (fontSize: number) => void
   setQueuePanelMode: (mode: QueuePanelMode) => void
   setQueuePanelHeight: (height: number) => void
   initialize: (settings: Partial<UiSettings>) => void
@@ -67,12 +71,14 @@ function persistUiSettings(state: {
   locale: SupportedLanguageLiteral | ''
   showHiddenFiles: boolean
   closeBehavior: CloseBehavior
+  terminalFontSize: number
 }): void {
   void configApi.set(STORE_KEY.UI, {
     appearance: state.appearance,
     locale: state.locale,
     showHiddenFiles: state.showHiddenFiles,
     closeBehavior: state.closeBehavior,
+    terminalFontSize: state.terminalFontSize,
   })
 }
 
@@ -81,6 +87,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
   locale: DEFAULT_LANGUAGE,
   showHiddenFiles: false,
   closeBehavior: CLOSE_BEHAVIOR.TRAY,
+  terminalFontSize: TERMINAL_FONT_SIZE.DEFAULT,
   connectionPanelWidth: DEFAULT_CONNECTION_PANEL_WIDTH,
   queuePanelMode: QUEUE_PANEL_MODE.EXPANDED,
   queuePanelHeight: DEFAULT_QUEUE_PANEL_HEIGHT,
@@ -123,6 +130,16 @@ export const useUiStore = create<UiStore>((set, get) => ({
     set({ connectionPanelWidth })
   },
 
+  setTerminalFontSize: (terminalFontSize) => {
+    set({
+      terminalFontSize: Math.min(
+        TERMINAL_FONT_SIZE.MAX,
+        Math.max(TERMINAL_FONT_SIZE.MIN, Math.round(terminalFontSize)),
+      ),
+    })
+    persistUiSettings(get())
+  },
+
   setQueuePanelMode: (queuePanelMode) => {
     set({ queuePanelMode })
   },
@@ -137,6 +154,7 @@ export const useUiStore = create<UiStore>((set, get) => ({
       locale: settings.locale ?? DEFAULT_LANGUAGE,
       showHiddenFiles: settings.showHiddenFiles ?? false,
       closeBehavior: settings.closeBehavior ?? CLOSE_BEHAVIOR.TRAY,
+      terminalFontSize: settings.terminalFontSize ?? TERMINAL_FONT_SIZE.DEFAULT,
       fileViewModes: {},
       initialized: true,
     })

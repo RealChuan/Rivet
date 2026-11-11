@@ -181,6 +181,7 @@ describe('Ssh2SftpConnection', () => {
         size: 3,
         mtime: 1700000000000,
         permissions: 'rw-r--r--',
+        mode: 0o100644,
         owner: 'alice',
       },
     ])

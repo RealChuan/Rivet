@@ -11,6 +11,23 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+  # 终端复用 SFTP 会话的主机与端口，这里要给 sftp 与 shell 同端口的 sshd（atmoz/sftp 只放行 sftp 子系统）。
+  ssh:
+    image: linuxserver/openssh-server:latest
+    environment:
+      PUID: '1000'
+      PGID: '1000'
+      TZ: Etc/UTC
+      USER_NAME: testuser
+      USER_PASSWORD: testpass
+      PASSWORD_ACCESS: 'true'
+      SUDO_ACCESS: 'false'
+    ports: ['2223:2222']
+    healthcheck:
+      test: ['CMD-SHELL', 'nc -z 127.0.0.1 2222']
+      interval: 2s
+      timeout: 3s
+      retries: 30
   webdav:
     image: bytemark/webdav
     environment:

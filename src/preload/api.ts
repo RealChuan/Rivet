@@ -39,6 +39,8 @@ export const electronAPI = {
     mkdir: (sessionId, path, requestId) => invoke('protocol.mkdir', sessionId, path, requestId),
     rename: (sessionId, file, newName, requestId) =>
       invoke('protocol.rename', sessionId, file, newName, requestId),
+    chmod: (sessionId, file, mode, requestId) =>
+      invoke('protocol.chmod', sessionId, file, mode, requestId),
     delete: (sessionId, file, requestId) => invoke('protocol.delete', sessionId, file, requestId),
     copy: (sessionId, file, targetPath, requestId) =>
       invoke('protocol.copy', sessionId, file, targetPath, requestId),
@@ -84,6 +86,16 @@ export const electronAPI = {
     getLogCacheSize: () => invoke('system.getLogCacheSize'),
     clearLogCache: () => invoke('system.clearLogCache'),
     openLogDir: () => invoke('system.openLogDir'),
+  },
+
+  terminal: {
+    open: (request) => invoke('terminal.open', request),
+    close: (terminalId) => invoke('terminal.close', terminalId),
+    // 键盘输入与尺寸变化走单向通道：按键不该等一个 Promise 往返。
+    write: (terminalId, data) => send('terminal.write', terminalId, data),
+    resize: (terminalId, cols, rows) => send('terminal.resize', terminalId, cols, rows),
+    onData: (callback) => subscribe('terminal.data', callback),
+    onExit: (callback) => subscribe('terminal.exit', callback),
   },
 
   env: {

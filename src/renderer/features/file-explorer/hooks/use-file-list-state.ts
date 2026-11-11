@@ -17,6 +17,8 @@ export const useFileListState = () => {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
   const [propertiesDialogOpen, setPropertiesDialogOpen] = useState(false)
   const [propertiesDialogFile, setPropertiesDialogFile] = useState<FileInfo | null>(null)
+  const [permissionsDialogOpen, setPermissionsDialogOpen] = useState(false)
+  const [permissionsDialogFile, setPermissionsDialogFile] = useState<FileInfo | null>(null)
 
   const openDeleteDialog = (files: FileInfo[]) => {
     setFileToDelete(files)
@@ -56,6 +58,16 @@ export const useFileListState = () => {
     setPropertiesDialogFile(null)
   }
 
+  const openPermissionsDialog = (file: FileInfo) => {
+    setPermissionsDialogFile(file)
+    setPermissionsDialogOpen(true)
+  }
+
+  const closePermissionsDialog = () => {
+    setPermissionsDialogOpen(false)
+    setPermissionsDialogFile(null)
+  }
+
   return {
     deleteDialogOpen,
     renameDialogOpen,
@@ -76,6 +88,10 @@ export const useFileListState = () => {
     propertiesDialogFile,
     openPropertiesDialog,
     closePropertiesDialog,
+    permissionsDialogOpen,
+    permissionsDialogFile,
+    openPermissionsDialog,
+    closePermissionsDialog,
   }
 }
 

@@ -13,7 +13,8 @@ export default interface Resources {
         "confirm": "Confirm",
         "create": "Create",
         "delete": "Delete",
-        "refresh": "Refresh"
+        "refresh": "Refresh",
+        "save": "Save"
       },
       "close": "Close",
       "selectPlaceholder": "Select...",
@@ -130,6 +131,7 @@ export default interface Resources {
       "AGENT_NO_IDENTITY": "No identity found in the SSH agent",
       "ALREADY_EXISTS": "Target already exists",
       "AUTH_ERROR": "Authentication failed",
+      "CHMOD_ERROR": "Failed to change permissions",
       "CONFIG_ERROR": "Failed to read or write configuration",
       "CONN_FAILED": "Connection failed",
       "CONN_NOT_FOUND": "Connection not found",
@@ -160,6 +162,10 @@ export default interface Resources {
       "REQUEST_ABORTED": "Request cancelled",
       "REQUEST_TIMEOUT": "Request timed out",
       "SELF_CONTAINED": "Cannot operate on itself or its subfolder",
+      "TERMINAL_NOT_FOUND": "Terminal session not found",
+      "TERMINAL_NOT_SUPPORTED": "Terminal is only available for SFTP",
+      "TERMINAL_OPEN_FAILED": "Failed to open terminal",
+      "TERMINAL_UNAVAILABLE": "This server does not allow an interactive shell",
       "UNKNOWN": "Operation failed",
       "UPLOAD_ERROR": "Upload failed"
     },
@@ -180,6 +186,7 @@ export default interface Resources {
         "moveTo": "Move to...",
         "newFolder": "New Folder",
         "paste": "Paste",
+        "permissions": "Permissions...",
         "properties": "Properties",
         "rename": "Rename",
         "upload": "Upload",
@@ -220,23 +227,6 @@ export default interface Resources {
       "viewGrid": "Grid view",
       "viewList": "List view"
     },
-    "folderProperties": {
-      "calculate": "Calculate",
-      "calculating": "Calculating...",
-      "cancelCalculation": "Cancel",
-      "cancelled": "Calculation cancelled",
-      "completed": "Completed",
-      "errorCount": "Failed directory: {{count}}" | "Failed directories: {{count}}",
-      "failed": "Calculation failed",
-      "fileCount": "Files",
-      "folderCount": "Folders",
-      "modifyTime": "Modified",
-      "owner": "Owner",
-      "permissions": "Permissions",
-      "recalculate": "Recalculate",
-      "scanning": "Scanning: {{path}}",
-      "size": "Size"
-    },
     "hostKey": {
       "algorithm": "Key algorithm",
       "fingerprint": "Host key fingerprint",
@@ -268,6 +258,33 @@ export default interface Resources {
       "hidePassword": "Hide password",
       "showPassword": "Show password"
     },
+    "permissions": {
+      "execute": "Execute",
+      "group": "Group",
+      "octal": "Octal",
+      "other": "Other",
+      "owner": "Owner",
+      "read": "Read",
+      "title": "Change permissions",
+      "write": "Write"
+    },
+    "properties": {
+      "calculate": "Calculate",
+      "calculating": "Calculating...",
+      "cancelCalculation": "Cancel",
+      "cancelled": "Calculation cancelled",
+      "completed": "Completed",
+      "errorCount": "Failed directory: {{count}}" | "Failed directories: {{count}}",
+      "failed": "Calculation failed",
+      "fileCount": "Files",
+      "folderCount": "Folders",
+      "modifyTime": "Modified",
+      "owner": "Owner",
+      "permissions": "Permissions",
+      "recalculate": "Recalculate",
+      "scanning": "Scanning: {{path}}",
+      "size": "Size"
+    },
     "settings": {
       "cache": {
         "clear": "Clear old logs",
@@ -294,6 +311,11 @@ export default interface Resources {
       },
       "maintenance": "Maintenance",
       "open": "Settings",
+      "terminal": "Terminal",
+      "terminalFontSize": {
+        "hint": "Affects the terminal only; the file list keeps its own size.",
+        "label": "Terminal font size"
+      },
       "title": "Settings",
       "transfer": "Transfers"
     },
@@ -302,6 +324,19 @@ export default interface Resources {
     },
     "targetFolderDialog": {
       "title": "Select Target Folder"
+    },
+    "terminal": {
+      "action": {
+        "close": "Close terminal",
+        "maximize": "Maximize",
+        "restore": "Restore"
+      },
+      "status": {
+        "connecting": "Connecting…",
+        "error": "Terminal unavailable",
+        "exited": "Exited"
+      },
+      "title": "Terminal"
     },
     "textInputDialog": {
       "folderNamePlaceholder": "Folder name",
@@ -335,6 +370,7 @@ export default interface Resources {
       "downloadFailed": "Download failed",
       "moveFailed": "Move failed",
       "moveSuccess": "Moved successfully",
+      "permissionsSuccess": "Permissions updated",
       "refreshFailed": "Refresh failed",
       "renameFailed": "Rename failed",
       "renameSuccess": "Renamed successfully",

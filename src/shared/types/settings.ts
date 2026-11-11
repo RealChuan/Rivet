@@ -30,6 +30,9 @@ export interface UiSettings {
    * - quit: 退出应用
    */
   closeBehavior: CloseBehavior
+
+  /** 终端字号（px） */
+  terminalFontSize: number
 }
 
 /**

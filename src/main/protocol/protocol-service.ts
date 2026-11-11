@@ -25,6 +25,7 @@ import { requestRegistry, type RequestRegistry } from '../ipc/request-registry.j
 import { ProviderError } from '../providers/errors.js'
 import { createProvider, type ProviderFactoryOptions } from '../providers/registry.js'
 import { listBuckets as listS3Buckets } from '../providers/s3/client.js'
+import { sessionCredentials } from '../providers/session-credentials.js'
 import {
   providerSessionRegistry,
   type SessionHandle,
@@ -101,7 +102,7 @@ export class ProtocolService {
     this.sessionOpenedHandler = fn
   }
 
-  /** 会话关闭后清理残留传输任务；由 services/index.ts 接上传输服务，避免这里依赖它。 */
+  /** 会话关闭后清理残留传输任务；由 services/index.ts 注入，避免反向依赖。 */
   setSessionClosedHandler(fn: (sessionId: string) => void): void {
     this.sessionClosedHandler = fn
   }
@@ -234,8 +235,8 @@ export class ProtocolService {
 
       try {
         await provider.connect(credentials)
-        // connect 只保证传输层建立：WebDAV 的 client 是惰性的，SFTP 也可能握手成功但
-        // 数据通道不可用。这里补一次探活，否则失败要推迟到首次 list 才暴露。
+        // connect 只保证传输层建立（WebDAV 惰性 client、SFTP 数据通道可能不可用），
+        // 这里补一次探活，否则失败要推迟到首次 list。
         await this.options.requests.run({ timeoutMs: TIMEOUTS.PING }, (signal) =>
           provider.ping(signal),
         )
@@ -273,6 +274,8 @@ export class ProtocolService {
         protocolType: provider.kind,
         isClosing: false,
       })
+      // 终端要另开一条连接，凭证只能从主进程取。
+      sessionCredentials.set(sessionId, credentials)
       this.sessionOpenedHandler?.()
 
       logger.info(`Connection established: ${config.name} (${config.id})`)
@@ -372,7 +375,8 @@ export class ProtocolService {
       return this.failure(id, toErrorInfo(error, ERROR_CODE.DISCONNECT_ERROR))
     } finally {
       this.options.sessions.unregister(sessionId)
-      // 会话没了，它名下的传输任务既跑不动也重试不了，留着只会占列表。
+      sessionCredentials.delete(sessionId)
+      // 会话没了，名下传输任务既跑不动也重试不了。
       this.sessionClosedHandler(sessionId)
     }
   }
@@ -381,10 +385,7 @@ export class ProtocolService {
     this.options.requests.cancel(requestId)
   }
 
-  /**
-   * 列出账号可见的 S3 桶：连接对话框用它代替手打桶名。
-   * 连接尚未建立，因此不走会话注册表，只借用传输层之外的 SDK 客户端。
-   */
+  /** 列出账号可见的 S3 桶，供连接对话框代替手输；此时尚无会话，直接走 SDK 客户端。 */
   async listBuckets(request: ListBucketsRequest): Promise<Result<string[]>> {
     const stored = request.connectionId
       ? await this.options.getConnectionSecret(request.connectionId)
@@ -435,10 +436,7 @@ export class ProtocolService {
     )
   }
 
-  /**
-   * 单条目探测：地址栏提交前用它确认路径存在且是目录，避免把坏路径写进 `currentPath`。
-   * S3 的「目录存在」由 provider 用前缀判定，不存在直接 `NOT_FOUND`。
-   */
+  /** 地址栏提交前确认路径存在且是目录；S3 由 provider 按前缀判定，不存在返回 `NOT_FOUND`。 */
   async stat(sessionId: string, remotePath: string, requestId?: string): Promise<Result<FileInfo>> {
     return this.runSessionRequest(
       sessionId,
@@ -482,6 +480,29 @@ export class ProtocolService {
         const from = sanitize(file.absolutePath)
         const to = sanitize(joinPaths(getParentPath(from), newName))
         await provider.rename(from, to, signal)
+      },
+    )
+  }
+
+  /** 修改权限位：`mode` 是渲染层给的全量值，provider 只 chmod 一次，不递归。 */
+  async chmod(
+    sessionId: string,
+    file: FileInfo,
+    mode: number,
+    requestId?: string,
+  ): Promise<Result<void>> {
+    return this.runSessionRequest(
+      sessionId,
+      requestId,
+      TIMEOUTS.CHMOD,
+      ERROR_CODE.CHMOD_ERROR,
+      'chmod',
+      true,
+      async (provider, signal) => {
+        if (!provider.chmod) {
+          throw new ProviderError(ERROR_CODE.NOT_SUPPORTED, 'Provider does not support chmod')
+        }
+        await provider.chmod(sanitize(file.absolutePath), mode, signal)
       },
     )
   }
