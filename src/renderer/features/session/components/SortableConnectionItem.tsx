@@ -10,6 +10,7 @@ interface SortableConnectionItemProps {
   onSelect: () => void
   onDisconnect: () => void
   onReconnect: () => void
+  onCancelConnect: () => void
   onEdit: () => void
   onDelete: () => void
 }
@@ -28,6 +29,7 @@ export const SortableConnectionItem = ({
   onSelect,
   onDisconnect,
   onReconnect,
+  onCancelConnect,
   onEdit,
   onDelete,
 }: SortableConnectionItemProps) => {
@@ -52,6 +54,7 @@ export const SortableConnectionItem = ({
         onSelect={onSelect}
         onDisconnect={onDisconnect}
         onReconnect={onReconnect}
+        onCancelConnect={onCancelConnect}
         onEdit={onEdit}
         onDelete={onDelete}
       />

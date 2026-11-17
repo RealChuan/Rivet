@@ -43,7 +43,9 @@
       "title": "File Conflict"
     },
     "connection": {
+      "cancelConnect": "Cancel connection",
       "connect": "Connect",
+      "connecting": "Connecting to {{host}}…",
       "connections": "Connections",
       "disconnect": "Disconnect",
       "edit": "Edit",
@@ -75,7 +77,6 @@
       "bucketsTitle": "Select bucket",
       "certWarningMessage": "You are connecting to a server with an invalid certificate. Proceed at your own risk.",
       "certWarningTitle": "Certificate Warning",
-      "connectFailed": "Connection failed",
       "connecting": "Connecting...",
       "continue": "Continue",
       "domain": "Domain",
@@ -201,6 +202,8 @@
       "clearFilter": "Clear filter",
       "dateModified": "Date Modified",
       "disconnected": "Disconnected",
+      "dragMoreItems_one": "and 1 more",
+      "dragMoreItems_other": "and {{count}} more",
       "editAddress": "Edit path",
       "empty": "Empty directory",
       "error": "Error",
@@ -339,12 +342,17 @@
       "action": {
         "close": "Close terminal",
         "maximize": "Maximize",
+        "newTab": "New tab",
         "restore": "Restore"
       },
       "status": {
         "connecting": "Connecting…",
         "error": "Terminal unavailable",
         "exited": "Exited"
+      },
+      "tab": {
+        "close": "Close tab",
+        "title": "Terminal {{index}}"
       },
       "title": "Terminal"
     },

@@ -1,4 +1,3 @@
-import crypto from 'node:crypto'
 import type { Credentials } from '@shared/domain/credentials.js'
 import type { ConnectionConfig, OpenTerminalRequest, Result } from '@shared/types/index.js'
 import { ERROR_CODE } from '@shared/constants/index.js'
@@ -35,20 +34,35 @@ interface TerminalEntry {
   session: TerminalSessionLike
 }
 
-/** 终端表：一个文件会话最多一个终端；`close` 幂等，未知 id 静默丢弃。 */
+/** 终端表：一个文件会话可挂多个终端（多标签）；`close` 幂等，未知 id 静默丢弃。 */
 export class TerminalService {
   private readonly options: TerminalServiceOptions
   private readonly byId = new Map<string, TerminalEntry>()
-  private readonly bySession = new Map<string, string>()
+  private readonly bySession = new Map<string, Set<string>>()
+  /** 正在连接的标签：同一 terminalId 并发 open 只建一条 SSH 连接。 */
+  private readonly opening = new Map<string, Promise<Result<{ terminalId: string }>>>()
 
   constructor(options: TerminalServiceOptions) {
     this.options = options
   }
 
   async open(request: OpenTerminalRequest): Promise<Result<{ terminalId: string }>> {
-    const existing = this.bySession.get(request.sessionId)
-    if (existing !== undefined) return ok({ terminalId: existing })
+    if (this.byId.has(request.terminalId)) return ok({ terminalId: request.terminalId })
 
+    // StrictMode 双挂载会连开两次：复用同一次连接，避免漏掉一条 shell。
+    const inflight = this.opening.get(request.terminalId)
+    if (inflight) return inflight
+
+    const task = this.openSession(request)
+    this.opening.set(request.terminalId, task)
+    try {
+      return await task
+    } finally {
+      this.opening.delete(request.terminalId)
+    }
+  }
+
+  private async openSession(request: OpenTerminalRequest): Promise<Result<{ terminalId: string }>> {
     const handle = this.options.getSession(request.sessionId)
     if (!handle) {
       return err(
@@ -66,7 +80,7 @@ export class TerminalService {
       return err(createErrorInfo(ERROR_CODE.TERMINAL_OPEN_FAILED, 'Credentials are not available'))
     }
 
-    const terminalId = crypto.randomUUID()
+    const terminalId = request.terminalId
     const session = this.options.createSession(terminalId, handle.config, credentials)
 
     try {
@@ -86,7 +100,12 @@ export class TerminalService {
     }
 
     this.byId.set(terminalId, { sessionId: request.sessionId, session })
-    this.bySession.set(request.sessionId, terminalId)
+    const terminals = this.bySession.get(request.sessionId)
+    if (terminals) {
+      terminals.add(terminalId)
+    } else {
+      this.bySession.set(request.sessionId, new Set([terminalId]))
+    }
     return ok({ terminalId })
   }
 
@@ -117,25 +136,30 @@ export class TerminalService {
     return ok(undefined)
   }
 
-  /** 会话结束时调用，一并关闭终端。 */
+  /** 会话结束时调用，一并关闭该会话的全部标签终端。 */
   closeBySession(sessionId: string): void {
-    const terminalId = this.bySession.get(sessionId)
-    if (terminalId === undefined) return
+    const terminalIds = this.bySession.get(sessionId)
+    if (!terminalIds) return
 
-    const entry = this.byId.get(terminalId)
-    this.forget(terminalId, sessionId)
-    if (!entry) return
+    // 先快照：forget 会同步改动 bySession，边遍历边删会漏掉后面的 id。
+    for (const terminalId of [...terminalIds]) {
+      const entry = this.byId.get(terminalId)
+      this.forget(terminalId, sessionId)
+      if (!entry) continue
 
-    entry.session.close().catch((error: unknown) => {
-      logger.catch(error, { action: 'terminal-close', sessionId })
-    })
+      entry.session.close().catch((error: unknown) => {
+        logger.catch(error, { action: 'terminal-close', sessionId, terminalId })
+      })
+    }
   }
 
   private forget(terminalId: string, sessionId: string): void {
     this.byId.delete(terminalId)
-    if (this.bySession.get(sessionId) === terminalId) {
-      this.bySession.delete(sessionId)
-    }
+    const terminals = this.bySession.get(sessionId)
+    if (!terminals) return
+
+    terminals.delete(terminalId)
+    if (terminals.size === 0) this.bySession.delete(sessionId)
   }
 }
 

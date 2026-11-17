@@ -12,16 +12,15 @@ import '@xterm/xterm/css/xterm.css'
 import '../terminal.css'
 
 interface TerminalPanelProps {
+  /** 标签身份，与主进程的终端一一对应。 */
+  terminalId: string
   sessionId: string
   cwd: string
+  /** 激活时把焦点交还给 xterm。 */
+  isActive: boolean
 }
 
-interface PendingChunk {
-  terminalId: string
-  data: Uint8Array
-}
-
-export const TerminalPanel = ({ sessionId, cwd }: TerminalPanelProps) => {
+export const TerminalPanel = ({ terminalId, sessionId, cwd, isActive }: TerminalPanelProps) => {
   const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
@@ -42,7 +41,7 @@ export const TerminalPanel = ({ sessionId, cwd }: TerminalPanelProps) => {
     cwdRef.current = cwd
   }, [cwd])
 
-  // 只在换会话时建终端；主题与字号各自走下面的 effect。
+  // 只在换标签时建终端；主题与字号各自走下面的 effect。
   const themeRef = useRef(theme)
   useEffect(() => {
     themeRef.current = theme
@@ -58,8 +57,6 @@ export const TerminalPanel = ({ sessionId, cwd }: TerminalPanelProps) => {
     if (!container) return
 
     const encoder = new TextEncoder()
-    const pending: PendingChunk[] = []
-    const active: { terminalId: string | null } = { terminalId: null }
     let disposed = false
 
     const term = new Terminal({
@@ -94,62 +91,57 @@ export const TerminalPanel = ({ sessionId, cwd }: TerminalPanelProps) => {
       })
     }
 
-    // 先订阅再 open：首屏提示符可能在 open 返回前就到达。
+    // 先订阅再 open：首屏提示符可能早于 open 返回。
     const offData = terminalApi.onData((payload) => {
-      if (active.terminalId === null) {
-        pending.push(payload)
-        return
-      }
-      if (payload.terminalId === active.terminalId) term.write(payload.data)
+      if (payload.terminalId === terminalId) term.write(payload.data)
     })
 
     const offExit = terminalApi.onExit((info) => {
-      if (active.terminalId === null || info.terminalId !== active.terminalId) return
+      if (info.terminalId !== terminalId) return
       if (info.reason === 'error') {
         setStatus(
-          sessionId,
+          terminalId,
           'error',
           info.error ? resolveErrorMessage(translateRef.current, info.error) : undefined,
         )
         return
       }
-      setStatus(sessionId, 'exited')
+      setStatus(terminalId, 'exited')
     })
 
     const inputDisposable = term.onData((data) => {
-      if (active.terminalId !== null) terminalApi.write(active.terminalId, encoder.encode(data))
+      terminalApi.write(terminalId, encoder.encode(data))
     })
 
     const resizeDisposable = term.onResize(({ cols, rows }) => {
-      if (active.terminalId !== null) terminalApi.resize(active.terminalId, cols, rows)
+      terminalApi.resize(terminalId, cols, rows)
     })
 
     const observer =
       typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => fitIfVisible())
     observer?.observe(container)
 
-    setStatus(sessionId, 'connecting')
+    setStatus(terminalId, 'connecting')
     void (async () => {
       try {
-        const opened = await terminalApi.open({
+        await terminalApi.open({
+          terminalId,
           sessionId,
           cols: term.cols,
           rows: term.rows,
           cwd: cwdRef.current,
         })
         if (disposed) {
-          await terminalApi.close(opened.terminalId).catch(() => undefined)
+          // 标签在 open 期间被关掉时，主进程里已建好的终端没人收。
+          if (!useTerminalStore.getState().hasTab(terminalId)) {
+            await terminalApi.close(terminalId).catch(() => undefined)
+          }
           return
         }
-        active.terminalId = opened.terminalId
-        for (const chunk of pending) {
-          if (chunk.terminalId === active.terminalId) term.write(chunk.data)
-        }
-        pending.length = 0
-        setStatus(sessionId, 'ready')
+        setStatus(terminalId, 'ready')
       } catch (error) {
         if (disposed) return
-        setStatus(sessionId, 'error', resolveErrorMessage(translateRef.current, error))
+        setStatus(terminalId, 'error', resolveErrorMessage(translateRef.current, error))
       }
     })()
 
@@ -160,14 +152,17 @@ export const TerminalPanel = ({ sessionId, cwd }: TerminalPanelProps) => {
       offExit()
       inputDisposable.dispose()
       resizeDisposable.dispose()
-      const id = active.terminalId
-      active.terminalId = null
-      if (id !== null) void terminalApi.close(id).catch(() => undefined)
+      // 卸载不等于关标签：ssh 由 store 的 removeTab / forget 收掉。
       term.dispose()
       terminalRef.current = null
       fitRef.current = null
     }
-  }, [sessionId, setStatus])
+  }, [terminalId, sessionId, setStatus])
+
+  // 切回标签时把焦点交给 xterm。
+  useEffect(() => {
+    if (isActive) terminalRef.current?.focus()
+  }, [isActive])
 
   useEffect(() => {
     const term = terminalRef.current

@@ -70,6 +70,8 @@ export const ConnectionSidebar = () => {
     handleReconnect,
     handleReconnectSubmit,
     handleEdit,
+    cancelConnect,
+    cancelLatestConnect,
   } = useConnectionActions()
 
   /* eslint-disable react-hooks/set-state-in-effect -- Reset state when parent signals dialog close */
@@ -120,9 +122,7 @@ export const ConnectionSidebar = () => {
 
   const wrappedHandleSaveConnection = async (
     config: Parameters<typeof handleSaveConnection>[0],
-  ) => {
-    await handleSaveConnection(config, () => setConnectionDialogOpen(false))
-  }
+  ): Promise<boolean> => handleSaveConnection(config, () => setConnectionDialogOpen(false))
 
   const wrappedHandleReconnect = async (connection: Parameters<typeof handleReconnect>[0]) => {
     await handleReconnect(connection, () => setConnectionDialogOpen(true))
@@ -150,6 +150,7 @@ export const ConnectionSidebar = () => {
             onSelectSession={setActiveSession}
             onDisconnect={(id) => void handleDisconnect(id)}
             onReconnect={(conn) => void wrappedHandleReconnect(conn)}
+            onCancelConnect={cancelConnect}
             onEdit={(conn) => void wrappedHandleEdit(conn)}
             onDelete={handleDelete}
             getSessionByConnectionId={getSessionByConnectionId}
@@ -165,6 +166,7 @@ export const ConnectionSidebar = () => {
             setPrefill(null)
           }}
           onSave={reconnectConfig ? handleReconnectSubmit : wrappedHandleSaveConnection}
+          onCancelConnect={cancelLatestConnect}
           config={editConfig ?? reconnectConfig ?? undefined}
           prefill={prefill ?? undefined}
         />

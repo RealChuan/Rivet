@@ -13,22 +13,33 @@ export const useGlobalShortcuts = () => {
   const activeConnectionId = useSessionStore(
     (state) => state.sessions.find((s) => s.sessionId === state.activeSessionId)?.connectionId,
   )
+  const activeCurrentPath = useSessionStore(
+    (state) => state.sessions.find((s) => s.sessionId === state.activeSessionId)?.currentPath,
+  )
   const updateCurrentPath = useSessionStore((state) => state.updateCurrentPath)
   const setFileViewMode = useUiStore((state) => state.setFileViewMode)
   const setAddressEditing = useUiStore((state) => state.setAddressEditing)
   const stepHistory = useNavigationHistoryStore((state) => state.step)
   const connections = useConnectionStore((state) => state.connections)
   const toggleTerminal = useTerminalStore((state) => state.toggle)
+  const addTerminalTab = useTerminalStore((state) => state.addTab)
   const isSftpSession =
     connections.find((item) => item.id === activeConnectionId)?.protocol === PROTOCOL.SFTP
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+` 必须早于输入框守卫：xterm 的输入元件是 textarea。
-      if ((e.ctrlKey || e.metaKey) && e.key === '`') {
+      // 带上 Shift 是新建标签：Shift 会让 key 变成 `~`，两个都认。
+      if ((e.ctrlKey || e.metaKey) && (e.key === '`' || e.key === '~')) {
         if (!isSftpSession) return
         e.preventDefault()
-        toggleTerminal()
+        if (!e.shiftKey) {
+          toggleTerminal()
+          return
+        }
+        if (activeSessionId && activeCurrentPath !== undefined) {
+          addTerminalTab(activeSessionId, activeCurrentPath)
+        }
         return
       }
 
@@ -77,7 +88,9 @@ export const useGlobalShortcuts = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
     activeConnectionId,
+    activeCurrentPath,
     activeSessionId,
+    addTerminalTab,
     invalidateSession,
     isSftpSession,
     markSessionStale,

@@ -15,6 +15,8 @@ vi.mock('../../host-key/stores/host-key.js', () => ({
   },
 }))
 
+const signal = new AbortController().signal
+
 const request: ConnectRequest = {
   connection: {
     id: 'conn-1',
@@ -86,7 +88,7 @@ describe('handleConnectWithHostKey', () => {
       value: { sessionId: 'sess-1', capabilities: {} },
     })
 
-    await expect(handleConnectWithHostKey(request)).resolves.toEqual({
+    await expect(handleConnectWithHostKey(request, signal)).resolves.toEqual({
       success: true,
       sessionId: 'sess-1',
       retry: false,
@@ -100,14 +102,14 @@ describe('handleConnectWithHostKey', () => {
       error: { code: 'CONN_FAILED', message: 'Connection refused' },
     })
 
-    await expect(handleConnectWithHostKey(request)).rejects.toThrow('Connection refused')
+    await expect(handleConnectWithHostKey(request, signal)).rejects.toThrow('Connection refused')
   })
 
   it('trusts an unknown key and asks for a retry', async () => {
     mockConnect.mockResolvedValue({ success: false, error: unknownError })
     confirmDialog()
 
-    const result = await handleConnectWithHostKey(request)
+    const result = await handleConnectWithHostKey(request, signal)
 
     expect(mockSetHostKeyVerificationDialog).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -132,7 +134,7 @@ describe('handleConnectWithHostKey', () => {
     mockConnect.mockResolvedValue({ success: false, error: unknownError })
     cancelDialog()
 
-    await expect(handleConnectWithHostKey(request)).resolves.toEqual({
+    await expect(handleConnectWithHostKey(request, signal)).resolves.toEqual({
       success: false,
       sessionId: null,
       retry: false,
@@ -144,7 +146,7 @@ describe('handleConnectWithHostKey', () => {
     mockConnect.mockResolvedValue({ success: false, error: mismatchError })
     confirmDialog()
 
-    const result = await handleConnectWithHostKey(request)
+    const result = await handleConnectWithHostKey(request, signal)
 
     expect(mockSetHostKeyVerificationDialog).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -159,7 +161,7 @@ describe('handleConnectWithHostKey', () => {
     mockConnect.mockResolvedValue({ success: false, error: mismatchError })
     cancelDialog()
 
-    await expect(handleConnectWithHostKey(request)).resolves.toEqual({
+    await expect(handleConnectWithHostKey(request, signal)).resolves.toEqual({
       success: false,
       sessionId: null,
       retry: false,

@@ -48,6 +48,9 @@
   --color-subtle-hover: rgba(0, 0, 0, 0.02);
   --color-danger-subtle: rgba(239, 68, 68, 0.04);
   --color-bg-secondary: #f5f5f5;
+  /* 终端标签栏：底色是浏览器那层淡蓝，激活标签用内容区底色压在上面 */
+  --color-tabbar: #d3e3fd;
+  --color-tab-active: rgba(255, 255, 255, 0.96);
   /* 模态遮罩 */
   --color-overlay: rgba(9, 9, 11, 0.24);
   --color-danger-border: rgba(239, 68, 68, 0.3);
@@ -139,6 +142,9 @@
   --color-subtle-hover: rgba(255, 255, 255, 0.06);
   --color-danger-subtle: rgba(248, 113, 113, 0.06);
   --color-bg-secondary: #262626;
+  /* 深色下压暗一档，激活标签与终端同色 */
+  --color-tabbar: #15171c;
+  --color-tab-active: #1e1e1e;
   --color-overlay: rgba(0, 0, 0, 0.42);
   --color-danger-border: rgba(248, 113, 113, 0.25);
 

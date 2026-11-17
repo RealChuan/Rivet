@@ -84,6 +84,7 @@ const defaultProps = {
   onSelectSession: vi.fn(),
   onDisconnect: vi.fn(),
   onReconnect: vi.fn(),
+  onCancelConnect: vi.fn(),
   onEdit: vi.fn(),
   onDelete: vi.fn(),
   getSessionByConnectionId: vi.fn(() => undefined),

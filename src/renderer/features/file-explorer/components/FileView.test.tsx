@@ -159,7 +159,7 @@ vi.mock('../hooks/index.js', async (importOriginal) => {
     }),
     useFileDragMove: () => ({
       draggingPaths: new Set<string>(),
-      dropTargetPath: null,
+      dropTarget: null,
       beginDrag: vi.fn(),
       endDrag: vi.fn(),
       dragOver: vi.fn(),

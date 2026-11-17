@@ -4,7 +4,11 @@ import type { FileInfo } from '@shared/types/index.js'
 import { FILE_TYPE } from '@shared/constants/index.js'
 import { FileIcon } from '../../../components/common/index.js'
 import { cn } from '../../../utils/index.js'
-import { FILE_DRAG_MIME, type FileDragMove } from '../hooks/use-file-drag-move.js'
+import {
+  FILE_DRAG_MIME,
+  type FileDragMove,
+  type FileDropState,
+} from '../hooks/use-file-drag-move.js'
 import { FILE_DRAG_SOURCE_ATTR, fileItemDataAttrs } from '../utils/data-attributes.js'
 import { FILE_GRID_GAP } from '../virtualization/layout.js'
 
@@ -18,7 +22,8 @@ interface FileGridItemProps {
   height: number
   dragMove: FileDragMove
   isDragging: boolean
-  isDropTarget: boolean
+  /** 当前投放目标：可放置或禁止放置，两者用不同视觉表达 */
+  dropState: FileDropState
   onSelect: (e: React.MouseEvent<HTMLElement>) => void
   onActivate: () => void
   onContextMenu: (e: React.MouseEvent<HTMLElement>) => void
@@ -35,7 +40,7 @@ export const FileGridItem = ({
   height,
   dragMove,
   isDragging,
-  isDropTarget,
+  dropState,
   onSelect,
   onActivate,
   onContextMenu,
@@ -50,7 +55,8 @@ export const FileGridItem = ({
       'flex flex-col items-center justify-center gap-2 p-2 m-1 rounded-md select-none outline-none transition-colors duration-150',
       isSelected ? 'bg-selected text-accent' : 'bg-transparent text-text hover:bg-hover',
       (isCut || isDragging) && 'opacity-50',
-      isDropTarget && 'ring-2 ring-inset ring-accent',
+      dropState === 'allowed' && 'bg-accent-light ring-1 ring-inset ring-accent/60',
+      dropState === 'forbidden' && 'bg-danger-light ring-1 ring-inset ring-danger/50',
     )}
     // 单元盒比栅格槽位小一圈，外侧 m-1（4px）与相邻项合成 FILE_GRID_GAP，横纵间距一致。
     style={{ width: width - FILE_GRID_GAP, height: height - FILE_GRID_GAP }}
@@ -59,19 +65,15 @@ export const FileGridItem = ({
     onContextMenu={onContextMenu}
     onFocus={onFocus}
     title={file.name}
-    onDragStart={(e) => {
-      e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData(FILE_DRAG_MIME, file.absolutePath)
-      dragMove.beginDrag(file)
-    }}
+    onDragStart={(e) => dragMove.beginDrag(e, file)}
     onDragEnd={dragMove.endDrag}
     onDragOver={(e) => {
       if (file.type !== FILE_TYPE.DIRECTORY || !e.dataTransfer.types.includes(FILE_DRAG_MIME))
         return
       e.preventDefault()
       e.stopPropagation()
-      e.dataTransfer.dropEffect = 'move'
-      dragMove.dragOver(file)
+      // 放进自己被拖动的文件夹属于无效投放：光标显示禁止，同时给出红色提示。
+      e.dataTransfer.dropEffect = dragMove.dragOver(file) ? 'move' : 'none'
     }}
     onDragLeave={() => {
       if (file.type === FILE_TYPE.DIRECTORY) dragMove.dragLeave()

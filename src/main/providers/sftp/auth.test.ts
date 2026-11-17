@@ -3,7 +3,6 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { Credentials } from '@shared/domain/credentials.js'
-import { TIMEOUTS } from '@shared/constants/index.js'
 import { buildSshAuthConfig, mapSshAuthError, resolveAgentPath } from './auth.js'
 
 let tempDir: string
@@ -27,7 +26,6 @@ describe('buildSshAuthConfig', () => {
     expect(config).toEqual({
       username: 'alice',
       password: 'secret',
-      readyTimeout: TIMEOUTS.SFTP_READY,
     })
   })
 

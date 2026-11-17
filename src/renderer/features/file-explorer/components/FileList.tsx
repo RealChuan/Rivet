@@ -4,7 +4,7 @@ import type { RefObject } from 'react'
 import type { FileInfo } from '@shared/types/index.js'
 import type { SelectionModel } from '../hooks/use-selection.js'
 import { computeTotalWidth } from '../hooks/use-column-resizing.js'
-import { type FileDragMove } from '../hooks/use-file-drag-move.js'
+import { dropStateOf, type FileDragMove } from '../hooks/use-file-drag-move.js'
 import FileListItem, { type ColumnWidths } from './FileListItem.js'
 
 interface FileListProps {
@@ -91,7 +91,7 @@ export const FileList = ({
                 isSftp={isSftp}
                 dragMove={dragMove}
                 isDragging={dragMove.draggingPaths.has(file.absolutePath)}
-                isDropTarget={dragMove.dropTargetPath === file.absolutePath}
+                dropState={dropStateOf(dragMove.dropTarget, file.absolutePath)}
                 onHover={onHover}
                 onClick={(e) => {
                   selection.select(file.absolutePath, {

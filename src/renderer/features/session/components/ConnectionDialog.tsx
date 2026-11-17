@@ -25,7 +25,10 @@ import { ConnectionFormFields, type ConnectionFormValues } from './ConnectionFor
 interface ConnectionDialogProps {
   open: boolean
   onClose: () => void
-  onSave: (input: ConnectionSaveInput) => Promise<void>
+  /** 返回 false 表示用户取消了连接（含指纹对话框取消），此时保留表单让用户可以重试。 */
+  onSave: (input: ConnectionSaveInput) => Promise<boolean>
+  /** 连接进行中关闭对话框时改为取消这次连接，避免留下用户看不见的会话。 */
+  onCancelConnect: () => void
   config?: ConnectionConfig | undefined
   /**
    * 新建连接时的预填字段（目前来自「粘贴地址」）。必须是引用稳定的对象：
@@ -76,11 +79,14 @@ export const ConnectionDialog = ({
   open,
   onClose,
   onSave,
+  onCancelConnect,
   config,
   prefill,
 }: ConnectionDialogProps) => {
   const { t } = useTranslation()
   const isMountedRef = useRef(true)
+  /** 用户在连接进行中点关闭时置位：取消落地后要真正把对话框关掉，而不是停在原处。 */
+  const closeAfterCancelRef = useRef(false)
   const [values, setValues] = useState<ConnectionFormValues>(() => initialValues(config))
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -229,6 +235,7 @@ export const ConnectionDialog = ({
   }
 
   const doSave = async () => {
+    closeAfterCancelRef.current = false
     setIsLoading(true)
     setError('')
     const authKind = effectiveAuthKind()
@@ -240,12 +247,13 @@ export const ConnectionDialog = ({
           : ''
 
     try {
-      await onSave({
+      const saved = await onSave({
         connection: buildConnection(),
         ...(secret ? { secret } : {}),
         saveSecret: values.saveSecret,
       })
-      if (isMountedRef.current) onClose()
+      // 取消连接是用户要求关窗；指纹对话框上点取消只是放弃这次尝试，表单要留着。
+      if (isMountedRef.current && (saved || closeAfterCancelRef.current)) onClose()
     } catch (err) {
       logger.catch(err, { action: 'submit-connection' })
       if (isMountedRef.current) setError(resolveErrorMessage(t, err))
@@ -295,8 +303,18 @@ export const ConnectionDialog = ({
 
   const isEditMode = !!config
 
+  /** 连接进行中关闭对话框等同取消：否则连接会在用户看不见的地方完成。 */
+  const requestClose = () => {
+    if (isLoading) {
+      closeAfterCancelRef.current = true
+      onCancelConnect()
+      return
+    }
+    onClose()
+  }
+
   return (
-    <GlassDialog open={open} onClose={onClose} key={config?.id ?? 'new'}>
+    <GlassDialog open={open} onClose={requestClose} key={config?.id ?? 'new'}>
       <div data-testid="connection-dialog" className="flex items-center gap-3 mb-5">
         <div
           className={`w-9 h-9 rounded-lg flex items-center justify-center ${
@@ -344,7 +362,7 @@ export const ConnectionDialog = ({
         )}
 
         <DialogFooter className="mt-1">
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={requestClose}>
             {t(($) => $.common.action.cancel)}
           </Button>
           <Button

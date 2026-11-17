@@ -8,8 +8,23 @@ import { forwardAbort } from './abort.js'
 import { unwrap } from './result.js'
 
 export const protocolApi = {
-  connect: async (request: ConnectRequest): Promise<OperationResult> =>
-    unwrap(await window.electronAPI.protocol.connect(request)),
+  /**
+   * 连接与 list/stat 同构：`requestId` 只用于把 AbortSignal 桥接成主进程取消。
+   * 已经取消的 signal 不再发 IPC —— 否则取消会先于主进程登记到达，被丢弃后连接照常建起来。
+   */
+  connect: async (request: ConnectRequest, signal?: AbortSignal): Promise<OperationResult> => {
+    signal?.throwIfAborted()
+    const requestId = crypto.randomUUID()
+    const dispose = forwardAbort(signal, () => {
+      void protocolApi.cancel(requestId)
+    })
+
+    try {
+      return unwrap(await window.electronAPI.protocol.connect(request, requestId))
+    } finally {
+      dispose()
+    }
+  },
 
   disconnect: async (sessionId: string, requestId?: string): Promise<void> => {
     unwrap(await window.electronAPI.protocol.disconnect(sessionId, requestId))

@@ -1,10 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { FileInfo } from '@shared/types/index.js'
+import type { ConnectionConfig, ConnectRequest, FileInfo } from '@shared/types/index.js'
 import { configApi } from './config.js'
 import { dialogApi } from './dialog.js'
 import { protocolApi } from './protocol.js'
 import { ApiError } from './result.js'
 import { transferApi } from './transfer.js'
+
+const CONNECTION: ConnectionConfig = {
+  id: 'conn-1',
+  name: 'Example',
+  protocol: 'sftp',
+  host: 'example.com',
+  port: 22,
+  username: 'user',
+  authKind: 'password',
+}
 
 const FILE: FileInfo = {
   name: 'a.txt',
@@ -106,6 +116,28 @@ describe('protocolApi', () => {
     controller.abort()
 
     expect(api.protocol.cancel).toHaveBeenCalledWith(requestId)
+  })
+
+  it('connect 带上 requestId 并在 abort 时取消它', () => {
+    api.protocol.connect.mockReturnValue(new Promise(() => {}))
+    const controller = new AbortController()
+
+    void protocolApi.connect({ connection: CONNECTION }, controller.signal)
+    const [, requestId] = api.protocol.connect.mock.calls[0] as [ConnectRequest, string]
+    controller.abort()
+
+    expect(requestId).toEqual(expect.any(String))
+    expect(api.protocol.cancel).toHaveBeenCalledWith(requestId)
+  })
+
+  it('connect 对已取消的 signal 不发 IPC', async () => {
+    const controller = new AbortController()
+    controller.abort()
+
+    await expect(
+      protocolApi.connect({ connection: CONNECTION }, controller.signal),
+    ).rejects.toThrow()
+    expect(api.protocol.connect).not.toHaveBeenCalled()
   })
 })
 

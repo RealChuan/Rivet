@@ -9,15 +9,26 @@ import {
   LogOut,
   Pencil,
   Trash,
+  XCircle,
 } from 'lucide-react'
-import { useState, useRef, useEffect, type CSSProperties } from 'react'
-import ReactDOM from 'react-dom'
+import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui'
+import { type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PROTOCOL } from '@shared/constants/index.js'
 import { type ConnectionConfig, type Session } from '@shared/types/index.js'
 import { LoaderIcon } from '../../../components/common/index.js'
 import { cn } from '../../../utils/index.js'
 import { useDirectoryLoading } from '../../file-explorer/hooks/use-directory-list.js'
+import { useIsConnecting } from '../stores/connect-requests.js'
+
+/** 与文件右键菜单共用一套菜单项观感；`data-highlighted` 是 radix 的悬停/键盘高亮。 */
+const MENU_ITEM_CLASS = cn(
+  'w-full px-3 py-2 text-left text-xs text-text',
+  'bg-transparent border-none rounded',
+  'flex items-center gap-2 transition-colors',
+  'data-highlighted:bg-hover data-highlighted:outline-none',
+  'focus-visible:outline-none',
+)
 
 interface ConnectionItemProps {
   connection: ConnectionConfig
@@ -26,6 +37,7 @@ interface ConnectionItemProps {
   onSelect: () => void
   onDisconnect: () => void
   onReconnect: () => void
+  onCancelConnect: () => void
   onDelete: () => void
   onEdit: () => void
   style?: CSSProperties
@@ -38,31 +50,16 @@ export const ConnectionItem = ({
   onSelect,
   onDisconnect,
   onReconnect,
+  onCancelConnect,
   onDelete,
   onEdit,
   style,
 }: ConnectionItemProps) => {
   const { t } = useTranslation()
-  const [showMenu, setShowMenu] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const [menuPosition, setMenuPosition] = useState<{
-    top: number
-    right: number
-  } | null>(null)
 
   const isConnected = session?.isConnected ?? false
+  const isConnecting = useIsConnecting(connection.id)
   const isLoading = useDirectoryLoading(session?.sessionId ?? '')
-
-  useEffect(() => {
-    if (showMenu && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setMenuPosition({
-        top: rect.bottom + 4,
-        right: window.innerWidth - rect.right,
-      })
-    }
-  }, [showMenu])
 
   const protocolIcon =
     connection.protocol === PROTOCOL.SFTP ? (
@@ -95,13 +92,17 @@ export const ConnectionItem = ({
           <div
             className={cn(
               'relative',
-              isConnected ? 'text-status-connected' : 'text-status-disconnected',
+              isConnecting
+                ? 'text-accent'
+                : isConnected
+                  ? 'text-status-connected'
+                  : 'text-status-disconnected',
             )}
           >
-            {isConnected && (
+            {isConnected && !isConnecting && (
               <span className="absolute -inset-0.5 rounded-full bg-status-connected/20 animate-status-pulse" />
             )}
-            {isLoading ? (
+            {isConnecting || isLoading ? (
               <LoaderIcon className="w-3.5 h-3.5 animate-spin stroke-current" />
             ) : isConnected ? (
               protocolIcon
@@ -109,20 +110,23 @@ export const ConnectionItem = ({
               <Plug className="w-3.5 h-3.5 stroke-current" />
             )}
           </div>
-          <span
-            className={cn(
-              'text-xs px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-[0.5px]',
-              connection.protocol === PROTOCOL.SFTP
-                ? 'text-accent bg-accent-light'
-                : connection.protocol === PROTOCOL.SMB
-                  ? 'text-protocol-smb bg-protocol-smb-light'
-                  : connection.protocol === PROTOCOL.S3
-                    ? 'text-protocol-s3 bg-protocol-s3-light'
-                    : 'text-protocol-webdav bg-protocol-webdav-light',
-            )}
-          >
-            {connection.protocol.toUpperCase()}
-          </span>
+          {/* 定宽槽：徽标宽度随协议名长短变化，不留出固定列宽，名称与 host 的左边缘会逐行漂移。 */}
+          <div className="w-15 shrink-0 flex">
+            <span
+              className={cn(
+                'text-xs px-1.5 py-0.5 rounded-sm font-medium uppercase tracking-[0.5px] whitespace-nowrap',
+                connection.protocol === PROTOCOL.SFTP
+                  ? 'text-accent bg-accent-light'
+                  : connection.protocol === PROTOCOL.SMB
+                    ? 'text-protocol-smb bg-protocol-smb-light'
+                    : connection.protocol === PROTOCOL.S3
+                      ? 'text-protocol-s3 bg-protocol-s3-light'
+                      : 'text-protocol-webdav bg-protocol-webdav-light',
+              )}
+            >
+              {connection.protocol.toUpperCase()}
+            </span>
+          </div>
         </div>
         <div className="flex-1 min-w-0">
           <div
@@ -130,7 +134,11 @@ export const ConnectionItem = ({
           >
             {connection.name ?? connection.host}
           </div>
-          <div className="text-xs text-text-muted truncate">{connection.host}</div>
+          <div className="text-xs text-text-muted truncate">
+            {isConnecting
+              ? t(($) => $.connection.connecting, { host: connection.host })
+              : connection.host}
+          </div>
         </div>
         {connection.askPasswordOnConnect && (
           <KeyRound
@@ -139,101 +147,82 @@ export const ConnectionItem = ({
             aria-label={t(($) => $.connectionDialog.askPasswordOnConnect)}
           />
         )}
-        <button
-          ref={buttonRef}
-          onClick={(e) => {
-            e.stopPropagation()
-            setShowMenu(!showMenu)
-          }}
-          className="p-1 rounded shrink-0 text-text-muted bg-transparent border-none hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
-          aria-label={t(($) => $.connection.moreActions)}
-        >
-          <EllipsisVertical className="w-3.5 h-3.5 fill-current" />
-        </button>
-      </div>
+        <DropdownMenuPrimitive.Root>
+          <DropdownMenuPrimitive.Trigger asChild>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+              }}
+              onPointerDown={(e) => {
+                // 指针事件冒泡到 dnd-kit 的拖拽监听会让"点菜单"变成"拖这一行"。
+                e.stopPropagation()
+              }}
+              className="p-1 rounded shrink-0 text-text-muted bg-transparent border-none hover:bg-hover transition-colors focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2"
+              aria-label={t(($) => $.connection.moreActions)}
+            >
+              <EllipsisVertical className="w-3.5 h-3.5 fill-current" />
+            </button>
+          </DropdownMenuPrimitive.Trigger>
 
-      {showMenu &&
-        menuPosition &&
-        ReactDOM.createPortal(
-          <>
-            <div className="fixed inset-0 z-50" onClick={() => setShowMenu(false)} />
-            <div
-              ref={menuRef}
-              className="fixed z-50 bg-glass-bg border border-glass-border rounded-md p-1 min-w-30 shadow-dropdown animate-menu-in"
-              style={{
-                top: menuPosition.top,
-                right: menuPosition.right,
+          <DropdownMenuPrimitive.Portal>
+            {/* radix 负责碰撞检测：下方放不下就翻到按钮上方，贴近视口边缘时自动收拢。 */}
+            <DropdownMenuPrimitive.Content
+              align="end"
+              sideOffset={4}
+              collisionPadding={8}
+              className="z-50 bg-glass-bg border border-glass-border rounded-md p-1 min-w-30 shadow-dropdown animate-menu-in"
+              // 菜单挂在行内部：radix 的 portal 按 React 树冒泡，不拦住的话点菜单项会连带选中这一行。
+              onClick={(e) => {
+                e.stopPropagation()
               }}
             >
-              {isConnected ? (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDisconnect()
-                    setShowMenu(false)
-                  }}
-                  className={`
-                  w-full px-3 py-2 text-left text-xs text-text-muted bg-transparent border-none rounded
-                  flex items-center gap-2 hover:bg-hover transition-colors
-                  focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
-                `}
+              {isConnecting ? (
+                <DropdownMenuPrimitive.Item
+                  className={cn(MENU_ITEM_CLASS, 'text-text-muted')}
+                  data-testid="connection-cancel-connect"
+                  onSelect={onCancelConnect}
+                >
+                  <XCircle className="w-3.5 h-3.5 stroke-current" />
+                  {t(($) => $.connection.cancelConnect)}
+                </DropdownMenuPrimitive.Item>
+              ) : isConnected ? (
+                <DropdownMenuPrimitive.Item
+                  className={cn(MENU_ITEM_CLASS, 'text-text-muted')}
+                  onSelect={onDisconnect}
                 >
                   <LogOut className="w-3.5 h-3.5 stroke-current" />
                   {t(($) => $.connection.disconnect)}
-                </button>
+                </DropdownMenuPrimitive.Item>
               ) : (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onReconnect()
-                    setShowMenu(false)
-                  }}
-                  className={`
-                  w-full px-3 py-2 text-left text-xs text-status-connected bg-transparent border-none rounded
-                  flex items-center gap-2 hover:bg-hover transition-colors
-                  focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
-                `}
+                <DropdownMenuPrimitive.Item
+                  className={cn(MENU_ITEM_CLASS, 'text-status-connected')}
+                  onSelect={onReconnect}
                 >
                   <Plug className="w-3.5 h-3.5 stroke-current" />
                   {t(($) => $.connection.connect)}
-                </button>
+                </DropdownMenuPrimitive.Item>
               )}
-              <div className="h-px bg-border my-1" />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onEdit()
-                  setShowMenu(false)
-                }}
-                className={`
-                w-full px-3 py-2 text-left text-xs text-text bg-transparent border-none rounded
-                flex items-center gap-2 hover:bg-hover transition-colors
-                focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
-              `}
-              >
+
+              <DropdownMenuPrimitive.Separator className="h-px bg-border my-1" />
+
+              <DropdownMenuPrimitive.Item className={MENU_ITEM_CLASS} onSelect={onEdit}>
                 <Pencil className="w-3.5 h-3.5 stroke-current" />
                 {t(($) => $.connection.edit)}
-              </button>
-              <div className="h-px bg-border my-1" />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete()
-                  setShowMenu(false)
-                }}
-                className={`
-                w-full px-3 py-2 text-left text-xs text-danger bg-transparent border-none rounded
-                flex items-center gap-2 hover:bg-hover transition-colors
-                focus-visible:outline-2 focus-visible:outline-focus-ring focus-visible:outline-offset-2
-              `}
+              </DropdownMenuPrimitive.Item>
+
+              <DropdownMenuPrimitive.Separator className="h-px bg-border my-1" />
+
+              <DropdownMenuPrimitive.Item
+                className={cn(MENU_ITEM_CLASS, 'text-danger')}
+                onSelect={onDelete}
               >
                 <Trash className="w-3.5 h-3.5 stroke-current" />
                 {t(($) => $.common.action.delete)}
-              </button>
-            </div>
-          </>,
-          document.body,
-        )}
+              </DropdownMenuPrimitive.Item>
+            </DropdownMenuPrimitive.Content>
+          </DropdownMenuPrimitive.Portal>
+        </DropdownMenuPrimitive.Root>
+      </div>
     </div>
   )
 }

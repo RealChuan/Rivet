@@ -30,7 +30,7 @@ export const electronAPI = {
   },
 
   protocol: {
-    connect: (config) => invoke('protocol.connect', config),
+    connect: (config, requestId) => invoke('protocol.connect', config, requestId),
     disconnect: (sessionId, requestId) => invoke('protocol.disconnect', sessionId, requestId),
     listBuckets: (request) => invoke('protocol.listBuckets', request),
     list: (sessionId, path, requestId, limit) =>

@@ -115,7 +115,7 @@ describe('Ssh2SftpConnection', () => {
         port: 2222,
         username: 'alice',
         password: 'secret',
-        readyTimeout: TIMEOUTS.SFTP_READY,
+        readyTimeout: TIMEOUTS.SSH_HANDSHAKE,
         hostVerifier,
       }),
     )

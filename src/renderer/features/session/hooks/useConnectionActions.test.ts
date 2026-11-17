@@ -7,10 +7,14 @@ import { TOAST_TYPE } from '@shared/constants/index.js'
 // Mock stores following project convention (simple selector pattern)
 const mockConnectSession = vi.fn()
 const mockReconnectSession = vi.fn()
+const mockCancelConnect = vi.fn()
+const mockCancelLatestConnect = vi.fn()
 vi.mock('./use-session-connect.js', () => ({
   useSessionConnect: () => ({
     connectSession: mockConnectSession,
     reconnectSession: mockReconnectSession,
+    cancelConnect: mockCancelConnect,
+    cancelLatestConnect: mockCancelLatestConnect,
   }),
 }))
 
@@ -108,7 +112,7 @@ describe('useConnectionActions', () => {
 
   describe('handleSaveConnection', () => {
     it('should create new connection on success', async () => {
-      mockConnectSession.mockResolvedValue(true)
+      mockConnectSession.mockResolvedValue({ status: 'connected' })
       mockSaveConnectionConfigs.mockResolvedValue(undefined)
 
       const { result } = renderHook(() => useConnectionActions())
@@ -136,7 +140,7 @@ describe('useConnectionActions', () => {
     })
 
     it('should update existing connection when editing', async () => {
-      mockConnectSession.mockResolvedValue(true)
+      mockConnectSession.mockResolvedValue({ status: 'connected' })
       mockSaveConnectionConfigs.mockResolvedValue(undefined)
 
       const { result } = renderHook(() => useConnectionActions())
@@ -157,7 +161,7 @@ describe('useConnectionActions', () => {
     })
 
     it('should show error toast when connectSession fails', async () => {
-      mockConnectSession.mockResolvedValue(false)
+      mockConnectSession.mockResolvedValue({ status: 'failed', error: new Error('refused') })
 
       const { result } = renderHook(() => useConnectionActions())
 
@@ -169,11 +173,31 @@ describe('useConnectionActions', () => {
             saveSecret: false,
           })
         } catch {
-          // handleSaveConnection throws on failure
+          // handleSaveConnection rethrows the failure so the dialog can show the reason
         }
       })
 
       expect(mockAddToast).toHaveBeenCalledWith(expect.objectContaining({ type: TOAST_TYPE.ERROR }))
+    })
+
+    it('should stay silent and keep the form when the user cancels', async () => {
+      mockConnectSession.mockResolvedValue({ status: 'cancelled' })
+
+      const { result } = renderHook(() => useConnectionActions())
+      const onSuccess = vi.fn()
+
+      let saved = true
+      await act(async () => {
+        saved = await result.current.handleSaveConnection(
+          { connection: baseConfig, secret: 'pw', saveSecret: false },
+          onSuccess,
+        )
+      })
+
+      expect(saved).toBe(false)
+      expect(mockAddToast).not.toHaveBeenCalled()
+      expect(mockAddConnection).not.toHaveBeenCalled()
+      expect(onSuccess).not.toHaveBeenCalled()
     })
   })
 
@@ -281,7 +305,7 @@ describe('useConnectionActions', () => {
 
   describe('handleReconnect', () => {
     it('should reconnect directly when a stored secret exists', async () => {
-      mockConnectSession.mockResolvedValue(true)
+      mockConnectSession.mockResolvedValue({ status: 'connected' })
 
       const { result } = renderHook(() => useConnectionActions())
       const onOpenDialog = vi.fn()
@@ -297,22 +321,11 @@ describe('useConnectionActions', () => {
       expect(onOpenDialog).not.toHaveBeenCalled()
     })
 
-    it('should open reconnect dialog when connection fails', async () => {
-      mockConnectSession.mockResolvedValue(false)
-
-      const { result } = renderHook(() => useConnectionActions())
-      const onOpenDialog = vi.fn()
-
-      await act(async () => {
-        await result.current.handleReconnect(fullConnection, onOpenDialog)
+    it('should surface an error toast and open the dialog when the connection fails', async () => {
+      mockConnectSession.mockResolvedValue({
+        status: 'failed',
+        error: new Error('connect ECONNREFUSED 127.0.0.1:8080'),
       })
-
-      expect(result.current.reconnectConfig).toBe(fullConnection)
-      expect(onOpenDialog).toHaveBeenCalledOnce()
-    })
-
-    it('should surface an error toast and open the dialog when the connection throws', async () => {
-      mockConnectSession.mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:8080'))
 
       const { result } = renderHook(() => useConnectionActions())
       const onOpenDialog = vi.fn()
@@ -325,6 +338,24 @@ describe('useConnectionActions', () => {
       expect(result.current.reconnectConfig).toBe(fullConnection)
       expect(onOpenDialog).toHaveBeenCalledOnce()
     })
+
+    it.each([['cancelled'], ['busy']])(
+      'should stay silent when the attempt ends as %s',
+      async (status) => {
+        mockConnectSession.mockResolvedValue({ status })
+
+        const { result } = renderHook(() => useConnectionActions())
+        const onOpenDialog = vi.fn()
+
+        await act(async () => {
+          await result.current.handleReconnect(fullConnection, onOpenDialog)
+        })
+
+        expect(mockAddToast).not.toHaveBeenCalled()
+        expect(result.current.reconnectConfig).toBeNull()
+        expect(onOpenDialog).not.toHaveBeenCalled()
+      },
+    )
 
     it('should open reconnect dialog when askPasswordOnConnect is true', async () => {
       const { result } = renderHook(() => useConnectionActions())

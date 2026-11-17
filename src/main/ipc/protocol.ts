@@ -4,7 +4,7 @@ import { registerContract } from './register.js'
 
 export function setupProtocolIpcHandlers(): void {
   registerContract(protocolContract, {
-    'protocol.connect': (config) => protocolService.connect(config),
+    'protocol.connect': (config, requestId) => protocolService.connect(config, requestId),
     'protocol.disconnect': (sessionId, requestId) =>
       protocolService.disconnect(sessionId, requestId),
     'protocol.listBuckets': (request) => protocolService.listBuckets(request),

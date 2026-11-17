@@ -42,7 +42,9 @@
       "title": "文件冲突"
     },
     "connection": {
+      "cancelConnect": "取消连接",
       "connect": "连接",
+      "connecting": "正在连接 {{host}}…",
       "connections": "连接列表",
       "disconnect": "断开连接",
       "edit": "编辑",
@@ -74,7 +76,6 @@
       "bucketsTitle": "选择存储桶",
       "certWarningMessage": "您正在连接到一个证书无效的服务器。请自行承担风险继续。",
       "certWarningTitle": "证书警告",
-      "connectFailed": "连接失败",
       "connecting": "连接中...",
       "continue": "继续",
       "domain": "域",
@@ -200,6 +201,7 @@
       "clearFilter": "清空过滤",
       "dateModified": "修改日期",
       "disconnected": "已断开连接",
+      "dragMoreItems": "等 {{count}} 项",
       "editAddress": "编辑路径",
       "empty": "空目录",
       "error": "加载失败",
@@ -333,12 +335,17 @@
       "action": {
         "close": "关闭终端",
         "maximize": "最大化",
+        "newTab": "新建标签",
         "restore": "还原"
       },
       "status": {
         "connecting": "连接中…",
         "error": "终端不可用",
         "exited": "已退出"
+      },
+      "tab": {
+        "close": "关闭标签",
+        "title": "终端 {{index}}"
       },
       "title": "终端"
     },

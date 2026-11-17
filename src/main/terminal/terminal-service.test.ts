@@ -37,7 +37,7 @@ function stubSession(overrides: Partial<TerminalSessionLike> = {}): TerminalSess
   }
 }
 
-const request = { sessionId: 'session-1', cols: 80, rows: 24 }
+const request = { terminalId: 'terminal-1', sessionId: 'session-1', cols: 80, rows: 24 }
 
 type CreateSession = (
   id: string,
@@ -83,7 +83,7 @@ describe('TerminalService', () => {
     expect(result.success ? '' : result.error.code).toBe(ERROR_CODE.TERMINAL_OPEN_FAILED)
   })
 
-  it('同一会话重复 open 返回同一个 terminalId', async () => {
+  it('同一 terminalId 重复 open 复用同一个终端', async () => {
     const first = await service.open(request)
     const second = await service.open(request)
 
@@ -93,19 +93,46 @@ describe('TerminalService', () => {
     expect(createSession).toHaveBeenCalledTimes(1)
   })
 
-  it('closeBySession 关闭该会话的终端并清空映射', async () => {
-    const session = stubSession()
-    createSession.mockReturnValue(session)
+  it('同一 terminalId 并发 open 只建一条连接', async () => {
+    const [first, second] = await Promise.all([service.open(request), service.open(request)])
 
-    const opened = await service.open(request)
+    expect(first.success && second.success).toBe(true)
+    expect(createSession).toHaveBeenCalledTimes(1)
+  })
+
+  it('同一会话的不同 terminalId 各开一条，关闭互不影响', async () => {
+    const first = stubSession()
+    const second = stubSession()
+    createSession.mockReturnValueOnce(first).mockReturnValueOnce(second)
+
+    await service.open(request)
+    const opened = await service.open({ ...request, terminalId: 'terminal-2' })
     expect(opened.success).toBe(true)
+    expect(createSession).toHaveBeenCalledTimes(2)
+
+    await service.close('terminal-1')
+    expect(first.close).toHaveBeenCalledTimes(1)
+    expect(second.close).not.toHaveBeenCalled()
+
+    service.write('terminal-2', new Uint8Array([1]))
+    expect(second.write).toHaveBeenCalledTimes(1)
+  })
+
+  it('closeBySession 关闭该会话的全部终端并清空映射', async () => {
+    const first = stubSession()
+    const second = stubSession()
+    createSession.mockReturnValueOnce(first).mockReturnValueOnce(second)
+
+    await service.open(request)
+    await service.open({ ...request, terminalId: 'terminal-2' })
 
     service.closeBySession('session-1')
-    expect(session.close).toHaveBeenCalledTimes(1)
+    expect(first.close).toHaveBeenCalledTimes(1)
+    expect(second.close).toHaveBeenCalledTimes(1)
 
-    const again = await service.open(request)
+    const again = await service.open({ ...request, terminalId: 'terminal-3' })
     expect(again.success).toBe(true)
-    expect(createSession).toHaveBeenCalledTimes(2)
+    expect(createSession).toHaveBeenCalledTimes(3)
   })
 
   it('未知 terminalId 的写入被静默忽略', () => {

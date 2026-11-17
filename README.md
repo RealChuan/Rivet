@@ -20,6 +20,7 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 - **WebDAV**：Basic / Digest 认证、自定义基础路径、自签证书开关。
 - **S3**：任意 S3 兼容端点，可配 region、桶、path-style 与桶内前缀；桶名可从账号的桶列表里直接选，不用记。上传走 multipart，支持超过 5 GiB 的文件。
 - **粘贴地址连接**：从剪贴板识别 `sftp://`、`smb://`、`webdav(s)://` 地址，自动填好新建连接表单。
+- 连接过程有状态反馈，可随时取消；超过 30 秒无响应按超时失败，不会在后台留下已建立却无人使用的连接。
 - 多连接管理；连接配置持久化，密码只在主进程经 `safeStorage` 加密存储，私钥只保存路径。
 
 ### 文件管理
@@ -73,12 +74,12 @@ Rivet 是一个跨平台（Windows / macOS / Linux）的远程服务器桌面文
 
 ## 技术栈
 
-| 层   | 选型                                                                                |
-| ---- | ----------------------------------------------------------------------------------- |
-| 桌面 | Electron、electron-forge                                                            |
-| 界面 | React、TypeScript、Vite、Zustand、TanStack Query / Virtual                          |
-| 协议 | ssh2、undici、fast-xml-parser、v9u-smb2、@aws-sdk/client-s3 与 s3-request-presigner |
-| 日志 | electron-log（按天 + 按大小滚动）                                                   |
+| 层   | 选型                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------- |
+| 桌面 | Electron、electron-forge                                                                    |
+| 界面 | React、TypeScript、Vite、Tailwind CSS、radix-ui、Zustand、TanStack Query / Virtual、i18next |
+| 协议 | ssh2、undici、fast-xml-parser、v9u-smb2、@aws-sdk/client-s3 与 s3-request-presigner         |
+| 日志 | electron-log（按天 + 按大小滚动）                                                           |
 
 ## 开发
 
@@ -91,6 +92,8 @@ pnpm run verify
 ```
 
 - `pnpm run verify` 依次执行 typecheck、lint、单元测试、类型测试、i18n 检查、生产依赖审计与打包。
+- `pnpm run build` 产出可运行的免安装目录（`pnpm run verify` 用的是它）；要安装包用 `pnpm run package`。
+- 国内网络卡在 Electron 二进制下载时，先设临时镜像再装依赖：`$env:ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"`（PowerShell）。
 - 真实服务集成测试（provider 层，默认不进 verify）：先起 `scripts/sftp/serve.py` 与 `scripts/dav/serve.py`（或 Docker），再 `RIVET_INTEGRATION=1 pnpm run test:integration`；S3 用例默认连 `127.0.0.1:9000`，可用 `RIVET_S3_ENDPOINT`、`RIVET_S3_BUCKET`、`RIVET_S3_ACCESS_KEY`、`RIVET_S3_SECRET_KEY` 指向任意 S3 兼容端点。SMB 用例默认连 `127.0.0.1:1445`，用 `RIVET_SMB_*` 覆盖。
 - E2E 需要 Docker：`pnpm run e2e:servers` → `pnpm run build` → `pnpm run test:e2e` → `pnpm run e2e:servers:down`。E2E 包含 SFTP、SSH 终端、SMB（Samba，SMB2-only）、WebDAV 与 S3（s3mock）。
 - 手动验证 SFTP 页面：`python scripts/sftp/serve.py`（Paramiko，依赖见 `scripts/sftp/requirements.txt`；`--auth publickey`、`--emit-client-key`、`--readonly`、`--rotate-host-key` 切换分支）。
@@ -102,7 +105,3 @@ pnpm run verify
 ## 架构
 
 主进程持有窗口、连接、文件系统、传输与秘密；渲染层只通过类型化 IPC 契约访问能力；协议差异收敛在 `FileProvider`。详见 [docs/architecture.md](docs/architecture.md)。
-
-## 许可证
-
-[GPL-3.0](LICENSE)

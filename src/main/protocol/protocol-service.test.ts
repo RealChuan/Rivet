@@ -202,6 +202,62 @@ describe('ProtocolService.connect', () => {
     expect(harness.sessions.get(response.value.sessionId)?.provider).toBe(harness.provider)
   })
 
+  it('超过 TIMEOUTS.CONNECT 返回 REQUEST_TIMEOUT，收掉 provider 且不注册会话', async () => {
+    vi.useFakeTimers()
+    const harness = makeHarness()
+    harness.connect.mockImplementation(() => new Promise<never>(() => {}))
+
+    const pending = harness.service.connect({ connection: config }, 'req-timeout')
+    await vi.advanceTimersByTimeAsync(TIMEOUTS.CONNECT)
+    const response = await pending
+
+    expect(response.success).toBe(false)
+    if (response.success) return
+    expect(response.error.code).toBe(ERROR_CODE.REQUEST_TIMEOUT)
+    expect(harness.disconnect).toHaveBeenCalled()
+    expect(harness.sessions.count).toBe(0)
+    expect(harness.requests.size).toBe(0)
+  })
+
+  it('取消返回 REQUEST_ABORTED 且不注册会话', async () => {
+    const harness = makeHarness()
+    harness.connect.mockImplementation(() => new Promise<never>(() => {}))
+
+    const pending = harness.service.connect({ connection: config }, 'req-cancel')
+    await vi.waitFor(() => expect(harness.requests.size).toBe(1))
+    harness.requests.cancel('req-cancel')
+    const response = await pending
+
+    expect(response.success).toBe(false)
+    if (response.success) return
+    expect(response.error.code).toBe(ERROR_CODE.REQUEST_ABORTED)
+    expect(harness.disconnect).toHaveBeenCalled()
+    expect(harness.sessions.count).toBe(0)
+  })
+
+  it('超时之后才完成的连接不会注册会话', async () => {
+    vi.useFakeTimers()
+    const harness = makeHarness()
+    let finishConnect: () => void = () => undefined
+    harness.connect.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finishConnect = resolve
+        }),
+    )
+
+    const pending = harness.service.connect({ connection: config }, 'req-late')
+    await vi.advanceTimersByTimeAsync(TIMEOUTS.CONNECT)
+    const response = await pending
+
+    finishConnect()
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(response.success).toBe(false)
+    expect(harness.disconnect).toHaveBeenCalled()
+    expect(harness.sessions.count).toBe(0)
+  })
+
   it('未知主机密钥返回 HOST_KEY_UNKNOWN 且不注册会话', async () => {
     const harness = makeHarness()
     harness.createProvider.mockImplementation((_kind, options) => {

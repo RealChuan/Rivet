@@ -10,8 +10,12 @@ export const TIMEOUTS = {
   PING: 5000,
   /** 断开连接超时时间（5秒） */
   DISCONNECT: 5000,
-  /** SFTP 连接就绪超时时间（20秒） */
-  SFTP_READY: 20000,
+  /**
+   * ssh2 握手兜底超时时间（45秒）。
+   * 必须大于 `CONNECT`：连接期限只由 `CONNECT` 决定，这里只在绕过 RequestRegistry 时生效，
+   * 否则底层会先于应用层放弃，错误码与等待时长都变得不可预期。
+   */
+  SSH_HANDSHAKE: 45000,
   /** 错误 Toast 显示时长（6秒） */
   TOAST_ERROR_DURATION: 6000,
   /** 默认 Toast 显示时长（3秒） */

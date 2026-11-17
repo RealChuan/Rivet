@@ -43,7 +43,9 @@ export default interface Resources {
       "title": "File Conflict"
     },
     "connection": {
+      "cancelConnect": "Cancel connection",
       "connect": "Connect",
+      "connecting": "Connecting to {{host}}…",
       "connections": "Connections",
       "disconnect": "Disconnect",
       "edit": "Edit",
@@ -75,7 +77,6 @@ export default interface Resources {
       "bucketsTitle": "Select bucket",
       "certWarningMessage": "You are connecting to a server with an invalid certificate. Proceed at your own risk.",
       "certWarningTitle": "Certificate Warning",
-      "connectFailed": "Connection failed",
       "connecting": "Connecting...",
       "continue": "Continue",
       "domain": "Domain",
@@ -201,6 +202,7 @@ export default interface Resources {
       "clearFilter": "Clear filter",
       "dateModified": "Date Modified",
       "disconnected": "Disconnected",
+      "dragMoreItems": "and 1 more" | "and {{count}} more",
       "editAddress": "Edit path",
       "empty": "Empty directory",
       "error": "Error",
@@ -334,12 +336,17 @@ export default interface Resources {
       "action": {
         "close": "Close terminal",
         "maximize": "Maximize",
+        "newTab": "New tab",
         "restore": "Restore"
       },
       "status": {
         "connecting": "Connecting…",
         "error": "Terminal unavailable",
         "exited": "Exited"
+      },
+      "tab": {
+        "close": "Close tab",
+        "title": "Terminal {{index}}"
       },
       "title": "Terminal"
     },

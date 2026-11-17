@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ConnectionConfig, Session } from '@shared/types/index.js'
 import { useDirectoryLoading } from '../../file-explorer/hooks/use-directory-list.js'
+import { useConnectRequestsStore } from '../stores/connect-requests.js'
 import { ConnectionItem } from './ConnectionItem.js'
 
 vi.mock('../../file-explorer/hooks/use-directory-list.js', () => ({
@@ -57,13 +58,22 @@ const defaultProps = {
   onSelect: vi.fn(),
   onDisconnect: vi.fn(),
   onReconnect: vi.fn(),
+  onCancelConnect: vi.fn(),
   onDelete: vi.fn(),
   onEdit: vi.fn(),
 }
 
 beforeEach(() => {
   vi.mocked(useDirectoryLoading).mockReturnValue(false)
+  useConnectRequestsStore.setState({ pending: {}, lastRequestedId: null })
 })
+
+function markConnecting(connectionId: string): void {
+  useConnectRequestsStore.setState({
+    pending: { [connectionId]: new AbortController() },
+    lastRequestedId: connectionId,
+  })
+}
 
 describe('ConnectionItem', () => {
   it('should display connection name', () => {
@@ -157,6 +167,46 @@ describe('ConnectionItem', () => {
     const container = nameElement.closest('div[class*="mx-2"]')
     if (!container) throw new Error('Container not found')
     expect(container.innerHTML).toContain('animate-spin')
+  })
+
+  it('shows a spinner and the connecting hint while a connection is in flight', () => {
+    markConnecting('conn-1')
+    render(<ConnectionItem {...defaultProps} />)
+
+    const container = screen.getByText('Test Server').closest('div[class*="mx-2"]')
+    if (!container) throw new Error('Container not found')
+    expect(container.innerHTML).toContain('animate-spin')
+    expect(container.innerHTML).toContain('text-accent')
+    expect(screen.getByText('connection.connecting')).not.toBeNull()
+  })
+
+  it('opens the action menu without selecting the row', () => {
+    const onSelect = vi.fn()
+    const onEdit = vi.fn()
+    render(<ConnectionItem {...defaultProps} onSelect={onSelect} onEdit={onEdit} />)
+
+    fireEvent.pointerDown(screen.getByLabelText('connection.moreActions'))
+
+    expect(screen.getByText('connection.connect')).not.toBeNull()
+    expect(screen.getByText('connection.edit')).not.toBeNull()
+
+    fireEvent.click(screen.getByText('connection.edit'))
+
+    expect(onEdit).toHaveBeenCalledOnce()
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+
+  it('offers cancel instead of connect while connecting', () => {
+    const onCancelConnect = vi.fn()
+    markConnecting('conn-1')
+    render(<ConnectionItem {...defaultProps} onCancelConnect={onCancelConnect} />)
+
+    // radix 的操作菜单在 pointerdown 打开。
+    fireEvent.pointerDown(screen.getByLabelText('connection.moreActions'))
+    fireEvent.click(screen.getByTestId('connection-cancel-connect'))
+
+    expect(onCancelConnect).toHaveBeenCalledOnce()
+    expect(screen.queryByText('connection.connect')).toBeNull()
   })
 
   it('should call onDisconnect callback', () => {

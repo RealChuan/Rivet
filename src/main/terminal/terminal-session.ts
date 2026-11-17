@@ -128,7 +128,7 @@ export class TerminalSession {
       ...(auth.privateKey !== undefined ? { privateKey: auth.privateKey } : {}),
       ...(auth.passphrase !== undefined ? { passphrase: auth.passphrase } : {}),
       ...(auth.agent !== undefined ? { agent: auth.agent } : {}),
-      readyTimeout: auth.readyTimeout,
+      readyTimeout: TIMEOUTS.TERMINAL_OPEN,
       hostVerifier: createStrictHostVerifier(this.config),
     }
 

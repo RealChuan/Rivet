@@ -7,7 +7,11 @@ import { formatDate, formatFileSize } from '@shared/utils/index.js'
 import { FileIcon } from '../../../components/common/index.js'
 import { cn } from '../../../utils/index.js'
 import { computeTotalWidth } from '../hooks/use-column-resizing.js'
-import { FILE_DRAG_MIME, type FileDragMove } from '../hooks/use-file-drag-move.js'
+import {
+  FILE_DRAG_MIME,
+  type FileDragMove,
+  type FileDropState,
+} from '../hooks/use-file-drag-move.js'
 import { FILE_DRAG_SOURCE_ATTR, fileItemDataAttrs } from '../utils/data-attributes.js'
 
 export interface ColumnWidths {
@@ -32,8 +36,8 @@ interface FileListItemProps {
   dragMove: FileDragMove
   /** 正在被拖动，置灰 */
   isDragging: boolean
-  /** 当前拖放目标，高亮 */
-  isDropTarget: boolean
+  /** 当前投放目标：可放置或禁止放置，两者用不同视觉表达 */
+  dropState: FileDropState
   onHover: (name: string | null) => void
   onClick: (e: React.MouseEvent<HTMLElement>) => void
   onDoubleClick: () => void
@@ -54,7 +58,7 @@ export const FileListItem = ({
   isSftp,
   dragMove,
   isDragging,
-  isDropTarget,
+  dropState,
   onHover,
   onClick,
   onDoubleClick,
@@ -88,7 +92,8 @@ export const FileListItem = ({
             : 'bg-transparent border-l-2 border-l-transparent',
         isSelected ? 'text-accent' : 'text-text',
         (isCut || isDragging) && 'opacity-50',
-        isDropTarget && 'ring-2 ring-inset ring-accent',
+        dropState === 'allowed' && 'bg-accent-light ring-1 ring-inset ring-accent/60',
+        dropState === 'forbidden' && 'bg-danger-light ring-1 ring-inset ring-danger/50',
       )}
       style={{ height: rowHeight, minWidth: totalWidth }}
       onMouseEnter={() => onHover(file.name)}
@@ -97,19 +102,15 @@ export const FileListItem = ({
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
       onFocus={onFocus}
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = 'move'
-        e.dataTransfer.setData(FILE_DRAG_MIME, file.absolutePath)
-        dragMove.beginDrag(file)
-      }}
+      onDragStart={(e) => dragMove.beginDrag(e, file)}
       onDragEnd={dragMove.endDrag}
       onDragOver={(e) => {
         if (!isDirectory || !e.dataTransfer.types.includes(FILE_DRAG_MIME)) return
         e.preventDefault()
         // 不冒泡给列表容器，否则会亮起「拖入上传」的覆盖层。
         e.stopPropagation()
-        e.dataTransfer.dropEffect = 'move'
-        dragMove.dragOver(file)
+        // 放进自己被拖动的文件夹属于无效投放：光标显示禁止，同时给出红色提示。
+        e.dataTransfer.dropEffect = dragMove.dragOver(file) ? 'move' : 'none'
       }}
       onDragLeave={() => {
         if (isDirectory) dragMove.dragLeave()

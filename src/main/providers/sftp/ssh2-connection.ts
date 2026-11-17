@@ -3,7 +3,7 @@ import type { Credentials } from '@shared/domain/credentials.js'
 import type { EntryKind } from '@shared/domain/entry.js'
 import type { ErrorCode } from '@shared/domain/error.js'
 import type { ConnectionConfig } from '@shared/types/index.js'
-import { ERROR_CODE } from '@shared/constants/index.js'
+import { ERROR_CODE, TIMEOUTS } from '@shared/constants/index.js'
 import { pathBasename } from '@shared/utils/index.js'
 import type {
   RawSftpEntry,
@@ -150,7 +150,7 @@ export class Ssh2SftpConnection implements SftpConnection {
       ...(auth.privateKey !== undefined ? { privateKey: auth.privateKey } : {}),
       ...(auth.passphrase !== undefined ? { passphrase: auth.passphrase } : {}),
       ...(auth.agent !== undefined ? { agent: auth.agent } : {}),
-      readyTimeout: auth.readyTimeout,
+      readyTimeout: TIMEOUTS.SSH_HANDSHAKE,
       ...(opts?.hostVerifier !== undefined ? { hostVerifier: opts.hostVerifier } : {}),
     }
 

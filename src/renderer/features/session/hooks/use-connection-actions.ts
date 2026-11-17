@@ -13,7 +13,7 @@ import { useSessionConnect } from './use-session-connect.js'
 
 export const useConnectionActions = () => {
   const { t } = useTranslation()
-  const { connectSession } = useSessionConnect()
+  const { connectSession, cancelConnect, cancelLatestConnect } = useSessionConnect()
   const removeSession = useSessionStore((state) => state.removeSession)
   const getSessionByConnectionId = useSessionStore((state) => state.getSessionByConnectionId)
   const connections = useConnectionStore((state) => state.connections)
@@ -48,27 +48,28 @@ export const useConnectionActions = () => {
     })
   }
 
-  const handleSaveConnection = async (input: ConnectionSaveInput, onSuccess?: () => void) => {
+  /** 返回 true 表示已连接并保存；false 表示用户取消或已有连接在跑，对话框应留在原地。 */
+  const handleSaveConnection = async (
+    input: ConnectionSaveInput,
+    onSuccess?: () => void,
+  ): Promise<boolean> => {
     const connection: ConnectionConfig = {
       ...input.connection,
       id: editConfig?.id ?? crypto.randomUUID(),
     }
-    let success = false
-    try {
-      success = await connectSession({
-        connection,
-        ...(input.secret ? { secret: input.secret } : {}),
-        saveSecret: input.saveSecret,
-      })
-    } catch (error) {
-      // 连接失败会以异常形式冒泡（IPC 侧 Result 转 ApiError），这里必须给出入口反馈。
-      showConnectionToast(TOAST_TYPE.ERROR, connection)
-      throw error
-    }
 
-    if (!success) {
+    const outcome = await connectSession({
+      connection,
+      ...(input.secret ? { secret: input.secret } : {}),
+      saveSecret: input.saveSecret,
+    })
+
+    if (outcome.status === 'cancelled' || outcome.status === 'busy') return false
+
+    if (outcome.status === 'failed') {
+      // 失败必须给出入口反馈，并把原因抛给对话框展示。
       showConnectionToast(TOAST_TYPE.ERROR, connection)
-      throw new Error(t(($) => $.connectionDialog.connectFailed))
+      throw outcome.error
     }
 
     if (editConfig) updateConnection(connection)
@@ -79,6 +80,7 @@ export const useConnectionActions = () => {
     showConnectionToast(TOAST_TYPE.SUCCESS, connection)
     onSuccess?.()
     setEditConfig(null)
+    return true
   }
 
   const handleDisconnect = (connectionId: string) => {
@@ -153,40 +155,43 @@ export const useConnectionActions = () => {
       return
     }
 
-    let success = false
-    try {
-      success = await connectSession({ connection })
-    } catch (error) {
-      logger.catch(error, { connectionId: connection.id, action: 'reconnect' })
-      showConnectionToast(TOAST_TYPE.ERROR, connection)
-    }
+    const outcome = await connectSession({ connection })
 
-    if (success) {
+    if (outcome.status === 'connected') {
       showConnectionToast(TOAST_TYPE.SUCCESS, connection)
       return
     }
+    // 用户主动取消、或这台已有连接在跑：都不该提示失败，也不该弹重连对话框。
+    if (outcome.status === 'cancelled' || outcome.status === 'busy') return
+
+    logger.catch(outcome.error, { connectionId: connection.id, action: 'reconnect' })
+    showConnectionToast(TOAST_TYPE.ERROR, connection)
     setReconnectConfig(connection)
     onOpenDialog?.()
   }
 
-  const handleReconnectSubmit = async (input: ConnectionSaveInput) => {
-    if (!reconnectConfig) return
-    try {
-      const success = await connectSession({
-        connection: reconnectConfig,
-        ...(input.secret ? { secret: input.secret } : {}),
-        saveSecret: input.saveSecret,
-      })
-      if (success) {
-        await saveConnectionConfigs()
-        await loadSavedConnections()
-        showConnectionToast(TOAST_TYPE.SUCCESS, reconnectConfig)
-      }
-    } catch (error) {
-      logger.catch(error, { connectionId: reconnectConfig.id, action: 'reconnect' })
+  /** 返回 true 表示已连接；false 表示用户取消或已有连接在跑。 */
+  const handleReconnectSubmit = async (input: ConnectionSaveInput): Promise<boolean> => {
+    if (!reconnectConfig) return false
+
+    const outcome = await connectSession({
+      connection: reconnectConfig,
+      ...(input.secret ? { secret: input.secret } : {}),
+      saveSecret: input.saveSecret,
+    })
+
+    if (outcome.status === 'cancelled' || outcome.status === 'busy') return false
+
+    if (outcome.status === 'failed') {
+      logger.catch(outcome.error, { connectionId: reconnectConfig.id, action: 'reconnect' })
       showConnectionToast(TOAST_TYPE.ERROR, reconnectConfig)
-      throw error
+      throw outcome.error
     }
+
+    await saveConnectionConfigs()
+    await loadSavedConnections()
+    showConnectionToast(TOAST_TYPE.SUCCESS, reconnectConfig)
+    return true
   }
 
   const handleEdit = async (connection: ConnectionConfig, onOpenDialog?: () => void) => {
@@ -224,5 +229,7 @@ export const useConnectionActions = () => {
     handleReconnect,
     handleReconnectSubmit,
     handleEdit,
+    cancelConnect,
+    cancelLatestConnect,
   }
 }

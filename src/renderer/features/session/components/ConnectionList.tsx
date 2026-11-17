@@ -29,6 +29,7 @@ interface ConnectionListProps {
   onSelectSession: (sessionId: string) => void
   onDisconnect: (connectionId: string) => void
   onReconnect: (connection: ConnectionConfig) => void
+  onCancelConnect: (connectionId: string) => void
   onEdit: (connection: ConnectionConfig) => void
   onDelete: (connectionId: string) => void
   getSessionByConnectionId: (id: string) => Session | undefined
@@ -43,6 +44,7 @@ export const ConnectionList = ({
   onSelectSession,
   onDisconnect,
   onReconnect,
+  onCancelConnect,
   onEdit,
   onDelete,
   getSessionByConnectionId,
@@ -108,6 +110,7 @@ export const ConnectionList = ({
                   onSelect={() => session && onSelectSession(session.sessionId)}
                   onDisconnect={() => void onDisconnect(connection.id)}
                   onReconnect={() => void onReconnect(connection)}
+                  onCancelConnect={() => onCancelConnect(connection.id)}
                   onEdit={() => void onEdit(connection)}
                   onDelete={() => onDelete(connection.id)}
                 />

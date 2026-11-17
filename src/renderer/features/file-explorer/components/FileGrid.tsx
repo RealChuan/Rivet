@@ -3,7 +3,7 @@ import type React from 'react'
 import type { RefObject } from 'react'
 import type { FileInfo } from '@shared/types/index.js'
 import type { SelectionModel } from '../hooks/use-selection.js'
-import { type FileDragMove } from '../hooks/use-file-drag-move.js'
+import { dropStateOf, type FileDragMove } from '../hooks/use-file-drag-move.js'
 import FileGridItem from './FileGridItem.js'
 
 interface FileGridProps {
@@ -88,7 +88,7 @@ export const FileGrid = ({
                   height={rowHeight}
                   dragMove={dragMove}
                   isDragging={dragMove.draggingPaths.has(file.absolutePath)}
-                  isDropTarget={dragMove.dropTargetPath === file.absolutePath}
+                  dropState={dropStateOf(dragMove.dropTarget, file.absolutePath)}
                   onSelect={(e) => {
                     selection.select(file.absolutePath, {
                       ctrl: e.ctrlKey || e.metaKey,

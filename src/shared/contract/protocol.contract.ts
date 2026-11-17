@@ -20,7 +20,7 @@ const operationResultSchema = z.custom<OperationResult>()
  */
 export const protocolContract = defineContract({
   'protocol.connect': {
-    args: [connectRequestSchema],
+    args: [connectRequestSchema, z.string().optional()],
     result: resultSchemaOf(operationResultSchema),
   },
   'protocol.disconnect': {

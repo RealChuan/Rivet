@@ -1,19 +1,22 @@
 import { renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ConnectionConfig, ConnectRequest } from '@shared/types/index.js'
+import type { ConnectionConfig } from '@shared/types/index.js'
+import { ApiError } from '../../../api/result.js'
+import { useConnectRequestsStore } from '../stores/connect-requests.js'
 import { useSessionConnect } from './use-session-connect.js'
 
 const mockHandleConnectWithHostKey = vi.fn()
 const mockReplaceSession = vi.fn()
 const mockGetConnectionById = vi.fn()
 const mockStat = vi.fn()
+const mockDisconnect = vi.fn()
 
 const mockSessions: Array<{ sessionId: string }> = []
 const mockLastPath: { value: string | undefined } = { value: undefined }
 
 vi.mock('./host-key-connect.js', () => ({
   handleConnectWithHostKey: (...args: unknown[]): Promise<unknown> =>
-    Promise.resolve(mockHandleConnectWithHostKey(...(args as [ConnectRequest]))),
+    Promise.resolve(mockHandleConnectWithHostKey(...args)),
 }))
 
 vi.mock('../stores/session.js', () => ({
@@ -41,13 +44,16 @@ vi.mock('../stores/last-paths.js', () => ({
 
 vi.mock('../../../api/protocol.js', () => ({
   protocolApi: {
-    stat: (sessionId: string, path: string): unknown => mockStat(sessionId, path),
+    stat: (sessionId: string, path: string, signal?: AbortSignal): unknown =>
+      mockStat(sessionId, path, signal),
+    disconnect: (sessionId: string): unknown => mockDisconnect(sessionId),
   },
 }))
 
 vi.mock('@shared/constants/index.js', () => ({
   ROOT_PATH: '/',
   FILE_TYPE: { FILE: 'file', DIRECTORY: 'directory' },
+  ERROR_CODE: { REQUEST_ABORTED: 'REQUEST_ABORTED' },
 }))
 
 const mockConfig: ConnectionConfig = {
@@ -59,9 +65,16 @@ const mockConfig: ConnectionConfig = {
   username: 'user',
 }
 
+function signalOf(callIndex = 0): AbortSignal {
+  const signal: unknown = mockHandleConnectWithHostKey.mock.calls[callIndex]?.[1]
+  if (!(signal instanceof AbortSignal)) throw new Error('signal not passed to connect')
+  return signal
+}
+
 describe('useSessionConnect', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useConnectRequestsStore.setState({ pending: {}, lastRequestedId: null })
     mockSessions.length = 0
     mockHandleConnectWithHostKey.mockResolvedValue({
       success: true,
@@ -70,21 +83,25 @@ describe('useSessionConnect', () => {
     })
     mockGetConnectionById.mockReturnValue({ ...mockConfig })
     mockStat.mockReset()
+    mockDisconnect.mockResolvedValue(undefined)
     mockLastPath.value = undefined
   })
 
   describe('connectSession', () => {
-    it('should add session to store and return true on successful connection', async () => {
+    it('returns connected and writes the session on success', async () => {
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.connectSession({ connection: mockConfig })
+      const outcome = await result.current.connectSession({ connection: mockConfig })
 
-      expect(success).toBe(true)
-      expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith({ connection: mockConfig })
+      expect(outcome).toEqual({ status: 'connected' })
+      expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith(
+        { connection: mockConfig },
+        expect.any(AbortSignal),
+      )
       expect(mockReplaceSession).toHaveBeenCalled()
     })
 
-    it('should start at root when no path is remembered', async () => {
+    it('starts at root when no path is remembered', async () => {
       const { result } = renderHook(() => useSessionConnect())
 
       await result.current.connectSession({ connection: mockConfig })
@@ -96,7 +113,7 @@ describe('useSessionConnect', () => {
       )
     })
 
-    it('should restore the remembered directory after verifying it with stat', async () => {
+    it('restores the remembered directory after verifying it with stat', async () => {
       mockLastPath.value = '/home/user/work'
       mockStat.mockResolvedValue({ type: 'directory' })
 
@@ -104,14 +121,14 @@ describe('useSessionConnect', () => {
 
       await result.current.connectSession({ connection: mockConfig })
 
-      expect(mockStat).toHaveBeenCalledWith('sess-1', '/home/user/work')
+      expect(mockStat).toHaveBeenCalledWith('sess-1', '/home/user/work', expect.any(AbortSignal))
       expect(mockReplaceSession).toHaveBeenCalledWith(
         'conn-1',
         expect.objectContaining({ currentPath: '/home/user/work' }),
       )
     })
 
-    it('should fall back to root when the remembered path is gone', async () => {
+    it('falls back to root when the remembered path is gone', async () => {
       mockLastPath.value = '/home/user/work'
       mockStat.mockRejectedValue(new Error('no such file'))
 
@@ -125,7 +142,7 @@ describe('useSessionConnect', () => {
       )
     })
 
-    it('should fall back to root when the remembered path is a file', async () => {
+    it('falls back to root when the remembered path is a file', async () => {
       mockLastPath.value = '/home/user/file.txt'
       mockStat.mockResolvedValue({ type: 'file' })
 
@@ -139,7 +156,7 @@ describe('useSessionConnect', () => {
       )
     })
 
-    it('should skip the stat probe when the remembered path is already root', async () => {
+    it('skips the stat probe when the remembered path is already root', async () => {
       mockLastPath.value = '/'
 
       const { result } = renderHook(() => useSessionConnect())
@@ -153,7 +170,7 @@ describe('useSessionConnect', () => {
       )
     })
 
-    it('should return false on failed connection', async () => {
+    it('returns cancelled when the host key dialog is declined', async () => {
       mockHandleConnectWithHostKey.mockResolvedValue({
         success: false,
         sessionId: null,
@@ -162,42 +179,107 @@ describe('useSessionConnect', () => {
 
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.connectSession({ connection: mockConfig })
+      const outcome = await result.current.connectSession({ connection: mockConfig })
 
-      expect(success).toBe(false)
+      expect(outcome).toEqual({ status: 'cancelled' })
       expect(mockReplaceSession).not.toHaveBeenCalled()
     })
 
-    it('should retry when first call returns retry=true then succeed', async () => {
+    it('returns cancelled for REQUEST_ABORTED and failed for anything else', async () => {
+      const aborted = new ApiError({ code: 'REQUEST_ABORTED', message: 'aborted' })
+      mockHandleConnectWithHostKey.mockRejectedValueOnce(aborted)
+
+      const { result } = renderHook(() => useSessionConnect())
+
+      await expect(result.current.connectSession({ connection: mockConfig })).resolves.toEqual({
+        status: 'cancelled',
+      })
+
+      const failure = new Error('boom')
+      mockHandleConnectWithHostKey.mockRejectedValueOnce(failure)
+
+      await expect(result.current.connectSession({ connection: mockConfig })).resolves.toEqual({
+        status: 'failed',
+        error: failure,
+      })
+    })
+
+    it('disconnects the session when cancelled after connect succeeded', async () => {
+      mockLastPath.value = '/home'
+      mockStat.mockImplementation(() => {
+        useConnectRequestsStore.getState().cancel('conn-1')
+        return Promise.reject(new Error('aborted'))
+      })
+
+      const { result } = renderHook(() => useSessionConnect())
+
+      const outcome = await result.current.connectSession({ connection: mockConfig })
+
+      expect(outcome).toEqual({ status: 'cancelled' })
+      expect(mockDisconnect).toHaveBeenCalledWith('sess-1')
+      expect(mockReplaceSession).not.toHaveBeenCalled()
+    })
+
+    it('retries when first call returns retry=true then succeeds', async () => {
       mockHandleConnectWithHostKey
         .mockResolvedValueOnce({ success: false, sessionId: null, retry: true })
         .mockResolvedValueOnce({ success: true, sessionId: 'sess-1', retry: false })
 
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.connectSession({ connection: mockConfig })
+      const outcome = await result.current.connectSession({ connection: mockConfig })
 
-      expect(success).toBe(true)
+      expect(outcome).toEqual({ status: 'connected' })
       expect(mockHandleConnectWithHostKey).toHaveBeenCalledTimes(2)
+      // 重试沿用同一个 signal：取消一次就能作用于整串尝试。
+      expect(signalOf(0)).toBe(signalOf(1))
     })
 
-    it('should return false after retry then failure', async () => {
-      mockHandleConnectWithHostKey
-        .mockResolvedValueOnce({ success: false, sessionId: null, retry: true })
-        .mockResolvedValueOnce({ success: false, sessionId: null, retry: false })
+    it('reports busy instead of stacking a second attempt on the same connection', async () => {
+      let resolveConnect: (value: unknown) => void = () => undefined
+      mockHandleConnectWithHostKey.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveConnect = resolve
+          }),
+      )
 
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.connectSession({ connection: mockConfig })
+      const first = result.current.connectSession({ connection: mockConfig })
+      const second = await result.current.connectSession({ connection: mockConfig })
 
-      expect(success).toBe(false)
-      expect(mockHandleConnectWithHostKey).toHaveBeenCalledTimes(2)
-      expect(mockReplaceSession).not.toHaveBeenCalled()
+      expect(second).toEqual({ status: 'busy' })
+      resolveConnect({ success: true, sessionId: 'sess-1', retry: false })
+      await expect(first).resolves.toEqual({ status: 'connected' })
+      expect(mockHandleConnectWithHostKey).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears the pending flag when the attempt ends', async () => {
+      const { result } = renderHook(() => useSessionConnect())
+
+      await result.current.connectSession({ connection: mockConfig })
+
+      expect(useConnectRequestsStore.getState().pending['conn-1']).toBeUndefined()
+    })
+  })
+
+  describe('cancelConnect', () => {
+    it('aborts only the requested connection', () => {
+      const { result } = renderHook(() => useSessionConnect())
+      const first = useConnectRequestsStore.getState().begin('conn-1')
+      const second = useConnectRequestsStore.getState().begin('conn-2')
+      if (!first || !second) throw new Error('begin should hand out signals')
+
+      result.current.cancelConnect('conn-1')
+
+      expect(first.aborted).toBe(true)
+      expect(second.aborted).toBe(false)
     })
   })
 
   describe('reconnectSession', () => {
-    it('should throw when connection not found', async () => {
+    it('throws when connection not found', async () => {
       mockGetConnectionById.mockReturnValue(undefined)
 
       const { result } = renderHook(() => useSessionConnect())
@@ -207,27 +289,28 @@ describe('useSessionConnect', () => {
       )
     })
 
-    it('should call connectSession with the connection config on successful reconnect', async () => {
+    it('connects with the stored config', async () => {
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.reconnectSession('conn-1')
+      const outcome = await result.current.reconnectSession('conn-1')
 
-      expect(success).toBe(true)
+      expect(outcome).toEqual({ status: 'connected' })
       expect(mockGetConnectionById).toHaveBeenCalledWith('conn-1')
-      expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith({ connection: mockConfig })
+      expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith(
+        { connection: mockConfig },
+        expect.any(AbortSignal),
+      )
     })
 
-    it('should pass the secret and saveSecret to connectSession', async () => {
+    it('passes the secret and saveSecret through', async () => {
       const { result } = renderHook(() => useSessionConnect())
 
-      const success = await result.current.reconnectSession('conn-1', 'secret', true)
+      await result.current.reconnectSession('conn-1', 'secret', true)
 
-      expect(success).toBe(true)
-      expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith({
-        connection: mockConfig,
-        secret: 'secret',
-        saveSecret: true,
-      })
+      expect(mockHandleConnectWithHostKey).toHaveBeenCalledWith(
+        { connection: mockConfig, secret: 'secret', saveSecret: true },
+        expect.any(AbortSignal),
+      )
     })
   })
 })

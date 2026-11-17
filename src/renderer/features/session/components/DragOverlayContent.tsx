@@ -28,6 +28,7 @@ export const DragOverlayContent = ({
           onSelect={() => {}}
           onDisconnect={() => {}}
           onReconnect={() => {}}
+          onCancelConnect={() => {}}
           onEdit={() => {}}
           onDelete={() => {}}
         />

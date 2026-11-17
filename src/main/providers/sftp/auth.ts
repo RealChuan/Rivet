@@ -1,16 +1,16 @@
 import fs from 'node:fs'
 import type { Credentials } from '@shared/domain/credentials.js'
 import type { AppError } from '@shared/domain/error.js'
-import { ERROR_CODE, TIMEOUTS } from '@shared/constants/index.js'
+import { ERROR_CODE } from '@shared/constants/index.js'
 import { ProviderError } from '../errors.js'
 
+/** 只描述凭证；握手超时由调用方按自己的期限决定。 */
 export interface SshAuthConfig {
   username: string
   password?: string
   privateKey?: Buffer
   passphrase?: string
   agent?: string
-  readyTimeout: number
 }
 
 const WINDOWS_AGENT_PIPE = '\\\\.\\pipe\\openssh-ssh-agent'
@@ -42,7 +42,6 @@ export async function buildSshAuthConfig(
       return {
         username: credentials.username,
         password: credentials.password,
-        readyTimeout: TIMEOUTS.SFTP_READY,
       }
 
     case 'privateKey': {
@@ -60,7 +59,6 @@ export async function buildSshAuthConfig(
         username: credentials.username,
         privateKey,
         ...(credentials.passphrase !== undefined ? { passphrase: credentials.passphrase } : {}),
-        readyTimeout: TIMEOUTS.SFTP_READY,
       }
     }
 
@@ -68,7 +66,6 @@ export async function buildSshAuthConfig(
       return {
         username: credentials.username,
         agent: resolveAgentPath(credentials.agentPath, platform, process.env),
-        readyTimeout: TIMEOUTS.SFTP_READY,
       }
 
     case 'accessKey':

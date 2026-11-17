@@ -166,132 +166,147 @@ export class ProtocolService {
     }
   }
 
-  async connect(request: ConnectRequest): Promise<Result<OperationResult>> {
-    const requestId = crypto.randomUUID()
+  async connect(
+    request: ConnectRequest,
+    requestId: string = crypto.randomUUID(),
+  ): Promise<Result<OperationResult>> {
     const { connection: config, secret: providedSecret, saveSecret } = request
+    const capture: { current: HostKeyCapture | null } = { current: null }
+    let provider: FileProvider | undefined
 
-    let provider: FileProvider
-    let credentials: Credentials
     try {
-      const stored = await this.options.getConnectionSecret(config.id)
-      if (!providedSecret && !stored.success) {
-        return this.failure(requestId, stored.error)
-      }
-      const secret = providedSecret ?? (stored.success ? stored.value : undefined)
-      credentials = this.buildCredentials(config, secret)
-      const capture: { current: HostKeyCapture | null } = { current: null }
+      // 整段都进 RequestRegistry，而不是只包 connect：取消只查这张表，查不到就丢弃。
+      // 若登记发生在读秘密之后，用户在那段窗口点取消会被丢掉，连接却照常注册成会话。
+      const tracked = await this.options.requests.run(
+        { requestId, timeoutMs: TIMEOUTS.CONNECT },
+        async (signal) => {
+          const stored = await this.options.getConnectionSecret(config.id)
+          if (!providedSecret && !stored.success) {
+            throw new ProviderError(stored.error.code, stored.error.message, stored.error.detail)
+          }
+          const secret = providedSecret ?? (stored.success ? stored.value : undefined)
+          const credentials = this.buildCredentials(config, secret)
 
-      const hostVerifier =
-        config.protocol === 'sftp'
-          ? (publicKey: Buffer): boolean => {
-              try {
-                const parsed = parseHostPublicKey(publicKey)
-                const known = getKnownHost(config.host, config.port, parsed.algorithm)
-                if (!known.success) {
-                  capture.current = { status: 'error', error: known.error }
-                  return false
-                }
-                if (!known.value) {
-                  capture.current = {
-                    status: 'unknown',
-                    detail: {
-                      host: config.host,
-                      port: config.port,
-                      algorithm: parsed.algorithm,
-                      fingerprint: parsed.fingerprint,
-                    },
+          const hostVerifier =
+            config.protocol === 'sftp'
+              ? (publicKey: Buffer): boolean => {
+                  try {
+                    const parsed = parseHostPublicKey(publicKey)
+                    const known = getKnownHost(config.host, config.port, parsed.algorithm)
+                    if (!known.success) {
+                      capture.current = { status: 'error', error: known.error }
+                      return false
+                    }
+                    if (!known.value) {
+                      capture.current = {
+                        status: 'unknown',
+                        detail: {
+                          host: config.host,
+                          port: config.port,
+                          algorithm: parsed.algorithm,
+                          fingerprint: parsed.fingerprint,
+                        },
+                      }
+                      return false
+                    }
+                    if (known.value.fingerprint === parsed.fingerprint) {
+                      capture.current = { status: 'ok' }
+                      return true
+                    }
+                    capture.current = {
+                      status: 'mismatch',
+                      detail: {
+                        host: config.host,
+                        port: config.port,
+                        algorithm: parsed.algorithm,
+                        fingerprint: parsed.fingerprint,
+                        previousFingerprint: known.value.fingerprint,
+                      },
+                    }
+                    return false
+                  } catch (error) {
+                    capture.current = {
+                      status: 'error',
+                      error: toErrorInfo(error, ERROR_CODE.HOST_KEY_ERROR),
+                    }
+                    return false
                   }
-                  return false
                 }
-                if (known.value.fingerprint === parsed.fingerprint) {
-                  capture.current = { status: 'ok' }
-                  return true
-                }
-                capture.current = {
-                  status: 'mismatch',
-                  detail: {
-                    host: config.host,
-                    port: config.port,
-                    algorithm: parsed.algorithm,
-                    fingerprint: parsed.fingerprint,
-                    previousFingerprint: known.value.fingerprint,
-                  },
-                }
-                return false
-              } catch (error) {
-                capture.current = {
-                  status: 'error',
-                  error: toErrorInfo(error, ERROR_CODE.HOST_KEY_ERROR),
-                }
-                return false
-              }
-            }
-          : undefined
+              : undefined
 
-      provider = this.options.createProvider(config.protocol, {
-        config,
-        ...(hostVerifier !== undefined ? { hostVerifier } : {}),
-      })
+          const created = this.options.createProvider(config.protocol, {
+            config,
+            ...(hostVerifier !== undefined ? { hostVerifier } : {}),
+          })
+          provider = created
 
-      try {
-        await provider.connect(credentials)
-        // connect 只保证传输层建立（WebDAV 惰性 client、SFTP 数据通道可能不可用），
-        // 这里补一次探活，否则失败要推迟到首次 list。
-        await this.options.requests.run({ timeoutMs: TIMEOUTS.PING }, (signal) =>
-          provider.ping(signal),
-        )
-      } catch (error) {
-        await provider.disconnect().catch(() => {})
-        const captured = capture.current
-        if (captured?.status === 'unknown') {
-          return this.failure(
-            requestId,
-            createAppError(
-              ERROR_CODE.HOST_KEY_UNKNOWN,
-              'Unknown host key',
-              captured.detail ? { ...captured.detail } : undefined,
-            ),
+          await created.connect(credentials, signal)
+          // connect 只保证传输层建立（WebDAV 惰性 client、SFTP 数据通道可能不可用），
+          // 这里补一次探活，否则失败要推迟到首次 list。握手成功但数据通道挂死由 ping
+          // 自己的 5s 上界兜住；外层取消通过 AbortSignal.any 一并传下去。
+          await this.options.requests.run({ timeoutMs: TIMEOUTS.PING }, (pingSignal) =>
+            created.ping(AbortSignal.any([signal, pingSignal])),
           )
-        }
-        if (captured?.status === 'mismatch') {
-          return this.failure(
-            requestId,
-            createAppError(ERROR_CODE.HOST_KEY_MISMATCH, 'Host key mismatch', {
-              ...captured.detail,
-            }),
-          )
-        }
-        if (captured?.status === 'error') {
-          return this.failure(requestId, captured.error)
-        }
-        return this.failure(requestId, toErrorInfo(error, ERROR_CODE.CONN_FAILED))
-      }
 
-      const sessionId = generateSessionId(provider.kind)
-      this.options.sessions.register(sessionId, {
-        provider,
-        config,
-        protocolType: provider.kind,
-        isClosing: false,
-      })
-      // 终端要另开一条连接，凭证只能从主进程取。
-      sessionCredentials.set(sessionId, credentials)
+          // 秘密落盘放在注册之前：注册是成功路径上最后一个可失败步骤，
+          // 放在注册之后一旦抛错就会留下已注册却没人使用的会话。
+          if (saveSecret && secret) {
+            await this.options.saveConnectionSecret(config.id, secret)
+          }
+          if (saveSecret === false) {
+            this.options.deleteConnectionSecret(config.id)
+          }
+
+          // 超时或取消可能已经先返回（它只负责 abort，停不下已经发出的 connect）：
+          // 到这里再确认一次，否则迟到的那次尝试会把会话注册进表。从这里到 register
+          // 之间没有 await，超时回调无法插进来。
+          signal.throwIfAborted()
+
+          const sessionId = generateSessionId(created.kind)
+          this.options.sessions.register(sessionId, {
+            provider: created,
+            config,
+            protocolType: created.kind,
+            isClosing: false,
+          })
+          // 终端要另开一条连接，凭证只能从主进程取。
+          sessionCredentials.set(sessionId, credentials)
+
+          return { sessionId, capabilities: created.capabilities }
+        },
+      )
+
       this.sessionOpenedHandler?.()
-
       logger.info(`Connection established: ${config.name} (${config.id})`)
-
-      if (saveSecret && secret) {
-        await this.options.saveConnectionSecret(config.id, secret)
-      }
-      if (saveSecret === false) {
-        this.options.deleteConnectionSecret(config.id)
-      }
-
-      return this.success(requestId, {
-        sessionId,
-        capabilities: provider.capabilities,
-      })
+      return this.success(requestId, tracked.value)
     } catch (error) {
+      // 超时或取消时 connect 可能仍在后台完成：先收掉 provider，
+      // 迟到的连接会被这次 disconnect 打断，不会留下没人管的活连接。
+      if (provider) await provider.disconnect().catch(() => {})
+
+      const captured = capture.current
+      if (captured?.status === 'unknown') {
+        return this.failure(
+          requestId,
+          createAppError(
+            ERROR_CODE.HOST_KEY_UNKNOWN,
+            'Unknown host key',
+            captured.detail ? { ...captured.detail } : undefined,
+          ),
+        )
+      }
+      if (captured?.status === 'mismatch') {
+        return this.failure(
+          requestId,
+          createAppError(ERROR_CODE.HOST_KEY_MISMATCH, 'Host key mismatch', {
+            ...captured.detail,
+          }),
+        )
+      }
+      if (captured?.status === 'error') {
+        return this.failure(requestId, captured.error)
+      }
+
       const info = toErrorInfo(error, ERROR_CODE.CONN_FAILED)
       logger.warn('Connection failed', {
         connectionId: config.id,

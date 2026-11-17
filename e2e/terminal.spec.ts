@@ -42,6 +42,11 @@ function terminalRows(): Locator {
   return page.locator('.xterm-rows').filter({ visible: true })
 }
 
+/** 多标签下每个标签一个面板，只有激活的那个可见。 */
+function terminalPanel(): Locator {
+  return page.getByTestId('terminal-panel').filter({ visible: true })
+}
+
 test.describe.serial('terminal', () => {
   test.beforeAll(async () => {
     userDataDir = mkdtempSync(join(tmpdir(), 'rivet-e2e-terminal-'))
@@ -58,7 +63,9 @@ test.describe.serial('terminal', () => {
 
   test('runs a command in an embedded shell', async () => {
     await page.getByTestId('toolbar-terminal').filter({ visible: true }).click()
-    await expect(page.getByTestId('terminal-panel')).toBeVisible()
+    await expect(terminalPanel()).toBeVisible()
+    // 打开抽屉就该有一条「终端 1」。
+    await expect(page.getByTestId('terminal-tab-1')).toBeVisible()
 
     const rows = terminalRows()
     // 等提示符出现：说明 shell 通道与首屏输出都通了。
@@ -66,7 +73,7 @@ test.describe.serial('terminal', () => {
       .poll(async () => (await rows.innerText()).trim().length, { timeout: 30_000 })
       .toBeGreaterThan(0)
 
-    await page.getByTestId('terminal-panel').click()
+    await terminalPanel().click()
     // 用算术表达式生成标记：敲进去的字符里不含 rivet-42，只有 shell 输出才会出现。
     await page.keyboard.type('echo rivet-$((6*7))')
     await page.keyboard.press('Enter')
@@ -74,8 +81,35 @@ test.describe.serial('terminal', () => {
     await expect.poll(async () => rows.innerText(), { timeout: 30_000 }).toContain('rivet-42')
   })
 
+  test('keeps a second tab on its own shell', async () => {
+    await page.getByTestId('terminal-tab-new').click()
+    await expect(page.getByTestId('terminal-tab-2')).toHaveAttribute('aria-pressed', 'true')
+
+    const rows = terminalRows()
+    await expect
+      .poll(async () => (await rows.innerText()).trim().length, { timeout: 30_000 })
+      .toBeGreaterThan(0)
+
+    await terminalPanel().click()
+    await page.keyboard.type('echo second-$((2*3))')
+    await page.keyboard.press('Enter')
+    await expect.poll(async () => rows.innerText(), { timeout: 30_000 }).toContain('second-6')
+
+    // 两个标签是两条独立 shell：第一条标签的输出不该串到这里。
+    await expect(rows).not.toContainText('rivet-42')
+
+    // 切回第一条：回滚缓冲还在。
+    await page.getByTestId('terminal-tab-1').click()
+    await expect(terminalRows()).toContainText('rivet-42')
+
+    // 关掉第二条，第一条继续可用。
+    await page.getByTestId('terminal-tab-close-2').click()
+    await expect(page.getByTestId('terminal-tab-2')).toBeHidden()
+    await expect(terminalRows()).toContainText('rivet-42')
+  })
+
   test('maximizes the terminal over the file area', async () => {
-    const panel = page.getByTestId('terminal-panel')
+    const panel = terminalPanel()
     const docked = await panel.boundingBox()
     expect(docked?.height ?? 0).toBeGreaterThan(0)
 
@@ -95,10 +129,13 @@ test.describe.serial('terminal', () => {
 
   test('closes and reopens the terminal', async () => {
     await page.getByTestId('terminal-close').click()
-    await expect(page.getByTestId('terminal-panel')).toBeHidden()
+    await expect(terminalPanel()).toBeHidden()
+    // 收起抽屉会结束该会话的 shell，标签一并清空。
+    await expect(page.getByTestId('terminal-tab-1')).toBeHidden()
 
     await page.getByTestId('toolbar-terminal').filter({ visible: true }).click()
-    await expect(page.getByTestId('terminal-panel')).toBeVisible()
+    await expect(terminalPanel()).toBeVisible()
+    await expect(page.getByTestId('terminal-tab-1')).toBeVisible()
     await expect
       .poll(async () => (await terminalRows().innerText()).trim().length, { timeout: 30_000 })
       .toBeGreaterThan(0)
